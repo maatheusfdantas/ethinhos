@@ -247,7 +247,7 @@ export function FocusTab({ user, onFocusComplete }) {
           <Timer size={20} color="var(--accent-cyan)" />
           <h2 className="section-title">Cronômetro de Foco & Produtividade</h2>
         </div>
-        <span className="section-badge">Técnica Pomodoro (US05)</span>
+        <span className="section-badge">Técnica Pomodoro</span>
       </div>
 
       {/* US25: VINCULAÇÃO A UMA MATÉRIA ESPECÍFICA */}
@@ -255,7 +255,7 @@ export function FocusTab({ user, onFocusComplete }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <BookOpen size={16} color="var(--accent-indigo)" />
           <label className="form-label" style={{ margin: 0 }}>
-            Matéria ou Atividade Vinculada (US25)
+            Matéria ou Atividade Vinculada
           </label>
         </div>
         <select 
@@ -412,7 +412,7 @@ export function FocusTab({ user, onFocusComplete }) {
             </div>
 
             <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Aqui está sua imagem comemorativa gerada dinamicamente via Canvas (US06):
+              Aqui está sua imagem comemorativa gerada dinamicamente via Canvas:
             </p>
 
             {/* RENDERED HTML5 CANVAS */}
@@ -445,7 +445,7 @@ export function FocusTab({ user, onFocusComplete }) {
                 onClick={handleDownloadImage}
               >
                 <Download size={18} />
-                Baixar Imagem PNG (US06)
+                Baixar Imagem PNG
               </button>
             </div>
           </div>

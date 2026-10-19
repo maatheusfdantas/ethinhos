@@ -76,12 +76,19 @@ export function initDatabase() {
       user_id TEXT PRIMARY KEY,
       water_glasses INTEGER NOT NULL DEFAULT 0,
       water_target INTEGER NOT NULL DEFAULT 10,
+      glass_ml INTEGER NOT NULL DEFAULT 250,
       water_history TEXT NOT NULL DEFAULT '[]',
       sleep_bed_time TEXT NOT NULL DEFAULT '23:30',
       sleep_wake_time TEXT NOT NULL DEFAULT '07:00',
       sleep_logged INTEGER NOT NULL DEFAULT 0
     );
   `);
+
+  try {
+    db.exec(`ALTER TABLE health ADD COLUMN glass_ml INTEGER NOT NULL DEFAULT 250;`);
+  } catch (e) {
+    // column already exists
+  }
 
   // 5. Workouts Table
   db.exec(`

@@ -148,7 +148,7 @@ export function SocialTab({
           className={`segmented-btn ${subTab === 'feed' ? 'active' : ''}`}
           onClick={() => setSubTab('feed')}
         >
-          Feed Social (US14)
+          Feed Social
         </button>
         <button
           className={`segmented-btn ${subTab === 'friends' ? 'active' : ''}`}

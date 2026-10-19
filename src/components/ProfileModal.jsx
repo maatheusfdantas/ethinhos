@@ -49,7 +49,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser }) {
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <User size={20} color="var(--accent-cyan)" />
-            <h2 className="modal-title">Perfil & Privacidade (US37)</h2>
+            <h2 className="modal-title">Perfil & Privacidade</h2>
           </div>
           <button className="modal-close-btn" onClick={onClose}>
             <X size={18} />
@@ -101,7 +101,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser }) {
 
           {/* US37: CONTROLE DE PRIVACIDADE BÁSICA (PÚBLICO / PRIVADO) */}
           <div className="form-group">
-            <label className="form-label">Controle de Privacidade (US37)</label>
+            <label className="form-label">Controle de Privacidade</label>
             <div className="card-native" style={{ padding: '14px', background: 'var(--surface-elevated)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

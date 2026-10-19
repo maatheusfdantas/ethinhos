@@ -253,13 +253,15 @@ app.get('/api/user/:id/data', (req, res) => {
     health = {
       waterGlasses: 0,
       waterTarget: 10,
+      glassMl: 250,
       waterHistory: [],
       sleep: { bedTime: '23:30', wakeTime: '07:00', logged: false }
     };
   } else {
     health = {
       waterGlasses: health.water_glasses,
-      waterTarget: health.water_target,
+      waterTarget: health.water_target || 10,
+      glassMl: health.glass_ml || 250,
       waterHistory: JSON.parse(health.water_history || '[]'),
       sleep: {
         bedTime: health.sleep_bed_time,
@@ -368,20 +370,28 @@ app.post('/api/user/:id/tag', (req, res) => {
 // Atualizar Água e Saúde
 app.post('/api/user/:id/health', (req, res) => {
   const { id } = req.params;
-  const { waterGlasses, waterHistory, sleep } = req.body;
+  const { waterGlasses, waterTarget, glassMl, waterHistory, sleep } = req.body;
 
   db.prepare(`
-    INSERT INTO health (user_id, water_glasses, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO health (user_id, water_glasses, water_target, glass_ml, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(user_id) DO UPDATE SET
       water_glasses = COALESCE(excluded.water_glasses, health.water_glasses),
+      water_target = COALESCE(excluded.water_target, health.water_target),
+      glass_ml = COALESCE(excluded.glass_ml, health.glass_ml),
       water_history = COALESCE(excluded.water_history, health.water_history),
       sleep_bed_time = COALESCE(excluded.sleep_bed_time, health.sleep_bed_time),
       sleep_wake_time = COALESCE(excluded.sleep_wake_time, health.sleep_wake_time),
       sleep_logged = COALESCE(excluded.sleep_logged, health.sleep_logged)
   `).run(
-    id, waterGlasses ?? 0, JSON.stringify(waterHistory || []),
-    sleep?.bedTime || '23:30', sleep?.wakeTime || '07:00', sleep?.logged ? 1 : 0
+    id, 
+    waterGlasses ?? 0, 
+    waterTarget || 10, 
+    glassMl || 250, 
+    JSON.stringify(waterHistory || []),
+    sleep?.bedTime || '23:30', 
+    sleep?.wakeTime || '07:00', 
+    sleep?.logged ? 1 : 0
   );
 
   res.json({ success: true });
