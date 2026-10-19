@@ -52,6 +52,7 @@ export function DashboardTab({
   habits = [],
   setHabits,
   events = [],
+  workouts = [],
   health = {},
   setHealth,
   tags = [],
@@ -66,6 +67,16 @@ export function DashboardTab({
   const [sleepEditMode, setSleepEditMode] = useState(false);
   const [bedTimeInput, setBedTimeInput] = useState(health?.sleep?.bedTime || '23:30');
   const [wakeTimeInput, setWakeTimeInput] = useState(health?.sleep?.wakeTime || '07:00');
+
+  // Customização de Água (Meta de Copos e ml por copo)
+  const [waterEditMode, setWaterEditMode] = useState(false);
+  const [waterTargetInput, setWaterTargetInput] = useState(health?.waterTarget || 10);
+  const [glassMlInput, setGlassMlInput] = useState(health?.glassMl || 250);
+
+  useEffect(() => {
+    if (health?.waterTarget) setWaterTargetInput(health.waterTarget);
+    if (health?.glassMl) setGlassMlInput(health.glassMl);
+  }, [health?.waterTarget, health?.glassMl]);
 
   // Analytics State from Python Engine (Garmin Connect Overview)
   const [analytics, setAnalytics] = useState(null);
@@ -92,21 +103,25 @@ export function DashboardTab({
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState(DEFAULT_PALETTES[0]);
 
-  // Filter events for TODAY (Requisito 1: Onde cada um é alocado)
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Filter events and scheduled workouts for TODAY
+  const todayDateObj = new Date();
+  const todayStr = todayDateObj.toISOString().split('T')[0];
+  const todayDayOfWeek = todayDateObj.getDay();
   const todayEvents = events.filter(e => e.date === todayStr);
+  const todayScheduledWorkouts = (workouts || []).filter(w => (w.scheduledDays || []).includes(todayDayOfWeek));
 
   // Performance bar calculation
   const totalTasks = habits.length;
   const completedTasks = habits.filter(h => h.completed).length;
   const taskProgressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  // Water calculation (US09, US27)
+  // Water calculation (com copos e ml customizáveis)
   const waterGlasses = health.waterGlasses || 0;
   const waterTarget = health.waterTarget || 10;
+  const glassMl = health.glassMl || 250;
   const waterPercent = Math.min(100, Math.round((waterGlasses / waterTarget) * 100));
 
-  // Sleep calculation (US10)
+  // Sleep calculation
   const calculateSleepHours = (bed, wake) => {
     try {
       const [bH, bM] = (bed || '23:30').split(':').map(Number);
@@ -124,7 +139,7 @@ export function DashboardTab({
     ? Math.min(100, Math.round((sleepHours / (health?.sleep?.targetHours || 8)) * 100))
     : 0;
 
-  // US12: Média de Vitalidade (40% tarefas + 30% água + 30% sono)
+  // Média de Vitalidade (40% tarefas + 30% água + 30% sono)
   const vitalityScore = Math.round(
     (taskProgressPercent * 0.4) + 
     (waterPercent * 0.3) + 
@@ -136,7 +151,7 @@ export function DashboardTab({
   else if (vitalityScore >= 50) vitalityStatus = 'Consistente';
   else if (vitalityScore > 0) vitalityStatus = 'Em Evolução';
 
-  // US20: Prioridade
+  // Prioridade
   const priorityWeight = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
   const pendingHabits = habits
     .filter(h => !h.completed)
@@ -144,29 +159,70 @@ export function DashboardTab({
 
   const completedHabits = habits.filter(h => h.completed);
 
-  // US09: Add water glass
+  // Add water glass (usando glassMl configurado pelo usuário)
   const handleAddWater = () => {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const newGlasses = waterGlasses + 1;
-    const newHistory = [...(health.waterHistory || []), { id: Date.now(), timestamp: timeStr, amountMl: 250 }];
-    setHealth({
+    const newHistory = [...(health.waterHistory || []), { id: Date.now(), timestamp: timeStr, amountMl: glassMl }];
+    const nextHealth = {
       ...health,
       waterGlasses: newGlasses,
-      waterHistory: newHistory
-    });
+      waterHistory: newHistory,
+      waterTarget,
+      glassMl
+    };
+    setHealth(nextHealth);
+    if (user) {
+      fetch(`/api/user/${user.id}/health`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextHealth)
+      }).catch(() => {});
+    }
   };
 
-  // US27: Delete last water glass
+  // Delete last water glass
   const handleDeleteLastWater = () => {
     if (waterGlasses <= 0) return;
     const newGlasses = waterGlasses - 1;
     const newHistory = (health.waterHistory || []).slice(0, -1);
-    setHealth({
+    const nextHealth = {
       ...health,
       waterGlasses: newGlasses,
-      waterHistory: newHistory
-    });
+      waterHistory: newHistory,
+      waterTarget,
+      glassMl
+    };
+    setHealth(nextHealth);
+    if (user) {
+      fetch(`/api/user/${user.id}/health`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextHealth)
+      }).catch(() => {});
+    }
+  };
+
+  // Salvar opções de água (quantos copos e quantos ml)
+  const handleSaveWaterOptions = (e) => {
+    e.preventDefault();
+    const newTarget = Math.max(1, parseInt(waterTargetInput, 10) || 10);
+    const newMl = Math.max(50, parseInt(glassMlInput, 10) || 250);
+    const nextHealth = {
+      ...health,
+      waterTarget: newTarget,
+      glassMl: newMl
+    };
+    setHealth(nextHealth);
+    setWaterEditMode(false);
+    if (user) {
+      fetch(`/api/user/${user.id}/health`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextHealth)
+      }).catch(() => {});
+    }
   };
 
   // US10: Save sleep
@@ -388,7 +444,7 @@ export function DashboardTab({
       <div className="vitality-hero-card">
         <div className="vitality-header">
           <div>
-            <span className="submetric-title">Índice Geral de Vitalidade Diária (US12)</span>
+            <span className="submetric-title">Índice Geral de Vitalidade Diária</span>
             <div className="vitality-score-block">
               <span className="vitality-number">{vitalityScore}</span>
               <span className="vitality-unit">/100</span>
@@ -415,7 +471,7 @@ export function DashboardTab({
               <Droplets size={14} color="var(--accent-cyan)" />
               Água ({waterPercent}%)
             </span>
-            <span className="submetric-value">{(waterGlasses * 0.25).toFixed(2)}L / 2.5L</span>
+            <span className="submetric-value">{((waterGlasses * glassMl) / 1000).toFixed(2)}L / {((waterTarget * glassMl) / 1000).toFixed(2)}L</span>
           </div>
 
           <div className="submetric-item">
@@ -434,7 +490,7 @@ export function DashboardTab({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Palette size={18} color="var(--accent-cyan)" />
             <span style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Temas & Categorias das Atividades (US39)
+              Temas & Categorias das Atividades
             </span>
           </div>
 
@@ -521,7 +577,7 @@ export function DashboardTab({
           <Calendar size={18} color="var(--accent-indigo)" />
           <h2 className="section-title">Agenda & Compromissos de Hoje</h2>
           <span className="section-badge" style={{ color: 'var(--accent-indigo)', borderColor: 'var(--accent-indigo)' }}>
-            {todayEvents.length} Marcados
+            {todayEvents.length + todayScheduledWorkouts.length} Marcados
           </span>
         </div>
 
@@ -536,7 +592,50 @@ export function DashboardTab({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
-        {todayEvents.length === 0 ? (
+        {todayScheduledWorkouts.map((w) => (
+          <div 
+            key={`wo_${w.id}`}
+            className="card-native" 
+            style={{ 
+              borderLeft: '4px solid var(--accent-rose)',
+              padding: '14px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Dumbbell size={14} color="var(--accent-rose)" />
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-rose)' }}>
+                  {w.scheduledTime || '18:30'}
+                </span>
+                <span className="priority-badge low" style={{ background: 'rgba(244, 63, 94, 0.15)', color: 'var(--accent-rose)' }}>
+                  Musculação
+                </span>
+              </div>
+              <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
+                {w.name}
+              </h3>
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                {w.exercises?.length || 0} exercícios cadastrados nesta ficha
+              </div>
+            </div>
+
+            <button 
+              className="btn-secondary" 
+              style={{ padding: '6px 14px', fontSize: '0.78rem', gap: '6px' }}
+              onClick={onOpenWorkout}
+            >
+              <Dumbbell size={13} color="var(--accent-rose)" />
+              Abrir Treino
+            </button>
+          </div>
+        ))}
+
+        {todayEvents.length === 0 && todayScheduledWorkouts.length === 0 ? (
           <div className="card-native" style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
             Nenhum compromisso com data e horário marcado para hoje. Todos os seus eventos cadastrados ficam salvos na sua <strong>Agenda & Calendário</strong>.
           </div>
@@ -597,47 +696,125 @@ export function DashboardTab({
                   <Droplets size={18} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.92rem', fontWeight: 700 }}>Hidratação Diária (US09, US27)</span>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Meta: 10 copos (2.500 ml)</div>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 700 }}>Hidratação Diária</span>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    Meta: {waterTarget} copos ({((waterTarget * glassMl)).toLocaleString('pt-BR')} ml)
+                  </div>
                 </div>
               </div>
-              <span className="section-badge">{waterPercent}%</span>
-            </div>
-
-            <div className="water-controls">
-              <div className="water-counter">
-                {waterGlasses} <span>/ {waterTarget} copos</span>
-              </div>
-
-              <div className="water-btn-group">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button 
-                  className="btn-icon-round"
-                  onClick={handleDeleteLastWater}
-                  disabled={waterGlasses <= 0}
-                  title="Desfazer / Remover último copo de água (US27)"
+                  className="section-badge"
+                  style={{ cursor: 'pointer', background: 'var(--surface-elevated)' }}
+                  onClick={() => setWaterEditMode(!waterEditMode)}
+                  title="Configurar meta diária de copos e ml por copo"
                 >
-                  <Minus size={18} />
+                  {waterEditMode ? 'Fechar' : 'Opções'}
                 </button>
-
-                <button 
-                  className="btn-icon-round primary"
-                  onClick={handleAddWater}
-                  title="Registrar +1 copo de água (US09)"
-                >
-                  <Plus size={20} strokeWidth={2.8} />
-                </button>
+                <span className="section-badge">{waterPercent}%</span>
               </div>
             </div>
-          </div>
 
-          <div style={{ marginTop: '14px' }}>
-            <div className="habit-progress-track">
-              <div className="habit-progress-bar" style={{ width: `${waterPercent}%` }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-              <span>{(waterGlasses * 250)} ml ingeridos</span>
-              <span>Faltam {(Math.max(0, waterTarget - waterGlasses) * 250)} ml</span>
-            </div>
+            {waterEditMode ? (
+              <form onSubmit={handleSaveWaterOptions} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Meta de Copos:</label>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max="30" 
+                      className="input-dark" 
+                      value={waterTargetInput}
+                      onChange={(e) => setWaterTargetInput(e.target.value)}
+                      style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Tamanho do Copo (ml):</label>
+                    <input 
+                      type="number" 
+                      min="50" 
+                      step="50" 
+                      max="2000" 
+                      className="input-dark" 
+                      value={glassMlInput}
+                      onChange={(e) => setGlassMlInput(e.target.value)}
+                      style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Presets rápidos de volume */}
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Atalhos ml:</span>
+                  {[200, 250, 300, 500].map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className="section-badge"
+                      style={{
+                        cursor: 'pointer',
+                        background: Number(glassMlInput) === preset ? 'var(--accent-cyan)' : 'var(--surface-elevated)',
+                        color: Number(glassMlInput) === preset ? '#030712' : 'var(--text-secondary)',
+                        padding: '2px 8px',
+                        fontSize: '0.72rem'
+                      }}
+                      onClick={() => setGlassMlInput(preset)}
+                    >
+                      {preset}ml
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)' }}>
+                  Total calculado: {waterTargetInput || 0} copos × {glassMlInput || 0} ml = {((Number(waterTargetInput) || 0) * (Number(glassMlInput) || 0)).toLocaleString('pt-BR')} ml
+                </div>
+
+                <button type="submit" className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                  Salvar Preferências
+                </button>
+              </form>
+            ) : (
+              <>
+                <div className="water-controls">
+                  <div className="water-counter">
+                    {waterGlasses} <span>/ {waterTarget} copos</span>
+                  </div>
+
+                  <div className="water-btn-group">
+                    <button 
+                      className="btn-icon-round"
+                      onClick={handleDeleteLastWater}
+                      disabled={waterGlasses <= 0}
+                      title="Desfazer / Remover último copo de água"
+                    >
+                      <Minus size={18} />
+                    </button>
+
+                    <button 
+                      className="btn-icon-round primary"
+                      onClick={handleAddWater}
+                      title="Registrar +1 copo de água"
+                    >
+                      <Plus size={20} strokeWidth={2.8} />
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '14px' }}>
+                  <div className="habit-progress-track">
+                    <div className="habit-progress-bar" style={{ width: `${waterPercent}%` }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                    <span>{(waterGlasses * glassMl).toLocaleString('pt-BR')} ml ingeridos ({glassMl}ml/copo)</span>
+                    <span>Faltam {(Math.max(0, waterTarget - waterGlasses) * glassMl).toLocaleString('pt-BR')} ml</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -650,7 +827,7 @@ export function DashboardTab({
                   <Moon size={18} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.92rem', fontWeight: 700 }}>Ciclo de Sono (US10)</span>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 700 }}>Ciclo de Sono</span>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Registro manual</div>
                 </div>
               </div>
@@ -706,18 +883,6 @@ export function DashboardTab({
                 </span>
               </div>
             )}
-          </div>
-
-          <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Treino de Força (US11):</span>
-            <button 
-              className="btn-secondary" 
-              style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '4px' }}
-              onClick={onOpenWorkout}
-            >
-              <Dumbbell size={13} color="var(--accent-rose)" />
-              Abrir Ficha de Treino
-            </button>
           </div>
         </div>
       </div>

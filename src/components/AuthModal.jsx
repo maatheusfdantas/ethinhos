@@ -205,10 +205,10 @@ export function AuthModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <KeyRound size={20} color="var(--accent-cyan)" />
             <h2 className="modal-title">
-              {mode === 'login' && 'Autenticação no Ethos (US35)'}
-              {mode === 'register' && 'Criar Conta no SQLite (US35)'}
-              {mode === 'forgot_request' && 'Recuperar Senha (US36)'}
-              {mode === 'forgot_verify' && 'Validar Token (US36)'}
+              {mode === 'login' && 'Autenticação no Ethos'}
+              {mode === 'register' && 'Criar Conta no Ethos'}
+              {mode === 'forgot_request' && 'Recuperar Senha'}
+              {mode === 'forgot_verify' && 'Validar Token'}
             </h2>
           </div>
           <button className="modal-close-btn" onClick={onClose}>
@@ -250,7 +250,7 @@ export function AuthModal({
                   style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 600 }}
                   onClick={() => { setErrorMessage(''); setMode('forgot_request'); }}
                 >
-                  Esqueceu a senha? (US36)
+                  Esqueceu a senha?
                 </button>
               </div>
               <div style={{ position: 'relative' }}>
@@ -293,7 +293,7 @@ export function AuthModal({
             </div>
 
             <button type="submit" className="btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
-              {loading ? 'Validando no SQLite...' : 'Entrar na Conta (US35)'}
+              {loading ? 'Validando no SQLite...' : 'Entrar na Conta'}
             </button>
 
             <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>

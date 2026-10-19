@@ -55,7 +55,7 @@ export function Header({ user, onOpenProfile, onOpenAuth, onOpenAdmin, activeTab
         <button 
           className="header-icon-btn" 
           onClick={onOpenAuth}
-          title="Autenticação e Contas (US35)"
+          title="Autenticação e Contas"
         >
           <Settings size={18} />
         </button>

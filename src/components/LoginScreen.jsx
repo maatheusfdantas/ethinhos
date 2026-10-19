@@ -209,7 +209,7 @@ export function LoginScreen({ onLoginSuccess }) {
           </div>
 
           <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
-            Acesso obrigatório via autenticação (US35). Escolha um dos 5 perfis pré-cadastrados abaixo para testar instantaneamente ou digite suas credenciais.
+            Acesso obrigatório via autenticação. Escolha um dos 5 perfis pré-cadastrados abaixo para testar instantaneamente ou digite suas credenciais.
           </p>
 
           {/* 5 USUÁRIOS PRÉ-CONFIGURADOS (REQUISITO 6) */}
@@ -318,7 +318,7 @@ export function LoginScreen({ onLoginSuccess }) {
                     style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '0.76rem', cursor: 'pointer', fontWeight: 600 }}
                     onClick={() => { setErrorMessage(''); setMode('forgot_request'); }}
                   >
-                    Esqueceu a senha? (US36)
+                    Esqueceu a senha?
                   </button>
                 </div>
                 <div style={{ position: 'relative' }}>

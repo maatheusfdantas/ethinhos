@@ -10,10 +10,11 @@ import {
   Tag, 
   CalendarCheck, 
   FileText,
-  AlertCircle
+  AlertCircle,
+  Dumbbell
 } from 'lucide-react';
 
-export function CalendarTab({ events = [], habits = [], onOpenAdd, onToggleEvent }) {
+export function CalendarTab({ events = [], habits = [], workouts = [], onOpenAdd, onToggleEvent }) {
   // Views: 'month', 'week', 'day'
   const [viewMode, setViewMode] = useState('month');
 
@@ -69,7 +70,10 @@ export function CalendarTab({ events = [], habits = [], onOpenAdd, onToggleEvent
     const dayOfWeek = targetDate.getDay(); // 0-6
     const repeatingHabits = habits.filter(h => (h.repeatDays || []).includes(dayOfWeek));
 
-    return { events: dayEvents, habits: repeatingHabits };
+    // Also include workouts scheduled on this day of week
+    const scheduledWorkouts = workouts.filter(w => (w.scheduledDays || []).includes(dayOfWeek));
+
+    return { events: dayEvents, habits: repeatingHabits, workouts: scheduledWorkouts };
   };
 
   // Selected date activities
@@ -166,8 +170,8 @@ export function CalendarTab({ events = [], habits = [], onOpenAdd, onToggleEvent
               const dateStr = formatIsoDate(currentYear, currentMonth, dayNum);
               const isSelected = selectedDateStr === dateStr;
               const isToday = todayDateStr === dateStr;
-              const { events: dayEvents, habits: dayHabits } = getActivitiesForDate(dateStr);
-              const totalItems = dayEvents.length + dayHabits.length;
+              const { events: dayEvents, habits: dayHabits, workouts: dayWorkouts } = getActivitiesForDate(dateStr);
+              const totalItems = dayEvents.length + dayHabits.length + (dayWorkouts?.length || 0);
 
               return (
                 <div
@@ -213,6 +217,25 @@ export function CalendarTab({ events = [], habits = [], onOpenAdd, onToggleEvent
 
                   {/* VISUALIZAÇÃO DIRETA DAS ATIVIDADES MARCADAS PARA AQUELA DATA (REQUISITO 2) */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                    {dayWorkouts?.slice(0, 1).map((w) => (
+                      <div 
+                        key={w.id}
+                        style={{
+                          fontSize: '0.63rem',
+                          background: 'rgba(244, 63, 94, 0.16)',
+                          color: 'var(--accent-rose)',
+                          padding: '2px 4px',
+                          borderRadius: '4px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          borderLeft: '2px solid var(--accent-rose)'
+                        }}
+                      >
+                        {w.name.split(' - ')[0]}
+                      </div>
+                    ))}
+
                     {dayEvents.slice(0, 2).map((ev) => (
                       <div 
                         key={ev.id}
@@ -274,7 +297,7 @@ export function CalendarTab({ events = [], habits = [], onOpenAdd, onToggleEvent
               const baseDate = new Date(`${selectedDateStr}T12:00:00`);
               baseDate.setDate(baseDate.getDate() + offset);
               const dateStr = baseDate.toISOString().split('T')[0];
-              const { events: dayEvents, habits: dayHabits } = getActivitiesForDate(dateStr);
+              const { events: dayEvents, habits: dayHabits, workouts: dayWorkouts } = getActivitiesForDate(dateStr);
               const isSelected = selectedDateStr === dateStr;
 
               return (
@@ -299,6 +322,11 @@ export function CalendarTab({ events = [], habits = [], onOpenAdd, onToggleEvent
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {dayWorkouts?.map(w => (
+                      <div key={w.id} style={{ fontSize: '0.66rem', background: 'rgba(244, 63, 94, 0.18)', color: 'var(--accent-rose)', padding: '2px 4px', borderRadius: '4px', borderLeft: '2px solid var(--accent-rose)' }}>
+                        <strong>{w.scheduledTime || '18:30'}</strong> {w.name.split(' - ')[0]}
+                      </div>
+                    ))}
                     {dayEvents.map(e => (
                       <div key={e.id} style={{ fontSize: '0.68rem', background: 'rgba(0, 229, 255, 0.15)', color: '#fff', padding: '3px 4px', borderRadius: '4px' }}>
                         <strong>{e.startTime}</strong> {e.title}
@@ -452,7 +480,38 @@ export function CalendarTab({ events = [], habits = [], onOpenAdd, onToggleEvent
           )}
         </div>
 
-        {/* 2. SEÇÃO DE HÁBITOS DE ROTINA QUE REPETEM NESTE DIA DA SEMANA */}
+        {/* 2. SEÇÃO DE TREINOS DE MUSCULAÇÃO AGENDADOS PARA ESTE DIA DA SEMANA */}
+        {selectedDayActivities.workouts && selectedDayActivities.workouts.length > 0 && (
+          <div style={{ marginBottom: '18px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-rose)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+              <Dumbbell size={16} color="var(--accent-rose)" />
+              Treinos de Musculação Agendados ({selectedDayActivities.workouts.length}):
+            </span>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {selectedDayActivities.workouts.map((w) => (
+                <div key={w.id} className="card-native" style={{ background: 'var(--surface-elevated)', borderLeft: '4px solid var(--accent-rose)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-rose)' }}>
+                        {w.scheduledTime || '18:30'}
+                      </span>
+                      <span className="priority-badge low" style={{ background: 'rgba(244, 63, 94, 0.15)', color: 'var(--accent-rose)' }}>Musculação</span>
+                    </div>
+                    <div style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                      {w.name}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                      {w.exercises?.length || 0} exercícios cadastrados nesta ficha
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 3. SEÇÃO DE HÁBITOS DE ROTINA QUE REPETEM NESTE DIA DA SEMANA */}
         <div>
           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
             <CheckCircle2 size={16} color="var(--accent-indigo)" />

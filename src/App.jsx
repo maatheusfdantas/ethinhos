@@ -159,7 +159,7 @@ export function App() {
         userName: user.name,
         userAvatar: user.avatar,
         type: 'workout_completed',
-        title: 'Treino de Força Finalizado (US11)',
+        title: 'Treino de Força Finalizado',
         details: `${workoutName} concluído com sucesso e disciplina total!`,
         timestamp: 'Agora mesmo',
         reactions: { like: 1, fire: 3, trophy: 2 },
@@ -259,6 +259,7 @@ export function App() {
             habits={habits}
             setHabits={setHabits}
             events={events}
+            workouts={workouts}
             health={health}
             setHealth={setHealth}
             tags={tags}
@@ -313,6 +314,7 @@ export function App() {
           <CalendarTab
             events={events}
             habits={habits}
+            workouts={workouts}
             onOpenAdd={() => setShowAddModal(true)}
             onToggleEvent={handleToggleEvent}
           />

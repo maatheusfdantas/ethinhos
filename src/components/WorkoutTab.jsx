@@ -11,12 +11,19 @@ import {
   X, 
   Clock, 
   Flame, 
-  Share2 
+  Share2,
+  CalendarCheck
 } from 'lucide-react';
 
 export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
   const [activeWorkoutId, setActiveWorkoutId] = useState(workouts[0]?.id || 'wo_a');
   const [showNewExerciseModal, setShowNewExerciseModal] = useState(false);
+  const [showNewWorkoutModal, setShowNewWorkoutModal] = useState(false);
+
+  // New Workout Form State
+  const [newWorkoutName, setNewWorkoutName] = useState('');
+  const [newWorkoutDays, setNewWorkoutDays] = useState([1]);
+  const [newWorkoutTime, setNewWorkoutTime] = useState('18:30');
 
   // New Exercise Form State
   const [exerciseName, setExerciseName] = useState('');
@@ -85,6 +92,44 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     onCompleteWorkout(currentWorkout.name);
   };
 
+  // Alternar dia de execução na agenda semanal para este tipo de treino
+  const handleToggleWorkoutDay = (workoutId, dayIdx) => {
+    setWorkouts(prev => prev.map(w => {
+      if (w.id === workoutId) {
+        const currentDays = w.scheduledDays || [];
+        const nextDays = currentDays.includes(dayIdx)
+          ? currentDays.filter(d => d !== dayIdx)
+          : [...currentDays, dayIdx];
+        return {
+          ...w,
+          scheduledDays: nextDays
+        };
+      }
+      return w;
+    }));
+  };
+
+  // Submeter criação de nova ficha de treino
+  const handleCreateWorkoutSubmit = (e) => {
+    e.preventDefault();
+    if (!newWorkoutName.trim()) return;
+
+    const newId = `wo_${Date.now()}`;
+    const newWorkoutObj = {
+      id: newId,
+      name: newWorkoutName.trim(),
+      scheduledDays: newWorkoutDays,
+      scheduledTime: newWorkoutTime || '18:30',
+      exercises: []
+    };
+
+    setWorkouts(prev => [...prev, newWorkoutObj]);
+    setActiveWorkoutId(newId);
+    setNewWorkoutName('');
+    setNewWorkoutDays([1]);
+    setShowNewWorkoutModal(false);
+  };
+
   return (
     <div className="workout-view">
       {/* SECTION HEADER */}
@@ -93,18 +138,28 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
           <Dumbbell size={20} color="var(--accent-rose)" />
           <h2 className="section-title">Módulo de Musculação & Treino</h2>
         </div>
-        <button 
-          className="btn-primary" 
-          style={{ padding: '6px 14px', fontSize: '0.82rem' }}
-          onClick={() => setShowNewExerciseModal(true)}
-        >
-          <Plus size={16} strokeWidth={2.6} />
-          Novo Exercício
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className="btn-secondary" 
+            style={{ padding: '6px 14px', fontSize: '0.82rem', gap: '6px' }}
+            onClick={() => setShowNewWorkoutModal(true)}
+          >
+            <Plus size={16} strokeWidth={2.6} />
+            Novo Treino
+          </button>
+          <button 
+            className="btn-primary" 
+            style={{ padding: '6px 14px', fontSize: '0.82rem', gap: '6px' }}
+            onClick={() => setShowNewExerciseModal(true)}
+          >
+            <Plus size={16} strokeWidth={2.6} />
+            Novo Exercício
+          </button>
+        </div>
       </div>
 
       {/* HORIZONTAL WORKOUT TABS (Treino A, Treino B, Treino C) */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '14px' }}>
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '14px', alignItems: 'center' }}>
         {workouts.map((w) => {
           const isActive = w.id === activeWorkoutId;
           return (
@@ -130,30 +185,103 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
             </button>
           );
         })}
+
+        <button
+          onClick={() => setShowNewWorkoutModal(true)}
+          style={{
+            padding: '10px 14px',
+            borderRadius: 'var(--radius-pill)',
+            background: 'var(--surface-elevated)',
+            color: 'var(--accent-cyan)',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            border: '1px dashed var(--accent-cyan)',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+          title="Criar nova ficha de treino"
+        >
+          <Plus size={14} />
+          Nova Ficha
+        </button>
       </div>
 
-      {/* CURRENT WORKOUT INFO BANNER */}
-      <div className="card-native" style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', textTransform: 'uppercase', fontWeight: 700 }}>
-            Ficha Ativa
-          </span>
-          <h3 style={{ fontSize: '1.15rem', color: 'var(--text-primary)', marginTop: '2px' }}>
-            {currentWorkout?.name}
-          </h3>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            {currentWorkout?.exercises?.length || 0} exercícios planejados
-          </span>
+      {/* CURRENT WORKOUT INFO BANNER WITH AGENDA DAYS SELECTOR */}
+      <div className="card-native" style={{ marginBottom: '18px', padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', marginBottom: '14px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', textTransform: 'uppercase', fontWeight: 700 }}>
+                Ficha Ativa
+              </span>
+              <span className="section-badge" style={{ fontSize: '0.72rem' }}>
+                {currentWorkout?.exercises?.length || 0} exercícios
+              </span>
+            </div>
+            <h3 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginTop: '3px' }}>
+              {currentWorkout?.name}
+            </h3>
+          </div>
+
+          <button 
+            className="btn-indigo"
+            onClick={handleFinishWorkout}
+            style={{ padding: '8px 18px', fontSize: '0.85rem' }}
+          >
+            <CheckCircle2 size={16} />
+            Finalizar Treino de Hoje
+          </button>
         </div>
 
-        <button 
-          className="btn-indigo"
-          onClick={handleFinishWorkout}
-          style={{ padding: '8px 18px', fontSize: '0.85rem' }}
-        >
-          <CheckCircle2 size={16} />
-          Finalizar Treino de Hoje (US11)
-        </button>
+        {/* DIAS NA AGENDA PELO TIPO DE TREINO (ex: Treino A às segundas) */}
+        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              <CalendarCheck size={15} color="var(--accent-cyan)" />
+              <span>Dias na Agenda para {currentWorkout?.name?.split(' - ')[0] || 'este treino'}:</span>
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              {currentWorkout?.scheduledDays && currentWorkout.scheduledDays.length > 0 
+                ? `Agendado para: ${currentWorkout.scheduledDays.slice().sort((a,b)=>a-b).map(d => ['Domingos', 'Segundas', 'Terças', 'Quartas', 'Quintas', 'Sextas', 'Sábados'][d]).join(', ')} às ${currentWorkout.scheduledTime || '18:30'}`
+                : 'Nenhum dia fixado na agenda semanal'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((dayLetter, dayIdx) => {
+              const isSelected = (currentWorkout?.scheduledDays || []).includes(dayIdx);
+              return (
+                <button
+                  key={dayIdx}
+                  type="button"
+                  onClick={() => handleToggleWorkoutDay(currentWorkout.id, dayIdx)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    border: '1px solid',
+                    borderColor: isSelected ? 'var(--accent-cyan)' : 'var(--border-subtle)',
+                    background: isSelected ? 'var(--accent-cyan)' : 'var(--surface-elevated)',
+                    color: isSelected ? '#030712' : 'var(--text-secondary)',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all var(--transition-fast)'
+                  }}
+                  title={`Agendar ${currentWorkout?.name?.split(' - ')[0]} para ${['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][dayIdx]}`}
+                >
+                  {dayLetter}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* REST TIMER BANNER IF ACTIVE */}
@@ -390,6 +518,113 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
                   style={{ flex: 1.5 }}
                 >
                   Adicionar à Ficha
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CRIAR NOVO TREINO (COM DIAS NA AGENDA) */}
+      {showNewWorkoutModal && (
+        <div className="modal-overlay" onClick={() => setShowNewWorkoutModal(false)}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Dumbbell size={20} color="var(--accent-rose)" />
+                <h2 className="modal-title">Criar Novo Treino</h2>
+              </div>
+              <button className="modal-close-btn" onClick={() => setShowNewWorkoutModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateWorkoutSubmit}>
+              <div className="form-group">
+                <label className="form-label">Nome ou Foco da Ficha</label>
+                <input 
+                  type="text" 
+                  className="input-dark" 
+                  placeholder="ex: Treino C - Pernas, Glúteos e Abdômen"
+                  value={newWorkoutName}
+                  onChange={(e) => setNewWorkoutName(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              {/* DIAS NA AGENDA */}
+              <div className="form-group">
+                <label className="form-label">Dias na Agenda Semanal (ex: às segundas)</label>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((dayLetter, dayIdx) => {
+                    const isSelected = newWorkoutDays.includes(dayIdx);
+                    return (
+                      <button
+                        key={dayIdx}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setNewWorkoutDays(prev => prev.filter(d => d !== dayIdx));
+                          } else {
+                            setNewWorkoutDays(prev => [...prev, dayIdx]);
+                          }
+                        }}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          border: '1px solid',
+                          borderColor: isSelected ? 'var(--accent-cyan)' : 'var(--border-subtle)',
+                          background: isSelected ? 'var(--accent-cyan)' : 'var(--surface-elevated)',
+                          color: isSelected ? '#030712' : 'var(--text-secondary)',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all var(--transition-fast)'
+                        }}
+                        title={['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][dayIdx]}
+                      >
+                        {dayLetter}
+                      </button>
+                    );
+                  })}
+                </div>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px', display: 'block' }}>
+                  {newWorkoutDays.length > 0
+                    ? `Dias selecionados: ${newWorkoutDays.slice().sort((a,b)=>a-b).map(d => ['Domingos', 'Segundas', 'Terças', 'Quartas', 'Quintas', 'Sextas', 'Sábados'][d]).join(', ')}`
+                    : 'Nenhum dia selecionado ainda (você pode selecionar a qualquer momento)'}
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Horário Sugerido na Agenda</label>
+                <input 
+                  type="time" 
+                  className="input-dark" 
+                  value={newWorkoutTime}
+                  onChange={(e) => setNewWorkoutTime(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  style={{ flex: 1 }}
+                  onClick={() => setShowNewWorkoutModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  style={{ flex: 1.5 }}
+                >
+                  Criar Ficha de Treino
                 </button>
               </div>
             </form>

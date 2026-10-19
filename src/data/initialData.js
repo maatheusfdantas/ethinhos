@@ -95,6 +95,8 @@ export const INITIAL_WORKOUTS = [
   {
     id: 'wo_a',
     name: 'Treino A - Peito, Ombro e Tríceps',
+    scheduledDays: [1], // Segundas
+    scheduledTime: '18:30',
     exercises: [
       { id: 'ex_1', name: 'Supino Reto com Barra', sets: 4, reps: 10, weightKg: 80, restSec: 90, showWeight: true, showRestTimer: true },
       { id: 'ex_2', name: 'Desenvolvimento Militar', sets: 3, reps: 12, weightKg: 40, restSec: 60, showWeight: true, showRestTimer: true },
@@ -104,6 +106,8 @@ export const INITIAL_WORKOUTS = [
   {
     id: 'wo_b',
     name: 'Treino B - Costas e Bíceps',
+    scheduledDays: [3], // Quartas
+    scheduledTime: '18:30',
     exercises: [
       { id: 'ex_4', name: 'Puxada Frontal Alta', sets: 4, reps: 12, weightKg: 65, restSec: 60, showWeight: true, showRestTimer: true },
       { id: 'ex_5', name: 'Remada Curvada', sets: 4, reps: 10, weightKg: 70, restSec: 90, showWeight: true, showRestTimer: true }
