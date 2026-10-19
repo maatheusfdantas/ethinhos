@@ -148,10 +148,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser }) {
             <button 
               type="button" 
               className="btn-secondary" 
-              style={{ flex: 1 }}
-              onClick={onClose}
+              style={{ flex: 1, borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}
+              onClick={() => {
+                onLogout?.();
+                onClose();
+              }}
             >
-              Cancelar
+              Sair da Conta
             </button>
             <button 
               type="submit" 

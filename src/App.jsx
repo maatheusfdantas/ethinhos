@@ -17,53 +17,35 @@ import { SocialTab } from './components/SocialTab';
 import { AuthModal } from './components/AuthModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AdminPortalTab } from './components/AdminPortalTab';
+import { LoginScreen } from './components/LoginScreen';
 
 import { INITIAL_TAGS, INITIAL_WORKOUTS, INITIAL_BADGES } from './data/initialData';
 import { Lock } from 'lucide-react';
 
-// Default Admin user (Requisito 2: login admin, senha Foguete não tem ré)
-const DEFAULT_ADMIN = {
-  id: 'usr_admin',
-  username: 'admin',
-  email: 'admin@ethos.dev',
-  name: 'Administrador Ethos',
-  avatar: 'AD',
-  role: 'admin',
-  is_active: true,
-  subscription_tier: 'Enterprise / Fundador',
-  is_public: true,
-  permissions: { focus: true, workouts: true, telemetry: true, social: true, habits: true },
-  streak_days: 0,
-  points: 500
-};
-
-// Clean zeroed initial health (Requisito 5: Zerado para verificar funcionamento)
-const ZERO_HEALTH = {
-  waterGlasses: 0,
-  waterTarget: 10,
-  waterHistory: [],
-  sleep: {
-    bedTime: '23:30',
-    wakeTime: '07:00',
-    targetHours: 8,
-    logged: false
-  }
-};
-
 export function App() {
-  // Application States - Starts clean/zeroed per user request
-  const [user, setUser] = useState(() => getStorageData(STORAGE_KEYS.USER, DEFAULT_ADMIN));
-  const [tags, setTags] = useState(() => getStorageData(STORAGE_KEYS.TAGS, INITIAL_TAGS));
-  const [habits, setHabits] = useState(() => getStorageData(STORAGE_KEYS.HABITS, []));
-  const [health, setHealth] = useState(() => getStorageData(STORAGE_KEYS.HEALTH, ZERO_HEALTH));
-  const [workouts, setWorkouts] = useState(() => getStorageData(STORAGE_KEYS.WORKOUTS, INITIAL_WORKOUTS));
-  const [badges, setBadges] = useState(() => getStorageData(STORAGE_KEYS.BADGES, INITIAL_BADGES));
-  const [friends, setFriends] = useState(() => getStorageData(STORAGE_KEYS.FRIENDS, []));
-  const [feed, setFeed] = useState(() => getStorageData(STORAGE_KEYS.FEED, []));
-  const [heatmap, setHeatmap] = useState(() => getStorageData(STORAGE_KEYS.HEATMAP, []));
-  const [events, setEvents] = useState([]);
+  // REQUISITO 5: PRIMEIRA COISA AO CARREGAR É O LOGIN (user inicia como null)
+  const [user, setUser] = useState(() => {
+    // Check if session exists in sessionStorage (clears on fresh browser tab/window load)
+    const sessionUser = sessionStorage.getItem('ethos_current_user');
+    return sessionUser ? JSON.parse(sessionUser) : null;
+  });
 
-  // Active Navigation Tab: 'dashboard' | 'workouts' | 'focus' | 'calendar' | 'telemetry' | 'social' | 'admin'
+  // User-specific states
+  const [tags, setTags] = useState(INITIAL_TAGS);
+  const [habits, setHabits] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [health, setHealth] = useState({
+    waterGlasses: 0,
+    waterTarget: 10,
+    waterHistory: [],
+    sleep: { bedTime: '23:30', wakeTime: '07:00', targetHours: 8, logged: false }
+  });
+  const [workouts, setWorkouts] = useState(INITIAL_WORKOUTS);
+  const [badges, setBadges] = useState(INITIAL_BADGES);
+  const [friends, setFriends] = useState([]);
+  const [feed, setFeed] = useState([]);
+
+  // Active Navigation Tab
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Modals
@@ -71,55 +53,106 @@ export function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  // Sync to localStorage
+  // Load user data when user changes
+  const loadUserData = async (activeUser) => {
+    if (!activeUser) return;
+
+    try {
+      const res = await fetch(`/api/user/${activeUser.id}/data`);
+      if (res.ok) {
+        const data = await res.json();
+        setHabits(data.habits || []);
+        setEvents(data.events || []);
+        if (data.health) setHealth(data.health);
+        if (data.tags && data.tags.length > 0) {
+          setTags([...INITIAL_TAGS, ...data.tags.filter(t => !INITIAL_TAGS.find(it => it.name === t.name))]);
+        }
+      }
+    } catch (e) {
+      console.warn('Backend offline, using local states.');
+    }
+  };
+
   useEffect(() => {
-    setStorageData(STORAGE_KEYS.USER, user);
+    if (user) {
+      sessionStorage.setItem('ethos_current_user', JSON.stringify(user));
+      loadUserData(user);
+    } else {
+      sessionStorage.removeItem('ethos_current_user');
+    }
   }, [user]);
-
-  useEffect(() => {
-    setStorageData(STORAGE_KEYS.HABITS, habits);
-  }, [habits]);
-
-  useEffect(() => {
-    setStorageData(STORAGE_KEYS.HEALTH, health);
-  }, [health]);
-
-  useEffect(() => {
-    setStorageData(STORAGE_KEYS.WORKOUTS, workouts);
-  }, [workouts]);
-
-  useEffect(() => {
-    setStorageData(STORAGE_KEYS.FRIENDS, friends);
-  }, [friends]);
-
-  useEffect(() => {
-    setStorageData(STORAGE_KEYS.FEED, feed);
-  }, [feed]);
 
   // Handler: Add new Habit (US01, US19, US20, US39)
   const handleAddHabit = async (newHabit) => {
     setHabits(prev => [newHabit, ...prev]);
 
-    // Persist to SQLite DB if connected
-    try {
-      await fetch(`/api/user/${user.id}/habit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newHabit)
-      });
-    } catch (e) {
-      // offline safe
+    if (user) {
+      try {
+        await fetch(`/api/user/${user.id}/habit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newHabit)
+        });
+      } catch (e) {
+        console.error('Error saving habit to SQLite:', e);
+      }
     }
   };
 
-  // Handler: Add new Event
-  const handleAddEvent = (newEvent) => {
-    setEvents(prev => [newEvent, ...prev]);
+  // Handler: Add new Event (Requisito 3: Data e Horário)
+  const handleAddEvent = async (newEvent) => {
+    setEvents(prev => [...prev, newEvent]);
+
+    if (user) {
+      try {
+        await fetch(`/api/user/${user.id}/event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newEvent)
+        });
+      } catch (e) {
+        console.error('Error saving event to SQLite:', e);
+      }
+    }
+  };
+
+  // Handler: Toggle Event Completion
+  const handleToggleEvent = async (eventId, completed) => {
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, completed } : e));
+
+    if (user) {
+      try {
+        await fetch(`/api/user/${user.id}/event/${eventId}/toggle`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed })
+        });
+      } catch (e) {
+        console.error('Error updating event:', e);
+      }
+    }
+  };
+
+  // Handler: Add New Tag / Category (Requisito 4)
+  const handleAddTag = async (newTag) => {
+    setTags(prev => [...prev, newTag]);
+
+    if (user) {
+      try {
+        await fetch(`/api/user/${user.id}/tag`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newTag)
+        });
+      } catch (e) {
+        console.error('Error saving tag:', e);
+      }
+    }
   };
 
   // Handler: Complete Workout (US11)
   const handleCompleteWorkout = (workoutName) => {
-    if (user.isPublic) {
+    if (user?.is_public) {
       const feedItem = {
         id: `feed_${Date.now()}`,
         userId: user.id,
@@ -127,7 +160,7 @@ export function App() {
         userAvatar: user.avatar,
         type: 'workout_completed',
         title: 'Treino de Força Finalizado (US11)',
-        details: `${workoutName} concluído com disciplina total!`,
+        details: `${workoutName} concluído com sucesso e disciplina total!`,
         timestamp: 'Agora mesmo',
         reactions: { like: 1, fire: 3, trophy: 2 },
         userReacted: 'fire'
@@ -137,15 +170,15 @@ export function App() {
 
     setUser(prev => ({
       ...prev,
-      points: prev.points + 50
+      points: (prev?.points || 0) + 50
     }));
 
-    alert(`Parabéns! O treino "${workoutName}" foi registrado com sucesso!`);
+    alert(`Parabéns! O treino "${workoutName}" foi finalizado com sucesso!`);
   };
 
   // Handler: Focus Completed (US05, US06, US25)
   const handleFocusComplete = (sessionInfo) => {
-    if (user.isPublic) {
+    if (user?.is_public) {
       const feedItem = {
         id: `feed_${Date.now()}`,
         userId: user.id,
@@ -153,7 +186,7 @@ export function App() {
         userAvatar: user.avatar,
         type: 'focus_completed',
         title: 'Sessão de Foco Pomodoro Concluída',
-        details: `${sessionInfo.durationMins} min focados em "${sessionInfo.subject}" com regra anti-fraude!`,
+        details: `${sessionInfo.durationMins} min dedicados a "${sessionInfo.subject}" com regra anti-fraude!`,
         timestamp: 'Agora mesmo',
         reactions: { like: 2, fire: 4, trophy: 2 },
         userReacted: 'trophy'
@@ -163,7 +196,7 @@ export function App() {
 
     setUser(prev => ({
       ...prev,
-      points: prev.points + sessionInfo.durationMins * 2
+      points: (prev?.points || 0) + sessionInfo.durationMins * 2
     }));
   };
 
@@ -177,20 +210,23 @@ export function App() {
     }
   };
 
-  // Requisito 5: Zerar o Sistema Completamente
-  const handleSystemReset = () => {
-    setHabits([]);
-    setHealth(ZERO_HEALTH);
-    setFeed([]);
-    setFriends([]);
-    setHeatmap([]);
-    setEvents([]);
-    localStorage.removeItem(STORAGE_KEYS.HABITS);
-    localStorage.removeItem(STORAGE_KEYS.HEALTH);
-    localStorage.removeItem(STORAGE_KEYS.FEED);
-    localStorage.removeItem(STORAGE_KEYS.FRIENDS);
-    localStorage.removeItem(STORAGE_KEYS.HEATMAP);
+  // Logout handler
+  const handleLogout = () => {
+    setUser(null);
+    sessionStorage.removeItem('ethos_current_user');
   };
+
+  // System Reset (Requisito 5)
+  const handleSystemReset = () => {
+    if (user) {
+      loadUserData(user);
+    }
+  };
+
+  // REQUISITO 5: SE NÃO ESTIVER LOGADO, MOSTRA A TELA DE LOGIN OBRIGATÓRIA
+  if (!user) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
 
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
@@ -222,11 +258,14 @@ export function App() {
           <DashboardTab
             habits={habits}
             setHabits={setHabits}
+            events={events}
             health={health}
             setHealth={setHealth}
             tags={tags}
             onOpenAdd={() => setShowAddModal(true)}
             onOpenWorkout={() => setActiveTab('workouts')}
+            onAddTag={handleAddTag}
+            onToggleEvent={handleToggleEvent}
           />
         )}
 
@@ -267,12 +306,13 @@ export function App() {
           )
         )}
 
-        {/* TAB 4: CALENDÁRIO */}
+        {/* TAB 4: CALENDÁRIO COM VISUALIZAÇÃO DE ATIVIDADES DIRETAS (REQUISITO 2) */}
         {activeTab === 'calendar' && (
           <CalendarTab
-            heatmapData={heatmap}
-            habits={habits}
             events={events}
+            habits={habits}
+            onOpenAdd={() => setShowAddModal(true)}
+            onToggleEvent={handleToggleEvent}
           />
         )}
 
@@ -283,14 +323,14 @@ export function App() {
               <Lock size={36} color="var(--accent-rose)" style={{ margin: '0 auto 12px' }} />
               <h3 style={{ color: 'var(--text-primary)', marginBottom: '6px' }}>Telemetria Bloqueada</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                O Administrador desativou o seu acesso aos gráficos e métricas comparativas.
+                O Administrador desativou o seu acesso aos gráficos comparativos.
               </p>
             </div>
           ) : (
             <TelemetryTab
               habits={habits}
               health={health}
-              heatmapData={heatmap}
+              heatmapData={[]}
             />
           )
         )}
@@ -302,7 +342,7 @@ export function App() {
               <Lock size={36} color="var(--accent-rose)" style={{ margin: '0 auto 12px' }} />
               <h3 style={{ color: 'var(--text-primary)', marginBottom: '6px' }}>Comunidade Bloqueada</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                O Administrador desativou o seu acesso ao Feed Social e Amizades.
+                O Administrador desativou o seu acesso ao Feed Social.
               </p>
             </div>
           ) : (
@@ -341,6 +381,7 @@ export function App() {
         onAddHabit={handleAddHabit}
         onAddEvent={handleAddEvent}
         tags={tags}
+        onAddTag={handleAddTag}
       />
 
       <AuthModal
@@ -355,6 +396,7 @@ export function App() {
         onClose={() => setShowProfileModal(false)}
         user={user}
         onUpdateUser={setUser}
+        onLogout={handleLogout}
       />
     </div>
   );

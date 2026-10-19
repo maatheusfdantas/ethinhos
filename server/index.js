@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { db, initDatabase, resetSystemData } from './db.js';
+import { db, initDatabase, seedFiveUsers } from './db.js';
 
 const app = express();
 const PORT = 3001;
@@ -8,14 +8,14 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-// Initialize SQLite database
-initDatabase(false);
+// Initialize SQLite database and seed 5 users
+initDatabase();
 
 // ==========================================
 // 1. AUTHENTICATION ENDPOINTS (US35, US36, US37)
 // ==========================================
 
-// US35: Login (supports username or email, checks if active)
+// US35: Login
 app.post('/api/auth/login', (req, res) => {
   const { login, password } = req.body;
   if (!login || !password) {
@@ -26,7 +26,7 @@ app.post('/api/auth/login', (req, res) => {
     SELECT * FROM users 
     WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)
   `);
-  const user = stmt.get(login, login);
+  const user = stmt.get(login.trim(), login.trim());
 
   if (!user) {
     return res.status(404).json({ error: 'Usuário não encontrado no banco de dados.' });
@@ -36,7 +36,6 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Senha incorreta.' });
   }
 
-  // Verifica se o usuário está ativo (Controle de permissões do Admin)
   if (user.is_active === 0) {
     return res.status(403).json({ 
       error: 'Sua conta foi desativada pelo Administrador. Acesso revogado.' 
@@ -60,7 +59,7 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-// US35: Cadastro (Register)
+// US35: Cadastro
 app.post('/api/auth/register', (req, res) => {
   const { name, email, username, password } = req.body;
   if (!name || !email || !password) {
@@ -69,7 +68,6 @@ app.post('/api/auth/register', (req, res) => {
 
   const cleanUsername = username?.trim() || email.split('@')[0];
 
-  // Verificar duplicidade
   const checkStmt = db.prepare(`
     SELECT id FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)
   `);
@@ -107,12 +105,10 @@ app.post('/api/auth/register', (req, res) => {
     new Date().toISOString()
   );
 
-  // Initialize empty health record for new user
-  const initHealth = db.prepare(`
+  db.prepare(`
     INSERT INTO health (user_id, water_glasses, water_target, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
     VALUES (?, 0, 10, '[]', '23:30', '07:00', 0)
-  `);
-  initHealth.run(newId);
+  `).run(newId);
 
   res.status(201).json({
     id: newId,
@@ -130,33 +126,27 @@ app.post('/api/auth/register', (req, res) => {
   });
 });
 
-// US36: Solicitação de Token para Recuperação de Senha
+// US36: Solicitação de Token
 app.post('/api/auth/forgot-password', (req, res) => {
   const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: 'Informe o e-mail cadastrado.' });
-  }
+  if (!email) return res.status(400).json({ error: 'Informe o e-mail cadastrado.' });
 
   const stmt = db.prepare(`SELECT * FROM users WHERE LOWER(email) = LOWER(?)`);
   const user = stmt.get(email);
-  if (!user) {
-    return res.status(404).json({ error: 'Nenhum usuário encontrado com este e-mail.' });
-  }
+  if (!user) return res.status(404).json({ error: 'Nenhum usuário encontrado com este e-mail.' });
 
-  // Generate 6-digit mock security token
   const token = Math.floor(100000 + Math.random() * 900000).toString();
-  const updateStmt = db.prepare(`UPDATE users SET reset_token = ? WHERE id = ?`);
-  updateStmt.run(token, user.id);
+  db.prepare(`UPDATE users SET reset_token = ? WHERE id = ?`).run(token, user.id);
 
   res.json({
     success: true,
     email: user.email,
     token,
-    message: 'Token de recuperação gerado e salvo no banco de dados com sucesso.'
+    message: 'Token de recuperação gerado no SQLite com sucesso.'
   });
 });
 
-// US36: Validação de Token e Redefinição de Senha
+// US36: Validação de Token
 app.post('/api/auth/reset-password', (req, res) => {
   const { email, token, newPassword } = req.body;
   if (!email || !token || !newPassword) {
@@ -165,131 +155,99 @@ app.post('/api/auth/reset-password', (req, res) => {
 
   const stmt = db.prepare(`SELECT * FROM users WHERE LOWER(email) = LOWER(?)`);
   const user = stmt.get(email);
-  if (!user) {
-    return res.status(404).json({ error: 'Usuário não encontrado.' });
-  }
+  if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
   if (user.reset_token !== token.trim()) {
-    return res.status(400).json({ error: 'Token de recuperação inválido ou expirado.' });
+    return res.status(400).json({ error: 'Token de recuperação inválido.' });
   }
 
-  const updateStmt = db.prepare(`UPDATE users SET password = ?, reset_token = NULL WHERE id = ?`);
-  updateStmt.run(newPassword, user.id);
-
-  res.json({ success: true, message: 'Senha atualizada no banco de dados com sucesso!' });
+  db.prepare(`UPDATE users SET password = ?, reset_token = NULL WHERE id = ?`).run(newPassword, user.id);
+  res.json({ success: true, message: 'Senha atualizada com sucesso!' });
 });
 
-// US37: Atualizar Perfil e Privacidade (Público/Privado)
+// US37: Atualizar Perfil
 app.put('/api/user/:id/profile', (req, res) => {
   const { id } = req.params;
-  const { name, bio, is_public } = req.body;
+  const { name, is_public } = req.body;
 
-  const stmt = db.prepare(`
-    UPDATE users SET 
-      name = COALESCE(?, name),
-      is_public = ?
-    WHERE id = ?
-  `);
-  stmt.run(name, is_public ? 1 : 0, id);
+  db.prepare(`UPDATE users SET name = COALESCE(?, name), is_public = ? WHERE id = ?`)
+    .run(name, is_public ? 1 : 0, id);
 
   res.json({ success: true });
 });
 
 // ==========================================
-// 2. PORTAL DE ADMINISTRAÇÃO (Requisito 2)
+// 2. PORTAL DE ADMINISTRAÇÃO
 // ==========================================
 
-// Listar todos os usuários para o Portal de Admin
 app.get('/api/admin/users', (req, res) => {
-  const stmt = db.prepare(`
-    SELECT id, username, email, name, avatar, role, is_active,
-           subscription_tier, is_public, permissions, streak_days,
-           points, created_at
-    FROM users
-    ORDER BY created_at DESC
-  `);
-  const users = stmt.all().map(u => ({
+  const users = db.prepare(`SELECT * FROM users ORDER BY created_at DESC`).all().map(u => ({
     ...u,
     is_active: u.is_active === 1,
     is_public: u.is_public === 1,
     permissions: JSON.parse(u.permissions || '{}')
   }));
-
   res.json({ users });
 });
 
-// Atualizar Assinatura do Usuário (Gratuito, Pro, Enterprise)
 app.post('/api/admin/user/:id/subscription', (req, res) => {
   const { id } = req.params;
   const { subscription_tier } = req.body;
-
-  const stmt = db.prepare(`UPDATE users SET subscription_tier = ? WHERE id = ?`);
-  stmt.run(subscription_tier, id);
-
+  db.prepare(`UPDATE users SET subscription_tier = ? WHERE id = ?`).run(subscription_tier, id);
   res.json({ success: true, message: `Assinatura atualizada para ${subscription_tier}` });
 });
 
-// Ativar ou Desativar Usuário (Controle de Acesso)
 app.post('/api/admin/user/:id/toggle-active', (req, res) => {
   const { id } = req.params;
   const { is_active } = req.body;
-
-  const stmt = db.prepare(`UPDATE users SET is_active = ? WHERE id = ?`);
-  stmt.run(is_active ? 1 : 0, id);
-
-  res.json({ 
-    success: true, 
-    is_active: !!is_active, 
-    message: is_active ? 'Usuário ativado com sucesso.' : 'Usuário desativado com sucesso.' 
-  });
+  db.prepare(`UPDATE users SET is_active = ? WHERE id = ?`).run(is_active ? 1 : 0, id);
+  res.json({ success: true, is_active: !!is_active });
 });
 
-// Atualizar Permissões Modulares do Usuário
 app.post('/api/admin/user/:id/permissions', (req, res) => {
   const { id } = req.params;
   const { permissions } = req.body;
-
-  const stmt = db.prepare(`UPDATE users SET permissions = ? WHERE id = ?`);
-  stmt.run(JSON.stringify(permissions), id);
-
-  res.json({ success: true, permissions, message: 'Permissões atualizadas com sucesso.' });
+  db.prepare(`UPDATE users SET permissions = ? WHERE id = ?`).run(JSON.stringify(permissions), id);
+  res.json({ success: true, permissions });
 });
 
-// Requisito 5: Zerar o Sistema
 app.post('/api/system/reset', (req, res) => {
-  resetSystemData();
-  res.json({ 
-    success: true, 
-    message: 'Sistema zerado com sucesso! Dados limpos prontos para verificação.' 
-  });
+  seedFiveUsers();
+  res.json({ success: true, message: 'Sistema sincronizado com os 5 perfis padrão.' });
 });
 
 // ==========================================
-// 3. HABITS, HEALTH & DATA ENDPOINTS
+// 3. HABITS, EVENTS & HEALTH DATA
 // ==========================================
 
-// Buscar dados do usuário (Hábitos, Saúde, etc.)
 app.get('/api/user/:id/data', (req, res) => {
   const { id } = req.params;
 
-  const habitsStmt = db.prepare(`SELECT * FROM habits WHERE user_id = ?`);
-  const habits = habitsStmt.all(id).map(h => ({
+  // 1. Habits
+  const habits = db.prepare(`SELECT * FROM habits WHERE user_id = ?`).all(id).map(h => ({
     ...h,
     completed: h.completed === 1,
     repeatDays: JSON.parse(h.repeat_days || '[1,2,3,4,5]')
   }));
 
-  const healthStmt = db.prepare(`SELECT * FROM health WHERE user_id = ?`);
-  let health = healthStmt.get(id);
+  // 2. Events (com data e horários claros)
+  const events = db.prepare(`SELECT * FROM events WHERE user_id = ? ORDER BY date ASC, start_time ASC`).all(id).map(e => ({
+    ...e,
+    allDay: e.all_day === 1,
+    completed: e.completed === 1,
+    startTime: e.start_time,
+    endTime: e.end_time,
+    repeat: e.repeat_rule
+  }));
+
+  // 3. Health
+  let health = db.prepare(`SELECT * FROM health WHERE user_id = ?`).get(id);
   if (!health) {
     health = {
-      user_id: id,
-      water_glasses: 0,
-      water_target: 10,
-      water_history: '[]',
-      sleep_bed_time: '23:30',
-      sleep_wake_time: '07:00',
-      sleep_logged: 0
+      waterGlasses: 0,
+      waterTarget: 10,
+      waterHistory: [],
+      sleep: { bedTime: '23:30', wakeTime: '07:00', logged: false }
     };
   } else {
     health = {
@@ -304,63 +262,100 @@ app.get('/api/user/:id/data', (req, res) => {
     };
   }
 
-  res.json({ habits, health });
+  // 4. Custom Tags / Categorias
+  const tags = db.prepare(`SELECT * FROM tags WHERE user_id = ? OR user_id = 'global'`).all(id);
+
+  res.json({ habits, events, health, tags });
 });
 
 // Criar Hábito
 app.post('/api/user/:id/habit', (req, res) => {
   const { id } = req.params;
   const habit = req.body;
+  const habitId = habit.id || `hab_${Date.now()}`;
 
-  const stmt = db.prepare(`
+  db.prepare(`
     INSERT INTO habits (
       id, user_id, title, category, icon_name, target, current,
       unit, effort, priority, tag_id, repeat_days, completed,
       completion_style, created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    habit.id || `hab_${Date.now()}`,
-    id,
-    habit.title,
-    habit.category,
-    habit.iconName || habit.category,
-    habit.target || 1,
-    habit.current || 0,
-    habit.unit || 'vezes',
-    habit.effort || 'Médio',
-    habit.priority || 'Média',
-    habit.tagId || null,
-    JSON.stringify(habit.repeatDays || [1, 2, 3, 4, 5]),
-    habit.completed ? 1 : 0,
-    habit.completionStyle || 'quick',
-    new Date().toISOString()
+  `).run(
+    habitId, id, habit.title, habit.category, habit.iconName || habit.category,
+    habit.target || 1, habit.current || 0, habit.unit || 'vezes',
+    habit.effort || 'Médio', habit.priority || 'Média', habit.tagId || null,
+    JSON.stringify(habit.repeatDays || [1, 2, 3, 4, 5]), habit.completed ? 1 : 0,
+    habit.completionStyle || 'quick', new Date().toISOString()
   );
 
-  res.status(201).json({ success: true, habit });
+  res.status(201).json({ success: true, id: habitId });
 });
 
-// Atualizar Hábito (Progresso / Conclusão)
+// Atualizar Hábito
 app.put('/api/user/:id/habit/:habitId', (req, res) => {
   const { id, habitId } = req.params;
   const { current, completed } = req.body;
-
-  const stmt = db.prepare(`
-    UPDATE habits SET current = ?, completed = ?
-    WHERE id = ? AND user_id = ?
-  `);
-  stmt.run(current, completed ? 1 : 0, habitId, id);
-
+  db.prepare(`UPDATE habits SET current = ?, completed = ? WHERE id = ? AND user_id = ?`)
+    .run(current, completed ? 1 : 0, habitId, id);
   res.json({ success: true });
 });
 
 // Deletar Hábito
 app.delete('/api/user/:id/habit/:habitId', (req, res) => {
   const { id, habitId } = req.params;
-  const stmt = db.prepare(`DELETE FROM habits WHERE id = ? AND user_id = ?`);
-  stmt.run(habitId, id);
+  db.prepare(`DELETE FROM habits WHERE id = ? AND user_id = ?`).run(habitId, id);
   res.json({ success: true });
+});
+
+// Criar Evento com Data e Horários (Requisito 3)
+app.post('/api/user/:id/event', (req, res) => {
+  const { id } = req.params;
+  const event = req.body;
+  const eventId = event.id || `ev_${Date.now()}`;
+
+  db.prepare(`
+    INSERT INTO events (
+      id, user_id, title, date, all_day, start_time, end_time,
+      category, repeat_rule, location, notes, completed, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+  `).run(
+    eventId, id, event.title, event.date, event.allDay ? 1 : 0,
+    event.startTime || '09:00', event.endTime || '10:00',
+    event.category || 'Geral', event.repeat || 'Nunca',
+    event.location || '', event.notes || '', new Date().toISOString()
+  );
+
+  res.status(201).json({ success: true, id: eventId });
+});
+
+// Toggle Conclusão de Evento
+app.put('/api/user/:id/event/:eventId/toggle', (req, res) => {
+  const { id, eventId } = req.params;
+  const { completed } = req.body;
+  db.prepare(`UPDATE events SET completed = ? WHERE id = ? AND user_id = ?`)
+    .run(completed ? 1 : 0, eventId, id);
+  res.json({ success: true });
+});
+
+// Deletar Evento
+app.delete('/api/user/:id/event/:eventId', (req, res) => {
+  const { id, eventId } = req.params;
+  db.prepare(`DELETE FROM events WHERE id = ? AND user_id = ?`).run(eventId, id);
+  res.json({ success: true });
+});
+
+// Criar Nova Categoria / Tema (Requisito 4)
+app.post('/api/user/:id/tag', (req, res) => {
+  const { id } = req.params;
+  const { name, color, bg, icon } = req.body;
+  const tagId = `tag_${Date.now()}`;
+
+  db.prepare(`
+    INSERT INTO tags (id, user_id, name, color, bg, icon)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(tagId, id, name, color, bg, icon || 'Bookmark');
+
+  res.status(201).json({ success: true, tag: { id: tagId, name, color, bg, icon: icon || 'Bookmark' } });
 });
 
 // Atualizar Água e Saúde
@@ -368,7 +363,7 @@ app.post('/api/user/:id/health', (req, res) => {
   const { id } = req.params;
   const { waterGlasses, waterHistory, sleep } = req.body;
 
-  const stmt = db.prepare(`
+  db.prepare(`
     INSERT INTO health (user_id, water_glasses, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
     VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(user_id) DO UPDATE SET
@@ -377,20 +372,14 @@ app.post('/api/user/:id/health', (req, res) => {
       sleep_bed_time = COALESCE(excluded.sleep_bed_time, health.sleep_bed_time),
       sleep_wake_time = COALESCE(excluded.sleep_wake_time, health.sleep_wake_time),
       sleep_logged = COALESCE(excluded.sleep_logged, health.sleep_logged)
-  `);
-
-  stmt.run(
-    id,
-    waterGlasses ?? 0,
-    JSON.stringify(waterHistory || []),
-    sleep?.bedTime || '23:30',
-    sleep?.wakeTime || '07:00',
-    sleep?.logged ? 1 : 0
+  `).run(
+    id, waterGlasses ?? 0, JSON.stringify(waterHistory || []),
+    sleep?.bedTime || '23:30', sleep?.wakeTime || '07:00', sleep?.logged ? 1 : 0
   );
 
   res.json({ success: true });
 });
 
 app.listen(PORT, () => {
-  console.log(`[Ethos SQLite Server] API rodando na porta ${PORT} com banco de dados SQLite.`);
+  console.log(`[Ethos SQLite Server] API ativa na porta ${PORT} com 5 usuários seedados.`);
 });

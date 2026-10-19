@@ -14,16 +14,18 @@ import {
   Sparkles, 
   Activity,
   Plus,
-  Tag
+  Tag,
+  Palette,
+  Check
 } from 'lucide-react';
 
-const CATEGORIES = [
-  { id: 'Faculdade', label: 'Faculdade', icon: BookOpen },
-  { id: 'Trabalho', label: 'Trabalho', icon: Bookmark },
-  { id: 'Saúde', label: 'Saúde', icon: Dumbbell },
-  { id: 'Pessoal', label: 'Pessoal', icon: Sparkles },
-  { id: 'Casa', label: 'Casa', icon: Home },
-  { id: 'Finanças', label: 'Finanças', icon: Activity },
+const DEFAULT_COLOR_PALETTES = [
+  { name: 'Ciano', color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.15)' },
+  { name: 'Índigo', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)' },
+  { name: 'Esmeralda', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)' },
+  { name: 'Rosa Vibrante', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)' },
+  { name: 'Âmbar Dourado', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
+  { name: 'Violeta', color: '#c084fc', bg: 'rgba(192, 132, 252, 0.15)' },
 ];
 
 const WEEKDAYS = [
@@ -36,30 +38,36 @@ const WEEKDAYS = [
   { dayIndex: 0, label: 'D' }, // Dom
 ];
 
-export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddTag }) {
+export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], onAddTag }) {
   // Mode: 'choose', 'habit', 'event'
   const [mode, setMode] = useState('choose');
 
   // Habit Form States
   const [habitTitle, setHabitTitle] = useState('');
-  const [completionStyle, setCompletionStyle] = useState('quick'); // 'quick', 'numeric', 'steps'
+  const [completionStyle, setCompletionStyle] = useState('quick');
   const [targetNumber, setTargetNumber] = useState('1');
   const [targetUnit, setTargetUnit] = useState('vezes');
-  const [selectedDays, setSelectedDays] = useState([1, 2, 3, 4, 5]); // Seg a Sex default
-  const [selectedCategory, setSelectedCategory] = useState('Faculdade');
-  const [effort, setEffort] = useState('Médio'); // US01: Baixo, Médio, Alto
-  const [priority, setPriority] = useState('Média'); // US20: Alta, Média, Baixa
-  const [selectedTagId, setSelectedTagId] = useState(tags[0]?.id || 'tag_facul');
+  const [selectedDays, setSelectedDays] = useState([1, 2, 3, 4, 5]);
+  const [selectedCategory, setSelectedCategory] = useState(tags[0]?.name || 'Faculdade');
+  const [effort, setEffort] = useState('Médio');
+  const [priority, setPriority] = useState('Média');
 
-  // Event Form States
+  // Event Form States (Requisito 3: Data e Horário)
+  const todayStr = new Date().toISOString().split('T')[0];
   const [eventTitle, setEventTitle] = useState('');
+  const [eventDate, setEventDate] = useState(todayStr); // Data explícita obrigatória
   const [allDay, setAllDay] = useState(false);
-  const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime] = useState('10:00');
-  const [repeat, setRepeat] = useState('Semanal');
-  const [alertTime, setAlertTime] = useState('15 minutos antes');
+  const [startTime, setStartTime] = useState('09:00'); // Horário Início
+  const [endTime, setEndTime] = useState('10:30'); // Horário Término
+  const [eventCategory, setEventCategory] = useState(tags[0]?.name || 'Geral');
+  const [repeat, setRepeat] = useState('Nunca');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Requisito 4: Criador de Novo Tema / Categoria
+  const [showCategoryCreator, setShowCategoryCreator] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatColor, setNewCatColor] = useState(DEFAULT_COLOR_PALETTES[0]);
 
   if (!isOpen) return null;
 
@@ -71,21 +79,41 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
     }
   };
 
+  const handleCreateCategory = (e) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+
+    const newTag = {
+      id: `tag_${Date.now()}`,
+      name: newCatName.trim(),
+      color: newCatColor.color,
+      bg: newCatColor.bg,
+      icon: 'Tag'
+    };
+
+    onAddTag(newTag);
+    setSelectedCategory(newTag.name);
+    setEventCategory(newTag.name);
+    setNewCatName('');
+    setShowCategoryCreator(false);
+  };
+
   const handleCreateHabitSubmit = (e) => {
     e.preventDefault();
     if (!habitTitle.trim()) return;
 
+    const foundTag = tags.find(t => t.name === selectedCategory);
     const newHabit = {
       id: `hab_${Date.now()}`,
       title: habitTitle.trim(),
       category: selectedCategory,
-      iconName: selectedCategory,
+      iconName: 'CheckCircle2',
       target: parseInt(targetNumber, 10) || 1,
       current: 0,
       unit: targetUnit.trim() || 'vezes',
       effort,
       priority,
-      tagId: selectedTagId,
+      tagId: foundTag?.id || 'tag_geral',
       repeatDays: selectedDays,
       completed: false,
       completionStyle
@@ -98,19 +126,20 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
 
   const handleCreateEventSubmit = (e) => {
     e.preventDefault();
-    if (!eventTitle.trim()) return;
+    if (!eventTitle.trim() || !eventDate) return;
 
     const newEvent = {
       id: `ev_${Date.now()}`,
       title: eventTitle.trim(),
+      date: eventDate, // Data selecionada
       allDay,
-      startTime: allDay ? '00:00' : startTime,
-      endTime: allDay ? '23:59' : endTime,
+      startTime: allDay ? '00:00' : startTime, // Horário início
+      endTime: allDay ? '23:59' : endTime, // Horário término
+      category: eventCategory,
       repeat,
-      alertTime,
       location,
       notes,
-      date: new Date().toISOString().split('T')[0]
+      completed: false
     };
 
     onAddEvent(newEvent);
@@ -123,60 +152,71 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
     setHabitTitle('');
     setEventTitle('');
     setSelectedDays([1, 2, 3, 4, 5]);
+    setShowCategoryCreator(false);
   };
-
-  const SelectedCategoryIcon = CATEGORIES.find(c => c.id === selectedCategory)?.icon || BookOpen;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
         {/* MODAL HEADER */}
         <div className="modal-header">
-          <h2 className="modal-title">
-            {mode === 'choose' && 'O que deseja adicionar?'}
-            {mode === 'habit' && 'Novo Hábito'}
-            {mode === 'event' && 'Novo Evento na Agenda'}
-          </h2>
+          <div>
+            <h2 className="modal-title">
+              {mode === 'choose' && 'O que deseja registrar?'}
+              {mode === 'habit' && 'Novo Hábito (Rotina Diária)'}
+              {mode === 'event' && 'Novo Evento na Agenda & Calendário'}
+            </h2>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              {mode === 'habit' && 'Será alocado nos Hábitos Diários do Dashboard para acompanhamento de ofensiva.'}
+              {mode === 'event' && 'Será alocado com data e horários específicos na sua Agenda e no Calendário.'}
+            </span>
+          </div>
           <button className="modal-close-btn" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
 
-        {/* STEP 1: CHOOSE OVERLAY */}
+        {/* STEP 1: CHOOSE OVERLAY (REQUISITO 1: ONDE CADA UM É ALOCADO) */}
         {mode === 'choose' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px', padding: '10px 0' }}>
             <button 
               className="card-native" 
-              style={{ display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', textAlign: 'left', width: '100%', borderColor: 'rgba(0, 229, 255, 0.3)' }}
               onClick={() => setMode('habit')}
             >
               <div className="habit-category-box" style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--accent-cyan)' }}>
                 <CheckCircle2 size={26} strokeWidth={2.4} />
               </div>
-              <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                  Novo Hábito / Meta
-                </h3>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  Acompanhe rotinas diárias com estilo de conclusão, esforço e frequência.
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Novo Hábito de Rotina
+                  </h3>
+                  <span className="section-badge" style={{ color: 'var(--accent-cyan)' }}>Dashboard</span>
+                </div>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Acompanhe hábitos contínuos com nível de esforço, repetição semanal e metas (ex: Leitura, Treino, Beber Água).
                 </p>
               </div>
             </button>
 
             <button 
               className="card-native" 
-              style={{ display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', textAlign: 'left', width: '100%', borderColor: 'rgba(129, 140, 248, 0.3)' }}
               onClick={() => setMode('event')}
             >
               <div className="habit-category-box" style={{ background: 'rgba(129, 140, 248, 0.15)', color: 'var(--accent-indigo)' }}>
                 <Calendar size={26} strokeWidth={2.4} />
               </div>
-              <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                  Novo Evento
-                </h3>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  Agende compromissos, aulas, reuniões ou provas com lembretes e horários.
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Novo Evento ou Compromisso
+                  </h3>
+                  <span className="section-badge" style={{ color: 'var(--accent-indigo)' }}>Agenda & Calendário</span>
+                </div>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Compromisso marcado em data e horário pontuais (ex: Prova, Reunião, Consulta, Apresentação).
                 </p>
               </div>
             </button>
@@ -186,26 +226,100 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
         {/* STEP 2: NOVO HÁBITO FORM */}
         {mode === 'habit' && (
           <form onSubmit={handleCreateHabitSubmit}>
-            {/* Campo de texto escuro para o nome com o ícone da categoria selecionada ao lado */}
             <div className="form-group">
               <label className="form-label">Nome do Hábito</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div className="habit-category-box" style={{ width: '44px', height: '44px' }}>
-                  <SelectedCategoryIcon size={22} />
+              <input 
+                type="text" 
+                className="input-dark" 
+                placeholder="ex: Leitura Profunda de Livro Técnico" 
+                value={habitTitle}
+                onChange={(e) => setHabitTitle(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
+
+            {/* SELEÇÃO E CRIAÇÃO DE CATEGORIA / TEMA (REQUISITO 4) */}
+            <div className="form-group">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <label className="form-label" style={{ margin: 0 }}>Tema / Categoria</label>
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  onClick={() => setShowCategoryCreator(!showCategoryCreator)}
+                >
+                  <Plus size={14} />
+                  + Nova Categoria / Tema
+                </button>
+              </div>
+
+              {/* CRIADOR INLINE DE CATEGORIAS */}
+              {showCategoryCreator && (
+                <div className="card-native" style={{ background: 'var(--surface-elevated)', marginBottom: '12px', padding: '12px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Cadastrar Novo Tema:</span>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <input 
+                      type="text"
+                      className="input-dark"
+                      placeholder="Nome do tema (ex: Finanças, Inglês)"
+                      value={newCatName}
+                      onChange={(e) => setNewCatName(e.target.value)}
+                      style={{ padding: '6px 10px', fontSize: '0.82rem' }}
+                    />
+                    <button 
+                      type="button" 
+                      className="btn-primary" 
+                      style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+                      onClick={handleCreateCategory}
+                    >
+                      Salvar
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Cor:</span>
+                    {DEFAULT_COLOR_PALETTES.map((pal, idx) => (
+                      <span 
+                        key={idx}
+                        onClick={() => setNewCatColor(pal)}
+                        style={{ 
+                          width: 18, 
+                          height: 18, 
+                          borderRadius: '50%', 
+                          background: pal.color, 
+                          cursor: 'pointer',
+                          border: newCatColor.color === pal.color ? '2px solid #fff' : 'none'
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <input 
-                  type="text" 
-                  className="input-dark" 
-                  placeholder="ex: Leitura Profunda" 
-                  value={habitTitle}
-                  onChange={(e) => setHabitTitle(e.target.value)}
-                  autoFocus
-                  required
-                />
+              )}
+
+              {/* SELETORES DE CATEGORIA EXISTENTES */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {tags.map((t) => (
+                  <button
+                    key={t.id || t.name}
+                    type="button"
+                    onClick={() => setSelectedCategory(t.name)}
+                    className="tag-badge"
+                    style={{
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      border: selectedCategory === t.name ? `2px solid ${t.color}` : `1px solid ${t.color}40`,
+                      background: t.bg,
+                      color: t.color,
+                      fontWeight: selectedCategory === t.name ? 700 : 500
+                    }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, display: 'inline-block' }} />
+                    {t.name}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Estilo de Conclusão: Segmented Control */}
+            {/* Estilo de Conclusão */}
             <div className="form-group">
               <label className="form-label">Estilo de Conclusão</label>
               <div className="segmented-control">
@@ -223,19 +337,12 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
                 >
                   Teclado Numérico
                 </button>
-                <button
-                  type="button"
-                  className={`segmented-btn ${completionStyle === 'steps' ? 'active' : ''}`}
-                  onClick={() => setCompletionStyle('steps')}
-                >
-                  Múltiplos Passos
-                </button>
               </div>
             </div>
 
             {/* Meta Base */}
             <div className="form-group">
-              <label className="form-label">Meta Base</label>
+              <label className="form-label">Meta Diária</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <input 
                   type="number" 
@@ -251,15 +358,15 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
                   className="input-dark" 
                   value={targetUnit}
                   onChange={(e) => setTargetUnit(e.target.value)}
-                  placeholder="vezes (ex: páginas, km)"
+                  placeholder="vezes (ex: páginas, sessões)"
                   required
                 />
               </div>
             </div>
 
-            {/* Frequência da Meta: Seletores redondos de dias da semana (S, T, Q, Q, S, S, D) */}
+            {/* Frequência */}
             <div className="form-group">
-              <label className="form-label">Frequência da Meta</label>
+              <label className="form-label">Frequência da Meta (Dias da Semana)</label>
               <div className="weekdays-selector">
                 {WEEKDAYS.map((w, idx) => {
                   const isSelected = selectedDays.includes(w.dayIndex);
@@ -277,36 +384,11 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
               </div>
             </div>
 
-            {/* Categoria: Fila horizontal de ícones vetorizados em quadrados de cantos arredondados */}
-            <div className="form-group">
-              <label className="form-label">Categoria</label>
-              <div className="category-row-scroll">
-                {CATEGORIES.map((cat) => {
-                  const Icon = cat.icon;
-                  const isSelected = selectedCategory === cat.id;
-                  return (
-                    <div
-                      key={cat.id}
-                      className={`category-icon-box ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedCategory(cat.id)}
-                    >
-                      <Icon size={20} />
-                      <span className="category-icon-label">{cat.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* US01: Nível de Esforço & US20: Prioridade */}
+            {/* Esforço & Prioridade */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div>
-                <label className="form-label">Nível de Esforço (US01)</label>
-                <select 
-                  className="input-dark" 
-                  value={effort} 
-                  onChange={(e) => setEffort(e.target.value)}
-                >
+                <label className="form-label">Nível de Esforço</label>
+                <select className="input-dark" value={effort} onChange={(e) => setEffort(e.target.value)}>
                   <option value="Baixo">Baixo (1 pt)</option>
                   <option value="Médio">Médio (2 pts)</option>
                   <option value="Alto">Alto (3 pts)</option>
@@ -314,12 +396,8 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
               </div>
 
               <div>
-                <label className="form-label">Prioridade (US20)</label>
-                <select 
-                  className="input-dark" 
-                  value={priority} 
-                  onChange={(e) => setPriority(e.target.value)}
-                >
+                <label className="form-label">Prioridade</label>
+                <select className="input-dark" value={priority} onChange={(e) => setPriority(e.target.value)}>
                   <option value="Alta">Alta</option>
                   <option value="Média">Média</option>
                   <option value="Baixa">Baixa</option>
@@ -327,62 +405,26 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
               </div>
             </div>
 
-            {/* US39: Tags de Cores */}
-            <div className="form-group">
-              <label className="form-label">Tag de Cor (US39)</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {tags.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setSelectedTagId(t.id)}
-                    className="tag-badge"
-                    style={{
-                      padding: '6px 12px',
-                      cursor: 'pointer',
-                      border: selectedTagId === t.id ? `2px solid ${t.color}` : `1px solid ${t.color}40`,
-                      background: t.bg,
-                      color: t.color,
-                      fontWeight: selectedTagId === t.id ? 700 : 500
-                    }}
-                  >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, display: 'inline-block' }} />
-                    {t.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button 
-                type="button" 
-                className="btn-secondary" 
-                style={{ flex: 1 }}
-                onClick={() => setMode('choose')}
-              >
+              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setMode('choose')}>
                 Voltar
               </button>
-              <button 
-                type="submit" 
-                className="btn-primary" 
-                style={{ flex: 1.5 }}
-              >
-                Criar Hábito
+              <button type="submit" className="btn-primary" style={{ flex: 1.5 }}>
+                Criar Hábito Diário
               </button>
             </div>
           </form>
         )}
 
-        {/* STEP 3: NOVO EVENTO FORM */}
+        {/* STEP 3: NOVO EVENTO FORM (REQUISITO 3: DATA E HORÁRIO EXPLÍCITOS) */}
         {mode === 'event' && (
           <form onSubmit={handleCreateEventSubmit}>
             <div className="form-group">
-              <label className="form-label">Título do Evento</label>
+              <label className="form-label">Título do Evento / Atividade</label>
               <input 
                 type="text" 
                 className="input-dark" 
-                placeholder="ex: Prova de Sistemas Operacionais"
+                placeholder="ex: Prova Final de Sistemas Operacionais"
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
                 autoFocus
@@ -390,10 +432,25 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
               />
             </div>
 
-            {/* Toggle Dia Todo */}
+            {/* DATA OBRIGATÓRIA (REQUISITO 3) */}
+            <div className="form-group">
+              <label className="form-label">
+                <Calendar size={14} style={{ display: 'inline', marginRight: 4, color: 'var(--accent-cyan)' }} />
+                Data Marcada (Obrigatório)
+              </label>
+              <input 
+                type="date" 
+                className="input-dark"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* TOGGLE DIA TODO */}
             <div className="form-group">
               <div className="toggle-switch-wrap">
-                <span className="switch-label">Dia todo</span>
+                <span className="switch-label">Dia Todo (Sem horário específico)</span>
                 <div 
                   className={`switch-track ${allDay ? 'on' : ''}`}
                   onClick={() => setAllDay(!allDay)}
@@ -403,101 +460,118 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags, onAddT
               </div>
             </div>
 
-            {/* Seletores escuros de horário (Início / Término) */}
+            {/* SELETORES DE HORÁRIO INÍCIO E TÉRMINO (REQUISITO 3) */}
             {!allDay && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>
-                  <label className="form-label">Início</label>
+                  <label className="form-label">
+                    <Clock size={13} style={{ display: 'inline', marginRight: 4, color: 'var(--accent-indigo)' }} />
+                    Horário de Início
+                  </label>
                   <input 
                     type="time" 
                     className="input-dark"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
+                    required
                   />
                 </div>
                 <div>
-                  <label className="form-label">Término</label>
+                  <label className="form-label">
+                    <Clock size={13} style={{ display: 'inline', marginRight: 4, color: 'var(--accent-indigo)' }} />
+                    Horário de Término
+                  </label>
                   <input 
                     type="time" 
                     className="input-dark"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
+                    required
                   />
                 </div>
               </div>
             )}
 
-            {/* Repetição & Alertas */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              <div>
-                <label className="form-label">Repetição</label>
-                <select 
-                  className="input-dark"
-                  value={repeat}
-                  onChange={(e) => setRepeat(e.target.value)}
+            {/* CATEGORIA DO EVENTO & CRIADOR */}
+            <div className="form-group">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <label className="form-label" style={{ margin: 0 }}>Tema / Categoria</label>
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                  onClick={() => setShowCategoryCreator(!showCategoryCreator)}
                 >
-                  <option value="Nunca">Nunca</option>
-                  <option value="Diário">Diário</option>
-                  <option value="Semanal">Semanal</option>
-                  <option value="Mensal">Mensal</option>
-                </select>
+                  + Nova Categoria
+                </button>
               </div>
 
-              <div>
-                <label className="form-label">Alertas</label>
-                <select 
-                  className="input-dark"
-                  value={alertTime}
-                  onChange={(e) => setAlertTime(e.target.value)}
-                >
-                  <option value="No horário">No horário</option>
-                  <option value="15 minutos antes">15 min antes</option>
-                  <option value="30 minutos antes">30 min antes</option>
-                  <option value="1 hora antes">1 hora antes</option>
-                </select>
+              {showCategoryCreator && (
+                <div className="card-native" style={{ background: 'var(--surface-elevated)', marginBottom: '12px', padding: '12px' }}>
+                  <input 
+                    type="text"
+                    className="input-dark"
+                    placeholder="Nome da categoria"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    style={{ padding: '6px 10px', fontSize: '0.82rem', marginBottom: '8px' }}
+                  />
+                  <button type="button" className="btn-primary" style={{ padding: '4px 12px', fontSize: '0.78rem' }} onClick={handleCreateCategory}>
+                    Criar e Selecionar
+                  </button>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {tags.map((t) => (
+                  <button
+                    key={t.id || t.name}
+                    type="button"
+                    onClick={() => setEventCategory(t.name)}
+                    className="tag-badge"
+                    style={{
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      border: eventCategory === t.name ? `2px solid ${t.color}` : `1px solid ${t.color}40`,
+                      background: t.bg,
+                      color: t.color,
+                      fontWeight: eventCategory === t.name ? 700 : 500
+                    }}
+                  >
+                    {t.name}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Localização & Anotações */}
             <div className="form-group">
-              <label className="form-label">Localização</label>
+              <label className="form-label">Localização (Física ou Link)</label>
               <input 
                 type="text" 
                 className="input-dark"
-                placeholder="ex: Sala 304 - Bloco C"
+                placeholder="ex: Sala 304 - Bloco C ou Link Google Meet"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label">Anotações</label>
+              <label className="form-label">Anotações e Detalhes</label>
               <textarea 
                 className="input-dark"
-                rows={3}
-                placeholder="Observações importantes, links ou ementa..."
+                rows={2}
+                placeholder="Lembretes, ementa, material necessário..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                style={{ resize: 'vertical' }}
               />
             </div>
 
-            {/* Actions */}
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button 
-                type="button" 
-                className="btn-secondary" 
-                style={{ flex: 1 }}
-                onClick={() => setMode('choose')}
-              >
+              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setMode('choose')}>
                 Voltar
               </button>
-              <button 
-                type="submit" 
-                className="btn-primary" 
-                style={{ flex: 1.5 }}
-              >
-                Salvar Evento
+              <button type="submit" className="btn-primary" style={{ flex: 1.5 }}>
+                Agendar no Calendário
               </button>
             </div>
           </form>
