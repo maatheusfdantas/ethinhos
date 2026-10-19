@@ -79,6 +79,12 @@ export function DashboardTab({
     if (health?.glassMl) setGlassMlInput(health.glassMl);
   }, [health?.waterTarget, health?.glassMl]);
 
+  // Sincronizar inputs de sono com o estado atual de saúde
+  useEffect(() => {
+    if (health?.sleep?.bedTime) setBedTimeInput(health.sleep.bedTime);
+    if (health?.sleep?.wakeTime) setWakeTimeInput(health.sleep.wakeTime);
+  }, [health?.sleep?.bedTime, health?.sleep?.wakeTime]);
+
   // Requisito 4: Criador inline de temas/categorias
   const [showTagCreator, setShowTagCreator] = useState(false);
   const [newTagName, setNewTagName] = useState('');
@@ -107,23 +113,25 @@ export function DashboardTab({
   const glassMl = health.glassMl || 250;
   const waterPercent = Math.min(100, Math.round((waterGlasses / waterTarget) * 100));
 
-  // Sleep calculation
+  // Cálculo robusto de horas dormidas com base no horário inicial e final
   const calculateSleepHours = (bed, wake) => {
     try {
-      const [bH, bM] = (bed || '23:30').split(':').map(Number);
-      const [wH, wM] = (wake || '07:00').split(':').map(Number);
+      if (!bed || !wake) return 0;
+      const [bH, bM] = String(bed).split(':').map(Number);
+      const [wH, wM] = String(wake).split(':').map(Number);
+      if (isNaN(bH) || isNaN(bM) || isNaN(wH) || isNaN(wM)) return 0;
       let diffMins = (wH * 60 + wM) - (bH * 60 + bM);
       if (diffMins < 0) diffMins += 24 * 60;
       return +(diffMins / 60).toFixed(1);
     } catch {
-      return 7.5;
+      return 8.0;
     }
   };
 
-  const sleepHours = calculateSleepHours(health?.sleep?.bedTime, health?.sleep?.wakeTime);
-  const sleepPercent = health?.sleep?.logged 
-    ? Math.min(100, Math.round((sleepHours / (health?.sleep?.targetHours || 8)) * 100))
-    : 0;
+  const currentBedTime = health?.sleep?.bedTime || bedTimeInput || '23:30';
+  const currentWakeTime = health?.sleep?.wakeTime || wakeTimeInput || '07:00';
+  const sleepHours = calculateSleepHours(currentBedTime, currentWakeTime);
+  const sleepPercent = Math.min(100, Math.round((sleepHours / (health?.sleep?.targetHours || 8)) * 100));
 
   // Média de Vitalidade (40% tarefas + 30% água + 30% sono)
   const vitalityScore = Math.round(
@@ -213,16 +221,26 @@ export function DashboardTab({
   // US10: Save sleep
   const handleSaveSleep = (e) => {
     e.preventDefault();
-    setHealth({
+    const calculatedHours = calculateSleepHours(bedTimeInput, wakeTimeInput);
+    const nextHealth = {
       ...health,
       sleep: {
         ...(health.sleep || {}),
         bedTime: bedTimeInput,
         wakeTime: wakeTimeInput,
+        hours: calculatedHours,
         logged: true
       }
-    });
+    };
+    setHealth(nextHealth);
     setSleepEditMode(false);
+    if (user) {
+      fetch(`/api/user/${user.id}/health`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextHealth)
+      }).catch(() => {});
+    }
   };
 
   // Habit toggles with live checkin recording
@@ -354,7 +372,7 @@ export function DashboardTab({
               <Moon size={14} color="var(--accent-indigo)" />
               Sono ({sleepPercent}%)
             </span>
-            <span className="submetric-value">{health?.sleep?.logged ? `${sleepHours}h` : 'Não reg.'}</span>
+            <span className="submetric-value">{sleepHours}h</span>
           </div>
         </div>
       </div>
@@ -822,22 +840,25 @@ export function DashboardTab({
                     />
                   </div>
                 </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                  Duração calculada: {calculateSleepHours(bedTimeInput, wakeTimeInput)}h de sono
+                </div>
                 <button type="submit" className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                  Salvar Ciclo
+                  Salvar Ciclo ({calculateSleepHours(bedTimeInput, wakeTimeInput)}h)
                 </button>
               </form>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    {health?.sleep?.logged ? `${sleepHours}h` : '0h'} <span style={{ fontSize: '0.85rem', color: 'var(--accent-indigo)' }}>dormidas</span>
+                    {sleepHours}h <span style={{ fontSize: '0.85rem', color: 'var(--accent-indigo)' }}>dormidas</span>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {health?.sleep?.logged ? `${health.sleep.bedTime} às ${health.sleep.wakeTime}` : 'Nenhum registro hoje'}
+                    {currentBedTime} às {currentWakeTime}
                   </div>
                 </div>
                 <span className="priority-badge low" style={{ fontSize: '0.7rem' }}>
-                  {health?.sleep?.logged ? (sleepHours >= 7 ? 'Sono Ideal' : 'Sono Curto') : 'Pendente'}
+                  {sleepHours >= 7 ? 'Sono Ideal' : 'Sono Curto'}
                 </span>
               </div>
             )}

@@ -8,10 +8,11 @@ import {
   Users, 
   Plus, 
   Shield,
-  ShieldAlert
+  ShieldAlert,
+  LogOut
 } from 'lucide-react';
 
-export function DesktopSidebar({ activeTab, setActiveTab, onOpenAdd, isAdmin, userPermissions = {} }) {
+export function DesktopSidebar({ activeTab, setActiveTab, onOpenAdd, isAdmin, userPermissions = {}, onLogout }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, enabled: true },
     { id: 'workouts', label: 'Musculação', icon: Dumbbell, enabled: userPermissions.workouts !== false },
@@ -26,7 +27,7 @@ export function DesktopSidebar({ activeTab, setActiveTab, onOpenAdd, isAdmin, us
   }
 
   return (
-    <aside className="desktop-sidebar">
+    <aside className="desktop-sidebar" style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="sidebar-header">
         <div className="brand-logo-badge">
           <Shield size={24} strokeWidth={2.4} />
@@ -37,7 +38,7 @@ export function DesktopSidebar({ activeTab, setActiveTab, onOpenAdd, isAdmin, us
         </div>
       </div>
 
-      <nav className="nav-group">
+      <nav className="nav-group" style={{ flex: 1 }}>
         {navItems.filter(item => item.enabled).map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -63,6 +64,24 @@ export function DesktopSidebar({ activeTab, setActiveTab, onOpenAdd, isAdmin, us
           </button>
         )}
       </nav>
+
+      {/* BOTÃO VISÍVEL DE SAIR DA CONTA NA BASE DA SIDEBAR */}
+      <div style={{ padding: '16px 0 8px 0', borderTop: '1px solid var(--border-subtle)', marginTop: 'auto' }}>
+        <button
+          className="nav-item"
+          onClick={onLogout}
+          style={{ 
+            color: 'var(--accent-rose)', 
+            cursor: 'pointer',
+            width: '100%',
+            background: 'rgba(244, 63, 94, 0.06)'
+          }}
+          title="Sair da Conta (Logout)"
+        >
+          <LogOut size={20} className="nav-icon" />
+          <span>Sair da Conta</span>
+        </button>
+      </div>
     </aside>
   );
 }

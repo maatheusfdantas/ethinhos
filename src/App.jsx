@@ -24,12 +24,14 @@ import { Lock } from 'lucide-react';
 import { GlobalProgressBar } from './components/GlobalProgressBar';
 
 export function App() {
-  // REQUISITO 5: PRIMEIRA COISA AO CARREGAR É O LOGIN (user inicia como null)
-  const [user, setUser] = useState(() => {
-    // Check if session exists in sessionStorage (clears on fresh browser tab/window load)
-    const sessionUser = sessionStorage.getItem('ethos_current_user');
-    return sessionUser ? JSON.parse(sessionUser) : null;
-  });
+  // REQUISITO: SEMPRE O LOCALHOST DEVE ENVIAR PARA A PÁGINA DE LOGIN PRIMEIRO
+  const [user, setUser] = useState(null);
+
+  // Limpa qualquer resquício de sessão ao inicializar
+  useEffect(() => {
+    sessionStorage.removeItem('ethos_current_user');
+    localStorage.removeItem('ethos_current_user');
+  }, []);
 
   // User-specific states
   const [tags, setTags] = useState(INITIAL_TAGS);
@@ -78,13 +80,10 @@ export function App() {
   };
 
   useEffect(() => {
-    if (user) {
-      sessionStorage.setItem('ethos_current_user', JSON.stringify(user));
+    if (user?.id) {
       loadUserData(user);
-    } else {
-      sessionStorage.removeItem('ethos_current_user');
     }
-  }, [user]);
+  }, [user?.id]);
 
   // Handler: Add new Habit (US01, US19, US20, US39)
   const handleAddHabit = async (newHabit) => {
@@ -231,6 +230,11 @@ export function App() {
   const handleLogout = () => {
     setUser(null);
     sessionStorage.removeItem('ethos_current_user');
+    localStorage.removeItem('ethos_current_user');
+    setShowAuthModal(false);
+    setShowProfileModal(false);
+    setShowAddModal(false);
+    setActiveTab('dashboard');
   };
 
   // System Reset (Requisito 5)
@@ -257,6 +261,7 @@ export function App() {
         onOpenAdd={() => setShowAddModal(true)}
         isAdmin={isAdmin}
         userPermissions={permissions}
+        onLogout={handleLogout}
       />
 
       {/* TOP HEADER */}
@@ -266,6 +271,7 @@ export function App() {
         onOpenAuth={() => setShowAuthModal(true)}
         onOpenAdmin={() => setActiveTab('admin')}
         activeTab={activeTab}
+        onLogout={handleLogout}
       />
 
       {/* MAIN VIEWPORT */}
@@ -419,6 +425,7 @@ export function App() {
         onClose={() => setShowAuthModal(false)}
         currentUser={user}
         onLoginSuccess={handleLoginSuccess}
+        onLogout={handleLogout}
       />
 
       <ProfileModal

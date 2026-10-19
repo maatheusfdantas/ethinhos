@@ -17,7 +17,8 @@ export function AuthModal({
   isOpen,
   onClose,
   currentUser,
-  onLoginSuccess
+  onLoginSuccess,
+  onLogout
 }) {
   // Mode: 'login', 'register', 'forgot_request', 'forgot_verify'
   const [mode, setMode] = useState('login');
@@ -215,6 +216,27 @@ export function AuthModal({
             <X size={18} />
           </button>
         </div>
+
+        {currentUser && (
+          <div className="card-native" style={{ background: 'rgba(15, 23, 42, 0.7)', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Conectado atualmente como:</div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>{currentUser.name}</div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--accent-cyan)' }}>{currentUser.email || currentUser.username}</div>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)', padding: '6px 14px', fontSize: '0.78rem', fontWeight: 700 }}
+              onClick={() => {
+                onLogout?.();
+                onClose();
+              }}
+            >
+              Sair da Conta
+            </button>
+          </div>
+        )}
 
         {errorMessage && (
           <div style={{ background: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.3)', color: 'var(--accent-rose)', padding: '10px 14px', borderRadius: '12px', fontSize: '0.84rem', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>

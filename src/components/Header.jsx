@@ -1,7 +1,7 @@
 import React from 'react';
 import { Shield, Settings, User, Globe, Lock, ShieldAlert, LogOut } from 'lucide-react';
 
-export function Header({ user, onOpenProfile, onOpenAuth, onOpenAdmin, activeTab }) {
+export function Header({ user, onOpenProfile, onOpenAuth, onOpenAdmin, activeTab, onLogout }) {
   const isAdmin = user?.role === 'admin';
 
   return (
@@ -58,6 +58,27 @@ export function Header({ user, onOpenProfile, onOpenAuth, onOpenAdmin, activeTab
           title="Autenticação e Contas"
         >
           <Settings size={18} />
+        </button>
+
+        {/* BOTÃO DIRETO DE SAIR DA CONTA */}
+        <button 
+          className="header-icon-btn" 
+          onClick={onLogout}
+          title="Sair da Conta (Logout)"
+          style={{ 
+            color: 'var(--accent-rose)', 
+            borderColor: 'rgba(244, 63, 94, 0.4)',
+            background: 'rgba(244, 63, 94, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            borderRadius: 'var(--radius-pill)',
+            cursor: 'pointer'
+          }}
+        >
+          <LogOut size={16} />
+          <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>Sair</span>
         </button>
       </div>
     </header>
