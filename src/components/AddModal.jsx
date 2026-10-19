@@ -38,6 +38,12 @@ const WEEKDAYS = [
   { dayIndex: 0, label: 'D' }, // Dom
 ];
 
+const PRIORITY_OPTIONS = [
+  { level: 'Alta', color: 'var(--accent-rose)', border: 'rgba(244, 63, 94, 0.4)', bg: 'rgba(244, 63, 94, 0.18)' },
+  { level: 'Média', color: 'var(--accent-amber)', border: 'rgba(251, 191, 36, 0.4)', bg: 'rgba(251, 191, 36, 0.18)' },
+  { level: 'Baixa', color: 'var(--accent-emerald)', border: 'rgba(52, 211, 153, 0.4)', bg: 'rgba(52, 211, 153, 0.18)' }
+];
+
 export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], onAddTag }) {
   // Mode: 'choose', 'habit', 'event'
   const [mode, setMode] = useState('choose');
@@ -60,6 +66,7 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
   const [startTime, setStartTime] = useState('09:00'); // Horário Início
   const [endTime, setEndTime] = useState('10:30'); // Horário Término
   const [eventCategory, setEventCategory] = useState(tags[0]?.name || 'Geral');
+  const [eventPriority, setEventPriority] = useState('Média');
   const [repeat, setRepeat] = useState('Nunca');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -136,6 +143,7 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
       startTime: allDay ? '00:00' : startTime, // Horário início
       endTime: allDay ? '23:59' : endTime, // Horário término
       category: eventCategory,
+      priority: eventPriority,
       repeat,
       location,
       notes,
@@ -152,6 +160,8 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
     setHabitTitle('');
     setEventTitle('');
     setSelectedDays([1, 2, 3, 4, 5]);
+    setPriority('Média');
+    setEventPriority('Média');
     setShowCategoryCreator(false);
   };
 
@@ -384,23 +394,48 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
               </div>
             </div>
 
-            {/* Esforço & Prioridade */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            {/* Esforço & Prioridade com Classificação de Cores */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
+              <div>
+                <label className="form-label">Prioridade da Atividade</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {PRIORITY_OPTIONS.map((opt) => {
+                    const isSel = priority === opt.level;
+                    return (
+                      <button
+                        key={opt.level}
+                        type="button"
+                        onClick={() => setPriority(opt.level)}
+                        style={{
+                          padding: '9px 8px',
+                          borderRadius: '8px',
+                          border: isSel ? `2px solid ${opt.color}` : '1px solid var(--border-subtle)',
+                          background: isSel ? opt.bg : 'var(--surface-elevated)',
+                          color: isSel ? opt.color : 'var(--text-secondary)',
+                          fontWeight: isSel ? 800 : 600,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color }} />
+                        {opt.level}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div>
                 <label className="form-label">Nível de Esforço</label>
                 <select className="input-dark" value={effort} onChange={(e) => setEffort(e.target.value)}>
                   <option value="Baixo">Baixo (1 pt)</option>
                   <option value="Médio">Médio (2 pts)</option>
                   <option value="Alto">Alto (3 pts)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label">Prioridade</label>
-                <select className="input-dark" value={priority} onChange={(e) => setPriority(e.target.value)}>
-                  <option value="Alta">Alta</option>
-                  <option value="Média">Média</option>
-                  <option value="Baixa">Baixa</option>
                 </select>
               </div>
             </div>
@@ -540,6 +575,41 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
                     {t.name}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Prioridade do Evento com Classificação de Cores */}
+            <div className="form-group">
+              <label className="form-label">Prioridade da Atividade</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                {PRIORITY_OPTIONS.map((opt) => {
+                  const isSel = eventPriority === opt.level;
+                  return (
+                    <button
+                      key={opt.level}
+                      type="button"
+                      onClick={() => setEventPriority(opt.level)}
+                      style={{
+                        padding: '9px 8px',
+                        borderRadius: '8px',
+                        border: isSel ? `2px solid ${opt.color}` : '1px solid var(--border-subtle)',
+                        background: isSel ? opt.bg : 'var(--surface-elevated)',
+                        color: isSel ? opt.color : 'var(--text-secondary)',
+                        fontWeight: isSel ? 800 : 600,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color }} />
+                      {opt.level}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

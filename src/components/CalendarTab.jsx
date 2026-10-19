@@ -446,18 +446,40 @@ export function CalendarTab({ events = [], habits = [], workouts = [], onOpenAdd
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {selectedDayActivities.events.map((e) => (
-                <div key={e.id} className="card-native" style={{ background: 'var(--surface-elevated)', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>
-                        {e.allDay ? 'Dia Todo' : `${e.startTime} - ${e.endTime}`}
-                      </span>
-                      <span className="priority-badge low">{e.category}</span>
-                    </div>
-                    <div style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                      {e.title}
-                    </div>
+              {selectedDayActivities.events.map((e) => {
+                const priorityClass = e.priority === 'Alta' ? 'high' : e.priority === 'Baixa' ? 'low' : 'medium';
+                const priorityBorder = e.priority === 'Alta' 
+                  ? 'var(--accent-rose)' 
+                  : e.priority === 'Baixa' 
+                    ? 'var(--accent-emerald)' 
+                    : 'var(--accent-amber)';
+
+                return (
+                  <div 
+                    key={e.id} 
+                    className="card-native" 
+                    style={{ 
+                      background: 'var(--surface-elevated)', 
+                      padding: '12px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      borderLeft: `3px solid ${priorityBorder}`
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>
+                          {e.allDay ? 'Dia Todo' : `${e.startTime} - ${e.endTime}`}
+                        </span>
+                        <span className="section-badge">{e.category}</span>
+                        <span className={`priority-badge ${priorityClass}`}>
+                          {e.priority || 'Média'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                        {e.title}
+                      </div>
                     {e.location && (
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <MapPin size={12} />
@@ -475,8 +497,9 @@ export function CalendarTab({ events = [], habits = [], workouts = [], onOpenAdd
                     <span>{e.completed ? 'Feito' : 'Concluir'}</span>
                   </button>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
           )}
         </div>
 

@@ -21,6 +21,7 @@ import { LoginScreen } from './components/LoginScreen';
 
 import { INITIAL_TAGS, INITIAL_WORKOUTS, INITIAL_BADGES } from './data/initialData';
 import { Lock } from 'lucide-react';
+import { GlobalProgressBar } from './components/GlobalProgressBar';
 
 export function App() {
   // REQUISITO 5: PRIMEIRA COISA AO CARREGAR É O LOGIN (user inicia como null)
@@ -61,11 +62,14 @@ export function App() {
       const res = await fetch(`/api/user/${activeUser.id}/data`);
       if (res.ok) {
         const data = await res.json();
-        setHabits(data.habits || []);
-        setEvents(data.events || []);
+        if (data.habits) setHabits(data.habits);
+        if (data.events) setEvents(data.events);
         if (data.health) setHealth(data.health);
         if (data.tags && data.tags.length > 0) {
           setTags([...INITIAL_TAGS, ...data.tags.filter(t => !INITIAL_TAGS.find(it => it.name === t.name))]);
+        }
+        if (data.user) {
+          setUser(prev => ({ ...prev, ...data.user }));
         }
       }
     } catch (e) {
@@ -251,6 +255,13 @@ export function App() {
 
       {/* MAIN VIEWPORT */}
       <main className="main-content">
+        {/* PROGRESSO GLOBAL DAS ATIVIDADES (Visível em todas as abas, menos na social) */}
+        <GlobalProgressBar 
+          habits={habits} 
+          events={events} 
+          activeTab={activeTab} 
+        />
+
         {/* TAB 1: DASHBOARD */}
         {activeTab === 'dashboard' && (
           <DashboardTab

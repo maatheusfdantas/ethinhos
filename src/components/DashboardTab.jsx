@@ -24,9 +24,7 @@ import {
   ShieldCheck,
   TrendingUp,
   TrendingDown,
-  Target,
-  Cpu,
-  ArrowRight
+  Target
 } from 'lucide-react';
 
 const CATEGORY_ICONS = {
@@ -78,36 +76,21 @@ export function DashboardTab({
     if (health?.glassMl) setGlassMlInput(health.glassMl);
   }, [health?.waterTarget, health?.glassMl]);
 
-  // Analytics State from Python Engine (Garmin Connect Overview)
-  const [analytics, setAnalytics] = useState(null);
-
-  const fetchAnalytics = async () => {
-    if (!user) return;
-    try {
-      const res = await fetch(`/api/analytics/${user.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setAnalytics(data);
-      }
-    } catch (e) {
-      // offline fallback
-    }
-  };
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, [user?.id]);
-
   // Requisito 4: Criador inline de temas/categorias
   const [showTagCreator, setShowTagCreator] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState(DEFAULT_PALETTES[0]);
 
-  // Filter events and scheduled workouts for TODAY
+  // Pesos para ordenação por prioridade
+  const priorityWeight = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
+
+  // Filter events and scheduled workouts for TODAY (ordenados por prioridade Alta > Média > Baixa)
   const todayDateObj = new Date();
   const todayStr = todayDateObj.toISOString().split('T')[0];
   const todayDayOfWeek = todayDateObj.getDay();
-  const todayEvents = events.filter(e => e.date === todayStr);
+  const todayEvents = events
+    .filter(e => e.date === todayStr)
+    .sort((a, b) => (priorityWeight[b.priority] || 2) - (priorityWeight[a.priority] || 2));
   const todayScheduledWorkouts = (workouts || []).filter(w => (w.scheduledDays || []).includes(todayDayOfWeek));
 
   // Performance bar calculation
@@ -151,8 +134,7 @@ export function DashboardTab({
   else if (vitalityScore >= 50) vitalityStatus = 'Consistente';
   else if (vitalityScore > 0) vitalityStatus = 'Em Evolução';
 
-  // Prioridade
-  const priorityWeight = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
+  // Hábitos pendentes ordenados por prioridade (Alta > Média > Baixa)
   const pendingHabits = habits
     .filter(h => !h.completed)
     .sort((a, b) => (priorityWeight[b.priority] || 0) - (priorityWeight[a.priority] || 0));
@@ -270,7 +252,6 @@ export function DashboardTab({
             note: nextCompleted ? 'Concluído no Dashboard' : 'Desmarcado'
           })
         });
-        fetchAnalytics();
       } catch (err) {
         console.error('Checkin sync error:', err);
       }
@@ -306,7 +287,6 @@ export function DashboardTab({
             note: `Incrementado para ${nextCurrent}`
           })
         });
-        fetchAnalytics();
       } catch (err) {
         console.error('Checkin sync error:', err);
       }
@@ -332,114 +312,6 @@ export function DashboardTab({
 
   return (
     <div className="dashboard-view">
-      {/* 0. GARMIN CONNECT OVERVIEW STRIP (Resumo Primeiro, Detalhe Depois) */}
-      {analytics && (
-        <div className="card-native" style={{ marginBottom: '20px', background: 'rgba(15, 23, 42, 0.75)', border: '1px solid rgba(0, 229, 255, 0.25)', padding: '18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Cpu size={18} color="var(--accent-cyan)" />
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Engine Analítica • Garmin Connect Overview
-              </span>
-            </div>
-
-            {onSwitchTab && (
-              <button
-                onClick={() => onSwitchTab('telemetry')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(0, 229, 255, 0.12)',
-                  color: 'var(--accent-cyan)',
-                  border: '1px solid rgba(0, 229, 255, 0.3)',
-                  padding: '5px 12px',
-                  borderRadius: 'var(--radius-pill)',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Ver Telemetria Completa
-                <ArrowRight size={13} />
-              </button>
-            )}
-          </div>
-
-          {/* 4 Cards Principais */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px', marginBottom: '14px' }}>
-            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '3px solid var(--accent-cyan)' }}>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Progresso do Dia</span>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
-                {analytics.summary?.daily_progress}%
-              </div>
-            </div>
-
-            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '3px solid var(--accent-emerald)' }}>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Consistency Score</span>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '2px' }}>
-                <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>
-                  {analytics.summary?.consistency_score}
-                </span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--accent-emerald)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  {analytics.summary?.label}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '3px solid var(--accent-amber)' }}>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Streak Principal</span>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-amber)', marginTop: '2px' }}>
-                {analytics.summary?.main_streak} <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>dias</span>
-              </div>
-            </div>
-
-            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '3px solid var(--accent-indigo)' }}>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Tendência Semanal</span>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '2px' }}>
-                <span style={{ fontSize: '1.4rem', fontWeight: 800, color: analytics.summary?.trend_status === 'improving' ? 'var(--accent-emerald)' : analytics.summary?.trend_status === 'declining' ? 'var(--accent-rose)' : 'var(--accent-cyan)' }}>
-                  {analytics.summary?.trend_delta > 0 ? `+${analytics.summary?.trend_delta}%` : `${analytics.summary?.trend_delta}%`}
-                </span>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                  {analytics.summary?.trend_status}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Mini Heatmap & Destaques */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginRight: '4px' }}>Mini Heatmap (14d):</span>
-              {(analytics.charts?.calendar_heatmap || []).slice(-14).map((d, i) => {
-                let bg = 'rgba(255,255,255,0.06)';
-                if (d.intensity >= 0.8) bg = 'var(--accent-cyan)';
-                else if (d.intensity >= 0.5) bg = 'rgba(0, 229, 255, 0.5)';
-                else if (d.intensity > 0) bg = 'rgba(0, 229, 255, 0.2)';
-                return (
-                  <span
-                    key={i}
-                    title={`${d.date}: ${d.completed}/${d.total}`}
-                    style={{ width: 12, height: 12, borderRadius: 2, background: bg, display: 'inline-block' }}
-                  />
-                );
-              })}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '0.72rem', color: 'var(--accent-emerald)' }}>
-                <strong>Em Alta:</strong> {analytics.highlights?.top_strength?.split('(')[0] || 'Geral'}
-              </span>
-              {analytics.highlights?.top_risk && !analytics.highlights.top_risk.includes('Nenhum') && (
-                <span style={{ fontSize: '0.72rem', color: 'var(--accent-rose)' }}>
-                  <strong>Atenção:</strong> {analytics.highlights.top_risk.split('(')[0]}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 1. VITALIDADE DIÁRIA HERO */}
       <div className="vitality-hero-card">
         <div className="vitality-header">
@@ -640,48 +512,60 @@ export function DashboardTab({
             Nenhum compromisso com data e horário marcado para hoje. Todos os seus eventos cadastrados ficam salvos na sua <strong>Agenda & Calendário</strong>.
           </div>
         ) : (
-          todayEvents.map((ev) => (
-            <div 
-              key={ev.id} 
-              className="card-native" 
-              style={{ 
-                borderLeft: '4px solid var(--accent-indigo)',
-                padding: '14px 18px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '10px'
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Clock size={14} color="var(--accent-indigo)" />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-indigo)' }}>
-                    {ev.allDay ? 'Dia Todo' : `${ev.startTime} - ${ev.endTime}`}
-                  </span>
-                  <span className="section-badge">{ev.category}</span>
-                </div>
-                <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                  {ev.title}
-                </h3>
-                {ev.location && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    <MapPin size={12} />
-                    <span>{ev.location}</span>
-                  </div>
-                )}
-              </div>
+          todayEvents.map((ev) => {
+            const priorityClass = ev.priority === 'Alta' ? 'high' : ev.priority === 'Baixa' ? 'low' : 'medium';
+            const priorityBorder = ev.priority === 'Alta' 
+              ? 'var(--accent-rose)' 
+              : ev.priority === 'Baixa' 
+                ? 'var(--accent-emerald)' 
+                : 'var(--accent-amber)';
 
-              <button 
-                className={ev.completed ? 'btn-primary' : 'btn-secondary'}
-                style={{ padding: '6px 14px', fontSize: '0.78rem' }}
-                onClick={() => onToggleEvent?.(ev.id, !ev.completed)}
+            return (
+              <div 
+                key={ev.id} 
+                className="card-native" 
+                style={{ 
+                  borderLeft: `4px solid ${priorityBorder}`,
+                  padding: '14px 18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}
               >
-                {ev.completed ? 'Concluído' : 'Marcar Feito'}
-              </button>
-            </div>
-          ))
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Clock size={14} color="var(--accent-indigo)" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-indigo)' }}>
+                      {ev.allDay ? 'Dia Todo' : `${ev.startTime} - ${ev.endTime}`}
+                    </span>
+                    <span className="section-badge">{ev.category}</span>
+                    <span className={`priority-badge ${priorityClass}`}>
+                      {ev.priority || 'Média'}
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
+                    {ev.title}
+                  </h3>
+                  {ev.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      <MapPin size={12} />
+                      <span>{ev.location}</span>
+                    </div>
+                  )}
+                </div>
+
+                <button 
+                  className={ev.completed ? 'btn-primary' : 'btn-secondary'}
+                  style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+                  onClick={() => onToggleEvent?.(ev.id, !ev.completed)}
+                >
+                  {ev.completed ? 'Concluído' : 'Marcar Feito'}
+                </button>
+              </div>
+            );
+          })
         )}
       </div>
 
@@ -922,9 +806,14 @@ export function DashboardTab({
             const habitTag = tags.find(t => t.id === habit.tagId || t.name === habit.category);
             const progress = habit.target > 0 ? Math.round((habit.current / habit.target) * 100) : 0;
             const priorityClass = habit.priority === 'Alta' ? 'high' : habit.priority === 'Média' ? 'medium' : 'low';
+            const priorityBorder = habit.priority === 'Alta' 
+              ? 'var(--accent-rose)' 
+              : habit.priority === 'Baixa' 
+                ? 'var(--accent-emerald)' 
+                : 'var(--accent-amber)';
 
             return (
-              <div key={habit.id} className="habit-card-wide">
+              <div key={habit.id} className="habit-card-wide" style={{ borderLeft: `4px solid ${priorityBorder}` }}>
                 <div className="habit-category-box">
                   <IconComponent size={24} />
                 </div>

@@ -62,7 +62,9 @@ app.post('/api/auth/login', (req, res) => {
     is_public: user.is_public === 1,
     permissions: parsedPermissions,
     streak_days: user.streak_days,
-    points: user.points
+    points: user.points,
+    weight: user.weight || 70.0,
+    height: user.height || 1.75
   });
 });
 
@@ -175,10 +177,25 @@ app.post('/api/auth/reset-password', (req, res) => {
 // US37: Atualizar Perfil
 app.put('/api/user/:id/profile', (req, res) => {
   const { id } = req.params;
-  const { name, is_public } = req.body;
+  const { name, is_public, weight, height } = req.body;
 
-  db.prepare(`UPDATE users SET name = COALESCE(?, name), is_public = ? WHERE id = ?`)
-    .run(name, is_public ? 1 : 0, id);
+  db.prepare(`
+    UPDATE users SET
+      name = COALESCE(?, name),
+      is_public = CASE WHEN ? IS NOT NULL THEN ? ELSE is_public END,
+      weight = CASE WHEN ? IS NOT NULL THEN ? ELSE weight END,
+      height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END
+    WHERE id = ?
+  `).run(
+    name || null,
+    is_public !== undefined ? (is_public ? 1 : 0) : null,
+    is_public !== undefined ? (is_public ? 1 : 0) : null,
+    weight !== undefined && weight !== null ? Number(weight) : null,
+    weight !== undefined && weight !== null ? Number(weight) : null,
+    height !== undefined && height !== null ? Number(height) : null,
+    height !== undefined && height !== null ? Number(height) : null,
+    id
+  );
 
   res.json({ success: true });
 });
@@ -274,7 +291,10 @@ app.get('/api/user/:id/data', (req, res) => {
   // 4. Custom Tags / Categorias
   const tags = db.prepare(`SELECT * FROM tags WHERE user_id = ? OR user_id = 'global'`).all(id);
 
-  res.json({ habits, events, health, tags });
+  // 5. User Profile
+  const user = db.prepare(`SELECT id, username, email, name, avatar, role, is_active, subscription_tier, is_public, streak_days, points, weight, height FROM users WHERE id = ?`).get(id);
+
+  res.json({ habits, events, health, tags, user });
 });
 
 // Criar Hábito
@@ -325,13 +345,13 @@ app.post('/api/user/:id/event', (req, res) => {
   db.prepare(`
     INSERT INTO events (
       id, user_id, title, date, all_day, start_time, end_time,
-      category, repeat_rule, location, notes, completed, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+      category, repeat_rule, location, notes, priority, completed, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
   `).run(
     eventId, id, event.title, event.date, event.allDay ? 1 : 0,
     event.startTime || '09:00', event.endTime || '10:00',
     event.category || 'Geral', event.repeat || 'Nunca',
-    event.location || '', event.notes || '', new Date().toISOString()
+    event.location || '', event.notes || '', event.priority || 'Média', new Date().toISOString()
   );
 
   res.status(201).json({ success: true, id: eventId });

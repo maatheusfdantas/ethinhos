@@ -147,6 +147,16 @@ export function initDatabase() {
     // column already exists
   }
 
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN weight REAL DEFAULT 70.0;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN height REAL DEFAULT 1.75;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN priority TEXT NOT NULL DEFAULT 'Média';`);
+  } catch (e) {}
+
   // 9. Checkins Table (Motor Analítico)
   db.exec(`
     CREATE TABLE IF NOT EXISTS checkins (
