@@ -1,12 +1,13 @@
 import React from 'react';
 import { Target, CheckCircle2 } from 'lucide-react';
+import { isEventForDate } from '../services/storage';
 
 export function GlobalProgressBar({ habits = [], events = [], activeTab }) {
   // Ocultar estritamente na aba Social conforme solicitado
   if (activeTab === 'social') return null;
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayEvents = events.filter(e => e.date === todayStr);
+  const todayEvents = events.filter(e => isEventForDate(e, todayStr));
 
   const totalActivities = habits.length + todayEvents.length;
   const completedHabits = habits.filter(h => h.completed).length;

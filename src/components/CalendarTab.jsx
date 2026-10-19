@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Dumbbell
 } from 'lucide-react';
+import { isEventForDate } from '../services/storage';
 
 export function CalendarTab({ events = [], habits = [], workouts = [], onOpenAdd, onToggleEvent }) {
   // Views: 'month', 'week', 'day'
@@ -61,9 +62,9 @@ export function CalendarTab({ events = [], habits = [], workouts = [], onOpenAdd
     return `${year}-${m}-${d}`;
   };
 
-  // Get activities for a specific date
+  // Get activities for a specific date (inclui eventos com repetição)
   const getActivitiesForDate = (dateStr) => {
-    const dayEvents = events.filter(e => e.date === dateStr);
+    const dayEvents = events.filter(e => isEventForDate(e, dateStr));
     
     // Also include habits that repeat on this day of week
     const targetDate = new Date(`${dateStr}T12:00:00`);

@@ -16,7 +16,8 @@ import {
   Plus,
   Tag,
   Palette,
-  Check
+  Check,
+  RotateCcw
 } from 'lucide-react';
 
 const DEFAULT_COLOR_PALETTES = [
@@ -611,6 +612,30 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
                   );
                 })}
               </div>
+            </div>
+
+            {/* Repetição do Evento (De Tempos em Tempos) */}
+            <div className="form-group">
+              <label className="form-label">
+                <RotateCcw size={13} style={{ display: 'inline', marginRight: 4, color: 'var(--accent-cyan)' }} />
+                Repetição da Atividade
+              </label>
+              <select 
+                className="input-dark"
+                value={repeat}
+                onChange={(e) => setRepeat(e.target.value)}
+              >
+                <option value="Nunca">Nunca (Apenas na data escolhida)</option>
+                <option value="Diariamente">Diariamente (Todos os dias)</option>
+                <option value="Semanalmente">Semanalmente (Toda semana)</option>
+                <option value="Dias Úteis">Dias Úteis (Segunda a Sexta)</option>
+                <option value="Mensalmente">Mensalmente (Todo mês neste dia)</option>
+                <option value="A cada 2 dias">A cada 2 dias</option>
+                <option value="A cada 3 dias">A cada 3 dias</option>
+                <option value="A cada 7 dias">A cada 7 dias</option>
+                <option value="A cada 15 dias">A cada 15 dias</option>
+                <option value="A cada 30 dias">A cada 30 dias</option>
+              </select>
             </div>
 
             {/* Localização & Anotações */}

@@ -13,7 +13,7 @@ from engine.service import run_analytics, run_analytics_for_user
 
 app = FastAPI(
     title="Ethos Analytics Engine",
-    description="Python Data Science engine for behavioral metrics, streaks, and Garmin-style dashboards.",
+    description="Python Data Science engine for behavioral metrics, streaks, and predictive dashboards.",
     version="1.0.0"
 )
 

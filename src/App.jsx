@@ -154,6 +154,21 @@ export function App() {
     }
   };
 
+  // Handler: Delete Tag / Category
+  const handleDeleteTag = async (tagId, tagName) => {
+    setTags(prev => prev.filter(t => t.id !== tagId && t.name !== tagName));
+
+    if (user) {
+      try {
+        await fetch(`/api/user/${user.id}/tag/${encodeURIComponent(tagId || tagName)}`, {
+          method: 'DELETE'
+        });
+      } catch (e) {
+        console.error('Error deleting tag:', e);
+      }
+    }
+  };
+
   // Handler: Complete Workout (US11)
   const handleCompleteWorkout = (workoutName) => {
     if (user?.is_public) {
@@ -276,6 +291,7 @@ export function App() {
             onOpenAdd={() => setShowAddModal(true)}
             onOpenWorkout={() => setActiveTab('workouts')}
             onAddTag={handleAddTag}
+            onDeleteTag={handleDeleteTag}
             onToggleEvent={handleToggleEvent}
             onSwitchTab={setActiveTab}
           />

@@ -180,7 +180,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             Sincronizar Telemetria
           </button>
           <span className="section-badge" style={{ borderColor: 'rgba(0, 229, 255, 0.3)', color: 'var(--accent-cyan)' }}>
-            Garmin Connect Core
+            Engine Analítica Ethos
           </span>
         </div>
       </div>

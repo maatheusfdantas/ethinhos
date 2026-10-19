@@ -4,7 +4,7 @@ export const FIVE_SEEDED_USERS = [
     id: 'usr_admin',
     username: 'admin',
     email: 'admin@ethos.dev',
-    password: 'Foguete não tem ré',
+    password: 'admin123',
     name: 'Administrador Ethos',
     avatar: 'AD',
     role: 'admin',

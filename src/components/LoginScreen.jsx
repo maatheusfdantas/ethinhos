@@ -72,18 +72,6 @@ export function LoginScreen({ onLoginSuccess }) {
     }
   };
 
-  // Quick 1-click login with one of the 5 seeded users
-  const handleQuickLogin = (seededUser) => {
-    setLoginInput(seededUser.username);
-    setPassword(seededUser.password);
-    setErrorMessage('');
-
-    // Instant login
-    setTimeout(() => {
-      onLoginSuccess(seededUser);
-    }, 150);
-  };
-
   // Handle Register
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
@@ -194,91 +182,49 @@ export function LoginScreen({ onLoginSuccess }) {
       padding: '24px 16px',
       background: 'radial-gradient(circle at 50% 20%, #111a2c 0%, #060910 80%)'
     }}>
-      <div style={{ width: '100%', maxWidth: '1040px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '28px', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: '440px', margin: '0 auto' }}>
         
-        {/* LEFT COLUMN: BRAND & QUICK SELECTOR FOR 5 SEEDED USERS (REQUISITO 5 E 6) */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-            <div className="brand-logo-badge" style={{ width: 48, height: 48 }}>
-              <Shield size={28} strokeWidth={2.4} />
-            </div>
-            <div>
-              <h1 className="brand-title" style={{ fontSize: '1.8rem', letterSpacing: '-0.02em' }}>ETHOS</h1>
-              <span className="brand-subtitle" style={{ fontSize: '0.8rem' }}>Cloud Habit & Productivity OS</span>
-            </div>
+        {/* BRAND HEADER */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div className="brand-logo-badge" style={{ width: 54, height: 54, margin: '0 auto 12px' }}>
+            <Shield size={30} strokeWidth={2.4} />
           </div>
-
-          <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
-            Acesso obrigatório via autenticação. Escolha um dos 5 perfis pré-cadastrados abaixo para testar instantaneamente ou digite suas credenciais.
-          </p>
-
-          {/* 5 USUÁRIOS PRÉ-CONFIGURADOS (REQUISITO 6) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-cyan)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Selecione um dos 5 Perfis de Teste (1-Clique):
-            </span>
-
-            {FIVE_SEEDED_USERS.map((su) => {
-              const isAdmin = su.role === 'admin';
-              return (
-                <div 
-                  key={su.id}
-                  onClick={() => handleQuickLogin(su)}
-                  className="card-native"
-                  style={{
-                    padding: '12px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    background: isAdmin ? 'rgba(0, 229, 255, 0.08)' : 'var(--surface-elevated)',
-                    borderColor: isAdmin ? 'var(--accent-cyan)' : 'var(--border-subtle)',
-                    transition: 'all 0.15s ease'
-                  }}
-                  title={`Clique para entrar como ${su.name}`}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div className="profile-avatar" style={{ background: isAdmin ? 'var(--accent-cyan)' : undefined, color: isAdmin ? '#000' : undefined }}>
-                      {su.avatar}
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          {su.name}
-                        </span>
-                        <span className="section-badge" style={{ fontSize: '0.65rem', color: isAdmin ? 'var(--accent-cyan)' : 'var(--accent-indigo)' }}>
-                          {su.badge}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                        login: <strong style={{ color: '#fff' }}>{su.username}</strong> | senha: <strong style={{ color: '#fff' }}>{su.password}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.72rem' }}>
-                    Entrar
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+          <h1 className="brand-title" style={{ fontSize: '2rem', letterSpacing: '-0.02em', marginBottom: '4px' }}>ETHOS</h1>
+          <span className="brand-subtitle" style={{ fontSize: '0.82rem' }}>Cloud Habit & Productivity OS</span>
         </div>
 
-        {/* RIGHT COLUMN: INTERACTIVE FORM (LOGIN / REGISTER / RECOVERY) */}
-        <div className="card-native" style={{ padding: '28px', maxWidth: '440px', margin: '0 auto', width: '100%' }}>
+        {/* SECURE CARD CONTAINER */}
+        <div className="card-native" style={{ padding: '28px', width: '100%', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
           
+          {/* SEGMENTED TOGGLE: ENTRAR / CRIAR CONTA */}
+          <div className="segmented-control" style={{ marginBottom: '20px' }}>
+            <button
+              type="button"
+              className={`segmented-btn ${mode === 'login' ? 'active' : ''}`}
+              onClick={() => { setErrorMessage(''); setMode('login'); }}
+            >
+              Entrar
+            </button>
+            <button
+              type="button"
+              className={`segmented-btn ${mode === 'register' ? 'active' : ''}`}
+              onClick={() => { setErrorMessage(''); setMode('register'); }}
+            >
+              Criar Conta
+            </button>
+          </div>
+
           {/* HEADER DO FORM */}
           <div style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-              {mode === 'login' && 'Entrar no Ethos'}
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+              {mode === 'login' && 'Acesse sua Conta'}
               {mode === 'register' && 'Cadastrar Nova Conta'}
               {mode === 'forgot_request' && 'Recuperação de Senha'}
               {mode === 'forgot_verify' && 'Validar Token de E-mail'}
             </h2>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              {mode === 'login' && 'Informe suas credenciais ou selecione um perfil ao lado.'}
-              {mode === 'register' && 'Os dados serão persistidos no banco de dados SQLite.'}
+              {mode === 'login' && 'Informe suas credenciais para acessar o painel.'}
+              {mode === 'register' && 'Os dados serão persistidos de forma segura no SQLite.'}
               {mode === 'forgot_request' && 'Um token seguro de 6 dígitos será gerado no SQLite.'}
               {mode === 'forgot_verify' && 'Insira o token gerado para definir uma nova senha.'}
             </span>

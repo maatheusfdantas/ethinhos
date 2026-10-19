@@ -33,7 +33,62 @@ export function FocusTab({ user, onFocusComplete }) {
   const [selectedDurationMins, setSelectedDurationMins] = useState(25);
   const [customInputMins, setCustomInputMins] = useState(30);
   const [isCustomMode, setIsCustomMode] = useState(false);
-  const [subject, setSubject] = useState('Sistemas Operacionais'); // US25: Vinculação da sessão a matéria
+
+  // Classes de Estudo Customizáveis (Criar e Deletar)
+  const [subjects, setSubjects] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ethos_focus_subjects');
+      return saved ? JSON.parse(saved) : SUBJECT_OPTIONS;
+    } catch {
+      return SUBJECT_OPTIONS;
+    }
+  });
+  const [subject, setSubject] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ethos_focus_subjects');
+      const parsed = saved ? JSON.parse(saved) : SUBJECT_OPTIONS;
+      return parsed[0] || 'Sistemas Operacionais';
+    } catch {
+      return 'Sistemas Operacionais';
+    }
+  });
+  const [newSubjectInput, setNewSubjectInput] = useState('');
+  const [showSubjectManager, setShowSubjectManager] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ethos_focus_subjects', JSON.stringify(subjects));
+    } catch (e) {
+      console.warn('Error saving subjects:', e);
+    }
+  }, [subjects]);
+
+  const handleAddSubject = (e) => {
+    e.preventDefault();
+    const clean = newSubjectInput.trim();
+    if (!clean) return;
+    if (subjects.includes(clean)) {
+      setSubject(clean);
+      setNewSubjectInput('');
+      return;
+    }
+    const updated = [...subjects, clean];
+    setSubjects(updated);
+    setSubject(clean);
+    setNewSubjectInput('');
+  };
+
+  const handleDeleteSubject = (subToDelete) => {
+    if (subjects.length <= 1) {
+      alert('Você deve manter pelo menos uma classe de estudo.');
+      return;
+    }
+    const updated = subjects.filter(s => s !== subToDelete);
+    setSubjects(updated);
+    if (subject === subToDelete) {
+      setSubject(updated[0]);
+    }
+  };
 
   // Timer states
   const [totalSeconds, setTotalSeconds] = useState(25 * 60);
@@ -268,21 +323,111 @@ export function FocusTab({ user, onFocusComplete }) {
         <span className="section-badge">Técnica Pomodoro</span>
       </div>
 
-      {/* US25: VINCULAÇÃO A UMA MATÉRIA ESPECÍFICA */}
+      {/* VINCULAÇÃO A UMA CLASSE DE ESTUDO (CRIAR E DELETAR) */}
       <div className="card-native" style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <BookOpen size={16} color="var(--accent-indigo)" />
-          <label className="form-label" style={{ margin: 0 }}>
-            Matéria ou Atividade Vinculada
-          </label>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BookOpen size={16} color="var(--accent-indigo)" />
+            <label className="form-label" style={{ margin: 0 }}>
+              Classe de Estudo Vinculada
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowSubjectManager(!showSubjectManager)}
+            disabled={isActive}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--accent-cyan)',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: isActive ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {showSubjectManager ? 'Fechar Gerenciador' : '+ Gerenciar / Criar Classes'}
+          </button>
         </div>
+
+        {/* FORM INLINE PARA CRIAR E DELETAR CLASSES DE ESTUDO */}
+        {showSubjectManager && (
+          <div style={{ background: 'var(--surface-elevated)', borderRadius: '12px', padding: '14px', marginBottom: '14px', border: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
+              Cadastrar Nova Classe de Estudo:
+            </span>
+            <form onSubmit={handleAddSubject} style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+              <input
+                type="text"
+                className="input-dark"
+                placeholder="Nome da classe (ex: Inteligência Artificial, Bioquímica)"
+                value={newSubjectInput}
+                onChange={(e) => setNewSubjectInput(e.target.value)}
+                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                autoFocus
+              />
+              <button type="submit" className="btn-primary" style={{ padding: '8px 14px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                <Plus size={14} />
+                Adicionar
+              </button>
+            </form>
+
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+              Classes cadastradas (clique no X para deletar):
+            </span>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {subjects.map((subItem) => (
+                <span
+                  key={subItem}
+                  className="tag-badge"
+                  style={{
+                    padding: '4px 8px 4px 10px',
+                    border: subItem === subject ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.1)',
+                    background: subItem === subject ? 'rgba(0, 229, 255, 0.12)' : 'rgba(255,255,255,0.04)',
+                    color: subItem === subject ? 'var(--accent-cyan)' : 'var(--text-primary)',
+                    fontSize: '0.76rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {subItem}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSubject(subItem);
+                    }}
+                    style={{
+                      background: 'rgba(255,255,255,0.1)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: 16,
+                      height: 16,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                    title={`Deletar classe "${subItem}"`}
+                  >
+                    <X size={10} strokeWidth={2.8} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <select 
           className="input-dark"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           disabled={isActive}
         >
-          {SUBJECT_OPTIONS.map((sub, idx) => (
+          {subjects.map((sub, idx) => (
             <option key={idx} value={sub}>{sub}</option>
           ))}
         </select>

@@ -50,4 +50,35 @@ export const initStorage = () => {
   }
 };
 
+/**
+ * Verifica se um evento (único ou recorrente) ocorre em uma determinada data (YYYY-MM-DD)
+ */
+export const isEventForDate = (event, dateStr) => {
+  if (!event || !dateStr) return false;
+  if (event.date === dateStr) return true;
+  if (!event.repeat || event.repeat === 'Nunca') return false;
+  if (dateStr < event.date) return false; // Evento ainda não começou
+
+  const targetDate = new Date(`${dateStr}T12:00:00`);
+  const startDate = new Date(`${event.date}T12:00:00`);
+  const dayOfWeek = targetDate.getDay();
+
+  if (event.repeat === 'Diariamente') return true;
+  if (event.repeat === 'Semanalmente') return dayOfWeek === startDate.getDay();
+  if (event.repeat === 'Mensalmente') return targetDate.getDate() === startDate.getDate();
+  if (event.repeat === 'Dias Úteis') return dayOfWeek >= 1 && dayOfWeek <= 5;
+  
+  const matchInterval = event.repeat.match(/A cada (\d+) dias/);
+  if (matchInterval) {
+    const interval = parseInt(matchInterval[1], 10);
+    if (interval > 0) {
+      const diffTime = targetDate.getTime() - startDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays % interval === 0;
+    }
+  }
+
+  return false;
+};
+
 export { STORAGE_KEYS };

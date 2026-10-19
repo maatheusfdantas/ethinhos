@@ -387,6 +387,13 @@ app.post('/api/user/:id/tag', (req, res) => {
   res.status(201).json({ success: true, tag: { id: tagId, name, color, bg, icon: icon || 'Bookmark' } });
 });
 
+// Remover Tag / Categoria Customizada
+app.delete('/api/user/:id/tag/:tagId', (req, res) => {
+  const { id, tagId } = req.params;
+  db.prepare(`DELETE FROM tags WHERE (id = ? OR name = ?) AND (user_id = ? OR user_id = 'global')`).run(tagId, tagId, id);
+  res.json({ success: true, message: 'Categoria removida.' });
+});
+
 // Atualizar Água e Saúde
 app.post('/api/user/:id/health', (req, res) => {
   const { id } = req.params;

@@ -24,8 +24,10 @@ import {
   ShieldCheck,
   TrendingUp,
   TrendingDown,
-  Target
+  Target,
+  X
 } from 'lucide-react';
+import { isEventForDate } from '../services/storage';
 
 const CATEGORY_ICONS = {
   Faculdade: BookOpen,
@@ -58,6 +60,7 @@ export function DashboardTab({
   onOpenAdd,
   onOpenWorkout,
   onAddTag,
+  onDeleteTag,
   onToggleEvent,
   onSwitchTab
 }) {
@@ -84,12 +87,12 @@ export function DashboardTab({
   // Pesos para ordenação por prioridade
   const priorityWeight = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
 
-  // Filter events and scheduled workouts for TODAY (ordenados por prioridade Alta > Média > Baixa)
+  // Filter events and scheduled workouts for TODAY (inclui eventos recorrentes e ordenados por prioridade)
   const todayDateObj = new Date();
   const todayStr = todayDateObj.toISOString().split('T')[0];
   const todayDayOfWeek = todayDateObj.getDay();
   const todayEvents = events
-    .filter(e => e.date === todayStr)
+    .filter(e => isEventForDate(e, todayStr))
     .sort((a, b) => (priorityWeight[b.priority] || 2) - (priorityWeight[a.priority] || 2));
   const todayScheduledWorkouts = (workouts || []).filter(w => (w.scheduledDays || []).includes(todayDayOfWeek));
 
@@ -418,14 +421,14 @@ export function DashboardTab({
           </form>
         )}
 
-        {/* LISTAGEM DE CATEGORIAS ATIVAS */}
+        {/* LISTAGEM DE CATEGORIAS ATIVAS COM OPÇÃO DE REMOVER */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {tags.map((t) => (
             <span 
               key={t.id || t.name}
               className="tag-badge"
               style={{
-                padding: '6px 14px',
+                padding: '6px 10px 6px 12px',
                 border: `1px solid ${t.color}50`,
                 background: t.bg,
                 color: t.color,
@@ -433,11 +436,40 @@ export function DashboardTab({
                 fontSize: '0.8rem',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '8px'
               }}
             >
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color }} />
               {t.name}
+              {onDeleteTag && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Deseja remover a categoria "${t.name}" da sua rotina?`)) {
+                      onDeleteTag(t.id, t.name);
+                    }
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 18,
+                    height: 18,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: t.color,
+                    cursor: 'pointer',
+                    padding: 0,
+                    marginLeft: 2,
+                    transition: 'all 0.15s ease'
+                  }}
+                  title={`Remover categoria "${t.name}"`}
+                >
+                  <X size={11} strokeWidth={2.8} />
+                </button>
+              )}
             </span>
           ))}
         </div>
@@ -653,8 +685,50 @@ export function DashboardTab({
                   ))}
                 </div>
 
+                {/* SUGESTÃO INTELIGENTE BASEADA NO PESO (PESO x 35ml) */}
+                <div style={{
+                  background: 'rgba(0, 229, 255, 0.08)',
+                  border: '1px solid rgba(0, 229, 255, 0.25)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                  flexWrap: 'wrap'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
+                      Sugestão com base no seu peso ({user?.weight ? `${user.weight} kg` : '70 kg'} × 35 ml):
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      Meta calculada: <strong>{((user?.weight || 70) * 35).toLocaleString('pt-BR')} ml</strong> (~{Math.max(1, Math.round(((user?.weight || 70) * 35) / (Number(glassMlInput) || 250)))} copos de {glassMlInput || 250} ml)
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const recMl = (user?.weight || 70) * 35;
+                      const recGlasses = Math.max(1, Math.round(recMl / (Number(glassMlInput) || 250)));
+                      setWaterTargetInput(recGlasses);
+                    }}
+                    style={{
+                      background: 'var(--accent-cyan)',
+                      color: '#030712',
+                      border: 'none',
+                      borderRadius: 'var(--radius-pill)',
+                      padding: '5px 12px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Aplicar Sugestão
+                  </button>
+                </div>
+
                 <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)' }}>
-                  Total calculado: {waterTargetInput || 0} copos × {glassMlInput || 0} ml = {((Number(waterTargetInput) || 0) * (Number(glassMlInput) || 0)).toLocaleString('pt-BR')} ml
+                  Total configurado: {waterTargetInput || 0} copos × {glassMlInput || 0} ml = {((Number(waterTargetInput) || 0) * (Number(glassMlInput) || 0)).toLocaleString('pt-BR')} ml
                 </div>
 
                 <button type="submit" className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
