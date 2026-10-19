@@ -12,7 +12,10 @@ import {
   Sparkles, 
   BookOpen, 
   X,
-  Flame
+  Flame,
+  Plus,
+  Minus,
+  Sliders
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -26,9 +29,10 @@ const SUBJECT_OPTIONS = [
 ];
 
 export function FocusTab({ user, onFocusComplete }) {
-  // Preset durations in minutes (US05)
+  // Preset durations in minutes (US05 & Request 4)
   const [selectedDurationMins, setSelectedDurationMins] = useState(25);
-  const [customMins, setCustomMins] = useState(50);
+  const [customInputMins, setCustomInputMins] = useState(30);
+  const [isCustomMode, setIsCustomMode] = useState(false);
   const [subject, setSubject] = useState('Sistemas Operacionais'); // US25: Vinculação da sessão a matéria
 
   // Timer states
@@ -47,10 +51,24 @@ export function FocusTab({ user, onFocusComplete }) {
   const [completedSessionData, setCompletedSessionData] = useState(null);
   const canvasRef = useRef(null);
 
-  // Adjust duration
+  // Adjust duration via preset
   const handleSelectDuration = (mins) => {
     if (isActive) return;
+    setIsCustomMode(false);
     setSelectedDurationMins(mins);
+    setTotalSeconds(mins * 60);
+    setSecondsLeft(mins * 60);
+    setPauseSecondsLeft(MAX_PAUSE_SECONDS);
+    setFraudWarning(false);
+  };
+
+  // Adjust duration via custom time input
+  const handleApplyCustomDuration = (val) => {
+    if (isActive) return;
+    const mins = Math.max(1, Math.min(180, Number(val) || 25));
+    setCustomInputMins(mins);
+    setSelectedDurationMins(mins);
+    setIsCustomMode(true);
     setTotalSeconds(mins * 60);
     setSecondsLeft(mins * 60);
     setPauseSecondsLeft(MAX_PAUSE_SECONDS);
@@ -270,27 +288,136 @@ export function FocusTab({ user, onFocusComplete }) {
         </select>
       </div>
 
-      {/* ADJUSTABLE DURATION PRESETS (US05) */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
-        {[15, 25, 45, 50, 60].map((mins) => (
+      {/* ADJUSTABLE DURATION PRESETS & CUSTOM TIME (US05 & Request 4) */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', alignItems: 'center' }}>
+          {[15, 25, 45, 50, 60].map((mins) => (
+            <button
+              key={mins}
+              className="segmented-btn"
+              style={{
+                background: !isCustomMode && selectedDurationMins === mins ? 'var(--accent-cyan)' : 'var(--surface-card)',
+                color: !isCustomMode && selectedDurationMins === mins ? '#030712' : 'var(--text-secondary)',
+                fontWeight: 700,
+                padding: '9px 18px',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-pill)',
+                cursor: isActive ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+              onClick={() => handleSelectDuration(mins)}
+              disabled={isActive}
+            >
+              {mins} min
+            </button>
+          ))}
+
           <button
-            key={mins}
             className="segmented-btn"
             style={{
-              background: selectedDurationMins === mins ? 'var(--accent-cyan)' : 'var(--surface-card)',
-              color: selectedDurationMins === mins ? '#030712' : 'var(--text-secondary)',
+              background: isCustomMode ? 'var(--accent-cyan)' : 'var(--surface-card)',
+              color: isCustomMode ? '#030712' : 'var(--text-secondary)',
               fontWeight: 700,
-              padding: '10px 18px',
+              padding: '9px 18px',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-pill)',
-              cursor: isActive ? 'not-allowed' : 'pointer'
+              cursor: isActive ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap'
             }}
-            onClick={() => handleSelectDuration(mins)}
+            onClick={() => handleApplyCustomDuration(customInputMins)}
             disabled={isActive}
           >
-            {mins} min
+            <Sliders size={14} />
+            Tempo Personalizado {isCustomMode ? `(${selectedDurationMins} min)` : ''}
           </button>
-        ))}
+        </div>
+
+        {/* CUSTOM TIME CONTROLLER (SELEÇÃO LIVRE DE 1 A 180 MIN) */}
+        {isCustomMode && (
+          <div className="card-native" style={{ marginTop: '10px', padding: '14px 18px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(0, 229, 255, 0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '10px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
+                Defina os Minutos de Foco (1 a 180 min):
+              </span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleApplyCustomDuration(selectedDurationMins - 5)}
+                  disabled={isActive || selectedDurationMins <= 5}
+                  style={{ padding: '4px 8px', borderRadius: '4px', background: 'var(--surface-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                  title="Diminuir 5 minutos"
+                >
+                  -5 min
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyCustomDuration(selectedDurationMins - 1)}
+                  disabled={isActive || selectedDurationMins <= 1}
+                  style={{ padding: '4px 8px', borderRadius: '4px', background: 'var(--surface-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                  title="Diminuir 1 minuto"
+                >
+                  -1 min
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="180"
+                    value={customInputMins}
+                    onChange={(e) => handleApplyCustomDuration(e.target.value)}
+                    disabled={isActive}
+                    style={{
+                      width: '64px',
+                      padding: '5px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(0, 0, 0, 0.5)',
+                      border: '1px solid var(--accent-cyan)',
+                      color: 'var(--accent-cyan)',
+                      fontWeight: 800,
+                      fontSize: '1rem',
+                      textAlign: 'center'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>minutos</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyCustomDuration(selectedDurationMins + 1)}
+                  disabled={isActive || selectedDurationMins >= 180}
+                  style={{ padding: '4px 8px', borderRadius: '4px', background: 'var(--surface-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                  title="Aumentar 1 minuto"
+                >
+                  +1 min
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyCustomDuration(selectedDurationMins + 5)}
+                  disabled={isActive || selectedDurationMins >= 175}
+                  style={{ padding: '4px 8px', borderRadius: '4px', background: 'var(--surface-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                  title="Aumentar 5 minutos"
+                >
+                  +5 min
+                </button>
+              </div>
+            </div>
+
+            <input
+              type="range"
+              min="1"
+              max="120"
+              value={selectedDurationMins}
+              onChange={(e) => handleApplyCustomDuration(e.target.value)}
+              disabled={isActive}
+              style={{ width: '100%', accentColor: 'var(--accent-cyan)', cursor: isActive ? 'not-allowed' : 'pointer' }}
+            />
+          </div>
+        )}
       </div>
 
       {/* FOCUS MAIN TIMER CARD */}

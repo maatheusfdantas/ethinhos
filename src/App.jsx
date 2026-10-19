@@ -172,8 +172,6 @@ export function App() {
       ...prev,
       points: (prev?.points || 0) + 50
     }));
-
-    alert(`Parabéns! O treino "${workoutName}" foi finalizado com sucesso!`);
   };
 
   // Handler: Focus Completed (US05, US06, US25)

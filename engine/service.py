@@ -202,18 +202,42 @@ def run_analytics_for_user(user_id: str, db_path: Optional[str] = None) -> Dict[
             active=True
         ))
 
+    # Load health info
+    health_data = {}
+    try:
+        cursor.execute("""
+            SELECT water_glasses, water_target, glass_ml, sleep_bed_time, sleep_wake_time, sleep_logged
+            FROM health WHERE user_id = ?
+        """, (user_id,))
+        h_row = cursor.fetchone()
+        if h_row:
+            health_data = {
+                "water_glasses": h_row["water_glasses"],
+                "water_target": h_row["water_target"],
+                "glass_ml": h_row["glass_ml"],
+                "sleep_bed_time": h_row["sleep_bed_time"],
+                "sleep_wake_time": h_row["sleep_wake_time"],
+                "sleep_logged": h_row["sleep_logged"]
+            }
+    except Exception:
+        pass
+
     # Check if checkins table exists
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='checkins'")
     has_checkins_table = cursor.fetchone() is not None
 
-    checkins: List[CheckinModel] = []
+    today = date.today()
+    today_str = format_date(today)
+    now_iso = datetime.now().isoformat()
+
+    db_checkin_map: Dict[Tuple[str, str], CheckinModel] = {}
     if has_checkins_table:
         cursor.execute("""
             SELECT id, habit_id, event_date, logged_at, value, status_override, note
             FROM checkins WHERE user_id = ?
         """, (user_id,))
         for r in cursor.fetchall():
-            checkins.append(CheckinModel(
+            m = CheckinModel(
                 checkin_id=r['id'],
                 habit_id=r['habit_id'],
                 event_date=r['event_date'],
@@ -221,16 +245,61 @@ def run_analytics_for_user(user_id: str, db_path: Optional[str] = None) -> Dict[
                 value=float(r['value'] or 1.0),
                 status_override=r['status_override'],
                 note=r['note']
-            ))
+            )
+            db_checkin_map[(r['habit_id'], r['event_date'])] = m
 
     conn.close()
 
-    # If no historical checkins exist in the DB, synthesize realistic checkin history
-    # aligned with the user profile for testing and rich analytics demo
-    if not checkins and habits:
-        checkins = generate_seed_checkins_for_profile(user_id, habits)
+    # 1. Overlay current day's real live habits state from DB if no explicit checkin exists
+    for r in habit_rows:
+        h_id = r['id']
+        is_completed = bool(r['completed'])
+        if (h_id, today_str) not in db_checkin_map:
+            if is_completed:
+                target_val = float(r['target'] or 1.0)
+                db_checkin_map[(h_id, today_str)] = CheckinModel(
+                    checkin_id=f"live_{h_id}_{today_str}",
+                    habit_id=h_id,
+                    event_date=today_str,
+                    logged_at=now_iso,
+                    value=target_val,
+                    status_override="done",
+                    note="Concluído hoje"
+                )
 
-    return run_analytics(habits, checkins)
+    # 2. For past dates (< today_str):
+    # Unless user is clean/new, provide baseline history for past days so historical charts work
+    # and don't collapse to zero when the user logs their first checkin in SQLite!
+    is_clean = ("clean" in user_id) or (user_id == "usr_clean")
+    if not is_clean and habits:
+        seed_checkins = generate_seed_checkins_for_profile(user_id, habits)
+        for sc in seed_checkins:
+            if sc.event_date < today_str and (sc.habit_id, sc.event_date) not in db_checkin_map:
+                db_checkin_map[(sc.habit_id, sc.event_date)] = sc
+
+    checkins = list(db_checkin_map.values())
+    result = run_analytics(habits, checkins)
+
+    # Real-time Accompaniment metadata
+    completed_today_count = sum(1 for r in habit_rows if r['completed'])
+    result["accompaniment"] = {
+        "user_id": user_id,
+        "today_date": today_str,
+        "habits_total": len(habits),
+        "habits_completed_today": completed_today_count,
+        "today_completion_rate": round((completed_today_count / len(habits) * 100), 1) if habits else 0.0,
+        "water_glasses": health_data.get("water_glasses", 0),
+        "water_target": health_data.get("water_target", 10),
+        "glass_ml": health_data.get("glass_ml", 250),
+        "water_ml": health_data.get("water_glasses", 0) * health_data.get("glass_ml", 250),
+        "water_target_ml": health_data.get("water_target", 10) * health_data.get("glass_ml", 250),
+        "sleep_bed_time": health_data.get("sleep_bed_time", "23:30"),
+        "sleep_wake_time": health_data.get("sleep_wake_time", "07:00"),
+        "sleep_logged": bool(health_data.get("sleep_logged", 0)),
+        "is_clean_profile": is_clean
+    }
+
+    return result
 
 def generate_seed_checkins_for_profile(user_id: str, habits: List[HabitModel]) -> List[CheckinModel]:
     """Generates synthetic historical check-ins matching the user's intended profile."""
@@ -258,6 +327,9 @@ def generate_seed_checkins_for_profile(user_id: str, habits: List[HabitModel]) -
 
     for day_offset in range(30):
         cur_d = today - timedelta(days=29 - day_offset)
+        # Skip today - today is strictly live accompaniment!
+        if cur_d >= today:
+            continue
         cur_d_str = format_date(cur_d)
         is_in_recent_streak = (29 - day_offset) < streak_days
         wd = cur_d.weekday()

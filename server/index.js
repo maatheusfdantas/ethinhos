@@ -384,13 +384,13 @@ app.post('/api/user/:id/health', (req, res) => {
       sleep_wake_time = COALESCE(excluded.sleep_wake_time, health.sleep_wake_time),
       sleep_logged = COALESCE(excluded.sleep_logged, health.sleep_logged)
   `).run(
-    id, 
-    waterGlasses ?? 0, 
-    waterTarget || 10, 
-    glassMl || 250, 
+    id,
+    waterGlasses ?? 0,
+    waterTarget || 10,
+    glassMl || 250,
     JSON.stringify(waterHistory || []),
-    sleep?.bedTime || '23:30', 
-    sleep?.wakeTime || '07:00', 
+    sleep?.bedTime || '23:30',
+    sleep?.wakeTime || '07:00',
     sleep?.logged ? 1 : 0
   );
 

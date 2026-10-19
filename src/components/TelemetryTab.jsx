@@ -22,7 +22,12 @@ import {
   Clock, 
   Zap, 
   ChevronRight, 
-  RefreshCw 
+  RefreshCw,
+  User,
+  Droplets,
+  Moon,
+  Radio,
+  Check
 } from 'lucide-react';
 
 export function TelemetryTab({ habits = [], health = {}, user = null }) {
@@ -50,9 +55,41 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
     }
   };
 
+  // Dynamic tracking: re-fetch whenever the user or their habit completions change
+  const habitsKey = habits.map(h => `${h.id}:${h.completed}`).join(',');
   useEffect(() => {
     fetchAnalytics();
-  }, [user?.id]);
+  }, [user?.id, habitsKey]);
+
+  // Compute live user stats directly from props & backend accompaniment
+  const todayCompletedHabitsCount = habits.filter(h => h.completed).length;
+  const todayTotalHabitsCount = habits.length;
+  const liveHabitsPct = todayTotalHabitsCount > 0 
+    ? Math.round((todayCompletedHabitsCount / todayTotalHabitsCount) * 100) 
+    : 0;
+
+  const waterGlasses = health?.waterGlasses ?? (analytics?.accompaniment?.water_glasses || 0);
+  const waterTarget = health?.waterTarget || (analytics?.accompaniment?.water_target || 10);
+  const glassMl = health?.glassMl || (analytics?.accompaniment?.glass_ml || 250);
+  const waterMl = waterGlasses * glassMl;
+  const waterTargetMl = waterTarget * glassMl;
+  const waterPct = Math.min(100, Math.round((waterMl / Math.max(1, waterTargetMl)) * 100));
+
+  const sleepBedTime = health?.sleep?.bedTime || (analytics?.accompaniment?.sleep_bed_time || '23:30');
+  const sleepWakeTime = health?.sleep?.wakeTime || (analytics?.accompaniment?.sleep_wake_time || '07:00');
+  const sleepLogged = health?.sleep?.logged ?? Boolean(analytics?.accompaniment?.sleep_logged);
+
+  const userProfileLabel = user?.role === 'admin' 
+    ? 'Administrador Geral' 
+    : user?.id?.includes('pro') || user?.id?.includes('matheus')
+      ? 'Matheus Pro (Alto Desempenho)' 
+      : user?.id?.includes('lucas') || user?.id?.includes('mid')
+        ? 'Lucas Dev (Intermediário)'
+        : user?.id?.includes('bruno') || user?.id?.includes('preguica') || user?.id?.includes('low')
+          ? 'Bruno (Baixo Engajamento)'
+          : user?.id?.includes('clean')
+            ? 'Clean (Novo Usuário)'
+            : 'Usuário Ativo';
 
   if (loading && !analytics) {
     return (
@@ -72,7 +109,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
     description: 'Calculando telemetria...',
     main_streak: 5,
     best_streak: 10,
-    daily_progress: 70.0,
+    daily_progress: liveHabitsPct,
     completion_rate: 75.0,
     trend_status: 'stable',
     trend_delta: 0.0,
@@ -93,7 +130,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
   const reports = analytics?.reports || {};
   const charts = analytics?.charts || {};
 
-  // Color mapping based on Consistency Score
+  // Score color
   const getScoreColor = (score) => {
     if (score >= 85) return 'var(--accent-emerald)';
     if (score >= 70) return 'var(--accent-cyan)';
@@ -102,6 +139,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
   };
 
   const scoreColor = getScoreColor(summary.consistency_score);
+  const dailyProgress = todayTotalHabitsCount > 0 ? liveHabitsPct : (analytics?.accompaniment?.today_completion_rate ?? summary.daily_progress);
 
   return (
     <div className="telemetry-view">
@@ -115,7 +153,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             </h2>
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
-            Pipeline analítico em Python com pandas, NumPy e SciPy para modelagem comportamental.
+            Acompanhamento individual contínuo baseado em modelagem comportamental com Python.
           </p>
         </div>
 
@@ -139,11 +177,160 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             title="Recalcular métricas"
           >
             <RefreshCw size={14} className={loading ? 'spin-icon' : ''} />
-            Atualizar Engine
+            Sincronizar Telemetria
           </button>
           <span className="section-badge" style={{ borderColor: 'rgba(0, 229, 255, 0.3)', color: 'var(--accent-cyan)' }}>
             Garmin Connect Core
           </span>
+        </div>
+      </div>
+
+      {/* PAINEL DE ACOMPANHAMENTO AO VIVO DO USUÁRIO (Acompanhamento Real) */}
+      <div className="card-native" style={{ 
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.9) 100%)', 
+        border: '1px solid rgba(0, 229, 255, 0.25)', 
+        borderRadius: '16px',
+        padding: '20px',
+        marginBottom: '24px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Glow accent */}
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, background: 'rgba(0, 229, 255, 0.1)', borderRadius: '50%', filter: 'blur(30px)', pointerEvents: 'none' }} />
+
+        {/* User bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#030712' }}>
+              {user?.name ? user.name.slice(0, 2).toUpperCase() : <User size={20} />}
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {user?.name || 'Usuário Ethos'}
+                </h3>
+                <span style={{ 
+                  fontSize: '0.7rem', 
+                  fontWeight: 700, 
+                  background: 'rgba(0, 229, 255, 0.12)', 
+                  color: 'var(--accent-cyan)', 
+                  border: '1px solid rgba(0, 229, 255, 0.25)', 
+                  padding: '2px 8px', 
+                  borderRadius: '12px' 
+                }}>
+                  {userProfileLabel}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                {user?.email || 'telemetria@ethos.io'} • Telemetria individual ao vivo
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--accent-emerald)', background: 'rgba(52, 211, 153, 0.1)', padding: '4px 10px', borderRadius: 'var(--radius-pill)', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
+            <Radio size={12} className="spin-icon" style={{ animationDuration: '3s' }} />
+            <span>Acompanhamento Ativo</span>
+          </div>
+        </div>
+
+        {/* 3 Live Companion Pillars */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+          {/* Pillar 1: Hábitos do dia */}
+          <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Target size={14} color="var(--accent-cyan)" />
+                Hábitos de Hoje
+              </span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: liveHabitsPct >= 100 ? 'var(--accent-emerald)' : 'var(--accent-cyan)' }}>
+                {liveHabitsPct}%
+              </span>
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {todayCompletedHabitsCount} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>de {todayTotalHabitsCount} concluídos</span>
+            </div>
+            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden', marginBottom: '10px' }}>
+              <div style={{ width: `${Math.min(100, liveHabitsPct)}%`, height: '100%', background: liveHabitsPct >= 100 ? 'var(--accent-emerald)' : 'var(--accent-cyan)', transition: 'width 0.4s ease' }} />
+            </div>
+
+            {/* Quick mini-list of live habits */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '110px', overflowY: 'auto' }}>
+              {habits.length === 0 ? (
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Nenhum hábito cadastrado ainda.</span>
+              ) : (
+                habits.map((h, i) => (
+                  <div key={h.id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: h.completed ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: h.completed ? 'line-through' : 'none' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>
+                      {h.title || h.name}
+                    </span>
+                    {h.completed ? (
+                      <span style={{ color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.68rem', fontWeight: 700 }}>
+                        <Check size={12} /> Feito
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem' }}>Pendente</span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Pillar 2: Hidratação Real */}
+          <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Droplets size={14} color="var(--accent-cyan)" />
+                Hidratação Atual
+              </span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: waterPct >= 100 ? 'var(--accent-emerald)' : 'var(--accent-cyan)' }}>
+                {waterPct}%
+              </span>
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {waterGlasses} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>de {waterTarget} copos</span>
+            </div>
+            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden', marginBottom: '10px' }}>
+              <div style={{ width: `${Math.min(100, waterPct)}%`, height: '100%', background: waterPct >= 100 ? 'var(--accent-emerald)' : 'var(--accent-cyan)', transition: 'width 0.4s ease' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              <span>Volume total:</span>
+              <strong style={{ color: 'var(--text-primary)' }}>{waterMl} ml / {waterTargetMl} ml</strong>
+            </div>
+            <div style={{ marginTop: '8px', fontSize: '0.72rem', color: waterPct >= 100 ? 'var(--accent-emerald)' : 'var(--accent-cyan)' }}>
+              {waterPct >= 100 ? 'Meta de hidratação atingida hoje!' : `Faltam ${Math.max(0, waterTargetMl - waterMl)} ml para a meta.`}
+            </div>
+          </div>
+
+          {/* Pillar 3: Sono & Descanso */}
+          <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Moon size={14} color="var(--accent-indigo)" />
+                Sono & Recuperação
+              </span>
+              <span style={{ 
+                fontSize: '0.7rem', 
+                fontWeight: 700, 
+                color: sleepLogged ? 'var(--accent-emerald)' : 'var(--accent-amber)',
+                background: sleepLogged ? 'rgba(52, 211, 153, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+                padding: '2px 8px',
+                borderRadius: '4px'
+              }}>
+                {sleepLogged ? 'Confirmado' : 'Pendente'}
+              </span>
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {sleepBedTime} <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>→ {sleepWakeTime}</span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              Janela de descanso programada no perfil
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: sleepLogged ? 'var(--accent-emerald)' : 'var(--text-tertiary)' }}>
+              <CheckCircle2 size={13} color={sleepLogged ? 'var(--accent-emerald)' : 'var(--text-tertiary)'} />
+              <span>{sleepLogged ? 'Descanso registrado com sucesso.' : 'Confirmar registro matinal no Dashboard.'}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -158,13 +345,13 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             <Target size={18} color="var(--accent-cyan)" />
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-            {summary.daily_progress}%
+            {dailyProgress}%
           </div>
           <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-            <div style={{ width: `${Math.min(100, summary.daily_progress)}%`, height: '100%', background: 'var(--accent-cyan)', transition: 'width 0.4s ease' }} />
+            <div style={{ width: `${Math.min(100, dailyProgress)}%`, height: '100%', background: 'var(--accent-cyan)', transition: 'width 0.4s ease' }} />
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '6px', display: 'block' }}>
-            Aderência operacional do dia atual
+            {todayCompletedHabitsCount} de {todayTotalHabitsCount} hábitos concluídos hoje
           </span>
         </div>
 
@@ -629,7 +816,11 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(28px, 1fr))', gap: '6px' }}>
           {(charts.calendar_heatmap || []).map((cell, idx) => {
-            const intensity = cell.intensity || 0.0;
+            const isToday = cell.date === new Date().toISOString().split('T')[0];
+            const completedCount = isToday && todayTotalHabitsCount > 0 ? todayCompletedHabitsCount : (cell.completed || 0);
+            const totalCount = isToday && todayTotalHabitsCount > 0 ? todayTotalHabitsCount : (cell.total || 0);
+            const intensity = totalCount > 0 ? completedCount / totalCount : (cell.intensity || 0.0);
+
             let bg = 'rgba(255,255,255,0.04)';
             if (intensity >= 0.8) bg = 'var(--accent-cyan)';
             else if (intensity >= 0.5) bg = 'rgba(0, 229, 255, 0.6)';
@@ -647,14 +838,21 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  border: isToday ? '2px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.05)',
+                  boxShadow: isToday ? '0 0 10px rgba(0, 229, 255, 0.4)' : 'none',
                   transition: 'transform 0.2s',
+                  position: 'relative'
                 }}
-                title={`${cell.date}: ${cell.completed} de ${cell.total} hábitos concluídos (${Math.round(intensity * 100)}%)`}
+                title={isToday 
+                  ? `Hoje (${cell.date}): ${completedCount} de ${totalCount} hábitos concluídos (${Math.round(intensity * 100)}%) - Ao Vivo`
+                  : `${cell.date}: ${cell.completed} de ${cell.total} hábitos concluídos (${Math.round(intensity * 100)}%)`}
               >
                 <span style={{ fontSize: '0.65rem', fontWeight: 700, color: intensity >= 0.5 ? '#030712' : 'var(--text-secondary)' }}>
                   {cell.date ? cell.date.split('-')[2] : ''}
                 </span>
+                {isToday && (
+                  <span style={{ position: 'absolute', top: 2, right: 2, width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-cyan)' }} />
+                )}
               </div>
             );
           })}
@@ -688,41 +886,50 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
           </div>
 
           <div style={{ height: '160px', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', alignItems: 'flex-end', paddingTop: '10px' }}>
-            {(charts.weekly_completion || []).map((d, i) => {
-              const maxVal = Math.max(5, ...charts.weekly_completion.map(x => Math.max(x.current, x.previous)));
-              const curH = Math.round((d.current / maxVal) * 100);
-              const prevH = Math.round((d.previous / maxVal) * 100);
+            {(() => {
+              const dayLabelsMap = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+              const todayDayLabel = dayLabelsMap[new Date().getDay()];
 
-              return (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '100%', width: '100%', justifyContent: 'center' }}>
-                    <div 
-                      style={{ 
-                        width: '10px', 
-                        height: `${Math.max(4, prevH)}%`, 
-                        background: 'var(--accent-indigo)', 
-                        borderRadius: '3px 3px 0 0',
-                        opacity: 0.7 
-                      }} 
-                      title={`Semana anterior (${d.day}): ${d.previous}`}
-                    />
-                    <div 
-                      style={{ 
-                        width: '10px', 
-                        height: `${Math.max(4, curH)}%`, 
-                        background: 'var(--accent-cyan)', 
-                        borderRadius: '3px 3px 0 0',
-                        boxShadow: '0 0 8px rgba(0, 229, 255, 0.4)' 
-                      }} 
-                      title={`Semana atual (${d.day}): ${d.current}`}
-                    />
+              const weeklyList = charts.weekly_completion || [];
+              const maxVal = Math.max(5, ...weeklyList.map(x => Math.max(x.current, x.previous)), todayCompletedHabitsCount);
+
+              return weeklyList.map((d, i) => {
+                const isTodayDay = d.day === todayDayLabel;
+                const actualCur = isTodayDay && todayTotalHabitsCount > 0 ? Math.max(d.current, todayCompletedHabitsCount) : d.current;
+                const curH = Math.round((actualCur / maxVal) * 100);
+                const prevH = Math.round((d.previous / maxVal) * 100);
+
+                return (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '100%', width: '100%', justifyContent: 'center' }}>
+                      <div 
+                        style={{ 
+                          width: '10px', 
+                          height: `${Math.max(4, prevH)}%`, 
+                          background: 'var(--accent-indigo)', 
+                          borderRadius: '3px 3px 0 0',
+                          opacity: 0.7 
+                        }} 
+                        title={`Semana anterior (${d.day}): ${d.previous}`}
+                      />
+                      <div 
+                        style={{ 
+                          width: '10px', 
+                          height: `${Math.max(4, curH)}%`, 
+                          background: isTodayDay ? 'var(--accent-emerald)' : 'var(--accent-cyan)', 
+                          borderRadius: '3px 3px 0 0',
+                          boxShadow: isTodayDay ? '0 0 10px rgba(52, 211, 153, 0.6)' : '0 0 8px rgba(0, 229, 255, 0.4)' 
+                        }} 
+                        title={isTodayDay ? `Hoje (${d.day}): ${actualCur} concluídos (Ao Vivo)` : `Semana atual (${d.day}): ${actualCur}`}
+                      />
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: isTodayDay ? 'var(--accent-emerald)' : 'var(--text-secondary)', fontWeight: isTodayDay ? 800 : 600 }}>
+                      {d.day}
+                    </span>
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    {d.day}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
         </div>
 
