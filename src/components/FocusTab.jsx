@@ -241,11 +241,11 @@ export function FocusTab({ user, onFocusComplete }) {
       ctx.lineWidth = 1;
       ctx.strokeRect(24, 24, width - 48, height - 48);
 
-      // Title
+      // Título do Certificado
       ctx.fillStyle = '#00e5ff';
       ctx.font = 'bold 22px Outfit, Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('ETHOS FOCUS CERTIFICATE', width / 2, 70);
+      ctx.fillText('CERTIFICADO DE FOCO ETHOS', width / 2, 70);
 
       // Subtitle
       ctx.fillStyle = '#94a3b8';

@@ -9,7 +9,7 @@ const dbPath = path.resolve(__dirname, '..', 'ethos.db');
 export const db = new DatabaseSync(dbPath);
 
 export function initDatabase() {
-  // 1. Users Table
+  // 1. Tabela de Usuários
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -30,7 +30,7 @@ export function initDatabase() {
     );
   `);
 
-  // 2. Habits Table
+  // 2. Tabela de Hábitos
   db.exec(`
     CREATE TABLE IF NOT EXISTS habits (
       id TEXT PRIMARY KEY,
@@ -51,7 +51,7 @@ export function initDatabase() {
     );
   `);
 
-  // 3. Events Table (com Data, Horário de Início e Término - Requisito 2 e 3)
+  // 3. Tabela de Eventos e Compromissos (com Data, Horário de Início e Término - Requisito 2 e 3)
   db.exec(`
     CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY,
@@ -70,7 +70,7 @@ export function initDatabase() {
     );
   `);
 
-  // 4. Health Table
+  // 4. Tabela de Saúde e Hidratação
   db.exec(`
     CREATE TABLE IF NOT EXISTS health (
       user_id TEXT PRIMARY KEY,
@@ -87,10 +87,10 @@ export function initDatabase() {
   try {
     db.exec(`ALTER TABLE health ADD COLUMN glass_ml INTEGER NOT NULL DEFAULT 250;`);
   } catch (e) {
-    // column already exists
+    // coluna já existe
   }
 
-  // 5. Workouts Table
+  // 5. Tabela de Treinos e Musculação
   db.exec(`
     CREATE TABLE IF NOT EXISTS workouts (
       id TEXT PRIMARY KEY,
@@ -100,7 +100,7 @@ export function initDatabase() {
     );
   `);
 
-  // 6. Friends Table
+  // 6. Tabela de Amizades N:N
   db.exec(`
     CREATE TABLE IF NOT EXISTS friends (
       id TEXT PRIMARY KEY,
@@ -113,7 +113,7 @@ export function initDatabase() {
     );
   `);
 
-  // 7. Feed Table
+  // 7. Tabela de Feed Social
   db.exec(`
     CREATE TABLE IF NOT EXISTS feed (
       id TEXT PRIMARY KEY,
@@ -129,7 +129,7 @@ export function initDatabase() {
     );
   `);
 
-  // 8. Tags / Categorias Customizadas Table (Requisito 4)
+  // 8. Tabela de Tags / Categorias Customizadas (Requisito 4)
   db.exec(`
     CREATE TABLE IF NOT EXISTS tags (
       id TEXT PRIMARY KEY,
@@ -144,7 +144,7 @@ export function initDatabase() {
   try {
     db.exec(`ALTER TABLE tags ADD COLUMN icon TEXT NOT NULL DEFAULT 'Bookmark';`);
   } catch (e) {
-    // column already exists
+    // coluna já existe
   }
 
   try {
@@ -157,7 +157,7 @@ export function initDatabase() {
     db.exec(`ALTER TABLE events ADD COLUMN priority TEXT NOT NULL DEFAULT 'Média';`);
   } catch (e) {}
 
-  // 9. Checkins Table (Motor Analítico)
+  // 9. Tabela de Checkins de Hábitos (Engine Analítica)
   db.exec(`
     CREATE TABLE IF NOT EXISTS checkins (
       id TEXT PRIMARY KEY,

@@ -24,19 +24,19 @@ export function LoginScreen({ onLoginSuccess }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Register fields
+  // Campos de Cadastro
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
-  // Password Recovery Token states (US36)
+  // Estados de Recuperação de Senha por Token (US36)
   const [tokenInput, setTokenInput] = useState('');
   const [generatedToken, setGeneratedToken] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetSuccessMsg, setResetSuccessMsg] = useState(false);
 
-  // Handle Login via API
+  // Submissão de Login via API
   const handleLoginSubmit = async (e) => {
     e?.preventDefault();
     setErrorMessage('');
@@ -184,13 +184,13 @@ export function LoginScreen({ onLoginSuccess }) {
     }}>
       <div style={{ width: '100%', maxWidth: '440px', margin: '0 auto' }}>
         
-        {/* BRAND HEADER */}
+        {/* CABEÇALHO DA MARCA */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div className="brand-logo-badge" style={{ width: 54, height: 54, margin: '0 auto 12px' }}>
             <Shield size={30} strokeWidth={2.4} />
           </div>
           <h1 className="brand-title" style={{ fontSize: '2rem', letterSpacing: '-0.02em', marginBottom: '4px' }}>ETHOS</h1>
-          <span className="brand-subtitle" style={{ fontSize: '0.82rem' }}>Cloud Habit & Productivity OS</span>
+          <span className="brand-subtitle" style={{ fontSize: '0.82rem' }}>Sistema de Hábitos & Produtividade em Nuvem</span>
         </div>
 
         {/* SECURE CARD CONTAINER */}

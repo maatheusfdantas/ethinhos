@@ -1,6 +1,6 @@
 """
-Ethos Analytics FastAPI Service
-Exposes RESTful endpoints for real-time metric calculation.
+Serviço FastAPI da Engine Analítica do Ethos
+Expõe endpoints RESTful para cálculo de métricas em tempo real.
 """
 
 from typing import List, Optional
@@ -13,7 +13,7 @@ from engine.service import run_analytics, run_analytics_for_user
 
 app = FastAPI(
     title="Ethos Analytics Engine",
-    description="Python Data Science engine for behavioral metrics, streaks, and predictive dashboards.",
+    description="Engine de Data Science em Python para telemetria de hábitos, consistência e dashboards analíticos.",
     version="1.0.0"
 )
 

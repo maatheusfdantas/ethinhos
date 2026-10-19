@@ -1,6 +1,6 @@
 """
-Data Models for the Ethos Analytics Engine.
-Matches the official architectural specification.
+Modelos de Dados para a Engine Analítica do Ethos.
+Alinhado à especificação arquitetural da plataforma.
 """
 
 from typing import List, Optional, Dict, Any, Literal
@@ -20,7 +20,7 @@ class HabitModel(BaseModel):
     target_value: float = 1.0
     target_unit: str = "vezes"
     schedule_type: ScheduleType = "daily"
-    schedule_days: List[int] = Field(default_factory=lambda: [0, 1, 2, 3, 4, 5, 6])  # 0=Mon or 0=Sun (standardized 0=Sun..6=Sat or 0=Mon..6=Sun)
+    schedule_days: List[int] = Field(default_factory=lambda: [0, 1, 2, 3, 4, 5, 6])  # 0=Dom ou 0=Seg (padronizado 0=Dom..6=Sáb ou 0=Seg..6=Dom)
     start_date: str = "2026-09-01"
     active: bool = True
     priority_weight: float = 1.0

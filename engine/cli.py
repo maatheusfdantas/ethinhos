@@ -1,7 +1,7 @@
 """
-Ethos Analytics CLI
-Allows direct execution: py -3.12 -m engine.cli <user_id>
-Outputs standardized JSON to stdout.
+Interface de Linha de Comando (CLI) da Engine Analítica do Ethos
+Permite execução direta: py -3.12 -m engine.cli <user_id>
+Imprime JSON padronizado na saída padrão (stdout).
 """
 
 import sys

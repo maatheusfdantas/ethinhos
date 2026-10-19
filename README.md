@@ -1,4 +1,4 @@
-# Ethos — Cloud Habit & Productivity OS
+# Ethos — Sistema em Nuvem de Hábitos e Produtividade
 
 Aplicação Web nativa (PWA / Desktop) para rastreamento de hábitos, gestão de rotina, foco pomodoro com proteção anti-fraude, telemetria de saúde e rede social gamificada.
 

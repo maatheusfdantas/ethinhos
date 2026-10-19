@@ -15,11 +15,11 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-// Initialize SQLite database and seed 5 users
+// Inicializar banco de dados SQLite e sincronizar 5 usuários
 initDatabase();
 
 // ==========================================
-// 1. AUTHENTICATION ENDPOINTS (US35, US36, US37)
+// 1. ENDPOINTS DE AUTENTICAÇÃO (US35, US36, US37)
 // ==========================================
 
 // US35: Login

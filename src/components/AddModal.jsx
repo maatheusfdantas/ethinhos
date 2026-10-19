@@ -46,10 +46,10 @@ const PRIORITY_OPTIONS = [
 ];
 
 export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], onAddTag }) {
-  // Mode: 'choose', 'habit', 'event'
+  // Modos de Exibição: 'choose' (escolha), 'habit' (hábito), 'event' (evento)
   const [mode, setMode] = useState('choose');
 
-  // Habit Form States
+  // Estados do Formulário de Hábitos
   const [habitTitle, setHabitTitle] = useState('');
   const [completionStyle, setCompletionStyle] = useState('quick');
   const [targetNumber, setTargetNumber] = useState('1');

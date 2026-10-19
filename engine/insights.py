@@ -1,6 +1,6 @@
 """
-Ethos Analytics Engine - Diagnostic Insights & Automated Reports Generator
-Detects root causes of drops, generates actionable tips, and formats 3-level reports.
+Engine Analítica do Ethos - Insights Diagnósticos & Gerador de Relatórios Automatizados
+Detecta causas de quedas na rotina, gera dicas acionáveis e formata relatórios em 3 camadas.
 """
 
 from typing import List, Dict, Any, Optional
@@ -32,10 +32,10 @@ class InsightGenerator:
         self.summary = summary
 
     def generate_alerts(self) -> List[DiagnosticAlert]:
-        """Detects specific root causes and issues according to business rules."""
+        """Detecta causas-raiz e gargalos comportamentais conforme as regras de negócio."""
         alerts: List[DiagnosticAlert] = []
 
-        # 1. Alert: Logging Reliability < 60%
+        # 1. Alerta: Confiabilidade de Registro < 60%
         if self.summary.logging_reliability < 60.0:
             alerts.append(DiagnosticAlert(
                 type="reliability",

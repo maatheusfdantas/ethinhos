@@ -1,7 +1,7 @@
 """
-Ethos Analytics Engine - Core Calculator & Pipeline
-Implements the 10 essential metrics, Occurrence Classification,
-and Composite Consistency Score using NumPy, SciPy, and Pandas.
+Engine Analítica do Ethos - Calculadora Principal e Pipeline
+Implementa as 10 métricas essenciais, Classificação de Ocorrências
+e o Consistency Score Composto utilizando NumPy, SciPy e Pandas.
 """
 
 from datetime import datetime, date, timedelta
@@ -17,13 +17,13 @@ from engine.models import (
 )
 
 def parse_date(date_str: str) -> date:
-    """Safely parse YYYY-MM-DD string to date."""
+    """Converte com segurança uma string YYYY-MM-DD para objeto date."""
     if isinstance(date_str, (datetime, date)):
         return date_str if isinstance(date_str, date) else date_str.date()
     return datetime.strptime(str(date_str)[:10], "%Y-%m-%d").date()
 
 def format_date(d: date) -> str:
-    """Format date to YYYY-MM-DD string."""
+    """Formata um objeto date para string YYYY-MM-DD."""
     return d.strftime("%Y-%m-%d")
 
 class AnalyticsPipeline:
@@ -31,14 +31,14 @@ class AnalyticsPipeline:
         self.habits = habits
         self.checkins = checkins
         self.ref_date = reference_date or date.today()
-        # Default analysis window: last 30 days up to reference date
+        # Janela padrão de análise: últimos 30 dias até a data de referência
         self.start_date = self.ref_date - timedelta(days=29)
         self.end_date = self.ref_date
 
     def expand_calendar(self, start_date: Optional[date] = None, end_date: Optional[date] = None) -> List[ExpectedOccurrence]:
         """
-        Step 2 of Pipeline: Expand expected execution calendar based on habit schedules.
-        Supports daily, weekdays, and custom days (JS Sunday=0..Saturday=6).
+        Passo 2 do Pipeline: Expande o calendário de execuções esperadas com base no cronograma dos hábitos.
+        Suporta diário, dias úteis e dias customizados (convenção JS Domingo=0..Sábado=6).
         """
         s_date = start_date or self.start_date
         e_date = end_date or self.end_date

@@ -24,7 +24,7 @@ import {
 export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
   const [activeWorkoutId, setActiveWorkoutId] = useState(workouts[0]?.id || 'wo_a');
   
-  // Modals state
+  // Estados dos Modais
   const [showNewExerciseModal, setShowNewExerciseModal] = useState(false);
   const [showEditExerciseModal, setShowEditExerciseModal] = useState(false);
   const [showNewWorkoutModal, setShowNewWorkoutModal] = useState(false);
@@ -32,12 +32,12 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
   const [showDeleteExerciseConfirm, setShowDeleteExerciseConfirm] = useState(null);
 
-  // New Workout Form State
+  // Estados do Formulário de Nova Ficha de Treino
   const [newWorkoutName, setNewWorkoutName] = useState('');
   const [newWorkoutDays, setNewWorkoutDays] = useState([1]);
   const [newWorkoutTime, setNewWorkoutTime] = useState('18:30');
 
-  // Exercise Form State (Add / Edit)
+  // Estados do Formulário de Exercício (Adicionar / Editar)
   const [editingExerciseId, setEditingExerciseId] = useState(null);
   const [exerciseName, setExerciseName] = useState('');
   const [sets, setSets] = useState(4);
@@ -47,13 +47,13 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
   const [showRestTimer, setShowRestTimer] = useState(true);
   const [restSec, setRestSec] = useState(60);
 
-  // Completed exercises in the current active session: { [exerciseId]: boolean }
+  // Exercícios concluídos na sessão ativa: { [exerciseId]: boolean }
   const [completedExerciseIds, setCompletedExerciseIds] = useState({});
 
-  // Completed workouts today: { [workoutId]: boolean }
+  // Treinos concluídos na data de hoje: { [workoutId]: boolean }
   const [completedWorkoutsToday, setCompletedWorkoutsToday] = useState({});
 
-  // Rest Timer State
+  // Estados do Cronômetro de Descanso entre Séries
   const [activeRestSeconds, setActiveRestSeconds] = useState(0);
   const [isResting, setIsResting] = useState(false);
 
@@ -78,7 +78,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     setIsResting(true);
   };
 
-  // Toggle Exercise Checked / Done in session
+  // Alternar Exercício Concluído / Feito na sessão atual
   const handleToggleExerciseCheck = (exId) => {
     setCompletedExerciseIds(prev => ({
       ...prev,
@@ -86,7 +86,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     }));
   };
 
-  // Quick weight increment/decrement (+2kg / -2kg)
+  // Ajuste rápido de carga (+2kg / -2kg)
   const handleAdjustWeight = (exId, delta) => {
     setWorkouts(prev => prev.map(w => {
       if (w.id === activeWorkoutId) {
@@ -105,7 +105,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     }));
   };
 
-  // Open modal to add exercise
+  // Abrir modal para adicionar exercício
   const handleOpenAddExercise = () => {
     setExerciseName('');
     setSets(4);
@@ -117,7 +117,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     setShowNewExerciseModal(true);
   };
 
-  // Open modal to edit exercise
+  // Abrir modal para editar exercício
   const handleOpenEditExercise = (ex) => {
     setEditingExerciseId(ex.id);
     setExerciseName(ex.name);
@@ -130,7 +130,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     setShowEditExerciseModal(true);
   };
 
-  // Submit Add Exercise
+  // Submeter Adição de Exercício
   const handleAddExerciseSubmit = (e) => {
     e.preventDefault();
     if (!exerciseName.trim()) return;
@@ -159,7 +159,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     setShowNewExerciseModal(false);
   };
 
-  // Submit Edit Exercise
+  // Submeter Edição de Exercício
   const handleEditExerciseSubmit = (e) => {
     e.preventDefault();
     if (!exerciseName.trim() || !editingExerciseId) return;
@@ -192,7 +192,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     setEditingExerciseId(null);
   };
 
-  // Delete exercise
+  // Excluir exercício
   const handleDeleteExercise = (exId) => {
     setWorkouts(prev => prev.map(w => {
       if (w.id === activeWorkoutId) {
@@ -206,7 +206,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     setShowDeleteExerciseConfirm(null);
   };
 
-  // Delete entire workout
+  // Excluir ficha de treino inteira
   const handleDeleteWorkout = (wId) => {
     if (workouts.length <= 1) {
       alert('Você deve manter pelo menos uma ficha de treino.');
@@ -217,7 +217,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     setActiveWorkoutId(remaining[0]?.id);
   };
 
-  // Confirm Finish Workout
+  // Confirmar Finalização do Treino
   const handleConfirmFinishWorkout = () => {
     if (!currentWorkout) return;
     setCompletedWorkoutsToday(prev => ({
@@ -228,14 +228,14 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     onCompleteWorkout(currentWorkout.name);
   };
 
-  // Confirm Reset Workout
+  // Confirmar Reinício do Treino
   const handleConfirmResetWorkout = () => {
     if (!currentWorkout) return;
     setCompletedWorkoutsToday(prev => ({
       ...prev,
       [currentWorkout.id]: false
     }));
-    // Uncheck completed exercises for this workout
+    // Desmarcar exercícios concluídos deste treino
     const exIds = currentWorkout.exercises?.map(e => e.id) || [];
     setCompletedExerciseIds(prev => {
       const next = { ...prev };

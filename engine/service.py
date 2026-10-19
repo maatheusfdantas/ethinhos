@@ -1,7 +1,7 @@
 """
-Ethos Analytics Service
-Coordinates data ingestion, pipeline computation, insights generation,
-and formats the final standardized output JSON.
+Serviço Analítico do Ethos
+Coordena a ingestão de dados, o processamento da pipeline de métricas,
+geração de insights e formatação do JSON de saída padronizado.
 """
 
 import sqlite3
@@ -15,16 +15,16 @@ from engine.calculator import AnalyticsPipeline, format_date, parse_date
 from engine.insights import InsightGenerator
 
 def run_analytics(habits: List[HabitModel], checkins: List[CheckinModel], ref_date: Optional[date] = None) -> Dict[str, Any]:
-    """Runs the full analytical pipeline and formats the standardized JSON output."""
+    """Executa a pipeline analítica completa e formata a resposta JSON padronizada."""
     pipeline = AnalyticsPipeline(habits=habits, checkins=checkins, reference_date=ref_date)
 
-    # 1. Expand calendar
+    # 1. Expandir calendário
     expected_occs = pipeline.expand_calendar()
 
-    # 2. Match and classify occurrences
+    # 2. Correlacionar e classificar ocorrências
     classified_occs = pipeline.match_and_classify(expected_occs)
 
-    # 3. Calculate Global Metrics
+    # 3. Calcular Métricas Globais
     daily_prog = pipeline.compute_daily_progress(classified_occs)
     comp_rate = pipeline.compute_completion_rate(classified_occs)
     cur_streak, best_streak = pipeline.compute_streaks(classified_occs)

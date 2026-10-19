@@ -12,7 +12,7 @@ export function Header({ user, onOpenProfile, onOpenAuth, onOpenAdmin, activeTab
         </div>
         <div>
           <h1 className="brand-title">ETHOS</h1>
-          <span className="brand-subtitle">Cloud Habit & Productivity OS</span>
+          <span className="brand-subtitle">Sistema de Hábitos & Produtividade em Nuvem</span>
         </div>
       </div>
 

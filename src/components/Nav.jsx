@@ -33,7 +33,7 @@ export function DesktopSidebar({ activeTab, setActiveTab, onOpenAdd, isAdmin, us
         </div>
         <div>
           <h2 className="brand-title">ETHOS</h2>
-          <span className="brand-subtitle">Cloud OS</span>
+          <span className="brand-subtitle">Sistema em Nuvem</span>
         </div>
       </div>
 

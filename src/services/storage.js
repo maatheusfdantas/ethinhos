@@ -1,4 +1,4 @@
-// LOCAL STORAGE PERSISTENCE SERVICE FOR ETHOS CLOUD WEB APP
+// SERVIÇO DE PERSISTÊNCIA EM ARMAZENAMENTO LOCAL (LOCALSTORAGE) PARA O ETHOS
 import {
   FIVE_SEEDED_USERS,
   INITIAL_TAGS,
@@ -25,7 +25,7 @@ export const getStorageData = (key, fallback) => {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : fallback;
   } catch (e) {
-    console.error(`Error reading ${key} from localStorage:`, e);
+    console.error(`Erro ao ler ${key} do localStorage:`, e);
     return fallback;
   }
 };
@@ -34,7 +34,7 @@ export const setStorageData = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.error(`Error saving ${key} to localStorage:`, e);
+    console.error(`Erro ao salvar ${key} no localStorage:`, e);
   }
 };
 

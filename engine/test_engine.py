@@ -1,6 +1,6 @@
 """
-Unit Tests for Ethos Analytics Engine.
-Validates all formulas, classifications, and diagnostic alerts.
+Testes Unitários para a Engine Analítica do Ethos.
+Valida todas as fórmulas, classificações de ocorrência e alertas diagnósticos.
 """
 
 import unittest
@@ -14,7 +14,7 @@ class TestEthosAnalytics(unittest.TestCase):
         self.ref_date = date(2026, 10, 19)
 
     def test_daily_progress_calculation(self):
-        """Validates Daily Progress = (sum of progress ratios / total expected) * 100"""
+        """Valida Progresso Diário = (soma das razões de progresso / total esperado) * 100"""
         habits = [
             HabitModel(habit_id="h1", name="Ler", metric_type="duration", target_value=30, start_date="2026-10-01"),
             HabitModel(habit_id="h2", name="Treinar", metric_type="binary", target_value=1, start_date="2026-10-01"),
