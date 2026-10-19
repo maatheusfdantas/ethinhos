@@ -134,6 +134,21 @@ export function initDatabase() {
     );
   `);
 
+  // 9. Checkins Table (Motor Analítico)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS checkins (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      habit_id TEXT NOT NULL,
+      event_date TEXT NOT NULL,
+      logged_at TEXT,
+      value REAL NOT NULL DEFAULT 1.0,
+      status_override TEXT,
+      note TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+
   // Sincronizar os 5 Usuários Obrigatórios (Requisito 6)
   seedFiveUsers();
 }

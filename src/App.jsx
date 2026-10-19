@@ -262,10 +262,12 @@ export function App() {
             health={health}
             setHealth={setHealth}
             tags={tags}
+            user={user}
             onOpenAdd={() => setShowAddModal(true)}
             onOpenWorkout={() => setActiveTab('workouts')}
             onAddTag={handleAddTag}
             onToggleEvent={handleToggleEvent}
+            onSwitchTab={setActiveTab}
           />
         )}
 
@@ -331,6 +333,7 @@ export function App() {
               habits={habits}
               health={health}
               heatmapData={[]}
+              user={user}
             />
           )
         )}

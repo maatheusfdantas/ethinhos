@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Check, 
   Plus, 
@@ -20,7 +20,13 @@ import {
   Calendar,
   MapPin,
   Tag,
-  Palette
+  Palette,
+  ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Cpu,
+  ArrowRight
 } from 'lucide-react';
 
 const CATEGORY_ICONS = {
@@ -49,15 +55,37 @@ export function DashboardTab({
   health = {},
   setHealth,
   tags = [],
+  user = null,
   onOpenAdd,
   onOpenWorkout,
   onAddTag,
-  onToggleEvent
+  onToggleEvent,
+  onSwitchTab
 }) {
   const [showCompletedAccordion, setShowCompletedAccordion] = useState(false);
   const [sleepEditMode, setSleepEditMode] = useState(false);
   const [bedTimeInput, setBedTimeInput] = useState(health?.sleep?.bedTime || '23:30');
   const [wakeTimeInput, setWakeTimeInput] = useState(health?.sleep?.wakeTime || '07:00');
+
+  // Analytics State from Python Engine (Garmin Connect Overview)
+  const [analytics, setAnalytics] = useState(null);
+
+  const fetchAnalytics = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/analytics/${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAnalytics(data);
+      }
+    } catch (e) {
+      // offline fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [user?.id]);
 
   // Requisito 4: Criador inline de temas/categorias
   const [showTagCreator, setShowTagCreator] = useState(false);
@@ -156,27 +184,77 @@ export function DashboardTab({
     setSleepEditMode(false);
   };
 
-  // Habit toggles
-  const toggleHabit = (id) => {
+  // Habit toggles with live checkin recording
+  const toggleHabit = async (id) => {
+    const targetHabit = habits.find(h => h.id === id);
+    const nextCompleted = targetHabit ? !targetHabit.completed : true;
+    const nextCurrent = nextCompleted ? (targetHabit?.target || 1) : 0;
+
     setHabits(prev => prev.map(h => {
       if (h.id === id) {
-        const nextCompleted = !h.completed;
-        const nextCurrent = nextCompleted ? h.target : 0;
         return { ...h, completed: nextCompleted, current: nextCurrent };
       }
       return h;
     }));
+
+    if (user) {
+      try {
+        await fetch(`/api/user/${user.id}/habit/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current: nextCurrent, completed: nextCompleted })
+        });
+        await fetch(`/api/user/${user.id}/checkin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            habitId: id,
+            value: nextCurrent,
+            statusOverride: nextCompleted ? 'done' : 'missed',
+            note: nextCompleted ? 'Concluído no Dashboard' : 'Desmarcado'
+          })
+        });
+        fetchAnalytics();
+      } catch (err) {
+        console.error('Checkin sync error:', err);
+      }
+    }
   };
 
-  const incrementHabit = (id) => {
+  const incrementHabit = async (id) => {
+    const targetHabit = habits.find(h => h.id === id);
+    const nextCurrent = Math.min(targetHabit?.target || 1, (targetHabit?.current || 0) + 1);
+    const nextCompleted = nextCurrent >= (targetHabit?.target || 1);
+
     setHabits(prev => prev.map(h => {
       if (h.id === id) {
-        const nextCurrent = Math.min(h.target, h.current + 1);
-        const nextCompleted = nextCurrent >= h.target;
         return { ...h, current: nextCurrent, completed: nextCompleted };
       }
       return h;
     }));
+
+    if (user) {
+      try {
+        await fetch(`/api/user/${user.id}/habit/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current: nextCurrent, completed: nextCompleted })
+        });
+        await fetch(`/api/user/${user.id}/checkin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            habitId: id,
+            value: nextCurrent,
+            statusOverride: nextCompleted ? 'done' : 'partial',
+            note: `Incrementado para ${nextCurrent}`
+          })
+        });
+        fetchAnalytics();
+      } catch (err) {
+        console.error('Checkin sync error:', err);
+      }
+    }
   };
 
   // Create Tag
@@ -198,6 +276,114 @@ export function DashboardTab({
 
   return (
     <div className="dashboard-view">
+      {/* 0. GARMIN CONNECT OVERVIEW STRIP (Resumo Primeiro, Detalhe Depois) */}
+      {analytics && (
+        <div className="card-native" style={{ marginBottom: '20px', background: 'rgba(15, 23, 42, 0.75)', border: '1px solid rgba(0, 229, 255, 0.25)', padding: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Cpu size={18} color="var(--accent-cyan)" />
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Engine Analítica • Garmin Connect Overview
+              </span>
+            </div>
+
+            {onSwitchTab && (
+              <button
+                onClick={() => onSwitchTab('telemetry')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(0, 229, 255, 0.12)',
+                  color: 'var(--accent-cyan)',
+                  border: '1px solid rgba(0, 229, 255, 0.3)',
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-pill)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Ver Telemetria Completa
+                <ArrowRight size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* 4 Cards Principais */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px', marginBottom: '14px' }}>
+            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '3px solid var(--accent-cyan)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Progresso do Dia</span>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
+                {analytics.summary?.daily_progress}%
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '3px solid var(--accent-emerald)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Consistency Score</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '2px' }}>
+                <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>
+                  {analytics.summary?.consistency_score}
+                </span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--accent-emerald)', fontWeight: 700, textTransform: 'uppercase' }}>
+                  {analytics.summary?.label}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '3px solid var(--accent-amber)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Streak Principal</span>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-amber)', marginTop: '2px' }}>
+                {analytics.summary?.main_streak} <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>dias</span>
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', borderLeft: '3px solid var(--accent-indigo)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Tendência Semanal</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '2px' }}>
+                <span style={{ fontSize: '1.4rem', fontWeight: 800, color: analytics.summary?.trend_status === 'improving' ? 'var(--accent-emerald)' : analytics.summary?.trend_status === 'declining' ? 'var(--accent-rose)' : 'var(--accent-cyan)' }}>
+                  {analytics.summary?.trend_delta > 0 ? `+${analytics.summary?.trend_delta}%` : `${analytics.summary?.trend_delta}%`}
+                </span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                  {analytics.summary?.trend_status}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Mini Heatmap & Destaques */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginRight: '4px' }}>Mini Heatmap (14d):</span>
+              {(analytics.charts?.calendar_heatmap || []).slice(-14).map((d, i) => {
+                let bg = 'rgba(255,255,255,0.06)';
+                if (d.intensity >= 0.8) bg = 'var(--accent-cyan)';
+                else if (d.intensity >= 0.5) bg = 'rgba(0, 229, 255, 0.5)';
+                else if (d.intensity > 0) bg = 'rgba(0, 229, 255, 0.2)';
+                return (
+                  <span
+                    key={i}
+                    title={`${d.date}: ${d.completed}/${d.total}`}
+                    style={{ width: 12, height: 12, borderRadius: 2, background: bg, display: 'inline-block' }}
+                  />
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--accent-emerald)' }}>
+                <strong>Em Alta:</strong> {analytics.highlights?.top_strength?.split('(')[0] || 'Geral'}
+              </span>
+              {analytics.highlights?.top_risk && !analytics.highlights.top_risk.includes('Nenhum') && (
+                <span style={{ fontSize: '0.72rem', color: 'var(--accent-rose)' }}>
+                  <strong>Atenção:</strong> {analytics.highlights.top_risk.split('(')[0]}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 1. VITALIDADE DIÁRIA HERO */}
       <div className="vitality-hero-card">
         <div className="vitality-header">

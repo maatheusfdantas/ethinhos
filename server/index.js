@@ -1,6 +1,13 @@
 import express from 'express';
 import cors from 'cors';
+import { execFile } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { db, initDatabase, seedFiveUsers } from './db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
 
 const app = express();
 const PORT = 3001;
@@ -378,6 +385,68 @@ app.post('/api/user/:id/health', (req, res) => {
   );
 
   res.json({ success: true });
+});
+
+// ==========================================
+// 4. MOTOR ANALÍTICO EM PYTHON (FASTAPI + CLI FALLBACK)
+// ==========================================
+
+// Endpoint: Buscar Analytics Completo via Python Engine
+app.get('/api/analytics/:id', async (req, res) => {
+  const { id } = req.params;
+
+  // 1. Tentar consumir da FastAPI microservice na porta 8000
+  try {
+    const fastApiResponse = await fetch(`http://127.0.0.1:8000/analytics/${id}`, {
+      signal: AbortSignal.timeout(2000)
+    });
+    if (fastApiResponse.ok) {
+      const data = await fastApiResponse.json();
+      return res.json(data);
+    }
+  } catch (err) {
+    // FastAPI microservice pode não estar inicializado ou em execução; usa CLI fallback
+  }
+
+  // 2. Fallback: Executar Python CLI diretamente
+  execFile('py', ['-3.12', '-m', 'engine.cli', id], { cwd: rootDir, maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+    if (error) {
+      console.error('[Analytics Error]', error, stderr);
+      return res.status(500).json({ error: 'Erro ao calcular telemetria via Python Engine.', details: stderr });
+    }
+
+    try {
+      const data = JSON.parse(stdout);
+      res.json(data);
+    } catch (parseErr) {
+      console.error('[Analytics JSON Parse Error]', parseErr, stdout);
+      res.status(500).json({ error: 'Falha ao processar retorno da engine analítica.' });
+    }
+  });
+});
+
+// Endpoint: Registrar Check-in de Hábito
+app.post('/api/user/:id/checkin', (req, res) => {
+  const { id } = req.params;
+  const { habitId, date, value, note, statusOverride } = req.body;
+  const todayStr = date || new Date().toISOString().split('T')[0];
+  const checkinId = `chk_${habitId}_${todayStr}`;
+  const nowIso = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO checkins (id, user_id, habit_id, event_date, logged_at, value, status_override, note, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      value = excluded.value,
+      status_override = excluded.status_override,
+      note = excluded.note,
+      logged_at = excluded.logged_at
+  `).run(
+    checkinId, id, habitId, todayStr, nowIso,
+    value ?? 1.0, statusOverride || null, note || '', nowIso
+  );
+
+  res.json({ success: true, checkin_id: checkinId });
 });
 
 app.listen(PORT, () => {
