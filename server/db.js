@@ -141,6 +141,12 @@ export function initDatabase() {
     );
   `);
 
+  try {
+    db.exec(`ALTER TABLE tags ADD COLUMN icon TEXT NOT NULL DEFAULT 'Bookmark';`);
+  } catch (e) {
+    // column already exists
+  }
+
   // 9. Checkins Table (Motor Analítico)
   db.exec(`
     CREATE TABLE IF NOT EXISTS checkins (
