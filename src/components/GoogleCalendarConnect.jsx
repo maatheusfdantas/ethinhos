@@ -245,17 +245,7 @@ export function GoogleCalendarConnect({ userId = TEST_USER_ID }) {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              style={{
-                width: '100%',
-                maxWidth: '680px',
-                backgroundColor: '#ECECF4',
-                borderRadius: '24px',
-                padding: '20px 24px',
-                border: '1.5px solid #FFFFFF',
-                boxShadow: '0 28px 70px rgba(15, 14, 34, 0.45)',
-                color: '#1A1B2F',
-                fontFamily: "'Outfit', 'Inter', sans-serif"
-              }}
+              className="ethos-modal-card"
             >
               {/* Cabeçalho */}
               <div
@@ -314,8 +304,8 @@ export function GoogleCalendarConnect({ userId = TEST_USER_ID }) {
                 </button>
               </div>
 
-              {/* Corpo em 2 colunas horizontais */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px', alignItems: 'stretch' }}>
+              {/* Corpo em 2 colunas horizontais no PC/Tablet e 1 coluna rolável no Celular */}
+              <div className="ethos-modal-grid-2col">
                 {/* Coluna 1: Inserir Client ID e Client Secret Reais */}
                 <form
                   onSubmit={handleSaveCredentialsAndRedirect}

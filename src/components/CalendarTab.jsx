@@ -685,7 +685,7 @@ export function CalendarTab({
         {/* ================================================================ */}
         {viewMode === 'month' && (
           <div className="overflow-x-auto">
-            <div style={{ minWidth: '860px' }}>
+            <div className="ethos-calendar-grid-inner">
               <div
                 style={{
                   display: 'grid',
@@ -818,7 +818,7 @@ export function CalendarTab({
         {/* ================================================================ */}
         {viewMode === 'week' && (
           <div className="overflow-x-auto">
-            <div style={{ minWidth: '860px' }}>
+            <div className="ethos-calendar-grid-inner">
               <div
                 style={{
                   display: 'grid',
@@ -947,9 +947,9 @@ export function CalendarTab({
           const dayWorkouts = workouts.filter(w => (w.scheduledDays || []).includes(cursorDate.getDay()));
 
           return (
-            <div style={{ padding: '22px 24px', display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '20px' }}>
+            <div className="ethos-day-view-grid">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                   <h3 style={{ fontSize: '15.5px', fontWeight: 700, color: '#1A1B2F', margin: 0 }}>
                     Compromissos de {formatDayMonth(cursorDate)} ({dayEvents.length})
                   </h3>
@@ -1218,20 +1218,10 @@ export function CalendarTab({
               padding: '16px'
             }}
           >
-            {/* Card Principal em formato Retângulo Deitado (Horizontal / Compacto) */}
+            {/* Card Principal em formato Retângulo Deitado (Horizontal no Tablet/PC, Rolável no Celular) */}
             <div
               onClick={(e) => e.stopPropagation()}
-              style={{
-                width: '100%',
-                maxWidth: '720px',
-                backgroundColor: '#ECECF4',
-                borderRadius: '24px',
-                padding: '18px 22px',
-                border: '1.5px solid #FFFFFF',
-                boxShadow: '0 28px 70px rgba(15, 14, 34, 0.45)',
-                color: '#1A1B2F',
-                fontFamily: "'Outfit', 'Inter', sans-serif"
-              }}
+              className="ethos-modal-card"
             >
             {/* CABEÇALHO COMPACTO */}
             <div
@@ -1294,14 +1284,7 @@ export function CalendarTab({
             </div>
 
             <form onSubmit={handleSaveEventModal}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1.15fr 1fr',
-                  gap: '16px',
-                  alignItems: 'start'
-                }}
-              >
+              <div className="ethos-modal-grid-2col">
                 {/* COLUNA ESQUERDA: Título + Datas/Horas + Local/Descrição */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {/* 1. TÍTULO DO EVENTO */}

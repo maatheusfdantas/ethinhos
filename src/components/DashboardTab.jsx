@@ -732,7 +732,7 @@ export function DashboardTab({
       {/* ================================================================== */}
       {/* LINHA 2: HIDRATAÇÃO DIÁRIA + CICLO DE SONO + CATEGORIAS / TEMAS    */}
       {/* ================================================================== */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 items-stretch">
         
         {/* COLUNA 1: HIDRATAÇÃO DIÁRIA */}
         <div
@@ -1323,11 +1323,12 @@ export function DashboardTab({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: '16px',
+                    flexWrap: 'wrap',
+                    gap: '14px',
                     border: '1px solid rgba(255,255,255,0.07)'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '210px', flex: 1 }}>
                     <div
                       style={{
                         width: '42px',

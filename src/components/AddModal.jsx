@@ -173,20 +173,10 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [] })
         padding: '16px'
       }}
     >
-      {/* CARD EM FORMATO RETÂNGULO DEITADO (HORIZONTAL / COMPACTO) */}
+      {/* CARD EM FORMATO RETÂNGULO DEITADO (ADAPTÁVEL PARA CELULAR, TABLET E PC) */}
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth: '720px',
-          backgroundColor: '#ECECF4',
-          borderRadius: '24px',
-          padding: '18px 22px',
-          color: '#1A1B2F',
-          border: '1.5px solid #FFFFFF',
-          boxShadow: '0 28px 70px rgba(15, 14, 34, 0.45)',
-          fontFamily: "'Outfit', 'Inter', sans-serif"
-        }}
+        className="ethos-modal-card"
       >
         {/* TOPO COMPACTO: SQUIRCLE #211F38 + TÍTULO + SELETOR PÍLULA (EVENTO | HÁBITO) + FECHAR */}
         <div
@@ -301,14 +291,7 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [] })
         {/* ================================================================= */}
         {mode === 'event' && (
           <form onSubmit={handleCreateEventSubmit}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1.15fr 1fr',
-                gap: '16px',
-                alignItems: 'start'
-              }}
-            >
+            <div className="ethos-modal-grid-2col">
               {/* COLUNA ESQUERDA: Título + Datas/Horas + Local/Descrição */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {/* Título */}
@@ -617,14 +600,7 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [] })
         {/* ================================================================= */}
         {mode === 'habit' && (
           <form onSubmit={handleCreateHabitSubmit}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1.1fr 1fr',
-                gap: '16px',
-                alignItems: 'start'
-              }}
-            >
+            <div className="ethos-modal-grid-2col">
               {/* COLUNA ESQUERDA: Nome do Hábito + Meta Diária (- / +) + Dias da Semana */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>

@@ -21,7 +21,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { WelcomeIntro } from './components/WelcomeIntro';
 
 import { INITIAL_TAGS, INITIAL_WORKOUTS, INITIAL_BADGES } from './data/initialData';
-import { Lock, Shield, Plus, Search, Bell, X } from 'lucide-react';
+import { Lock, Shield, Plus, Search, Bell, X, Menu } from 'lucide-react';
 import { GlobalProgressBar } from './components/GlobalProgressBar';
 import { Toast } from './components/Toast';
 
@@ -74,6 +74,7 @@ export function App() {
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [bootKey, setBootKey] = useState(0);
 
   // Discreet Toast Notification (with Undo / Ctrl+Z support)
@@ -307,24 +308,7 @@ export function App() {
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
 
   return (
-    <div 
-      style={{
-        minHeight: '100vh',
-        width: '100%',
-        backgroundImage: "url('/ethos-wallpaper.jpg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed',
-        padding: '28px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: "'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-        color: '#1A1B2F'
-      }}
-      className="pb-20 lg:pb-7"
-    >
+    <div className="ethos-app-outer">
       {/* ANIMAÇÃO CINEMATOGRÁFICA DE BOAS-VINDAS EM ALTA RESOLUÇÃO (PÓS-LOGIN) */}
       {showWelcomeIntro && (
         <WelcomeIntro
@@ -341,23 +325,8 @@ export function App() {
       <div
         key={`boot-${bootKey}`}
         className="ethos-boot-frame"
-        style={{
-          width: '100%',
-          maxWidth: '1360px',
-          minHeight: '830px',
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.09) 48%, rgba(255, 255, 255, 0.18) 100%)',
-          backdropFilter: 'blur(18px) saturate(165%)',
-          WebkitBackdropFilter: 'blur(18px) saturate(165%)',
-          borderRadius: '40px',
-          border: '1.5px solid rgba(255, 255, 255, 0.48)',
-          boxShadow: '0 32px 80px rgba(12, 14, 34, 0.28), inset 0 1.5px 1px rgba(255, 255, 255, 0.85), inset 0 -1.5px 2px rgba(255, 255, 255, 0.32), inset 1px 0 1.5px rgba(255, 255, 255, 0.35)',
-          padding: '22px',
-          display: 'flex',
-          gap: '26px',
-          position: 'relative'
-        }}
       >
-        {/* 1. SIDEBAR ESQUERDA ARREDONDADA (DARK PLUM #211F38) */}
+        {/* 1. SIDEBAR ESQUERDA ARREDONDADA (DARK PLUM #211F38) + DRAWER MOBILE */}
         <DesktopSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -369,30 +338,54 @@ export function App() {
           onOpenProfile={() => setShowProfileModal(true)}
           onOpenAuth={() => setShowAuthModal(true)}
           onLogout={handleLogout}
+          mobileOpen={showMobileMenu}
+          onCloseMobile={() => setShowMobileMenu(false)}
         />
 
         {/* 2. ÁREA DE CONTEÚDO PRINCIPAL */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '20px', padding: '6px 6px 6px 0' }}>
+        <div className="ethos-main-content">
           
-          {/* TOP HEADER: "Hi, Dilan!" / "Workout & Fitness" + [+ Create] + Search + Bell + Avatar */}
-          <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-            <div>
-              <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1A1B2F', letterSpacing: '-0.02em', margin: 0 }}>
+          {/* TOP HEADER: Botão Menu Mobile + "Hi, Dilan!" + [+ Create] + Search + Bell + Avatar */}
+          <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <button
+                type="button"
+                onClick={() => setShowMobileMenu(true)}
+                className="ethos-mobile-menu-btn"
+                title="Abrir Menu"
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  backgroundColor: '#211F38',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(33, 31, 56, 0.22)'
+                }}
+              >
+                <Menu size={18} />
+              </button>
+
+              <h1 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 700, color: '#1A1B2F', letterSpacing: '-0.02em', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {activeTab === 'workouts' ? 'Workout & Fitness' : `Hi, ${firstName}!`}
               </h1>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {/* Barra de busca expansível */}
               {showSearchBar && (
-                <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '999px', padding: '6px 14px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '999px', padding: '6px 12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                   <input
                     type="text"
-                    placeholder="Buscar tarefas ou projetos..."
+                    placeholder="Buscar..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
-                    style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '12.5px', color: '#1A1B2F', width: '170px' }}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '12.5px', color: '#1A1B2F', width: '130px' }}
                   />
                   <button
                     type="button"
@@ -409,13 +402,13 @@ export function App() {
                 type="button"
                 onClick={() => setShowAddModal(true)}
                 style={{
-                  height: '40px',
-                  padding: '0 22px',
+                  height: '38px',
+                  padding: '0 16px',
                   borderRadius: '999px',
                   backgroundColor: '#181824',
                   color: '#FFFFFF',
                   border: 'none',
-                  fontSize: '13px',
+                  fontSize: '12.5px',
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',

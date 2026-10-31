@@ -1669,3 +1669,195 @@ button, input, select, textarea {
 .ethos-boot-frame main > div > *:nth-child(4) {
   animation: ethosCardCascade 0.9s cubic-bezier(0.16, 1, 0.3, 1) 1.04s both;
 }
+
+/* ==========================================================================
+   SISTEMA RESPONSIVO MULTI-DISPOSITIVO (CELULAR, TABLET E DESKTOP)
+   ========================================================================== */
+
+/* Container externo com papel de parede */
+.ethos-app-outer {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  background-image: url('/ethos-wallpaper.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  padding: 8px 8px 92px 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1A1B2F;
+  overflow-x: hidden;
+}
+
+@media (min-width: 640px) {
+  .ethos-app-outer {
+    padding: 16px 16px 96px 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ethos-app-outer {
+    padding: 28px 24px;
+    align-items: center;
+  }
+}
+
+/* Moldura translúcida principal Liquid Glass */
+.ethos-boot-frame {
+  width: 100%;
+  max-width: 1360px;
+  min-height: auto;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.09) 48%, rgba(255, 255, 255, 0.18) 100%);
+  backdrop-filter: blur(18px) saturate(165%);
+  -webkit-backdrop-filter: blur(18px) saturate(165%);
+  border-radius: 24px;
+  border: 1.5px solid rgba(255, 255, 255, 0.48);
+  box-shadow: 0 24px 60px rgba(12, 14, 34, 0.28), inset 0 1.5px 1px rgba(255, 255, 255, 0.85), inset 0 -1.5px 2px rgba(255, 255, 255, 0.32);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .ethos-boot-frame {
+    border-radius: 32px;
+    padding: 18px;
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ethos-boot-frame {
+    min-height: 830px;
+    border-radius: 40px;
+    padding: 22px;
+    flex-direction: row;
+    gap: 26px;
+  }
+}
+
+/* Sidebar Desktop: oculta em celulares e tablets (< 1024px), visível em Desktop (>= 1024px) */
+.ethos-desktop-sidebar {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .ethos-desktop-sidebar {
+    display: flex !important;
+    width: 235px;
+    min-width: 235px;
+    flex-shrink: 0;
+  }
+}
+
+/* Botão Hamburger para abrir o menu completo em celulares e tablets (< 1024px) */
+.ethos-mobile-menu-btn {
+  display: flex !important;
+}
+
+@media (min-width: 1024px) {
+  .ethos-mobile-menu-btn {
+    display: none !important;
+  }
+}
+
+/* Área principal de conteúdo */
+.ethos-main-content {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 2px 0;
+}
+
+@media (min-width: 1024px) {
+  .ethos-main-content {
+    gap: 20px;
+    padding: 6px 6px 6px 0;
+  }
+}
+
+/* Grids de Modais (Retângulo Deitado no Tablet/PC, Empilhado e Rolável no Celular) */
+.ethos-modal-card {
+  width: 100%;
+  max-width: 720px;
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+  background-color: #ECECF4;
+  border-radius: 22px;
+  padding: 16px;
+  color: #1A1B2F;
+  border: 1.5px solid #FFFFFF;
+  box-shadow: 0 28px 70px rgba(15, 14, 34, 0.45);
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+@media (min-width: 680px) {
+  .ethos-modal-card {
+    border-radius: 24px;
+    padding: 18px 22px;
+  }
+}
+
+.ethos-modal-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (min-width: 680px) {
+  .ethos-modal-grid-2col {
+    grid-template-columns: 1.15fr 1fr;
+    gap: 16px;
+  }
+}
+
+.ethos-subgrid-2col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 440px) {
+  .ethos-subgrid-2col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Visualização do Dia no Calendário: 1 coluna no celular/tablet vertical, 2 colunas no PC */
+.ethos-day-view-grid {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .ethos-day-view-grid {
+    padding: 22px 24px;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 20px;
+  }
+}
+
+/* Grade Mensal e Semanal do Calendário */
+.ethos-calendar-grid-inner {
+  min-width: 640px;
+}
+
+@media (min-width: 900px) {
+  .ethos-calendar-grid-inner {
+    min-width: 100%;
+  }
+}
+
+                                                                                                                                                                                                                                                                                                                                                                                                               
