@@ -1,12 +1,13 @@
 import React from 'react';
-import { Target, CheckCircle2 } from 'lucide-react';
+import { Target, CheckCircle2, Sparkles, Calendar } from 'lucide-react';
 import { isEventForDate } from '../services/storage';
 
-export function GlobalProgressBar({ habits = [], events = [], activeTab }) {
-  // Ocultar estritamente na aba Social conforme solicitado
+export function GlobalProgressBar({ habits = [], events = [], activeTab, user = null }) {
+  // Ocultar na aba Social conforme solicitado
   if (activeTab === 'social') return null;
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
   const todayEvents = events.filter(e => isEventForDate(e, todayStr));
 
   const totalActivities = habits.length + todayEvents.length;
@@ -14,101 +15,106 @@ export function GlobalProgressBar({ habits = [], events = [], activeTab }) {
   const completedEvents = todayEvents.filter(e => e.completed).length;
   const totalCompleted = completedHabits + completedEvents;
 
-  // Auto-padronização proporcional (0% a 100%) independente da quantidade de atividades
+  // Auto-padronização proporcional (0% a 100%)
   const percentage = totalActivities > 0 
     ? Math.round((totalCompleted / totalActivities) * 100) 
     : 0;
 
   const isFull = percentage >= 100;
 
+  // Formatação de data em português
+  const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+  const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const dayName = dayNames[now.getDay()];
+  const dayNumber = now.getDate();
+  const monthName = monthNames[now.getMonth()];
+  const formattedDate = `${dayName}, ${dayNumber} de ${monthName}`;
+
+  // Saudação de acordo com o horário
+  const hour = now.getHours();
+  let greeting = 'Bom dia';
+  if (hour >= 12 && hour < 18) greeting = 'Boa tarde';
+  else if (hour >= 18 || hour < 5) greeting = 'Boa noite';
+
+  const userName = user?.name ? user.name.split(' ')[0] : 'Usuário';
+
+  // Na aba Dashboard, atua como HUD Executivo de Boas-Vindas sem duplicar a barra de progresso
+  if (activeTab === 'dashboard') {
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 py-1">
+        <div>
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+            {formattedDate}
+          </span>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-white mt-0.5">
+            {greeting}, {userName}
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="px-3.5 py-1.5 rounded-full bg-[#0B0F17]/80 border border-white/[0.08] backdrop-blur-xl flex items-center gap-2 text-xs shadow-sm">
+            <span className={`w-2 h-2 rounded-full ${isFull ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-blue-400 shadow-[0_0_8px_#60a5fa]'}`} />
+            <span className="text-slate-300 font-medium">
+              {totalCompleted} de {totalActivities} concluídas
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="text-white font-semibold tabular-nums">{percentage}%</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Nas demais abas (Workouts, Focus, Calendar, Telemetry, Admin), exibe o Card de Ritmo Global
   return (
-    <div 
-      className="global-activity-bar-container"
-      style={{
-        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.85) 0%, rgba(10, 15, 29, 0.95) 100%)',
-        border: `1px solid ${isFull ? 'rgba(52, 211, 153, 0.3)' : 'rgba(0, 229, 255, 0.2)'}`,
-        borderRadius: '14px',
-        padding: '12px 18px',
-        marginBottom: '20px',
-        backdropFilter: 'blur(12px)',
-        boxShadow: isFull ? '0 0 20px rgba(52, 211, 153, 0.2)' : '0 4px 16px rgba(0, 0, 0, 0.25)',
-        transition: 'all 0.3s ease'
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: 34,
-            height: 34,
-            borderRadius: '9px',
-            background: isFull ? 'rgba(52, 211, 153, 0.15)' : 'rgba(0, 229, 255, 0.15)',
-            color: isFull ? 'var(--accent-emerald)' : 'var(--accent-cyan)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            {isFull ? <CheckCircle2 size={18} strokeWidth={2.5} /> : <Target size={18} strokeWidth={2.5} />}
+    <div className="bento-card p-6 transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3.5">
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border transition-all ${
+            isFull 
+              ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.3)]'
+              : 'bg-blue-500/15 border-blue-400/30 text-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.25)]'
+          }`}>
+            {isFull ? <CheckCircle2 size={22} strokeWidth={1.75} /> : <Target size={22} strokeWidth={1.75} />}
           </div>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Progresso Global das Atividades
-              </span>
-              <span style={{
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                padding: '2px 8px',
-                borderRadius: 'var(--radius-pill)',
-                background: isFull ? 'rgba(52, 211, 153, 0.15)' : percentage > 0 ? 'rgba(0, 229, 255, 0.12)' : 'rgba(255, 255, 255, 0.05)',
-                color: isFull ? 'var(--accent-emerald)' : percentage > 0 ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                border: `1px solid ${isFull ? 'rgba(52, 211, 153, 0.3)' : percentage > 0 ? 'rgba(0, 229, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`
-              }}>
-                {isFull ? 'Metas Concluídas' : percentage >= 50 ? 'Bom Ritmo' : percentage > 0 ? 'Em Andamento' : 'Início do Dia'}
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold tracking-tight text-white">
+                Ritmo & Produtividade Diária
+              </h2>
+              <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                isFull 
+                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-400/20' 
+                  : 'bg-blue-500/10 text-blue-300 border-blue-400/20'
+              }`}>
+                {isFull ? 'Concluído' : percentage > 50 ? 'Alto Ritmo' : 'Em Execução'}
               </span>
             </div>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
               {totalActivities === 0 
-                ? 'Nenhuma atividade cadastrada para hoje' 
-                : `${totalCompleted} de ${totalActivities} atividades concluídas hoje (${completedHabits} hábitos + ${completedEvents} compromissos)`}
-            </span>
+                ? 'Nenhuma tarefa ou compromisso agendado para hoje' 
+                : `${totalCompleted} de ${totalActivities} atividades concluídas hoje`}
+            </p>
           </div>
         </div>
 
-        {/* Porcentagem em tempo real */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-          <span style={{
-            fontSize: '1.5rem',
-            fontWeight: 800,
-            color: isFull ? 'var(--accent-emerald)' : 'var(--accent-cyan)',
-            letterSpacing: '-0.5px'
-          }}>
+        <div className="flex items-baseline gap-1.5 self-end sm:self-auto">
+          <span className="text-4xl font-semibold tracking-tight text-white tabular-nums drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">
             {percentage}%
           </span>
+          <span className="text-xs text-slate-400 font-medium">completo</span>
         </div>
       </div>
 
-      {/* Barra de Progresso Fluida Auto-padronizada */}
-      <div style={{
-        width: '100%',
-        height: '8px',
-        background: 'rgba(255, 255, 255, 0.08)',
-        borderRadius: '4px',
-        overflow: 'hidden'
-      }}>
+      <div className="w-full h-2 rounded-full bg-slate-900/80 border border-white/[0.06] p-0.5 overflow-hidden">
         <div 
-          style={{
-            width: `${Math.min(100, Math.max(0, percentage))}%`,
-            height: '100%',
-            background: isFull 
-              ? 'linear-gradient(90deg, var(--accent-emerald), #10b981)' 
-              : 'linear-gradient(90deg, var(--accent-cyan), var(--accent-emerald))',
-            borderRadius: '4px',
-            boxShadow: isFull ? '0 0 10px rgba(52, 211, 153, 0.5)' : '0 0 10px rgba(0, 229, 255, 0.4)',
-            transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-          }}
+          className={`h-full rounded-full transition-all duration-500 ease-out ${
+            isFull 
+              ? 'bg-gradient-to-r from-emerald-400 to-teal-400 shadow-[0_0_12px_rgba(52,211,153,0.5)]'
+              : 'bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500 shadow-[0_0_12px_rgba(96,165,250,0.5)]'
+          }`}
+          style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
         />
       </div>
     </div>

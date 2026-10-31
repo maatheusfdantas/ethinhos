@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   User, 
@@ -9,28 +10,29 @@ import {
   Save, 
   ShieldCheck, 
   CheckCircle2,
-  Activity,
-  Scale
+  Scale,
+  Download,
+  LogOut,
+  Trash2
 } from 'lucide-react';
 
 export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) {
   const [name, setName] = useState(user?.name || 'Eu Matheus');
   const [bio, setBio] = useState(user?.bio || 'Engenharia de Software & Produtividade Extrema');
-  const [isPublic, setIsPublic] = useState(user?.isPublic ?? true); // US37: Configuração de perfil (Público/Privado)
+  const [isPublic, setIsPublic] = useState(user?.isPublic ?? true);
   const [weight, setWeight] = useState(user?.weight !== undefined ? user.weight : 70.0);
   const [height, setHeight] = useState(user?.height !== undefined ? user.height : 1.75);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [securityFeedback, setSecurityFeedback] = useState('');
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  // Cálculo do IMC = peso (kg) / (altura (m) ^ 2)
   const numWeight = parseFloat(weight);
   const numHeight = parseFloat(height);
   const isValidBmi = numWeight > 0 && numHeight > 0;
   const bmiValue = isValidBmi ? (numWeight / (numHeight * numHeight)) : 0;
   const formattedBmi = bmiValue > 0 ? bmiValue.toFixed(1) : '--';
 
-  // Classificação do IMC segundo padrão da OMS
   let bmiClass = {
     label: 'Calculando...',
     color: 'var(--text-secondary)',
@@ -132,13 +134,62 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
     }, 800);
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet" style={{ maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+  // LGPD Art. 18, V: Portabilidade / Exportação de Dados Pessoais
+  const handleExportLgpdData = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/user/${user.id}/privacy/export`);
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ethos_dados_pessoais_${user.username || user.id}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setSecurityFeedback('Exportação LGPD concluída com sucesso (JSON baixado).');
+    } catch (_err) {
+      setSecurityFeedback('Erro ao exportar dados.');
+    }
+  };
+
+  // Revogar Sessões em Todos os Dispositivos
+  const handleRevokeAllSessions = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch('/api/auth/logout-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+      const data = await res.json();
+      setSecurityFeedback(data.message || 'Sessões revogadas em todos os dispositivos.');
+    } catch (_err) {
+      setSecurityFeedback('Falha ao revogar sessões.');
+    }
+  };
+
+  // LGPD Art. 18, VI: Exclusão Segura da Conta
+  const handleEraseAccount = async () => {
+    if (!user?.id || user.role === 'admin') return;
+    try {
+      const res = await fetch(`/api/user/${user.id}/privacy/erase`, { method: 'DELETE' });
+      if (res.ok) {
+        onLogout?.();
+        onClose();
+      }
+    } catch (_err) {
+      setSecurityFeedback('Não foi possível excluir a conta.');
+    }
+  };
+
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
+      <div className="modal-sheet" style={{ maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <User size={20} color="var(--accent-cyan)" />
-            <h2 className="modal-title">Perfil & Biometria</h2>
+            <h2 className="modal-title">Perfil, Biometria & Segurança LGPD</h2>
           </div>
           <button className="modal-close-btn" onClick={onClose}>
             <X size={18} />
@@ -231,7 +282,6 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
               </div>
             </div>
 
-            {/* CARD EXIBINDO O CÁLCULO DO IMC */}
             <div className="card-native" style={{ 
               background: 'rgba(15, 23, 42, 0.7)', 
               border: `1px solid ${bmiClass.color}40`,
@@ -276,10 +326,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
             </div>
           </div>
 
-          {/* US37: CONTROLE DE PRIVACIDADE BÁSICA (PÚBLICO / PRIVADO) */}
+          {/* CONTROLE DE PRIVACIDADE E DIREITOS LGPD / SEGURANÇA */}
           <div className="form-group">
-            <label className="form-label">Controle de Privacidade</label>
-            <div className="card-native" style={{ padding: '14px', background: 'var(--surface-elevated)' }}>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldCheck size={14} color="var(--accent-emerald)" />
+              Privacidade, Sessões & Conformidade LGPD/GDPR
+            </label>
+            <div className="card-native" style={{ padding: '14px', background: 'var(--surface-elevated)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {isPublic ? (
@@ -311,6 +364,46 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                   <div className="switch-thumb" />
                 </div>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <button
+                  type="button"
+                  onClick={handleExportLgpdData}
+                  className="btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  <Download size={13} />
+                  Exportar Dados (LGPD)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRevokeAllSessions}
+                  className="btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  <LogOut size={13} />
+                  Revogar Todas Sessões
+                </button>
+              </div>
+
+              {user?.role !== 'admin' && (
+                <button
+                  type="button"
+                  onClick={handleEraseAccount}
+                  className="btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '7px 10px', borderColor: 'rgba(244,63,94,0.4)', color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  <Trash2 size={13} />
+                  Excluir Conta e Dados Pessoais (Direito ao Esquecimento)
+                </button>
+              )}
+
+              {securityFeedback && (
+                <div style={{ fontSize: '0.76rem', color: 'var(--accent-emerald)', fontWeight: 600 }}>
+                  {securityFeedback}
+                </div>
+              )}
             </div>
           </div>
 
@@ -344,6 +437,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

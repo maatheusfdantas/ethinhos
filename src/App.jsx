@@ -18,19 +18,35 @@ import { AuthModal } from './components/AuthModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AdminPortalTab } from './components/AdminPortalTab';
 import { LoginScreen } from './components/LoginScreen';
+import { WelcomeIntro } from './components/WelcomeIntro';
 
 import { INITIAL_TAGS, INITIAL_WORKOUTS, INITIAL_BADGES } from './data/initialData';
-import { Lock } from 'lucide-react';
+import { Lock, Shield, Plus, Search, Bell, X } from 'lucide-react';
 import { GlobalProgressBar } from './components/GlobalProgressBar';
+import { Toast } from './components/Toast';
 
 export function App() {
   // REQUISITO: SEMPRE O LOCALHOST DEVE ENVIAR PARA A PÁGINA DE LOGIN PRIMEIRO
-  const [user, setUser] = useState(null);
+  // (Exceto quando retornando do callback OAuth 2.0 do Google Calendar: ?google_auth=...)
+  const isReturningFromGoogleOAuth = typeof window !== 'undefined' && window.location.search.includes('google_auth=');
 
-  // Limpa qualquer resquício de sessão ao inicializar
+  const [user, setUser] = useState(() => {
+    if (isReturningFromGoogleOAuth) {
+      const saved = sessionStorage.getItem('ethos_current_user');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+      return { id: 'usr_1', name: 'Lucas Dev', username: 'lucas', email: 'lucas@ethos.dev', role: 'user', avatar: 'LD' };
+    }
+    return null;
+  });
+
+  // Limpa qualquer resquício de sessão ao inicializar normalmente
   useEffect(() => {
-    sessionStorage.removeItem('ethos_current_user');
-    localStorage.removeItem('ethos_current_user');
+    if (!isReturningFromGoogleOAuth) {
+      sessionStorage.removeItem('ethos_current_user');
+      localStorage.removeItem('ethos_current_user');
+    }
   }, []);
 
   // User-specific states
@@ -48,13 +64,24 @@ export function App() {
   const [friends, setFriends] = useState([]);
   const [feed, setFeed] = useState([]);
 
-  // Active Navigation Tab
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Active Navigation Tab (abre direto na aba Calendário ao retornar do Google OAuth)
+  const [activeTab, setActiveTab] = useState(() => isReturningFromGoogleOAuth ? 'calendar' : 'dashboard');
 
-  // Modals
+  // Modals & Header Controls
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSearchBar, setShowSearchBar] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
+  const [bootKey, setBootKey] = useState(0);
+
+  // Discreet Toast Notification (with Undo / Ctrl+Z support)
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, onUndo = null) => {
+    setToast({ message, onUndo });
+  };
 
   // Load user data when user changes
   const loadUserData = async (activeUser) => {
@@ -132,6 +159,21 @@ export function App() {
         });
       } catch (e) {
         console.error('Error updating event:', e);
+      }
+    }
+  };
+
+  // Handler: Delete Event
+  const handleDeleteEvent = async (eventId) => {
+    setEvents(prev => prev.filter(e => e.id !== eventId));
+
+    if (user) {
+      try {
+        await fetch(`/api/user/${user.id}/event/${eventId}`, {
+          method: 'DELETE'
+        });
+      } catch (e) {
+        console.error('Error deleting event:', e);
       }
     }
   };
@@ -219,6 +261,8 @@ export function App() {
   // Handler: Login Success (US35)
   const handleLoginSuccess = (authenticatedUser) => {
     setUser(authenticatedUser);
+    setShowWelcomeIntro(true);
+    setBootKey(prev => prev + 1);
     if (authenticatedUser.role === 'admin') {
       setActiveTab('admin');
     } else {
@@ -229,6 +273,7 @@ export function App() {
   // Logout handler
   const handleLogout = () => {
     setUser(null);
+    setShowWelcomeIntro(false);
     sessionStorage.removeItem('ethos_current_user');
     localStorage.removeItem('ethos_current_user');
     setShowAuthModal(false);
@@ -251,155 +296,358 @@ export function App() {
 
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
+  const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
 
   return (
-    <div className="app-container">
-      {/* DESKTOP SIDEBAR */}
-      <DesktopSidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenAdd={() => setShowAddModal(true)}
-        isAdmin={isAdmin}
-        userPermissions={permissions}
-        onLogout={handleLogout}
-      />
+    <div 
+      style={{
+        minHeight: '100vh',
+        width: '100%',
+        backgroundImage: "url('/ethos-wallpaper.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
+        padding: '28px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: "'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        color: '#1A1B2F'
+      }}
+      className="pb-20 lg:pb-7"
+    >
+      {/* ANIMAÇÃO CINEMATOGRÁFICA DE BOAS-VINDAS EM ALTA RESOLUÇÃO (PÓS-LOGIN) */}
+      {showWelcomeIntro && (
+        <WelcomeIntro
+          userName={user?.name}
+          onComplete={() => {
+            setShowWelcomeIntro(false);
+            setBootKey(prev => prev + 1);
+          }}
+        />
+      )}
 
-      {/* TOP HEADER */}
-      <Header
-        user={user}
-        onOpenProfile={() => setShowProfileModal(true)}
-        onOpenAuth={() => setShowAuthModal(true)}
-        onOpenAdmin={() => setActiveTab('admin')}
-        activeTab={activeTab}
-        onLogout={handleLogout}
-      />
-
-      {/* MAIN VIEWPORT */}
-      <main className="main-content">
-        {/* PROGRESSO GLOBAL DAS ATIVIDADES (Visível em todas as abas, menos na social) */}
-        <GlobalProgressBar 
-          habits={habits} 
-          events={events} 
-          activeTab={activeTab} 
+      {/* MOLDURA TRANSLÚCIDA FLUTUANTE COM EFEITO LIQUID GLASS DO IPHONE */}
+      {!showWelcomeIntro && (
+      <div
+        key={`boot-${bootKey}`}
+        className="ethos-boot-frame"
+        style={{
+          width: '100%',
+          maxWidth: '1360px',
+          minHeight: '830px',
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.09) 48%, rgba(255, 255, 255, 0.18) 100%)',
+          backdropFilter: 'blur(18px) saturate(165%)',
+          WebkitBackdropFilter: 'blur(18px) saturate(165%)',
+          borderRadius: '40px',
+          border: '1.5px solid rgba(255, 255, 255, 0.48)',
+          boxShadow: '0 32px 80px rgba(12, 14, 34, 0.28), inset 0 1.5px 1px rgba(255, 255, 255, 0.85), inset 0 -1.5px 2px rgba(255, 255, 255, 0.32), inset 1px 0 1.5px rgba(255, 255, 255, 0.35)',
+          padding: '22px',
+          display: 'flex',
+          gap: '26px',
+          position: 'relative'
+        }}
+      >
+        {/* 1. SIDEBAR ESQUERDA ARREDONDADA (DARK PLUM #211F38) */}
+        <DesktopSidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onOpenAdd={() => setShowAddModal(true)}
+          isAdmin={isAdmin}
+          userPermissions={permissions}
+          user={user}
+          tags={tags}
+          onOpenProfile={() => setShowProfileModal(true)}
+          onOpenAuth={() => setShowAuthModal(true)}
+          onLogout={handleLogout}
         />
 
-        {/* TAB 1: DASHBOARD */}
-        {activeTab === 'dashboard' && (
-          <DashboardTab
-            habits={habits}
-            setHabits={setHabits}
-            events={events}
-            workouts={workouts}
-            health={health}
-            setHealth={setHealth}
-            tags={tags}
-            user={user}
-            onOpenAdd={() => setShowAddModal(true)}
-            onOpenWorkout={() => setActiveTab('workouts')}
-            onAddTag={handleAddTag}
-            onDeleteTag={handleDeleteTag}
-            onToggleEvent={handleToggleEvent}
-            onSwitchTab={setActiveTab}
-          />
-        )}
-
-        {/* TAB 2: MUSCULAÇÃO */}
-        {activeTab === 'workouts' && (
-          permissions.workouts === false ? (
-            <div className="card-native" style={{ textAlign: 'center', padding: '40px 16px' }}>
-              <Lock size={36} color="var(--accent-rose)" style={{ margin: '0 auto 12px' }} />
-              <h3 style={{ color: 'var(--text-primary)', marginBottom: '6px' }}>Módulo de Musculação Bloqueado</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                O Administrador desativou o seu acesso a este módulo no portal de permissões.
-              </p>
+        {/* 2. ÁREA DE CONTEÚDO PRINCIPAL */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '20px', padding: '6px 6px 6px 0' }}>
+          
+          {/* TOP HEADER: "Hi, Dilan!" / "Workout & Fitness" + [+ Create] + Search + Bell + Avatar */}
+          <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+            <div>
+              <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1A1B2F', letterSpacing: '-0.02em', margin: 0 }}>
+                {activeTab === 'workouts' ? 'Workout & Fitness' : `Hi, ${firstName}!`}
+              </h1>
             </div>
-          ) : (
-            <WorkoutTab
-              workouts={workouts}
-              setWorkouts={setWorkouts}
-              onCompleteWorkout={handleCompleteWorkout}
-            />
-          )
-        )}
 
-        {/* TAB 3: FOCO POMODORO */}
-        {activeTab === 'focus' && (
-          permissions.focus === false ? (
-            <div className="card-native" style={{ textAlign: 'center', padding: '40px 16px' }}>
-              <Lock size={36} color="var(--accent-rose)" style={{ margin: '0 auto 12px' }} />
-              <h3 style={{ color: 'var(--text-primary)', marginBottom: '6px' }}>Módulo de Foco Bloqueado</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                O Administrador desativou o seu acesso ao Cronômetro de Foco.
-              </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Barra de busca expansível */}
+              {showSearchBar && (
+                <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '999px', padding: '6px 14px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                  <input
+                    type="text"
+                    placeholder="Buscar tarefas ou projetos..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                    style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '12.5px', color: '#1A1B2F', width: '170px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setShowSearchBar(false); setSearchQuery(''); }}
+                    style={{ background: 'none', border: 'none', color: '#7E7F9A', cursor: 'pointer', display: 'flex' }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Botão + Create (Pílula Preta/Escura) */}
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                style={{
+                  height: '40px',
+                  padding: '0 22px',
+                  borderRadius: '999px',
+                  backgroundColor: '#181824',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  boxShadow: '0 6px 16px rgba(24, 24, 36, 0.22)'
+                }}
+              >
+                <Plus size={15} strokeWidth={2.5} />
+                <span>Create</span>
+              </button>
+
+              {/* Botão Search Circular Branco */}
+              <button
+                type="button"
+                onClick={() => setShowSearchBar(!showSearchBar)}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#F8F8FA',
+                  color: '#1A1B2F',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                }}
+                title="Pesquisar"
+              >
+                <Search size={17} strokeWidth={2} />
+              </button>
+
+              {/* Botão Notificações Circular Branco com Ponto Vermelho */}
+              <button
+                type="button"
+                onClick={() => showToast('Você tem 2 tarefas em andamento e 1 meta concluída hoje!')}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#F8F8FA',
+                  color: '#1A1B2F',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                }}
+                title="Notificações"
+              >
+                <Bell size={17} strokeWidth={2} />
+                <span 
+                  style={{
+                    position: 'absolute',
+                    top: '9px',
+                    right: '10px',
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    backgroundColor: '#EF4444',
+                    border: '1.5px solid #F8F8FA'
+                  }}
+                />
+              </button>
+
+              {/* Avatar Circular do Usuário */}
+              <button
+                type="button"
+                onClick={() => setShowProfileModal(true)}
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  backgroundColor: '#211F38',
+                  color: '#FFFFFF',
+                  border: '2px solid #FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 14px rgba(33, 31, 56, 0.25)'
+                }}
+                title="Abrir Perfil e Biometria"
+              >
+                {user?.avatar || (user?.name ? user.name.slice(0, 2).toUpperCase() : 'DL')}
+              </button>
             </div>
-          ) : (
-            <FocusTab
-              user={user}
-              onFocusComplete={handleFocusComplete}
-            />
-          )
-        )}
+          </header>
 
-        {/* TAB 4: CALENDÁRIO COM VISUALIZAÇÃO DE ATIVIDADES DIRETAS (REQUISITO 2) */}
-        {activeTab === 'calendar' && (
-          <CalendarTab
-            events={events}
-            habits={habits}
-            workouts={workouts}
-            onOpenAdd={() => setShowAddModal(true)}
-            onToggleEvent={handleToggleEvent}
-          />
-        )}
+          {/* CONTEÚDO DA ABA ATIVA */}
+          <main style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* TAB 1: DASHBOARD (PAINEL PRINCIPAL FIEL AO MOCKUP) */}
+            {activeTab === 'dashboard' && (
+              <DashboardTab
+                habits={habits}
+                setHabits={setHabits}
+                events={events}
+                workouts={workouts}
+                health={health}
+                setHealth={setHealth}
+                tags={tags}
+                user={user}
+                onOpenAdd={() => setShowAddModal(true)}
+                onOpenWorkout={() => setActiveTab('workouts')}
+                onAddTag={handleAddTag}
+                onDeleteTag={handleDeleteTag}
+                onToggleEvent={handleToggleEvent}
+                onSwitchTab={setActiveTab}
+                showToast={showToast}
+              />
+            )}
 
-        {/* TAB 5: TELEMETRIA */}
-        {activeTab === 'telemetry' && (
-          permissions.telemetry === false ? (
-            <div className="card-native" style={{ textAlign: 'center', padding: '40px 16px' }}>
-              <Lock size={36} color="var(--accent-rose)" style={{ margin: '0 auto 12px' }} />
-              <h3 style={{ color: 'var(--text-primary)', marginBottom: '6px' }}>Telemetria Bloqueada</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                O Administrador desativou o seu acesso aos gráficos comparativos.
-              </p>
-            </div>
-          ) : (
-            <TelemetryTab
-              habits={habits}
-              health={health}
-              heatmapData={[]}
-              user={user}
-            />
-          )
-        )}
+            {/* TAB 4: CALENDÁRIO / AGENDA MENSAL, SEMANAL E DIÁRIA */}
+            {activeTab === 'calendar' && (
+              <CalendarTab
+                events={events}
+                setEvents={setEvents}
+                habits={habits}
+                setHabits={setHabits}
+                workouts={workouts}
+                onOpenAdd={() => setShowAddModal(true)}
+                onToggleEvent={handleToggleEvent}
+                onAddEvent={handleAddEvent}
+                onDeleteEvent={handleDeleteEvent}
+                onSwitchTab={setActiveTab}
+                showToast={showToast}
+              />
+            )}
 
-        {/* TAB 6: SOCIAL */}
-        {activeTab === 'social' && (
-          permissions.social === false ? (
-            <div className="card-native" style={{ textAlign: 'center', padding: '40px 16px' }}>
-              <Lock size={36} color="var(--accent-rose)" style={{ margin: '0 auto 12px' }} />
-              <h3 style={{ color: 'var(--text-primary)', marginBottom: '6px' }}>Comunidade Bloqueada</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                O Administrador desativou o seu acesso ao Feed Social.
-              </p>
-            </div>
-          ) : (
-            <SocialTab
-              user={user}
-              badges={badges}
-              friends={friends}
-              setFriends={setFriends}
-              feed={feed}
-              setFeed={setFeed}
-            />
-          )
-        )}
+            {/* TAB 2: MUSCULAÇÃO & TREINO (RENDERIZADO DIRETO NA MOLDURA CLARA FIEL AO MOCKUP) */}
+            {activeTab === 'workouts' && (
+              permissions.workouts === false ? (
+                <div style={{ backgroundColor: '#211F38', borderRadius: '28px', padding: '40px 24px', color: '#F8FAFC', textAlign: 'center' }}>
+                  <Lock size={32} className="text-zinc-400 mx-auto mb-3" />
+                  <h3 className="text-sm font-medium text-zinc-200 mb-1">Módulo de Musculação Bloqueado</h3>
+                  <p className="text-xs text-zinc-400">
+                    O Administrador desativou o seu acesso a este módulo no portal de permissões.
+                  </p>
+                </div>
+              ) : (
+                <WorkoutTab
+                  workouts={workouts}
+                  setWorkouts={setWorkouts}
+                  onCompleteWorkout={handleCompleteWorkout}
+                  habits={habits}
+                  setHabits={setHabits}
+                />
+              )
+            )}
 
-        {/* TAB 7: PORTAL ADMIN (Requisito 2) */}
-        {activeTab === 'admin' && (
-          <AdminPortalTab
-            onSystemReset={handleSystemReset}
-          />
-        )}
-      </main>
+            {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
+            {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && (
+              <div 
+                style={{
+                  backgroundColor: '#211F38',
+                  borderRadius: '28px',
+                  padding: '24px',
+                  color: '#F8FAFC',
+                  boxShadow: '0 16px 40px rgba(33, 31, 56, 0.22)'
+                }}
+              >
+                {/* TAB 3: FOCO POMODORO / BIBLIOTECA DE PROJETOS */}
+                {activeTab === 'focus' && (
+                  permissions.focus === false ? (
+                    <div className="card-native text-center py-10 px-4">
+                      <Lock size={32} className="text-zinc-400 mx-auto mb-3" />
+                      <h3 className="text-sm font-medium text-zinc-200 mb-1">Módulo de Foco Bloqueado</h3>
+                      <p className="text-xs text-zinc-400">
+                        O Administrador desativou o seu acesso ao Cronômetro de Foco.
+                      </p>
+                    </div>
+                  ) : (
+                    <FocusTab
+                      user={user}
+                      onFocusComplete={handleFocusComplete}
+                    />
+                  )
+                )}
+
+                {/* TAB 5: TELEMETRIA / ANÁLISE DE PROGRESSO */}
+                {activeTab === 'telemetry' && (
+                  permissions.telemetry === false ? (
+                    <div className="card-native text-center py-10 px-4">
+                      <Lock size={32} className="text-zinc-400 mx-auto mb-3" />
+                      <h3 className="text-sm font-medium text-zinc-200 mb-1">Telemetria Bloqueada</h3>
+                      <p className="text-xs text-zinc-400">
+                        O Administrador desativou o seu acesso aos gráficos comparativos.
+                      </p>
+                    </div>
+                  ) : (
+                    <TelemetryTab
+                      habits={habits}
+                      health={health}
+                      heatmapData={[]}
+                      user={user}
+                    />
+                  )
+                )}
+
+                {/* TAB 6: SOCIAL / COMUNIDADE */}
+                {activeTab === 'social' && (
+                  permissions.social === false ? (
+                    <div className="card-native text-center py-10 px-4">
+                      <Lock size={32} className="text-zinc-400 mx-auto mb-3" />
+                      <h3 className="text-sm font-medium text-zinc-200 mb-1">Comunidade Bloqueada</h3>
+                      <p className="text-xs text-zinc-400">
+                        O Administrador desativou o seu acesso ao Feed Social.
+                      </p>
+                    </div>
+                  ) : (
+                    <SocialTab
+                      user={user}
+                      badges={badges}
+                      friends={friends}
+                      setFriends={setFriends}
+                      feed={feed}
+                      setFeed={setFeed}
+                    />
+                  )
+                )}
+
+                {/* TAB 7: PORTAL ADMIN */}
+                {activeTab === 'admin' && (
+                  <AdminPortalTab
+                    onSystemReset={handleSystemReset}
+                  />
+                )}
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
+      )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
       <MobileBottomNav
@@ -409,6 +657,9 @@ export function App() {
         isAdmin={isAdmin}
         userPermissions={permissions}
       />
+
+      {/* DISCREET TOAST NOTIFICATION (WITH UNDO / CTRL+Z) */}
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
 
       {/* MODAL OVERLAYS */}
       <AddModal

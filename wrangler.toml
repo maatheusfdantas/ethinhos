@@ -1,0 +1,16 @@
+# ============================================================================
+# ETHOS — CONFIGURAÇÃO CLOUDFLARE PAGES + CLOUDFLARE D1 RELATIONAL DATABASE
+# ============================================================================
+name = "ethos"
+pages_build_output_dir = "./dist"
+compatibility_date = "2025-04-01"
+
+# Binding do Banco de Dados Relacional Cloudflare D1 (SQLite Serverless)
+# Quando vinculado no painel do Cloudflare Pages (Settings > Bindings > D1 database: DB)
+# ou via CLI (`npx wrangler d1 create ethos-db`), o backend `functions/api/[[path]].js`
+# cria e popula automaticamente todas as tabelas relacionais na primeira requisição.
+#
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "ethos-db"
+# database_id = "COLE_O_DATABASE_ID_GERADO_PELO_WRANGLER_AQUI"

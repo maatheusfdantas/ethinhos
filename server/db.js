@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { hashPassword, initSecurityTables, encryptAES256GCM } from './security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,7 +10,7 @@ const dbPath = path.resolve(__dirname, '..', 'ethos.db');
 export const db = new DatabaseSync(dbPath);
 
 export function initDatabase() {
-  // 1. Tabela de Usuários
+  // 1. Tabela de Usuários (Senhas protegidas com scrypt + salt individual)
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -51,7 +52,7 @@ export function initDatabase() {
     );
   `);
 
-  // 3. Tabela de Eventos e Compromissos (com Data, Horário de Início e Término - Requisito 2 e 3)
+  // 3. Tabela de Eventos e Compromissos
   db.exec(`
     CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY,
@@ -86,9 +87,7 @@ export function initDatabase() {
 
   try {
     db.exec(`ALTER TABLE health ADD COLUMN glass_ml INTEGER NOT NULL DEFAULT 250;`);
-  } catch (e) {
-    // coluna já existe
-  }
+  } catch (e) {}
 
   // 5. Tabela de Treinos e Musculação
   db.exec(`
@@ -129,7 +128,7 @@ export function initDatabase() {
     );
   `);
 
-  // 8. Tabela de Tags / Categorias Customizadas (Requisito 4)
+  // 8. Tabela de Tags / Categorias Customizadas
   db.exec(`
     CREATE TABLE IF NOT EXISTS tags (
       id TEXT PRIMARY KEY,
@@ -143,9 +142,7 @@ export function initDatabase() {
 
   try {
     db.exec(`ALTER TABLE tags ADD COLUMN icon TEXT NOT NULL DEFAULT 'Bookmark';`);
-  } catch (e) {
-    // coluna já existe
-  }
+  } catch (e) {}
 
   try {
     db.exec(`ALTER TABLE users ADD COLUMN weight REAL DEFAULT 70.0;`);
@@ -172,21 +169,22 @@ export function initDatabase() {
     );
   `);
 
-  // Sincronizar os 5 Usuários Obrigatórios (Requisito 6)
+  // 10. Tabelas de Segurança (Sessões Rotativas, Logs de Auditoria, Tokens de Recuperação)
+  initSecurityTables(db);
+
+  // Sincronizar os 5 Usuários Obrigatórios com senhas hasheadas via scrypt
   seedFiveUsers();
 }
 
-// 5 Usuários Solicitados (Requisito 6)
 export function seedFiveUsers() {
   const allPerms = JSON.stringify({ focus: true, workouts: true, telemetry: true, social: true, habits: true });
 
   const fiveUsers = [
-    // 1. Admin
     {
       id: 'usr_admin',
       username: 'admin',
       email: 'admin@ethos.dev',
-      password: 'admin123',
+      password: hashPassword('admin123'),
       name: 'Administrador Ethos',
       avatar: 'AD',
       role: 'admin',
@@ -197,12 +195,11 @@ export function seedFiveUsers() {
       streak_days: 0,
       points: 9999
     },
-    // 2. Usuário com desempenho e uso muito bom
     {
       id: 'usr_matheus_pro',
       username: 'matheus.pro',
       email: 'matheus@pro.dev',
-      password: '123',
+      password: hashPassword('123'),
       name: 'Matheus Alta Performance',
       avatar: 'MP',
       role: 'user',
@@ -213,12 +210,11 @@ export function seedFiveUsers() {
       streak_days: 14,
       points: 3450
     },
-    // 3. Usuário intermediário
     {
       id: 'usr_lucas_dev',
       username: 'lucas.dev',
       email: 'lucas@dev.com',
-      password: '123',
+      password: hashPassword('123'),
       name: 'Lucas Intermediário',
       avatar: 'LD',
       role: 'user',
@@ -229,12 +225,11 @@ export function seedFiveUsers() {
       streak_days: 4,
       points: 1250
     },
-    // 4. Usuário não empenhado
     {
       id: 'usr_bruno_preguica',
       username: 'bruno.preguica',
       email: 'bruno@gmail.com',
-      password: '123',
+      password: hashPassword('123'),
       name: 'Bruno Não Empenhado',
       avatar: 'BP',
       role: 'user',
@@ -245,12 +240,11 @@ export function seedFiveUsers() {
       streak_days: 0,
       points: 180
     },
-    // 5. Usuário clean (totalmente zerado)
     {
       id: 'usr_clean',
       username: 'usuario.clean',
       email: 'clean@ethos.dev',
-      password: '123',
+      password: hashPassword('123'),
       name: 'Novo Usuário Clean',
       avatar: 'UC',
       role: 'user',
@@ -278,7 +272,6 @@ export function seedFiveUsers() {
         u.streak_days, u.points, new Date().toISOString()
       );
     } else {
-      // Garantir senhas corretas e roles
       db.prepare(`
         UPDATE users SET 
           password = ?, 
@@ -291,21 +284,13 @@ export function seedFiveUsers() {
     }
   }
 
-  // Seed específico para Matheus Alta Performance (hábitos quase todos concluídos, água cheia, eventos)
   seedUserData('usr_matheus_pro', 'pro');
-
-  // Seed intermediário para Lucas
   seedUserData('usr_lucas_dev', 'mid');
-
-  // Seed baixo para Bruno
   seedUserData('usr_bruno_preguica', 'low');
-
-  // Usuário clean fica 100% zerado
   seedUserData('usr_clean', 'clean');
 }
 
 function seedUserData(userId, profileType) {
-  // Limpar dados anteriores deste usuário para garantir estado consistente
   db.prepare(`DELETE FROM habits WHERE user_id = ?`).run(userId);
   db.prepare(`DELETE FROM events WHERE user_id = ?`).run(userId);
   db.prepare(`DELETE FROM health WHERE user_id = ?`).run(userId);
@@ -319,7 +304,6 @@ function seedUserData(userId, profileType) {
   }
 
   if (profileType === 'pro') {
-    // 1. Hábitos Pro
     const insertHabit = db.prepare(`
       INSERT INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, repeat_days, completed, completion_style, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -331,17 +315,16 @@ function seedUserData(userId, profileType) {
     insertHabit.run(`hab_p4_${userId}`, userId, 'Meditação Mindfulness & Respiração', 'Pessoal', 'Sparkles', 1, 1, 'sessão', 'Baixo', 'Baixa', 'tag_pessoal', '[0,1,2,3,4,5,6]', 1, 'quick', new Date().toISOString());
     insertHabit.run(`hab_p5_${userId}`, userId, 'Revisão e Planejamento Semanal', 'Trabalho', 'CheckCircle2', 1, 0, 'check', 'Médio', 'Média', 'tag_trab', '[0]', 0, 'quick', new Date().toISOString());
 
-    // 2. Eventos na Agenda Pro (com data e horários claros)
     const insertEvent = db.prepare(`
       INSERT INTO events (id, user_id, title, date, all_day, start_time, end_time, category, repeat_rule, location, notes, completed, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const todayStr = new Date().toISOString().split('T')[0];
-    insertEvent.run(`ev_p1_${userId}`, userId, 'Prova de Sistemas Operacionais', todayStr, 0, '09:00', '11:00', 'Faculdade', 'Nunca', 'Sala 204 - Bloco C', 'Levar calculadora e documento', 0, new Date().toISOString());
-    insertEvent.run(`ev_p2_${userId}`, userId, 'Daily Scrum & Alinhamento de Sprint', todayStr, 0, '14:00', '14:45', 'Trabalho', 'Diário', 'Google Meet', 'Apresentar métricas de entrega', 0, new Date().toISOString());
-    insertEvent.run(`ev_p3_${userId}`, userId, 'Treino de Força e Musculação', todayStr, 0, '18:30', '19:45', 'Saúde', 'Semanal', 'Smart Fit Centro', 'Ficha A: Peito e Tríceps', 1, new Date().toISOString());
+    // Observações pessoais criptografadas em repouso com AES-256-GCM
+    insertEvent.run(`ev_p1_${userId}`, userId, 'Prova de Sistemas Operacionais', todayStr, 0, '09:00', '11:00', 'Faculdade', 'Nunca', 'Sala 204 - Bloco C', encryptAES256GCM('Levar calculadora e documento'), 0, new Date().toISOString());
+    insertEvent.run(`ev_p2_${userId}`, userId, 'Daily Scrum & Alinhamento de Sprint', todayStr, 0, '14:00', '14:45', 'Trabalho', 'Diário', 'Google Meet', encryptAES256GCM('Apresentar métricas de entrega'), 0, new Date().toISOString());
+    insertEvent.run(`ev_p3_${userId}`, userId, 'Treino de Força e Musculação', todayStr, 0, '18:30', '19:45', 'Saúde', 'Semanal', 'Smart Fit Centro', encryptAES256GCM('Ficha A: Peito e Tríceps'), 1, new Date().toISOString());
 
-    // 3. Saúde Pro
     db.prepare(`
       INSERT INTO health (user_id, water_glasses, water_target, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
       VALUES (?, 10, 10, '[{"timestamp":"08:00"},{"timestamp":"10:30"},{"timestamp":"12:00"},{"timestamp":"14:00"},{"timestamp":"15:30"},{"timestamp":"17:00"},{"timestamp":"18:30"},{"timestamp":"20:00"},{"timestamp":"21:00"},{"timestamp":"22:00"}]', '23:00', '07:00', 1)
@@ -349,7 +332,6 @@ function seedUserData(userId, profileType) {
   }
 
   if (profileType === 'mid') {
-    // Intermediário: 2 concluídos, 2 pendentes, 6 copos água
     const insertHabit = db.prepare(`
       INSERT INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, repeat_days, completed, completion_style, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -363,7 +345,7 @@ function seedUserData(userId, profileType) {
     db.prepare(`
       INSERT INTO events (id, user_id, title, date, all_day, start_time, end_time, category, repeat_rule, location, notes, completed, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(`ev_m1_${userId}`, userId, 'Mentoria de Carreira Tech', todayStr, 0, '16:00', '17:00', 'Trabalho', 'Nunca', 'Discord', 'Tirar dúvidas de arquitetura', 0, new Date().toISOString());
+    `).run(`ev_m1_${userId}`, userId, 'Mentoria de Carreira Tech', todayStr, 0, '16:00', '17:00', 'Trabalho', 'Nunca', 'Discord', encryptAES256GCM('Tirar dúvidas de arquitetura'), 0, new Date().toISOString());
 
     db.prepare(`
       INSERT INTO health (user_id, water_glasses, water_target, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
@@ -372,7 +354,6 @@ function seedUserData(userId, profileType) {
   }
 
   if (profileType === 'low') {
-    // Baixo empenho: 1 feito, 2 pendentes, 2 copos de água, sono desregulado
     const insertHabit = db.prepare(`
       INSERT INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, repeat_days, completed, completion_style, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

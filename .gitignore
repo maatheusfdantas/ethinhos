@@ -7,11 +7,30 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependências e Builds
 node_modules
 dist
 dist-ssr
 *.local
+
+# Banco de Dados Local e Backups Criptografados
 *.db
+*.db-journal
+*.db-wal
+backups/
+*.enc
+
+# Segredos, Variáveis de Ambiente, Certificados e Tokens OAuth (NUNCA VERSIONAR)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.tmp.json
+server/google_tokens.tmp.json
+server/google_oauth_credentials.tmp.json
 
 # Editor directories and files
 .vscode/*

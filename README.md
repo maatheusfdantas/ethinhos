@@ -55,20 +55,30 @@ Aplicação Web nativa (PWA / Desktop) para rastreamento de hábitos, gestão de
 
 ## 🛠️ Como Rodar Localmente
 
-1. **Instalar dependências:**
+1. **Instalar dependências JavaScript:**
    ```bash
    npm install
    ```
 
-2. **Iniciar o servidor de desenvolvimento:**
+2. **Instalar dependências Python da engine analítica (Python 3.12):**
+   ```bash
+   py -3.12 -m pip install -r requirements.txt
+   ```
+
+3. **Iniciar a API Node.js** (em um terminal):
+   ```bash
+   npm run server
+   ```
+
+4. **Iniciar o servidor de desenvolvimento** (em outro terminal):
    ```bash
    npm run dev
    ```
 
-3. **Acessar no navegador:**
+5. **Acessar no navegador:**
    Abra [http://localhost:5173](http://localhost:5173).
 
-4. **Gerar build de produção:**
+6. **Gerar build de produção:**
    ```bash
    npm run build
    ```

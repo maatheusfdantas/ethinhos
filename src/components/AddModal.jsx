@@ -1,83 +1,83 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   CheckCircle2, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Clock, 
-  MapPin, 
-  Bell, 
-  FileText, 
-  BookOpen, 
-  Dumbbell, 
-  Bookmark, 
-  Home, 
-  Sparkles, 
-  Activity,
   Plus,
-  Tag,
-  Palette,
-  Check,
-  RotateCcw
+  Minus
 } from 'lucide-react';
 
-const DEFAULT_COLOR_PALETTES = [
-  { name: 'Ciano', color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.15)' },
-  { name: 'Índigo', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)' },
-  { name: 'Esmeralda', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)' },
-  { name: 'Rosa Vibrante', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)' },
-  { name: 'Âmbar Dourado', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
-  { name: 'Violeta', color: '#c084fc', bg: 'rgba(192, 132, 252, 0.15)' },
+const DEFAULT_TAG_STYLES = [
+  { name: 'Faculdade', color: '#7C6FEF' },
+  { name: 'Trabalho',  color: '#00C2D1' },
+  { name: 'Saúde',     color: '#F24E6C' },
+  { name: 'Pessoal',   color: '#2CC295' },
+  { name: 'Casa',      color: '#F4C430' },
+  { name: 'Leitura',   color: '#9B8CE8' }
+];
+
+const PRESET_PARTICIPANTS = [
+  { id: 'p1', name: 'Lucas Dev', initials: 'LD', bg: '#211F38' },
+  { id: 'p2', name: 'Ana Clara', initials: 'AC', bg: '#56548A' },
+  { id: 'p3', name: 'Prof. Marcos', initials: 'PM', bg: '#059669' },
+  { id: 'p4', name: 'Matheus Pro', initials: 'MP', bg: '#3B82F6' }
 ];
 
 const WEEKDAYS = [
-  { dayIndex: 1, label: 'S' }, // Seg
-  { dayIndex: 2, label: 'T' }, // Ter
-  { dayIndex: 3, label: 'Q' }, // Qua
-  { dayIndex: 4, label: 'Q' }, // Qui
-  { dayIndex: 5, label: 'S' }, // Sex
-  { dayIndex: 6, label: 'S' }, // Sáb
-  { dayIndex: 0, label: 'D' }, // Dom
+  { dayIndex: 1, label: 'Seg' },
+  { dayIndex: 2, label: 'Ter' },
+  { dayIndex: 3, label: 'Qua' },
+  { dayIndex: 4, label: 'Qui' },
+  { dayIndex: 5, label: 'Sex' },
+  { dayIndex: 6, label: 'Sáb' },
+  { dayIndex: 0, label: 'Dom' }
 ];
 
 const PRIORITY_OPTIONS = [
-  { level: 'Alta', color: 'var(--accent-rose)', border: 'rgba(244, 63, 94, 0.4)', bg: 'rgba(244, 63, 94, 0.18)' },
-  { level: 'Média', color: 'var(--accent-amber)', border: 'rgba(251, 191, 36, 0.4)', bg: 'rgba(251, 191, 36, 0.18)' },
-  { level: 'Baixa', color: 'var(--accent-emerald)', border: 'rgba(52, 211, 153, 0.4)', bg: 'rgba(52, 211, 153, 0.18)' }
+  { level: 'Alta', dot: '#F24E6C', border: '#F24E6C' },
+  { level: 'Média', dot: '#F4C430', border: '#F4C430' },
+  { level: 'Baixa', dot: '#2CC295', border: '#2CC295' }
 ];
 
-export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], onAddTag }) {
-  // Modos de Exibição: 'choose' (escolha), 'habit' (hábito), 'event' (evento)
-  const [mode, setMode] = useState('choose');
+export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [] }) {
+  // Abre direto em modo horizontal ('event' ou 'habit') com alternância rápida no topo
+  const [mode, setMode] = useState('event'); // 'event' | 'habit'
 
   // Estados do Formulário de Hábitos
   const [habitTitle, setHabitTitle] = useState('');
   const [completionStyle, setCompletionStyle] = useState('quick');
-  const [targetNumber, setTargetNumber] = useState('1');
+  const [targetNumber, setTargetNumber] = useState(1);
   const [targetUnit, setTargetUnit] = useState('vezes');
   const [selectedDays, setSelectedDays] = useState([1, 2, 3, 4, 5]);
   const [selectedCategory, setSelectedCategory] = useState(tags[0]?.name || 'Faculdade');
   const [effort, setEffort] = useState('Médio');
   const [priority, setPriority] = useState('Média');
 
-  // Event Form States (Requisito 3: Data e Horário)
+  // Estados do Formulário de Eventos
   const todayStr = new Date().toISOString().split('T')[0];
   const [eventTitle, setEventTitle] = useState('');
-  const [eventDate, setEventDate] = useState(todayStr); // Data explícita obrigatória
-  const [allDay, setAllDay] = useState(false);
-  const [startTime, setStartTime] = useState('09:00'); // Horário Início
-  const [endTime, setEndTime] = useState('10:30'); // Horário Término
-  const [eventCategory, setEventCategory] = useState(tags[0]?.name || 'Geral');
-  const [eventPriority, setEventPriority] = useState('Média');
-  const [repeat, setRepeat] = useState('Nunca');
+  const [eventDate, setEventDate] = useState(todayStr);
+  const [eventEndDate, setEventEndDate] = useState(todayStr);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('10:00');
+  const [eventCategory, setEventCategory] = useState('Faculdade');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
-
-  // Requisito 4: Criador de Novo Tema / Categoria
-  const [showCategoryCreator, setShowCategoryCreator] = useState(false);
-  const [newCatName, setNewCatName] = useState('');
-  const [newCatColor, setNewCatColor] = useState(DEFAULT_COLOR_PALETTES[0]);
+  const [reminder, setReminder] = useState('15 min antes');
+  const [participantsText, setParticipantsText] = useState('');
+  const [selectedParticipants, setSelectedParticipants] = useState(['p1', 'p2']);
 
   if (!isOpen) return null;
+
+  // Mescla tags do usuário com as cores padrão do card Categorias/Temas
+  const categoryList = tags.length > 0
+    ? tags.map((t, i) => ({
+        name: t.name,
+        color: t.color || DEFAULT_TAG_STYLES[i % DEFAULT_TAG_STYLES.length].color
+      }))
+    : DEFAULT_TAG_STYLES;
 
   const handleWeekdayToggle = (dayIndex) => {
     if (selectedDays.includes(dayIndex)) {
@@ -87,23 +87,10 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
     }
   };
 
-  const handleCreateCategory = (e) => {
-    e.preventDefault();
-    if (!newCatName.trim()) return;
-
-    const newTag = {
-      id: `tag_${Date.now()}`,
-      name: newCatName.trim(),
-      color: newCatColor.color,
-      bg: newCatColor.bg,
-      icon: 'Tag'
-    };
-
-    onAddTag(newTag);
-    setSelectedCategory(newTag.name);
-    setEventCategory(newTag.name);
-    setNewCatName('');
-    setShowCategoryCreator(false);
+  const toggleParticipant = (pId) => {
+    setSelectedParticipants(prev =>
+      prev.includes(pId) ? prev.filter(id => id !== pId) : [...prev, pId]
+    );
   };
 
   const handleCreateHabitSubmit = (e) => {
@@ -116,7 +103,7 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
       title: habitTitle.trim(),
       category: selectedCategory,
       iconName: 'CheckCircle2',
-      target: parseInt(targetNumber, 10) || 1,
+      target: Number(targetNumber) || 1,
       current: 0,
       unit: targetUnit.trim() || 'vezes',
       effort,
@@ -139,15 +126,17 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
     const newEvent = {
       id: `ev_${Date.now()}`,
       title: eventTitle.trim(),
-      date: eventDate, // Data selecionada
-      allDay,
-      startTime: allDay ? '00:00' : startTime, // Horário início
-      endTime: allDay ? '23:59' : endTime, // Horário término
+      date: eventDate,
+      endDate: eventEndDate || eventDate,
+      allDay: false,
+      startTime,
+      endTime,
       category: eventCategory,
-      priority: eventPriority,
-      repeat,
-      location,
-      notes,
+      location: location.trim(),
+      description: notes.trim(),
+      reminder,
+      participantsText: participantsText.trim(),
+      participants: selectedParticipants,
       completed: false
     };
 
@@ -157,521 +146,760 @@ export function AddModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [], o
   };
 
   const handleReset = () => {
-    setMode('choose');
     setHabitTitle('');
     setEventTitle('');
+    setLocation('');
+    setNotes('');
+    setParticipantsText('');
     setSelectedDays([1, 2, 3, 4, 5]);
     setPriority('Média');
-    setEventPriority('Média');
-    setShowCategoryCreator(false);
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
-        {/* MODAL HEADER */}
-        <div className="modal-header">
-          <div>
-            <h2 className="modal-title">
-              {mode === 'choose' && 'O que deseja registrar?'}
-              {mode === 'habit' && 'Novo Hábito (Rotina Diária)'}
-              {mode === 'event' && 'Novo Evento na Agenda & Calendário'}
-            </h2>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              {mode === 'habit' && 'Será alocado nos Hábitos Diários do Dashboard para acompanhamento de ofensiva.'}
-              {mode === 'event' && 'Será alocado com data e horários específicos na sua Agenda e no Calendário.'}
-            </span>
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        backgroundColor: 'rgba(18, 16, 36, 0.55)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px'
+      }}
+    >
+      {/* CARD EM FORMATO RETÂNGULO DEITADO (HORIZONTAL / COMPACTO) */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: '720px',
+          backgroundColor: '#ECECF4',
+          borderRadius: '24px',
+          padding: '18px 22px',
+          color: '#1A1B2F',
+          border: '1.5px solid #FFFFFF',
+          boxShadow: '0 28px 70px rgba(15, 14, 34, 0.45)',
+          fontFamily: "'Outfit', 'Inter', sans-serif"
+        }}
+      >
+        {/* TOPO COMPACTO: SQUIRCLE #211F38 + TÍTULO + SELETOR PÍLULA (EVENTO | HÁBITO) + FECHAR */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            marginBottom: '14px',
+            paddingBottom: '12px',
+            borderBottom: '1px solid rgba(33, 31, 56, 0.08)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '11px',
+                backgroundColor: '#211F38',
+                color: mode === 'habit' ? '#38BDF8' : '#FDE68A',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              {mode === 'habit' ? <CheckCircle2 size={18} /> : <CalendarIcon size={18} />}
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: '15.5px', fontWeight: 700, color: '#1A1B2F', margin: 0, lineHeight: 1.15 }}>
+                {mode === 'event' ? 'Adicionar Novo Evento' : 'Novo Hábito Diário'}
+              </h3>
+              <span style={{ fontSize: '11px', color: '#5A5B75' }}>
+                {mode === 'event' ? 'Compromisso sincronizado na agenda' : 'Rotina diária com meta e prioridade'}
+              </span>
+            </div>
           </div>
-          <button className="modal-close-btn" onClick={onClose}>
-            <X size={18} />
-          </button>
+
+          {/* Alternador de modo (Evento / Hábito) no estilo pílula #DCDCE6 e #211F38 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                backgroundColor: '#DCDCE6',
+                padding: '3px',
+                borderRadius: '999px',
+                gap: '3px'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setMode('event')}
+                style={{
+                  padding: '5px 13px',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: mode === 'event' ? '#211F38' : 'transparent',
+                  color: mode === 'event' ? '#FFFFFF' : '#1A1B2F',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Evento
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('habit')}
+                style={{
+                  padding: '5px 13px',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: mode === 'habit' ? '#211F38' : 'transparent',
+                  color: mode === 'habit' ? '#FFFFFF' : '#1A1B2F',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Hábito
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                width: '30px',
+                height: '30px',
+                borderRadius: '9px',
+                backgroundColor: '#DCDCE6',
+                color: '#211F38',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              title="Fechar"
+            >
+              <X size={14} />
+            </button>
+          </div>
         </div>
 
-        {/* STEP 1: CHOOSE OVERLAY (REQUISITO 1: ONDE CADA UM É ALOCADO) */}
-        {mode === 'choose' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px', padding: '10px 0' }}>
-            <button 
-              className="card-native" 
-              style={{ display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', textAlign: 'left', width: '100%', borderColor: 'rgba(0, 229, 255, 0.3)' }}
-              onClick={() => setMode('habit')}
+        {/* ================================================================= */}
+        {/* MODO EVENTO — LAYOUT HORIZONTAL EM 2 COLUNAS (RETÂNGULO DEITADO)  */}
+        {/* ================================================================= */}
+        {mode === 'event' && (
+          <form onSubmit={handleCreateEventSubmit}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.15fr 1fr',
+                gap: '16px',
+                alignItems: 'start'
+              }}
             >
-              <div className="habit-category-box" style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--accent-cyan)' }}>
-                <CheckCircle2 size={26} strokeWidth={2.4} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    Novo Hábito de Rotina
-                  </h3>
-                  <span className="section-badge" style={{ color: 'var(--accent-cyan)' }}>Dashboard</span>
-                </div>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Acompanhe hábitos contínuos com nível de esforço, repetição semanal e metas (ex: Leitura, Treino, Beber Água).
-                </p>
-              </div>
-            </button>
-
-            <button 
-              className="card-native" 
-              style={{ display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', textAlign: 'left', width: '100%', borderColor: 'rgba(129, 140, 248, 0.3)' }}
-              onClick={() => setMode('event')}
-            >
-              <div className="habit-category-box" style={{ background: 'rgba(129, 140, 248, 0.15)', color: 'var(--accent-indigo)' }}>
-                <Calendar size={26} strokeWidth={2.4} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    Novo Evento ou Compromisso
-                  </h3>
-                  <span className="section-badge" style={{ color: 'var(--accent-indigo)' }}>Agenda & Calendário</span>
-                </div>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Compromisso marcado em data e horário pontuais (ex: Prova, Reunião, Consulta, Apresentação).
-                </p>
-              </div>
-            </button>
-          </div>
-        )}
-
-        {/* STEP 2: NOVO HÁBITO FORM */}
-        {mode === 'habit' && (
-          <form onSubmit={handleCreateHabitSubmit}>
-            <div className="form-group">
-              <label className="form-label">Nome do Hábito</label>
-              <input 
-                type="text" 
-                className="input-dark" 
-                placeholder="ex: Leitura Profunda de Livro Técnico" 
-                value={habitTitle}
-                onChange={(e) => setHabitTitle(e.target.value)}
-                autoFocus
-                required
-              />
-            </div>
-
-            {/* SELEÇÃO E CRIAÇÃO DE CATEGORIA / TEMA (REQUISITO 4) */}
-            <div className="form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <label className="form-label" style={{ margin: 0 }}>Tema / Categoria</label>
-                <button
-                  type="button"
-                  style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  onClick={() => setShowCategoryCreator(!showCategoryCreator)}
-                >
-                  <Plus size={14} />
-                  + Nova Categoria / Tema
-                </button>
-              </div>
-
-              {/* CRIADOR INLINE DE CATEGORIAS */}
-              {showCategoryCreator && (
-                <div className="card-native" style={{ background: 'var(--surface-elevated)', marginBottom: '12px', padding: '12px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Cadastrar Novo Tema:</span>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                    <input 
-                      type="text"
-                      className="input-dark"
-                      placeholder="Nome do tema (ex: Finanças, Inglês)"
-                      value={newCatName}
-                      onChange={(e) => setNewCatName(e.target.value)}
-                      style={{ padding: '6px 10px', fontSize: '0.82rem' }}
-                    />
-                    <button 
-                      type="button" 
-                      className="btn-primary" 
-                      style={{ padding: '6px 14px', fontSize: '0.78rem' }}
-                      onClick={handleCreateCategory}
-                    >
-                      Salvar
-                    </button>
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Cor:</span>
-                    {DEFAULT_COLOR_PALETTES.map((pal, idx) => (
-                      <span 
-                        key={idx}
-                        onClick={() => setNewCatColor(pal)}
-                        style={{ 
-                          width: 18, 
-                          height: 18, 
-                          borderRadius: '50%', 
-                          background: pal.color, 
-                          cursor: 'pointer',
-                          border: newCatColor.color === pal.color ? '2px solid #fff' : 'none'
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* SELETORES DE CATEGORIA EXISTENTES */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {tags.map((t) => (
-                  <button
-                    key={t.id || t.name}
-                    type="button"
-                    onClick={() => setSelectedCategory(t.name)}
-                    className="tag-badge"
+              {/* COLUNA ESQUERDA: Título + Datas/Horas + Local/Descrição */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Título */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5B75', marginBottom: '4px' }}>
+                    Título do Evento
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Reunião de Planejamento"
+                    value={eventTitle}
+                    onChange={(e) => setEventTitle(e.target.value)}
+                    autoFocus
+                    required
                     style={{
-                      padding: '6px 12px',
-                      cursor: 'pointer',
-                      border: selectedCategory === t.name ? `2px solid ${t.color}` : `1px solid ${t.color}40`,
-                      background: t.bg,
-                      color: t.color,
-                      fontWeight: selectedCategory === t.name ? 700 : 500
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid #D0D2E0',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      color: '#1A1B2F',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {/* Datas e Horários em 2x2 compacto */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
+                      Data Início
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 9px', borderRadius: '9px', backgroundColor: '#FFFFFF', border: '1px solid #D0D2E0' }}>
+                      <CalendarIcon size={12} color="#5A5B75" />
+                      <input
+                        type="date"
+                        value={eventDate}
+                        onChange={(e) => {
+                          setEventDate(e.target.value);
+                          if (!eventEndDate || eventEndDate < e.target.value) setEventEndDate(e.target.value);
+                        }}
+                        style={{ border: 'none', background: 'transparent', fontSize: '11.5px', fontWeight: 600, color: '#1A1B2F', width: '100%', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
+                      Hora Início
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 9px', borderRadius: '9px', backgroundColor: '#FFFFFF', border: '1px solid #D0D2E0' }}>
+                      <Clock size={12} color="#5A5B75" />
+                      <input
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        style={{ border: 'none', background: 'transparent', fontSize: '11.5px', fontWeight: 600, color: '#1A1B2F', width: '100%', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
+                      Data Fim
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 9px', borderRadius: '9px', backgroundColor: '#FFFFFF', border: '1px solid #D0D2E0' }}>
+                      <CalendarIcon size={12} color="#5A5B75" />
+                      <input
+                        type="date"
+                        value={eventEndDate}
+                        onChange={(e) => setEventEndDate(e.target.value)}
+                        style={{ border: 'none', background: 'transparent', fontSize: '11.5px', fontWeight: 600, color: '#1A1B2F', width: '100%', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
+                      Hora Fim
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 9px', borderRadius: '9px', backgroundColor: '#FFFFFF', border: '1px solid #D0D2E0' }}>
+                      <Clock size={12} color="#5A5B75" />
+                      <input
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        style={{ border: 'none', background: 'transparent', fontSize: '11.5px', fontWeight: 600, color: '#1A1B2F', width: '100%', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Local e Descrição lado a lado */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
+                      Local
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Sala 204, Meet..."
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '7px 10px',
+                        borderRadius: '9px',
+                        border: '1px solid #D0D2E0',
+                        backgroundColor: '#FFFFFF',
+                        fontSize: '11.5px',
+                        color: '#1A1B2F',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
+                      Descrição
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Pauta ou observação rápida..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '7px 10px',
+                        borderRadius: '9px',
+                        border: '1px solid #D0D2E0',
+                        backgroundColor: '#FFFFFF',
+                        fontSize: '11.5px',
+                        color: '#1A1B2F',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* COLUNA DIREITA: Categorias / Temas + Lembretes e Participantes + Botões */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', justifyContent: 'space-between' }}>
+                {/* Categorias / Temas (Idêntico ao card Categorias / Temas) */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5B75', marginBottom: '5px' }}>
+                    Categoria / Tema
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {categoryList.map((cat) => {
+                      const isSel = eventCategory === cat.name;
+                      return (
+                        <button
+                          key={cat.name}
+                          type="button"
+                          onClick={() => setEventCategory(cat.name)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: isSel ? '#211F38' : '#FFFFFF',
+                            color: isSel ? '#FFFFFF' : '#1A1B2F',
+                            border: `1.5px solid ${isSel ? '#211F38' : cat.color}`,
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: cat.color }} />
+                          <span>{cat.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Lembretes e Participantes */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5B75', marginBottom: '4px' }}>
+                    Lembretes e Participantes
+                  </label>
+                  <div
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #D0D2E0',
+                      borderRadius: '11px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '7px'
                     }}
                   >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, display: 'inline-block' }} />
-                    {t.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Estilo de Conclusão */}
-            <div className="form-group">
-              <label className="form-label">Estilo de Conclusão</label>
-              <div className="segmented-control">
-                <button
-                  type="button"
-                  className={`segmented-btn ${completionStyle === 'quick' ? 'active' : ''}`}
-                  onClick={() => setCompletionStyle('quick')}
-                >
-                  Toque Rápido
-                </button>
-                <button
-                  type="button"
-                  className={`segmented-btn ${completionStyle === 'numeric' ? 'active' : ''}`}
-                  onClick={() => setCompletionStyle('numeric')}
-                >
-                  Teclado Numérico
-                </button>
-              </div>
-            </div>
-
-            {/* Meta Base */}
-            <div className="form-group">
-              <label className="form-label">Meta Diária</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <input 
-                  type="number" 
-                  min="1" 
-                  className="input-dark" 
-                  value={targetNumber}
-                  onChange={(e) => setTargetNumber(e.target.value)}
-                  placeholder="1"
-                  required
-                />
-                <input 
-                  type="text" 
-                  className="input-dark" 
-                  value={targetUnit}
-                  onChange={(e) => setTargetUnit(e.target.value)}
-                  placeholder="vezes (ex: páginas, sessões)"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Frequência */}
-            <div className="form-group">
-              <label className="form-label">Frequência da Meta (Dias da Semana)</label>
-              <div className="weekdays-selector">
-                {WEEKDAYS.map((w, idx) => {
-                  const isSelected = selectedDays.includes(w.dayIndex);
-                  return (
-                    <button
-                      type="button"
-                      key={idx}
-                      className={`weekday-circle-btn ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleWeekdayToggle(w.dayIndex)}
-                    >
-                      {w.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Esforço & Prioridade com Classificação de Cores */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
-              <div>
-                <label className="form-label">Prioridade da Atividade</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                  {PRIORITY_OPTIONS.map((opt) => {
-                    const isSel = priority === opt.level;
-                    return (
-                      <button
-                        key={opt.level}
-                        type="button"
-                        onClick={() => setPriority(opt.level)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="text"
+                        placeholder="Convidados ou lembrete..."
+                        value={participantsText}
+                        onChange={(e) => setParticipantsText(e.target.value)}
+                        style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '11.5px', color: '#1A1B2F', outline: 'none' }}
+                      />
+                      <select
+                        value={reminder}
+                        onChange={(e) => setReminder(e.target.value)}
                         style={{
-                          padding: '9px 8px',
-                          borderRadius: '8px',
-                          border: isSel ? `2px solid ${opt.color}` : '1px solid var(--border-subtle)',
-                          background: isSel ? opt.bg : 'var(--surface-elevated)',
-                          color: isSel ? opt.color : 'var(--text-secondary)',
-                          fontWeight: isSel ? 800 : 600,
-                          fontSize: '0.82rem',
+                          padding: '3px 8px',
+                          borderRadius: '999px',
+                          backgroundColor: '#DCDCE6',
+                          color: '#1A1B2F',
+                          border: 'none',
+                          fontSize: '10.5px',
+                          fontWeight: 600,
                           cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          transition: 'all 0.15s ease'
+                          outline: 'none'
                         }}
                       >
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color }} />
-                        {opt.level}
-                      </button>
-                    );
-                  })}
+                        <option value="15 min antes">15 min antes</option>
+                        <option value="30 min antes">30 min antes</option>
+                        <option value="1 hora antes">1 hora antes</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {PRESET_PARTICIPANTS.map((person) => {
+                          const isInc = selectedParticipants.includes(person.id);
+                          return (
+                            <button
+                              key={person.id}
+                              type="button"
+                              onClick={() => toggleParticipant(person.id)}
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '7px',
+                                border: 'none',
+                                backgroundColor: isInc ? '#211F38' : '#DCDCE6',
+                                color: isInc ? '#FFFFFF' : '#5A5B75',
+                                fontSize: '9.5px',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                              title={person.name}
+                            >
+                              {person.initials}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <span style={{ fontSize: '10.5px', color: '#5A5B75', fontWeight: 500 }}>
+                        {selectedParticipants.length} selecionado(s)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botões de Ação (#DCDCE6 e #211F38) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '8px', paddingTop: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: '#DCDCE6',
+                      color: '#1A1B2F',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: '#211F38',
+                      color: '#FFFFFF',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(33, 31, 56, 0.2)'
+                    }}
+                  >
+                    Salvar Evento
+                  </button>
                 </div>
               </div>
-
-              <div>
-                <label className="form-label">Nível de Esforço</label>
-                <select className="input-dark" value={effort} onChange={(e) => setEffort(e.target.value)}>
-                  <option value="Baixo">Baixo (1 pt)</option>
-                  <option value="Médio">Médio (2 pts)</option>
-                  <option value="Alto">Alto (3 pts)</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setMode('choose')}>
-                Voltar
-              </button>
-              <button type="submit" className="btn-primary" style={{ flex: 1.5 }}>
-                Criar Hábito Diário
-              </button>
             </div>
           </form>
         )}
 
-        {/* STEP 3: NOVO EVENTO FORM (REQUISITO 3: DATA E HORÁRIO EXPLÍCITOS) */}
-        {mode === 'event' && (
-          <form onSubmit={handleCreateEventSubmit}>
-            <div className="form-group">
-              <label className="form-label">Título do Evento / Atividade</label>
-              <input 
-                type="text" 
-                className="input-dark" 
-                placeholder="ex: Prova Final de Sistemas Operacionais"
-                value={eventTitle}
-                onChange={(e) => setEventTitle(e.target.value)}
-                autoFocus
-                required
-              />
-            </div>
-
-            {/* DATA OBRIGATÓRIA (REQUISITO 3) */}
-            <div className="form-group">
-              <label className="form-label">
-                <Calendar size={14} style={{ display: 'inline', marginRight: 4, color: 'var(--accent-cyan)' }} />
-                Data Marcada (Obrigatório)
-              </label>
-              <input 
-                type="date" 
-                className="input-dark"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* TOGGLE DIA TODO */}
-            <div className="form-group">
-              <div className="toggle-switch-wrap">
-                <span className="switch-label">Dia Todo (Sem horário específico)</span>
-                <div 
-                  className={`switch-track ${allDay ? 'on' : ''}`}
-                  onClick={() => setAllDay(!allDay)}
-                >
-                  <div className="switch-thumb" />
-                </div>
-              </div>
-            </div>
-
-            {/* SELETORES DE HORÁRIO INÍCIO E TÉRMINO (REQUISITO 3) */}
-            {!allDay && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+        {/* ================================================================= */}
+        {/* MODO HÁBITO — LAYOUT HORIZONTAL EM 2 COLUNAS (RETÂNGULO DEITADO)  */}
+        {/* ================================================================= */}
+        {mode === 'habit' && (
+          <form onSubmit={handleCreateHabitSubmit}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.1fr 1fr',
+                gap: '16px',
+                alignItems: 'start'
+              }}
+            >
+              {/* COLUNA ESQUERDA: Nome do Hábito + Meta Diária (- / +) + Dias da Semana */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
-                  <label className="form-label">
-                    <Clock size={13} style={{ display: 'inline', marginRight: 4, color: 'var(--accent-indigo)' }} />
-                    Horário de Início
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5B75', marginBottom: '4px' }}>
+                    Nome do Hábito
                   </label>
-                  <input 
-                    type="time" 
-                    className="input-dark"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="form-label">
-                    <Clock size={13} style={{ display: 'inline', marginRight: 4, color: 'var(--accent-indigo)' }} />
-                    Horário de Término
-                  </label>
-                  <input 
-                    type="time" 
-                    className="input-dark"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* CATEGORIA DO EVENTO & CRIADOR */}
-            <div className="form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <label className="form-label" style={{ margin: 0 }}>Tema / Categoria</label>
-                <button
-                  type="button"
-                  style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
-                  onClick={() => setShowCategoryCreator(!showCategoryCreator)}
-                >
-                  + Nova Categoria
-                </button>
-              </div>
-
-              {showCategoryCreator && (
-                <div className="card-native" style={{ background: 'var(--surface-elevated)', marginBottom: '12px', padding: '12px' }}>
-                  <input 
+                  <input
                     type="text"
-                    className="input-dark"
-                    placeholder="Nome da categoria"
-                    value={newCatName}
-                    onChange={(e) => setNewCatName(e.target.value)}
-                    style={{ padding: '6px 10px', fontSize: '0.82rem', marginBottom: '8px' }}
-                  />
-                  <button type="button" className="btn-primary" style={{ padding: '4px 12px', fontSize: '0.78rem' }} onClick={handleCreateCategory}>
-                    Criar e Selecionar
-                  </button>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {tags.map((t) => (
-                  <button
-                    key={t.id || t.name}
-                    type="button"
-                    onClick={() => setEventCategory(t.name)}
-                    className="tag-badge"
+                    placeholder="Ex: Ler 20 páginas, Meditação, Beber água..."
+                    value={habitTitle}
+                    onChange={(e) => setHabitTitle(e.target.value)}
+                    autoFocus
+                    required
                     style={{
-                      padding: '6px 12px',
-                      cursor: 'pointer',
-                      border: eventCategory === t.name ? `2px solid ${t.color}` : `1px solid ${t.color}40`,
-                      background: t.bg,
-                      color: t.color,
-                      fontWeight: eventCategory === t.name ? 700 : 500
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid #D0D2E0',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      color: '#1A1B2F',
+                      outline: 'none',
+                      boxSizing: 'border-box'
                     }}
-                  >
-                    {t.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+                  />
+                </div>
 
-            {/* Prioridade do Evento com Classificação de Cores */}
-            <div className="form-group">
-              <label className="form-label">Prioridade da Atividade</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {PRIORITY_OPTIONS.map((opt) => {
-                  const isSel = eventPriority === opt.level;
-                  return (
+                {/* Meta Diária no estilo Hidratação Diária (- e +) */}
+                <div
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #D0D2E0',
+                    borderRadius: '11px',
+                    padding: '9px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#1A1B2F' }}>
+                      Meta Diária: {targetNumber} {targetUnit}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#5A5B75' }}>
+                      {targetNumber > 1 ? 'Incremento (+1 por clique)' : 'Conclusão rápida (1 clique)'}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <button
-                      key={opt.level}
                       type="button"
-                      onClick={() => setEventPriority(opt.level)}
+                      onClick={() => {
+                        const next = Math.max(1, Number(targetNumber) - 1);
+                        setTargetNumber(next);
+                        setCompletionStyle(next > 1 ? 'increment' : 'quick');
+                      }}
                       style={{
-                        padding: '9px 8px',
+                        width: '30px',
+                        height: '30px',
                         borderRadius: '8px',
-                        border: isSel ? `2px solid ${opt.color}` : '1px solid var(--border-subtle)',
-                        background: isSel ? opt.bg : 'var(--surface-elevated)',
-                        color: isSel ? opt.color : 'var(--text-secondary)',
-                        fontWeight: isSel ? 800 : 600,
-                        fontSize: '0.82rem',
-                        cursor: 'pointer',
+                        backgroundColor: '#DCDCE6',
+                        color: '#1A1B2F',
+                        border: 'none',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '6px',
-                        transition: 'all 0.15s ease'
+                        cursor: 'pointer'
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color }} />
-                      {opt.level}
+                      <Minus size={14} />
                     </button>
-                  );
-                })}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = Number(targetNumber) + 1;
+                        setTargetNumber(next);
+                        setCompletionStyle('increment');
+                      }}
+                      style={{
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '8px',
+                        backgroundColor: '#211F38',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Dias da Semana */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '4px' }}>
+                    Dias da Semana
+                  </label>
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    {WEEKDAYS.map((wd) => {
+                      const isActive = selectedDays.includes(wd.dayIndex);
+                      return (
+                        <button
+                          key={wd.dayIndex}
+                          type="button"
+                          onClick={() => handleWeekdayToggle(wd.dayIndex)}
+                          style={{
+                            flex: 1,
+                            padding: '6px 0',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: isActive ? '#211F38' : '#DCDCE6',
+                            color: isActive ? '#FFFFFF' : '#1A1B2F',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {wd.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Repetição do Evento (De Tempos em Tempos) */}
-            <div className="form-group">
-              <label className="form-label">
-                <RotateCcw size={13} style={{ display: 'inline', marginRight: 4, color: 'var(--accent-cyan)' }} />
-                Repetição da Atividade
-              </label>
-              <select 
-                className="input-dark"
-                value={repeat}
-                onChange={(e) => setRepeat(e.target.value)}
-              >
-                <option value="Nunca">Nunca (Apenas na data escolhida)</option>
-                <option value="Diariamente">Diariamente (Todos os dias)</option>
-                <option value="Semanalmente">Semanalmente (Toda semana)</option>
-                <option value="Dias Úteis">Dias Úteis (Segunda a Sexta)</option>
-                <option value="Mensalmente">Mensalmente (Todo mês neste dia)</option>
-                <option value="A cada 2 dias">A cada 2 dias</option>
-                <option value="A cada 3 dias">A cada 3 dias</option>
-                <option value="A cada 7 dias">A cada 7 dias</option>
-                <option value="A cada 15 dias">A cada 15 dias</option>
-                <option value="A cada 30 dias">A cada 30 dias</option>
-              </select>
-            </div>
+              {/* COLUNA DIREITA: Categoria / Tema + Prioridade/Esforço + Botões */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', justifyContent: 'space-between' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5B75', marginBottom: '5px' }}>
+                    Categoria / Tema
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {categoryList.map((cat) => {
+                      const isSel = selectedCategory === cat.name;
+                      return (
+                        <button
+                          key={cat.name}
+                          type="button"
+                          onClick={() => setSelectedCategory(cat.name)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: isSel ? '#211F38' : '#FFFFFF',
+                            color: isSel ? '#FFFFFF' : '#1A1B2F',
+                            border: `1.5px solid ${isSel ? '#211F38' : cat.color}`,
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: cat.color }} />
+                          <span>{cat.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            {/* Localização & Anotações */}
-            <div className="form-group">
-              <label className="form-label">Localização (Física ou Link)</label>
-              <input 
-                type="text" 
-                className="input-dark"
-                placeholder="ex: Sala 304 - Bloco C ou Link Google Meet"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
+                {/* Prioridade e Esforço */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '4px' }}>
+                      Prioridade
+                    </label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {PRIORITY_OPTIONS.map((opt) => {
+                        const isSel = priority === opt.level;
+                        return (
+                          <button
+                            key={opt.level}
+                            type="button"
+                            onClick={() => setPriority(opt.level)}
+                            style={{
+                              flex: 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              padding: '5px 6px',
+                              borderRadius: '999px',
+                              backgroundColor: isSel ? '#211F38' : '#FFFFFF',
+                              color: isSel ? '#FFFFFF' : '#1A1B2F',
+                              border: `1.5px solid ${isSel ? '#211F38' : opt.border}`,
+                              fontSize: '10.5px',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: opt.dot }} />
+                            <span>{opt.level}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-            <div className="form-group">
-              <label className="form-label">Anotações e Detalhes</label>
-              <textarea 
-                className="input-dark"
-                rows={2}
-                placeholder="Lembretes, ementa, material necessário..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '4px' }}>
+                      Esforço
+                    </label>
+                    <select
+                      value={effort}
+                      onChange={(e) => setEffort(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '5.5px 8px',
+                        borderRadius: '999px',
+                        border: '1px solid #D0D2E0',
+                        backgroundColor: '#FFFFFF',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: '#1A1B2F',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="Baixo">Baixo</option>
+                      <option value="Médio">Médio</option>
+                      <option value="Alto">Alto</option>
+                    </select>
+                  </div>
+                </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setMode('choose')}>
-                Voltar
-              </button>
-              <button type="submit" className="btn-primary" style={{ flex: 1.5 }}>
-                Agendar no Calendário
-              </button>
+                {/* Botões de Ação (#DCDCE6 e #211F38) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '8px', paddingTop: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: '#DCDCE6',
+                      color: '#1A1B2F',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: '#211F38',
+                      color: '#FFFFFF',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(33, 31, 56, 0.2)'
+                    }}
+                  >
+                    Salvar Hábito
+                  </button>
+                </div>
+              </div>
             </div>
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

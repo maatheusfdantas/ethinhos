@@ -231,18 +231,18 @@ export function FocusTab({ user, onFocusComplete }) {
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // Cyber glow frame
-      ctx.strokeStyle = '#00e5ff';
-      ctx.lineWidth = 4;
+      // Specular border frame
+      ctx.strokeStyle = 'rgba(96, 165, 250, 0.4)';
+      ctx.lineWidth = 2;
       ctx.strokeRect(16, 16, width - 32, height - 32);
 
       // Inner subtle border
-      ctx.strokeStyle = 'rgba(129, 140, 248, 0.4)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.lineWidth = 1;
       ctx.strokeRect(24, 24, width - 48, height - 48);
 
       // Título do Certificado
-      ctx.fillStyle = '#00e5ff';
+      ctx.fillStyle = '#60a5fa';
       ctx.font = 'bold 22px Outfit, Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('CERTIFICADO DE FOCO ETHOS', width / 2, 70);
@@ -253,11 +253,11 @@ export function FocusTab({ user, onFocusComplete }) {
       ctx.fillText('PROTOCOLO ANTI-FRAUDE ATIVADO', width / 2, 98);
 
       // Big minutes circle / box
-      ctx.fillStyle = 'rgba(0, 229, 255, 0.12)';
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.12)';
       ctx.beginPath();
       ctx.arc(width / 2, 180, 60, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#00e5ff';
+      ctx.strokeStyle = '#60a5fa';
       ctx.lineWidth = 2;
       ctx.stroke();
 
@@ -265,7 +265,7 @@ export function FocusTab({ user, onFocusComplete }) {
       ctx.font = 'bold 44px Outfit, Inter, sans-serif';
       ctx.fillText(`${completedSessionData.durationMins}`, width / 2, 192);
 
-      ctx.fillStyle = '#00e5ff';
+      ctx.fillStyle = '#93c5fd';
       ctx.font = 'bold 12px Inter, sans-serif';
       ctx.fillText('MINUTOS DE FOCO', width / 2, 216);
 
@@ -314,82 +314,85 @@ export function FocusTab({ user, onFocusComplete }) {
   const progressPercent = Math.round(((totalSeconds - secondsLeft) / totalSeconds) * 100);
 
   return (
-    <div className="focus-view">
-      <div className="section-header">
-        <div className="section-title-wrap">
-          <Timer size={20} color="var(--accent-cyan)" />
-          <h2 className="section-title">Cronômetro de Foco & Produtividade</h2>
+    <div className="space-y-6">
+      {/* SECTION HEADER */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-orange-500/15 border border-orange-400/30 text-orange-400 flex items-center justify-center shadow-[0_0_15px_rgba(251,146,60,0.25)]">
+            <Timer size={20} />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-white tracking-tight">Cronômetro de Foco & Produtividade</h2>
+            <p className="text-xs text-slate-400 font-medium">Sessões imersivas com proteção anti-fraude</p>
+          </div>
         </div>
-        <span className="section-badge">Técnica Pomodoro</span>
+        <div className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-500/10 border border-orange-400/20 text-orange-300 shadow-[0_0_10px_rgba(251,146,60,0.15)] flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shadow-[0_0_8px_#fb923c]" />
+          Pomodoro
+        </div>
       </div>
 
-      {/* VINCULAÇÃO A UMA CLASSE DE ESTUDO (CRIAR E DELETAR) */}
-      <div className="card-native" style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookOpen size={16} color="var(--accent-indigo)" />
-            <label className="form-label" style={{ margin: 0 }}>
-              Classe de Estudo Vinculada
-            </label>
+      {/* VINCULAÇÃO A UMA CLASSE DE ESTUDO (CRIAR E DELETAR) - BENTO CARD */}
+      <div className="bento-card p-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-400/30 text-indigo-400 flex items-center justify-center">
+              <BookOpen size={15} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block">
+                Classe de Estudo Vinculada
+              </label>
+              <span className="text-[11px] text-slate-400">Direcione seu tempo de foco com precisão</span>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={() => setShowSubjectManager(!showSubjectManager)}
             disabled={isActive}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--accent-cyan)',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              cursor: isActive ? 'not-allowed' : 'pointer'
-            }}
+            className="glass-pill-btn !py-1 !px-3 !text-xs !bg-white/[0.04] text-slate-300 hover:text-white disabled:opacity-40"
           >
-            {showSubjectManager ? 'Fechar Gerenciador' : '+ Gerenciar / Criar Classes'}
+            {showSubjectManager ? 'Fechar Gerenciador' : '+ Gerenciar Classes'}
           </button>
         </div>
 
         {/* FORM INLINE PARA CRIAR E DELETAR CLASSES DE ESTUDO */}
         {showSubjectManager && (
-          <div style={{ background: 'var(--surface-elevated)', borderRadius: '12px', padding: '14px', marginBottom: '14px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
+          <div className="bento-subcard p-4 rounded-2xl border border-white/[0.08] mb-4 space-y-3">
+            <span className="text-xs font-semibold text-white block">
               Cadastrar Nova Classe de Estudo:
             </span>
-            <form onSubmit={handleAddSubject} style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+            <form onSubmit={handleAddSubject} className="flex gap-2">
               <input
                 type="text"
-                className="input-dark"
+                className="flex-1 px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-400/50"
                 placeholder="Nome da classe (ex: Inteligência Artificial, Bioquímica)"
                 value={newSubjectInput}
                 onChange={(e) => setNewSubjectInput(e.target.value)}
-                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
                 autoFocus
               />
-              <button type="submit" className="btn-primary" style={{ padding: '8px 14px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+              <button 
+                type="submit" 
+                className="glass-pill-btn !py-2 !px-4 !text-xs !bg-orange-500/20 !border-orange-400/40 text-orange-200 flex items-center gap-1.5 shrink-0 shadow-[0_0_10px_rgba(251,146,60,0.2)]"
+              >
                 <Plus size={14} />
                 Adicionar
               </button>
             </form>
 
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+            <span className="text-[11px] text-slate-400 block">
               Classes cadastradas (clique no X para deletar):
             </span>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               {subjects.map((subItem) => (
                 <span
                   key={subItem}
-                  className="tag-badge"
-                  style={{
-                    padding: '4px 8px 4px 10px',
-                    border: subItem === subject ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.1)',
-                    background: subItem === subject ? 'rgba(0, 229, 255, 0.12)' : 'rgba(255,255,255,0.04)',
-                    color: subItem === subject ? 'var(--accent-cyan)' : 'var(--text-primary)',
-                    fontSize: '0.76rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
+                  className={`text-xs px-2.5 py-1 rounded-full flex items-center gap-2 transition-all ${
+                    subItem === subject
+                      ? 'bg-orange-500/20 border border-orange-400/40 text-orange-200 shadow-[0_0_8px_rgba(251,146,60,0.25)]'
+                      : 'bg-white/[0.04] border border-white/10 text-slate-300'
+                  }`}
                 >
                   {subItem}
                   <button
@@ -398,19 +401,7 @@ export function FocusTab({ user, onFocusComplete }) {
                       e.stopPropagation();
                       handleDeleteSubject(subItem);
                     }}
-                    style={{
-                      background: 'rgba(255,255,255,0.1)',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: 16,
-                      height: 16,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      padding: 0
-                    }}
+                    className="w-4 h-4 rounded-full bg-white/[0.1] hover:bg-rose-500/30 hover:text-rose-300 flex items-center justify-center text-slate-400 transition-colors"
                     title={`Deletar classe "${subItem}"`}
                   >
                     <X size={10} strokeWidth={2.8} />
@@ -422,93 +413,85 @@ export function FocusTab({ user, onFocusComplete }) {
         )}
 
         <select 
-          className="input-dark"
+          className="w-full px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-white focus:outline-none focus:border-orange-400/50 disabled:opacity-50"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           disabled={isActive}
         >
           {subjects.map((sub, idx) => (
-            <option key={idx} value={sub}>{sub}</option>
+            <option key={idx} value={sub} className="bg-[#0B0F17] text-white">{sub}</option>
           ))}
         </select>
       </div>
 
-      {/* ADJUSTABLE DURATION PRESETS & CUSTOM TIME (US05 & Request 4) */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', alignItems: 'center' }}>
-          {[15, 25, 45, 50, 60].map((mins) => (
-            <button
-              key={mins}
-              className="segmented-btn"
-              style={{
-                background: !isCustomMode && selectedDurationMins === mins ? 'var(--accent-cyan)' : 'var(--surface-card)',
-                color: !isCustomMode && selectedDurationMins === mins ? '#030712' : 'var(--text-secondary)',
-                fontWeight: 700,
-                padding: '9px 18px',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-pill)',
-                cursor: isActive ? 'not-allowed' : 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-              onClick={() => handleSelectDuration(mins)}
-              disabled={isActive}
-            >
-              {mins} min
-            </button>
-          ))}
+      {/* ADJUSTABLE DURATION PRESETS & CUSTOM TIME (GLASS PILLS) */}
+      <div className="space-y-3">
+        <div className="flex gap-2 overflow-x-auto pb-1 items-center">
+          {[15, 25, 45, 50, 60].map((mins) => {
+            const isSelected = !isCustomMode && selectedDurationMins === mins;
+            return (
+              <button
+                key={mins}
+                type="button"
+                className={`glass-pill-btn !py-2 !px-4 text-xs font-medium flex items-center gap-2 whitespace-nowrap ${
+                  isSelected 
+                    ? '!bg-white/[0.12] !border-orange-400/50 text-white shadow-[0_0_12px_rgba(251,146,60,0.25)]' 
+                    : '!bg-white/[0.04] text-slate-400 hover:text-white'
+                }`}
+                onClick={() => handleSelectDuration(mins)}
+                disabled={isActive}
+              >
+                {isSelected && <span className="w-2 h-2 rounded-full bg-orange-400 shadow-[0_0_8px_#fb923c]" />}
+                {mins} min
+              </button>
+            );
+          })}
 
           <button
-            className="segmented-btn"
-            style={{
-              background: isCustomMode ? 'var(--accent-cyan)' : 'var(--surface-card)',
-              color: isCustomMode ? '#030712' : 'var(--text-secondary)',
-              fontWeight: 700,
-              padding: '9px 18px',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-pill)',
-              cursor: isActive ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap'
-            }}
+            type="button"
+            className={`glass-pill-btn !py-2 !px-4 text-xs font-medium flex items-center gap-2 whitespace-nowrap ${
+              isCustomMode 
+                ? '!bg-white/[0.12] !border-orange-400/50 text-white shadow-[0_0_12px_rgba(251,146,60,0.25)]' 
+                : '!bg-white/[0.04] text-slate-400 hover:text-white'
+            }`}
             onClick={() => handleApplyCustomDuration(customInputMins)}
             disabled={isActive}
           >
-            <Sliders size={14} />
-            Tempo Personalizado {isCustomMode ? `(${selectedDurationMins} min)` : ''}
+            {isCustomMode && <span className="w-2 h-2 rounded-full bg-orange-400 shadow-[0_0_8px_#fb923c]" />}
+            <Sliders size={13} />
+            Personalizado {isCustomMode ? `(${selectedDurationMins} min)` : ''}
           </button>
         </div>
 
         {/* CUSTOM TIME CONTROLLER (SELEÇÃO LIVRE DE 1 A 180 MIN) */}
         {isCustomMode && (
-          <div className="card-native" style={{ marginTop: '10px', padding: '14px 18px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(0, 229, 255, 0.3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '10px' }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
+          <div className="bento-subcard p-4 rounded-2xl border border-white/[0.08] space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <span className="text-xs font-semibold text-orange-300">
                 Defina os Minutos de Foco (1 a 180 min):
               </span>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleApplyCustomDuration(selectedDurationMins - 5)}
                   disabled={isActive || selectedDurationMins <= 5}
-                  style={{ padding: '4px 8px', borderRadius: '4px', background: 'var(--surface-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                  className="glass-pill-btn !py-1 !px-2.5 !text-xs !bg-white/[0.04] text-slate-300"
                   title="Diminuir 5 minutos"
                 >
-                  -5 min
+                  -5m
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyCustomDuration(selectedDurationMins - 1)}
                   disabled={isActive || selectedDurationMins <= 1}
-                  style={{ padding: '4px 8px', borderRadius: '4px', background: 'var(--surface-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                  className="glass-pill-btn !py-1 !px-2.5 !text-xs !bg-white/[0.04] text-slate-300"
                   title="Diminuir 1 minuto"
                 >
-                  -1 min
+                  -1m
                 </button>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/[0.04] border border-white/10">
                   <input
                     type="number"
                     min="1"
@@ -516,38 +499,28 @@ export function FocusTab({ user, onFocusComplete }) {
                     value={customInputMins}
                     onChange={(e) => handleApplyCustomDuration(e.target.value)}
                     disabled={isActive}
-                    style={{
-                      width: '64px',
-                      padding: '5px 8px',
-                      borderRadius: '6px',
-                      background: 'rgba(0, 0, 0, 0.5)',
-                      border: '1px solid var(--accent-cyan)',
-                      color: 'var(--accent-cyan)',
-                      fontWeight: 800,
-                      fontSize: '1rem',
-                      textAlign: 'center'
-                    }}
+                    className="w-12 bg-transparent text-center text-sm font-semibold text-white focus:outline-none"
                   />
-                  <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>minutos</span>
+                  <span className="text-xs text-slate-400">min</span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => handleApplyCustomDuration(selectedDurationMins + 1)}
                   disabled={isActive || selectedDurationMins >= 180}
-                  style={{ padding: '4px 8px', borderRadius: '4px', background: 'var(--surface-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                  className="glass-pill-btn !py-1 !px-2.5 !text-xs !bg-white/[0.04] text-slate-300"
                   title="Aumentar 1 minuto"
                 >
-                  +1 min
+                  +1m
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyCustomDuration(selectedDurationMins + 5)}
                   disabled={isActive || selectedDurationMins >= 175}
-                  style={{ padding: '4px 8px', borderRadius: '4px', background: 'var(--surface-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                  className="glass-pill-btn !py-1 !px-2.5 !text-xs !bg-white/[0.04] text-slate-300"
                   title="Aumentar 5 minutos"
                 >
-                  +5 min
+                  +5m
                 </button>
               </div>
             </div>
@@ -559,111 +532,133 @@ export function FocusTab({ user, onFocusComplete }) {
               value={selectedDurationMins}
               onChange={(e) => handleApplyCustomDuration(e.target.value)}
               disabled={isActive}
-              style={{ width: '100%', accentColor: 'var(--accent-cyan)', cursor: isActive ? 'not-allowed' : 'pointer' }}
+              className="w-full accent-orange-400 cursor-pointer"
             />
           </div>
         )}
       </div>
 
-      {/* FOCUS MAIN TIMER CARD */}
-      <div className="focus-timer-card">
+      {/* FOCUS MAIN TIMER CARD (BENTO CARD WITH WARM GRADIENT & AMBIENT GLOW) */}
+      <div className="bento-card p-10 flex flex-col items-center justify-center relative overflow-hidden text-center">
+        {/* Ambient Backlight for Pomodoro */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-orange-500/10 rounded-full blur-[100px] pointer-events-none" />
+
         {/* US24: ANTI-FRAUD STATUS PILL */}
-        <div className={`anti-fraud-pill ${pauseSecondsLeft <= 20 ? 'warning' : 'safe'}`}>
+        <div className={`px-3.5 py-1.5 rounded-full text-xs font-medium border mb-8 flex items-center gap-2 transition-all ${
+          pauseSecondsLeft <= 20 
+            ? 'bg-rose-500/15 border-rose-400/30 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
+            : 'bg-white/[0.04] border-white/10 text-slate-300'
+        }`}>
           {pauseSecondsLeft <= 20 ? (
             <>
-              <ShieldAlert size={15} />
-              <span>Regra Anti-Fraude: {pauseSecondsLeft}s de pausa restante!</span>
+              <ShieldAlert size={14} className="text-rose-400" />
+              <span>Anti-Fraude: {pauseSecondsLeft}s de pausa restante!</span>
             </>
           ) : (
             <>
-              <ShieldCheck size={15} />
+              <ShieldCheck size={14} className="text-emerald-400" />
               <span>Anti-Fraude: Tolerância de Pausa ({pauseSecondsLeft}s max)</span>
             </>
           )}
         </div>
 
-        {/* TIMER CIRCLE */}
-        <div className="timer-circle-wrap">
-          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+        {/* CIRCULAR TIMER WITH DUAL GRADIENT (AMBER TO CORAL) */}
+        <div className="relative w-64 h-64 flex items-center justify-center mb-8">
+          <svg className="absolute inset-0 w-full h-full -rotate-90">
+            <defs>
+              <linearGradient id="pomodoroGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fcd34d" />
+                <stop offset="50%" stopColor="#fb923c" />
+                <stop offset="100%" stopColor="#f43f5e" />
+              </linearGradient>
+            </defs>
             <circle
-              cx="110"
-              cy="110"
-              r="96"
-              stroke="rgba(255, 255, 255, 0.06)"
+              cx="128"
+              cy="128"
+              r="110"
+              stroke="rgba(255, 255, 255, 0.05)"
               strokeWidth="8"
               fill="transparent"
             />
             <circle
-              cx="110"
-              cy="110"
-              r="96"
-              stroke="var(--accent-cyan)"
+              cx="128"
+              cy="128"
+              r="110"
+              stroke="url(#pomodoroGlow)"
               strokeWidth="8"
               fill="transparent"
-              strokeDasharray={2 * Math.PI * 96}
-              strokeDashoffset={2 * Math.PI * 96 * (1 - progressPercent / 100)}
+              strokeDasharray={2 * Math.PI * 110}
+              strokeDashoffset={2 * Math.PI * 110 * (1 - progressPercent / 100)}
               strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+              style={{ 
+                transition: 'stroke-dashoffset 0.5s ease',
+                filter: 'drop-shadow(0px 0px 10px rgba(251, 146, 60, 0.4))'
+              }}
             />
           </svg>
 
-          <div>
-            <div className="timer-digits">{formatTime(secondsLeft)}</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-              {isPaused ? 'EM PAUSA' : isActive ? 'EM ANDAMENTO' : 'PRONTO'}
+          {/* TIMER DIGITS (PROTAGONIST NUMBERS) */}
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="text-5xl font-semibold tracking-tight text-white tabular-nums drop-shadow-[0_0_15px_rgba(251,146,60,0.35)]">
+              {formatTime(secondsLeft)}
+            </div>
+            <div className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-2">
+              {isPaused ? 'Em Pausa' : isActive ? 'Foco Ativo' : 'Pronto'}
             </div>
           </div>
         </div>
 
         {/* CURRENT MATÉRIA DISPLAY */}
-        <div style={{ marginBottom: '24px' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)', fontWeight: 600, textTransform: 'uppercase' }}>
+        <div className="mb-8">
+          <span className="text-[11px] font-semibold text-orange-300 uppercase tracking-wider block mb-1">
             Foco Ativo em
           </span>
-          <h3 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginTop: '2px' }}>
+          <h3 className="text-base font-semibold text-white">
             {subject}
           </h3>
         </div>
 
-        {/* TIMER CONTROLS (US24) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px' }}>
+        {/* TIMER CONTROLS (DATA-DRIVEN GLOW, TRANSLUCENT GLASS PILLS) */}
+        <div className="flex items-center justify-center gap-3.5 flex-wrap">
           {!isActive ? (
             <button 
-              className="btn-primary" 
-              style={{ padding: '14px 32px', fontSize: '1.05rem' }}
+              type="button"
+              className="glass-pill-btn !py-3.5 !px-8 text-sm font-semibold !bg-white/[0.08] hover:!bg-white/[0.14] !border-orange-400/40 text-white rounded-full flex items-center gap-3 shadow-[0_0_20px_rgba(251,146,60,0.25)] hover:scale-105 transition-all"
               onClick={handleStart}
             >
-              <Play size={20} fill="#030712" />
-              Começar Sessão
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_8px_#fb923c]" />
+              <Play size={16} className="text-orange-300" fill="#fb923c" />
+              <span>Começar Sessão</span>
             </button>
           ) : isPaused ? (
             <button 
-              className="btn-primary" 
-              style={{ padding: '14px 28px', fontSize: '1rem' }}
+              type="button"
+              className="glass-pill-btn !py-3.5 !px-8 text-sm font-semibold !bg-white/[0.08] hover:!bg-white/[0.14] !border-orange-400/40 text-white rounded-full flex items-center gap-3 shadow-[0_0_20px_rgba(251,146,60,0.25)] hover:scale-105 transition-all"
               onClick={handleResume}
             >
-              <Play size={18} fill="#030712" />
-              Retomar Foco
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_8px_#fb923c]" />
+              <Play size={16} className="text-orange-300" fill="#fb923c" />
+              <span>Retomar Foco</span>
             </button>
           ) : (
             <button 
-              className="btn-secondary" 
-              style={{ padding: '14px 28px', fontSize: '1rem', borderColor: 'var(--accent-amber)' }}
+              type="button"
+              className="glass-pill-btn !py-3.5 !px-8 text-sm font-semibold !bg-white/[0.06] hover:!bg-white/[0.12] !border-amber-400/30 text-amber-200 rounded-full flex items-center gap-3 shadow-[0_0_15px_rgba(251,191,36,0.2)]"
               onClick={handlePause}
             >
-              <Pause size={18} />
-              Pausar ({pauseSecondsLeft}s rest.)
+              <Pause size={16} />
+              <span>Pausar ({pauseSecondsLeft}s rest.)</span>
             </button>
           )}
 
           {isActive && (
             <button 
-              className="btn-icon-round" 
-              style={{ width: 48, height: 48 }}
+              type="button"
+              className="w-12 h-12 rounded-full glass-pill-btn !p-0 flex items-center justify-center text-slate-400 hover:text-white"
               onClick={handleReset}
               title="Cancelar / Reiniciar"
             >
-              <RotateCcw size={18} />
+              <RotateCcw size={16} />
             </button>
           )}
         </div>
@@ -671,52 +666,51 @@ export function FocusTab({ user, onFocusComplete }) {
 
       {/* MODAL COMEMORATIVO COM GERAÇÃO DE IMAGEM NO CANVAS (US06) */}
       {showCelebration && (
-        <div className="modal-overlay" onClick={() => setShowCelebration(false)}>
-          <div className="modal-sheet" style={{ maxWidth: '520px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={20} color="var(--accent-cyan)" />
-                <h3 className="modal-title">Sessão Finalizada com Sucesso!</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" onClick={() => setShowCelebration(false)}>
+          <div className="bento-card max-w-lg w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-orange-400" />
+                <h3 className="text-base font-semibold text-white">Sessão Finalizada com Sucesso!</h3>
               </div>
-              <button className="modal-close-btn" onClick={() => setShowCelebration(false)}>
-                <X size={18} />
+              <button 
+                type="button"
+                className="w-8 h-8 rounded-full glass-pill-btn !p-0 flex items-center justify-center text-slate-400 hover:text-white"
+                onClick={() => setShowCelebration(false)}
+              >
+                <X size={16} />
               </button>
             </div>
 
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+            <p className="text-xs text-slate-400 mb-4">
               Aqui está sua imagem comemorativa gerada dinamicamente via Canvas:
             </p>
 
             {/* RENDERED HTML5 CANVAS */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            <div className="flex justify-center mb-5">
               <canvas 
                 ref={canvasRef} 
                 width={440} 
                 height={420} 
-                style={{ 
-                  borderRadius: '16px', 
-                  maxWidth: '100%', 
-                  boxShadow: 'var(--shadow-cyan)', 
-                  border: '1px solid var(--border-subtle)' 
-                }} 
+                className="rounded-2xl max-w-full border border-white/10 shadow-[0_0_20px_rgba(251,146,60,0.2)]"
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="flex gap-3">
               <button 
-                className="btn-secondary" 
-                style={{ flex: 1, gap: '6px' }}
+                type="button"
+                className="flex-1 glass-pill-btn !py-2.5 !text-xs !bg-white/[0.04] text-slate-300 hover:text-white justify-center"
                 onClick={() => setShowCelebration(false)}
               >
                 Concluir
               </button>
 
               <button 
-                className="btn-primary" 
-                style={{ flex: 1.5, gap: '8px' }}
+                type="button"
+                className="flex-1 glass-pill-btn !py-2.5 !text-xs !bg-orange-500/20 !border-orange-400/40 text-orange-200 justify-center shadow-[0_0_15px_rgba(251,146,60,0.25)] flex items-center gap-2"
                 onClick={handleDownloadImage}
               >
-                <Download size={18} />
+                <Download size={14} />
                 Baixar Imagem PNG
               </button>
             </div>

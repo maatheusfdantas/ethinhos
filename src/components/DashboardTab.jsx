@@ -10,22 +10,16 @@ import {
   Bookmark, 
   Home, 
   CheckCircle2, 
-  Flame, 
   ChevronDown, 
   ChevronUp, 
   Activity, 
-  AlertCircle,
   Clock,
   Sparkles,
   Calendar,
-  MapPin,
   Tag,
-  Palette,
-  ShieldCheck,
-  TrendingUp,
-  TrendingDown,
   Target,
-  X
+  X,
+  Sliders
 } from 'lucide-react';
 import { isEventForDate } from '../services/storage';
 
@@ -40,12 +34,12 @@ const CATEGORY_ICONS = {
 };
 
 const DEFAULT_PALETTES = [
-  { name: 'Ciano', color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.15)' },
-  { name: 'Índigo', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)' },
-  { name: 'Esmeralda', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)' },
-  { name: 'Rosa', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)' },
-  { name: 'Âmbar', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
-  { name: 'Violeta', color: '#c084fc', bg: 'rgba(192, 132, 252, 0.15)' }
+  { name: 'Roxo', color: '#6A67CE', bg: 'rgba(106, 103, 206, 0.14)' },
+  { name: 'Esmeralda', color: '#10B981', bg: 'rgba(16, 185, 129, 0.14)' },
+  { name: 'Rosa', color: '#F43F5E', bg: 'rgba(244, 63, 94, 0.14)' },
+  { name: 'Âmbar', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.14)' },
+  { name: 'Azul', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.14)' },
+  { name: 'Violeta', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.14)' }
 ];
 
 export function DashboardTab({
@@ -62,58 +56,65 @@ export function DashboardTab({
   onAddTag,
   onDeleteTag,
   onToggleEvent,
-  onSwitchTab
+  onSwitchTab,
+  showToast
 }) {
   const [showCompletedAccordion, setShowCompletedAccordion] = useState(false);
+  
+  // Estados do Ciclo de Sono
   const [sleepEditMode, setSleepEditMode] = useState(false);
   const [bedTimeInput, setBedTimeInput] = useState(health?.sleep?.bedTime || '23:30');
   const [wakeTimeInput, setWakeTimeInput] = useState(health?.sleep?.wakeTime || '07:00');
 
-  // Customização de Água (Meta de Copos e ml por copo)
+  // Estados da Hidratação Diária (Meta de Copos e ml por copo)
   const [waterEditMode, setWaterEditMode] = useState(false);
   const [waterTargetInput, setWaterTargetInput] = useState(health?.waterTarget || 10);
   const [glassMlInput, setGlassMlInput] = useState(health?.glassMl || 250);
+
+  // Estados de Categorias / Temas
+  const [showTagCreator, setShowTagCreator] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState(DEFAULT_PALETTES[0]);
+
+  // Estado de criação rápida inline de hábito
+  const [quickHabitInput, setQuickHabitInput] = useState('');
 
   useEffect(() => {
     if (health?.waterTarget) setWaterTargetInput(health.waterTarget);
     if (health?.glassMl) setGlassMlInput(health.glassMl);
   }, [health?.waterTarget, health?.glassMl]);
 
-  // Sincronizar inputs de sono com o estado atual de saúde
   useEffect(() => {
     if (health?.sleep?.bedTime) setBedTimeInput(health.sleep.bedTime);
     if (health?.sleep?.wakeTime) setWakeTimeInput(health.sleep.wakeTime);
   }, [health?.sleep?.bedTime, health?.sleep?.wakeTime]);
 
-  // Requisito 4: Criador inline de temas/categorias
-  const [showTagCreator, setShowTagCreator] = useState(false);
-  const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState(DEFAULT_PALETTES[0]);
-
-  // Pesos para ordenação por prioridade
+  // Pesos para ordenação por prioridade (Alta > Média > Baixa)
   const priorityWeight = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
 
-  // Filter events and scheduled workouts for TODAY (inclui eventos recorrentes e ordenados por prioridade)
+  // Filtra compromissos e fichas de treino agendados para HOJE
   const todayDateObj = new Date();
   const todayStr = todayDateObj.toISOString().split('T')[0];
   const todayDayOfWeek = todayDateObj.getDay();
+
   const todayEvents = events
     .filter(e => isEventForDate(e, todayStr))
     .sort((a, b) => (priorityWeight[b.priority] || 2) - (priorityWeight[a.priority] || 2));
+
   const todayScheduledWorkouts = (workouts || []).filter(w => (w.scheduledDays || []).includes(todayDayOfWeek));
 
-  // Performance bar calculation
+  // 1. Cálculo de Tarefas
   const totalTasks = habits.length;
   const completedTasks = habits.filter(h => h.completed).length;
   const taskProgressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  // Water calculation (com copos e ml customizáveis)
-  const waterGlasses = health.waterGlasses || 0;
-  const waterTarget = health.waterTarget || 10;
-  const glassMl = health.glassMl || 250;
-  const waterPercent = Math.min(100, Math.round((waterGlasses / waterTarget) * 100));
+  // 2. Cálculo de Hidratação
+  const waterGlasses = health?.waterGlasses || 0;
+  const waterTarget = health?.waterTarget || 10;
+  const glassMl = health?.glassMl || 250;
+  const waterPercent = Math.min(100, Math.round((waterGlasses / Math.max(1, waterTarget)) * 100));
 
-  // Cálculo robusto de horas dormidas com base no horário inicial e final
+  // 3. Cálculo de Horas de Sono
   const calculateSleepHours = (bed, wake) => {
     try {
       if (!bed || !wake) return 0;
@@ -133,7 +134,7 @@ export function DashboardTab({
   const sleepHours = calculateSleepHours(currentBedTime, currentWakeTime);
   const sleepPercent = Math.min(100, Math.round((sleepHours / (health?.sleep?.targetHours || 8)) * 100));
 
-  // Média de Vitalidade (40% tarefas + 30% água + 30% sono)
+  // Índice Geral de Vitalidade Diária (40% Tarefas + 30% Água + 30% Sono)
   const vitalityScore = Math.round(
     (taskProgressPercent * 0.4) + 
     (waterPercent * 0.3) + 
@@ -141,18 +142,26 @@ export function DashboardTab({
   );
 
   let vitalityStatus = 'Iniciando';
-  if (vitalityScore >= 80) vitalityStatus = 'Excelente';
-  else if (vitalityScore >= 50) vitalityStatus = 'Consistente';
-  else if (vitalityScore > 0) vitalityStatus = 'Em Evolução';
+  let statusBadgeStyle = { bg: 'rgba(255,255,255,0.12)', color: '#E2E4F0' };
+  if (vitalityScore >= 80) {
+    vitalityStatus = 'Excelente';
+    statusBadgeStyle = { bg: 'rgba(16, 185, 129, 0.2)', color: '#6EE7B7' };
+  } else if (vitalityScore >= 50) {
+    vitalityStatus = 'Consistente';
+    statusBadgeStyle = { bg: 'rgba(106, 103, 206, 0.35)', color: '#E0E7FF' };
+  } else if (vitalityScore > 0) {
+    vitalityStatus = 'Em Evolução';
+    statusBadgeStyle = { bg: 'rgba(245, 158, 11, 0.22)', color: '#FDE68A' };
+  }
 
-  // Hábitos pendentes ordenados por prioridade (Alta > Média > Baixa)
+  // Hábitos pendentes ordenados por prioridade e Hábitos concluídos
   const pendingHabits = habits
     .filter(h => !h.completed)
     .sort((a, b) => (priorityWeight[b.priority] || 0) - (priorityWeight[a.priority] || 0));
 
   const completedHabits = habits.filter(h => h.completed);
 
-  // Add water glass (usando glassMl configurado pelo usuário)
+  // Handlers de Hidratação
   const handleAddWater = () => {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -175,7 +184,6 @@ export function DashboardTab({
     }
   };
 
-  // Delete last water glass
   const handleDeleteLastWater = () => {
     if (waterGlasses <= 0) return;
     const newGlasses = waterGlasses - 1;
@@ -197,7 +205,6 @@ export function DashboardTab({
     }
   };
 
-  // Salvar opções de água (quantos copos e quantos ml)
   const handleSaveWaterOptions = (e) => {
     e.preventDefault();
     const newTarget = Math.max(1, parseInt(waterTargetInput, 10) || 10);
@@ -209,6 +216,7 @@ export function DashboardTab({
     };
     setHealth(nextHealth);
     setWaterEditMode(false);
+    showToast?.(`Meta de hidratação salva: ${newTarget} copos de ${newMl}ml`);
     if (user) {
       fetch(`/api/user/${user.id}/health`, {
         method: 'POST',
@@ -218,7 +226,7 @@ export function DashboardTab({
     }
   };
 
-  // US10: Save sleep
+  // Handler de Sono
   const handleSaveSleep = (e) => {
     e.preventDefault();
     const calculatedHours = calculateSleepHours(bedTimeInput, wakeTimeInput);
@@ -234,6 +242,7 @@ export function DashboardTab({
     };
     setHealth(nextHealth);
     setSleepEditMode(false);
+    showToast?.(`Ciclo de sono atualizado: ${calculatedHours}h`);
     if (user) {
       fetch(`/api/user/${user.id}/health`, {
         method: 'POST',
@@ -243,7 +252,7 @@ export function DashboardTab({
     }
   };
 
-  // Habit toggles with live checkin recording
+  // Handlers de Hábitos
   const toggleHabit = async (id) => {
     const targetHabit = habits.find(h => h.id === id);
     const nextCompleted = targetHabit ? !targetHabit.completed : true;
@@ -255,6 +264,11 @@ export function DashboardTab({
       }
       return h;
     }));
+
+    showToast?.(
+      nextCompleted ? `Hábito "${targetHabit?.title || 'Rotina'}" concluído` : `Hábito "${targetHabit?.title || 'Rotina'}" desmarcado`,
+      () => toggleHabit(id)
+    );
 
     if (user) {
       try {
@@ -291,6 +305,10 @@ export function DashboardTab({
       return h;
     }));
 
+    if (nextCompleted) {
+      showToast?.(`Meta atingida em "${targetHabit?.title}"!`, () => toggleHabit(id));
+    }
+
     if (user) {
       try {
         await fetch(`/api/user/${user.id}/habit/${id}`, {
@@ -314,7 +332,7 @@ export function DashboardTab({
     }
   };
 
-  // Create Tag
+  // Criar Categoria / Tema
   const handleCreateTagSubmit = (e) => {
     e.preventDefault();
     if (!newTagName.trim()) return;
@@ -327,465 +345,589 @@ export function DashboardTab({
       icon: 'Tag'
     });
 
+    showToast?.(`Categoria "${newTagName.trim()}" adicionada`);
     setNewTagName('');
     setShowTagCreator(false);
   };
 
+  // Criar hábito rápido inline
+  const handleQuickHabitKeyDown = (e) => {
+    if (e.key === 'Enter' && quickHabitInput.trim()) {
+      e.preventDefault();
+      const title = quickHabitInput.trim();
+      const newHabit = {
+        id: `hab_${Date.now()}`,
+        title,
+        category: tags[0]?.name || 'Pessoal',
+        priority: 'Média',
+        effort: 'Médio',
+        current: 0,
+        target: 1,
+        unit: 'vez',
+        completed: false,
+        completionStyle: 'quick',
+        repeatDays: [0, 1, 2, 3, 4, 5, 6]
+      };
+      setHabits(prev => [newHabit, ...prev]);
+      setQuickHabitInput('');
+      showToast?.(`Hábito "${title}" criado`, () => {
+        setHabits(prev => prev.filter(h => h.id !== newHabit.id));
+      });
+    }
+  };
+
   return (
-    <div className="dashboard-view">
-      {/* 1. VITALIDADE DIÁRIA HERO */}
-      <div className="vitality-hero-card">
-        <div className="vitality-header">
-          <div>
-            <span className="submetric-title">Índice Geral de Vitalidade Diária</span>
-            <div className="vitality-score-block">
-              <span className="vitality-number">{vitalityScore}</span>
-              <span className="vitality-unit">/100</span>
-            </div>
-          </div>
-          <span className="vitality-status-pill">{vitalityStatus}</span>
-        </div>
-
-        <div className="vitality-progress-bar-wrap">
-          <div className="vitality-progress-fill" style={{ width: `${vitalityScore}%` }} />
-        </div>
-
-        <div className="vitality-submetrics">
-          <div className="submetric-item">
-            <span className="submetric-title">
-              <CheckCircle2 size={14} color="var(--accent-cyan)" />
-              Tarefas ({taskProgressPercent}%)
-            </span>
-            <span className="submetric-value">{completedTasks}/{totalTasks} Feitas</span>
-          </div>
-
-          <div className="submetric-item">
-            <span className="submetric-title">
-              <Droplets size={14} color="var(--accent-cyan)" />
-              Água ({waterPercent}%)
-            </span>
-            <span className="submetric-value">{((waterGlasses * glassMl) / 1000).toFixed(2)}L / {((waterTarget * glassMl) / 1000).toFixed(2)}L</span>
-          </div>
-
-          <div className="submetric-item">
-            <span className="submetric-title">
-              <Moon size={14} color="var(--accent-indigo)" />
-              Sono ({sleepPercent}%)
-            </span>
-            <span className="submetric-value">{sleepHours}h</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. REQUISITO 4: GERENCIADOR FÁCIL DE TEMAS & CATEGORIAS */}
-      <div className="card-native" style={{ marginBottom: '22px', padding: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Palette size={18} color="var(--accent-cyan)" />
-            <span style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Temas & Categorias das Atividades
-            </span>
-          </div>
-
-          <button 
-            className="btn-secondary" 
-            style={{ padding: '6px 14px', fontSize: '0.78rem', color: 'var(--accent-cyan)', borderColor: 'var(--accent-cyan)' }}
-            onClick={() => setShowTagCreator(!showTagCreator)}
-          >
-            <Plus size={14} />
-            {showTagCreator ? 'Fechar' : 'Nova Categoria / Tema'}
-          </button>
-        </div>
-
-        {/* CRIADOR INLINE DE CATEGORIAS */}
-        {showTagCreator && (
-          <form onSubmit={handleCreateTagSubmit} style={{ background: 'var(--surface-elevated)', borderRadius: '12px', padding: '14px', marginBottom: '14px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
-              Cadastrar Novo Tema Personalizado:
-            </span>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-              <input 
-                type="text" 
-                className="input-dark" 
-                placeholder="Nome da Categoria (ex: Mestrado, Finanças, Academia)"
-                value={newTagName}
-                onChange={(e) => setNewTagName(e.target.value)}
-                style={{ padding: '8px 12px', fontSize: '0.85rem' }}
-                autoFocus
-                required
-              />
-              <button type="submit" className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
-                Salvar Categoria
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Escolha uma cor de destaque:</span>
-              {DEFAULT_PALETTES.map((pal, idx) => (
-                <span 
-                  key={idx}
-                  onClick={() => setNewTagColor(pal)}
-                  style={{ 
-                    width: 22, 
-                    height: 22, 
-                    borderRadius: '50%', 
-                    background: pal.color, 
-                    cursor: 'pointer',
-                    border: newTagColor.color === pal.color ? '2px solid #fff' : 'none'
-                  }}
-                  title={pal.name}
-                />
-              ))}
-            </div>
-          </form>
-        )}
-
-        {/* LISTAGEM DE CATEGORIAS ATIVAS COM OPÇÃO DE REMOVER */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {tags.map((t) => (
-            <span 
-              key={t.id || t.name}
-              className="tag-badge"
-              style={{
-                padding: '6px 10px 6px 12px',
-                border: `1px solid ${t.color}50`,
-                background: t.bg,
-                color: t.color,
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color }} />
-              {t.name}
-              {onDeleteTag && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm(`Deseja remover a categoria "${t.name}" da sua rotina?`)) {
-                      onDeleteTag(t.id, t.name);
-                    }
-                  }}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: 18,
-                    height: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: t.color,
-                    cursor: 'pointer',
-                    padding: 0,
-                    marginLeft: 2,
-                    transition: 'all 0.15s ease'
-                  }}
-                  title={`Remover categoria "${t.name}"`}
-                >
-                  <X size={11} strokeWidth={2.8} />
-                </button>
-              )}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. REQUISITO 1: AGENDA & COMPROMISSOS COM DATA E HORÁRIO (ALOCAÇÃO CLARA) */}
-      <div className="section-header">
-        <div className="section-title-wrap">
-          <Calendar size={18} color="var(--accent-indigo)" />
-          <h2 className="section-title">Agenda & Compromissos de Hoje</h2>
-          <span className="section-badge" style={{ color: 'var(--accent-indigo)', borderColor: 'var(--accent-indigo)' }}>
-            {todayEvents.length + todayScheduledWorkouts.length} Marcados
-          </span>
-        </div>
-
-        <button 
-          className="btn-secondary" 
-          style={{ padding: '6px 12px', fontSize: '0.78rem', gap: '4px' }}
-          onClick={onOpenAdd}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      
+      {/* ================================================================== */}
+      {/* LINHA 1: ÍNDICE GERAL DE VITALIDADE DIÁRIA + AGENDA DE HOJE        */}
+      {/* ================================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        
+        {/* CARD 1: ÍNDICE GERAL DE VITALIDADE DIÁRIA (DARK PLUM #211F38) */}
+        <div 
+          style={{
+            backgroundColor: '#211F38',
+            borderRadius: '26px',
+            padding: '24px',
+            color: '#FFFFFF',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: '0 14px 34px rgba(33, 31, 56, 0.18)'
+          }}
+          className="lg:col-span-7"
         >
-          <Plus size={14} />
-          Agendar Evento
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
-        {todayScheduledWorkouts.map((w) => (
-          <div 
-            key={`wo_${w.id}`}
-            className="card-native" 
-            style={{ 
-              borderLeft: '4px solid var(--accent-rose)',
-              padding: '14px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '10px'
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Dumbbell size={14} color="var(--accent-rose)" />
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-rose)' }}>
-                  {w.scheduledTime || '18:30'}
+          <div>
+            {/* Topo: Título + Status Atual (Iniciando, Em Evolução, Consistente, Excelente) */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#A9ABC6', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>
+                  Resumo de Vitalidade
                 </span>
-                <span className="priority-badge low" style={{ background: 'rgba(244, 63, 94, 0.15)', color: 'var(--accent-rose)' }}>
-                  Musculação
-                </span>
+                <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#FFFFFF', margin: '2px 0 0 0' }}>
+                  Índice Geral de Vitalidade Diária
+                </h2>
               </div>
-              <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                {w.name}
-              </h3>
-              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                {w.exercises?.length || 0} exercícios cadastrados nesta ficha
-              </div>
-            </div>
 
-            <button 
-              className="btn-secondary" 
-              style={{ padding: '6px 14px', fontSize: '0.78rem', gap: '6px' }}
-              onClick={onOpenWorkout}
-            >
-              <Dumbbell size={13} color="var(--accent-rose)" />
-              Abrir Treino
-            </button>
-          </div>
-        ))}
-
-        {todayEvents.length === 0 && todayScheduledWorkouts.length === 0 ? (
-          <div className="card-native" style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
-            Nenhum compromisso com data e horário marcado para hoje. Todos os seus eventos cadastrados ficam salvos na sua <strong>Agenda & Calendário</strong>.
-          </div>
-        ) : (
-          todayEvents.map((ev) => {
-            const priorityClass = ev.priority === 'Alta' ? 'high' : ev.priority === 'Baixa' ? 'low' : 'medium';
-            const priorityBorder = ev.priority === 'Alta' 
-              ? 'var(--accent-rose)' 
-              : ev.priority === 'Baixa' 
-                ? 'var(--accent-emerald)' 
-                : 'var(--accent-amber)';
-
-            return (
-              <div 
-                key={ev.id} 
-                className="card-native" 
-                style={{ 
-                  borderLeft: `4px solid ${priorityBorder}`,
-                  padding: '14px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '10px'
+              <span
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '999px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  backgroundColor: statusBadgeStyle.bg,
+                  color: statusBadgeStyle.color
                 }}
               >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Clock size={14} color="var(--accent-indigo)" />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-indigo)' }}>
-                      {ev.allDay ? 'Dia Todo' : `${ev.startTime} - ${ev.endTime}`}
-                    </span>
-                    <span className="section-badge">{ev.category}</span>
-                    <span className={`priority-badge ${priorityClass}`}>
-                      {ev.priority || 'Média'}
-                    </span>
-                  </div>
-                  <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                    {ev.title}
-                  </h3>
-                  {ev.location && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      <MapPin size={12} />
-                      <span>{ev.location}</span>
-                    </div>
-                  )}
-                </div>
+                {vitalityStatus}
+              </span>
+            </div>
 
-                <button 
-                  className={ev.completed ? 'btn-primary' : 'btn-secondary'}
-                  style={{ padding: '6px 14px', fontSize: '0.78rem' }}
-                  onClick={() => onToggleEvent?.(ev.id, !ev.completed)}
-                >
-                  {ev.completed ? 'Concluído' : 'Marcar Feito'}
-                </button>
+            {/* Pontuação de 0 a 100 + Pesos */}
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ fontSize: '42px', fontWeight: 700, color: '#FFFFFF', lineHeight: 1 }}>
+                  {vitalityScore}
+                </span>
+                <span style={{ fontSize: '15px', fontWeight: 500, color: '#A9ABC6' }}>
+                  / 100 PONTOS
+                </span>
               </div>
-            );
-          })
-        )}
+              <span style={{ fontSize: '11.5px', color: '#A9ABC6', fontWeight: 500 }}>
+                40% Tarefas • 30% Água • 30% Sono
+              </span>
+            </div>
+
+            {/* Barra de Progresso de Vitalidade */}
+            <div style={{ width: '100%', height: '8px', borderRadius: '999px', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginBottom: '18px' }}>
+              <div
+                style={{
+                  width: `${Math.min(100, Math.max(0, vitalityScore))}%`,
+                  height: '100%',
+                  borderRadius: '999px',
+                  background: 'linear-gradient(90deg, #6A67CE 0%, #38BDF8 50%, #34D399 100%)',
+                  transition: 'width 0.4s ease'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* 3 Sub-cards de Resumo (Tarefas, Água, Sono) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Sub-card 1: Tarefas */}
+            <div
+              style={{
+                backgroundColor: '#353358',
+                borderRadius: '18px',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11.5px', color: '#D0D2E8', fontWeight: 500 }}>
+                  Tarefas ({taskProgressPercent}%)
+                </span>
+                <Target size={14} color="#A5B4FC" />
+              </div>
+              <div style={{ fontSize: '19px', fontWeight: 700, color: '#FFFFFF' }}>
+                {completedTasks}/{totalTasks} <span style={{ fontSize: '12px', fontWeight: 500, color: '#C5C7DE' }}>Feitas</span>
+              </div>
+            </div>
+
+            {/* Sub-card 2: Água */}
+            <div
+              style={{
+                backgroundColor: '#353358',
+                borderRadius: '18px',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11.5px', color: '#D0D2E8', fontWeight: 500 }}>
+                  Água ({waterPercent}%)
+                </span>
+                <Droplets size={14} color="#38BDF8" />
+              </div>
+              <div style={{ fontSize: '19px', fontWeight: 700, color: '#FFFFFF' }}>
+                {((waterGlasses * glassMl) / 1000).toFixed(2)}L <span style={{ fontSize: '12px', fontWeight: 500, color: '#C5C7DE' }}>/ {((waterTarget * glassMl) / 1000).toFixed(2)}L</span>
+              </div>
+            </div>
+
+            {/* Sub-card 3: Sono */}
+            <div
+              style={{
+                backgroundColor: '#353358',
+                borderRadius: '18px',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11.5px', color: '#D0D2E8', fontWeight: 500 }}>
+                  Sono ({sleepPercent}%)
+                </span>
+                <Moon size={14} color="#FDE68A" />
+              </div>
+              <div style={{ fontSize: '19px', fontWeight: 700, color: '#FFFFFF' }}>
+                {sleepHours}h <span style={{ fontSize: '11px', fontWeight: 400, color: '#C5C7DE' }}>({currentBedTime}-{currentWakeTime})</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CARD 2: AGENDA DE HOJE (COMPROMISSOS DO DIA + FICHAS DE TREINO DO DIA) */}
+        <div
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.56)',
+            backdropFilter: 'blur(18px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(18px) saturate(150%)',
+            borderRadius: '26px',
+            padding: '24px',
+            color: '#1A1B2F',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            border: '1px solid rgba(255, 255, 255, 0.68)',
+            boxShadow: '0 12px 32px rgba(20, 18, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88)'
+          }}
+          className="lg:col-span-5"
+        >
+          <div>
+            {/* Header da Agenda de Hoje */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#56548A' }} />
+                <h3 style={{ fontSize: '16.5px', fontWeight: 600, color: '#1A1B2F', margin: 0 }}>
+                  Agenda de Hoje
+                </h3>
+                <span
+                  style={{
+                    padding: '2px 9px',
+                    borderRadius: '999px',
+                    backgroundColor: '#E5E5EE',
+                    color: '#1A1B2F',
+                    fontSize: '11.5px',
+                    fontWeight: 600
+                  }}
+                >
+                  {todayEvents.length + todayScheduledWorkouts.length}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={onOpenAdd}
+                style={{
+                  padding: '6px 13px',
+                  borderRadius: '999px',
+                  backgroundColor: '#211F38',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={13} />
+                <span>Agendar</span>
+              </button>
+            </div>
+
+            {/* Lista de Treinos Programados para Hoje + Compromissos de Hoje */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '215px', overflowY: 'auto', paddingRight: '2px' }}>
+              
+              {/* Fichas de treino programadas para o dia da semana atual */}
+              {todayScheduledWorkouts.map((w) => (
+                <div
+                  key={`wo_${w.id}`}
+                  style={{
+                    backgroundColor: '#EBEBF2',
+                    borderRadius: '16px',
+                    padding: '11px 14px',
+                    borderLeft: '4px solid #56548A',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#56548A' }}>
+                        {w.scheduledTime || '18:30'}
+                      </span>
+                      <span style={{ fontSize: '10px', padding: '1px 7px', borderRadius: '6px', backgroundColor: '#D8D8E6', color: '#211F38', fontWeight: 600 }}>
+                        Treino do Dia
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A1B2F', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {w.name}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={onOpenWorkout}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '999px',
+                      backgroundColor: '#56548A',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Dumbbell size={12} />
+                    <span>Abrir</span>
+                  </button>
+                </div>
+              ))}
+
+              {/* Compromissos agendados para a data de hoje com Check imediato */}
+              {todayEvents.map((ev) => (
+                <div
+                  key={ev.id}
+                  style={{
+                    backgroundColor: ev.completed ? '#F0F0F5' : '#EBEBF2',
+                    borderRadius: '16px',
+                    padding: '11px 14px',
+                    borderLeft: `4px solid ${ev.completed ? '#10B981' : '#3B82F6'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    opacity: ev.completed ? 0.75 : 1
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#3B82F6' }}>
+                        {ev.allDay ? 'Dia Todo' : `${ev.startTime} - ${ev.endTime}`}
+                      </span>
+                      <span style={{ fontSize: '10px', padding: '1px 7px', borderRadius: '6px', backgroundColor: '#D8D8E6', color: '#1A1B2F', fontWeight: 500 }}>
+                        {ev.category}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A1B2F', marginTop: '2px', textDecoration: ev.completed ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {ev.title}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onToggleEvent?.(ev.id, !ev.completed)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '999px',
+                      backgroundColor: ev.completed ? '#10B981' : '#FFFFFF',
+                      color: ev.completed ? '#FFFFFF' : '#1A1B2F',
+                      border: ev.completed ? 'none' : '1px solid #C5C7DE',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    <CheckCircle2 size={13} />
+                    <span>{ev.completed ? 'Feito' : 'Check'}</span>
+                  </button>
+                </div>
+              ))}
+
+              {todayEvents.length === 0 && todayScheduledWorkouts.length === 0 && (
+                <div
+                  style={{
+                    backgroundColor: '#EBEBF2',
+                    borderRadius: '18px',
+                    padding: '24px 16px',
+                    textAlign: 'center',
+                    color: '#5A5B75',
+                    fontSize: '12.5px'
+                  }}
+                >
+                  <Calendar size={22} style={{ margin: '0 auto 6px', opacity: 0.6 }} />
+                  <div>Nenhum compromisso marcado para hoje.</div>
+                  <div style={{ fontSize: '11px', color: '#7E7F9A', marginTop: '2px' }}>
+                    Clique em "Agendar" para adicionar um evento na data de hoje.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ paddingTop: '12px', marginTop: '10px', borderTop: '1px solid #E2E2EC', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#5A5B75' }}>
+            <span>Sincronizado com Agenda Semanal</span>
+            <button
+              type="button"
+              onClick={() => onSwitchTab?.('calendar')}
+              style={{ background: 'none', border: 'none', color: '#56548A', fontWeight: 700, cursor: 'pointer', fontSize: '11.5px' }}
+            >
+              Ver Calendário →
+            </button>
+          </div>
+        </div>
+
       </div>
 
-      {/* 4. SAÚDE RÁPIDA: ÁGUA & SONO */}
-      <div className="quick-health-grid">
-        {/* ÁGUA */}
-        <div className="health-widget">
+      {/* ================================================================== */}
+      {/* LINHA 2: HIDRATAÇÃO DIÁRIA + CICLO DE SONO + CATEGORIAS / TEMAS    */}
+      {/* ================================================================== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+        
+        {/* COLUNA 1: HIDRATAÇÃO DIÁRIA */}
+        <div
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.52)',
+            backdropFilter: 'blur(18px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(18px) saturate(150%)',
+            borderRadius: '26px',
+            padding: '22px',
+            color: '#1A1B2F',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            border: '1px solid rgba(255, 255, 255, 0.65)',
+            boxShadow: '0 12px 32px rgba(20, 18, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85)'
+          }}
+        >
           <div>
-            <div className="health-widget-header">
-              <div className="widget-icon-title">
-                <div className="widget-icon-box water">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#211F38', color: '#38BDF8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Droplets size={18} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.92rem', fontWeight: 700 }}>Hidratação Diária</span>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                    Meta: {waterTarget} copos ({((waterTarget * glassMl)).toLocaleString('pt-BR')} ml)
-                  </div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#1A1B2F', margin: 0 }}>Hidratação Diária</h3>
+                  <span style={{ fontSize: '11.5px', color: '#5A5B75' }}>
+                    Meta: {waterTarget} copos ({(waterTarget * glassMl).toLocaleString('pt-BR')} ml)
+                  </span>
                 </div>
               </div>
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button 
-                  className="section-badge"
-                  style={{ cursor: 'pointer', background: 'var(--surface-elevated)' }}
+                <button
+                  type="button"
                   onClick={() => setWaterEditMode(!waterEditMode)}
-                  title="Configurar meta diária de copos e ml por copo"
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    backgroundColor: waterEditMode ? '#211F38' : '#DCDCE6',
+                    color: waterEditMode ? '#FFFFFF' : '#1A1B2F',
+                    border: 'none',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
                 >
                   {waterEditMode ? 'Fechar' : 'Opções'}
                 </button>
-                <span className="section-badge">{waterPercent}%</span>
+                <span style={{ padding: '4px 9px', borderRadius: '999px', backgroundColor: '#211F38', color: '#FFFFFF', fontSize: '11px', fontWeight: 700 }}>
+                  {waterPercent}%
+                </span>
               </div>
             </div>
 
             {waterEditMode ? (
-              <form onSubmit={handleSaveWaterOptions} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+              <form onSubmit={handleSaveWaterOptions} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Meta de Copos:</label>
-                    <input 
-                      type="number" 
-                      min="1" 
-                      max="30" 
-                      className="input-dark" 
+                    <label style={{ fontSize: '11px', color: '#5A5B75', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Meta (Copos):</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
                       value={waterTargetInput}
                       onChange={(e) => setWaterTargetInput(e.target.value)}
-                      style={{ padding: '6px 10px', fontSize: '0.85rem' }}
                       required
+                      style={{ width: '100%', padding: '7px 10px', borderRadius: '10px', border: '1px solid #C5C7DE', backgroundColor: '#FFFFFF', fontSize: '12.5px', color: '#1A1B2F' }}
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Tamanho do Copo (ml):</label>
-                    <input 
-                      type="number" 
-                      min="50" 
-                      step="50" 
-                      max="2000" 
-                      className="input-dark" 
+                    <label style={{ fontSize: '11px', color: '#5A5B75', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Volume (ml):</label>
+                    <input
+                      type="number"
+                      min="50"
+                      step="50"
+                      max="2000"
                       value={glassMlInput}
                       onChange={(e) => setGlassMlInput(e.target.value)}
-                      style={{ padding: '6px 10px', fontSize: '0.85rem' }}
                       required
+                      style={{ width: '100%', padding: '7px 10px', borderRadius: '10px', border: '1px solid #C5C7DE', backgroundColor: '#FFFFFF', fontSize: '12.5px', color: '#1A1B2F' }}
                     />
                   </div>
                 </div>
 
-                {/* Presets rápidos de volume */}
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Atalhos ml:</span>
+                {/* Atalhos de volume de copo */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', color: '#5A5B75' }}>Volume rápido:</span>
                   {[200, 250, 300, 500].map(preset => (
                     <button
                       key={preset}
                       type="button"
-                      className="section-badge"
-                      style={{
-                        cursor: 'pointer',
-                        background: Number(glassMlInput) === preset ? 'var(--accent-cyan)' : 'var(--surface-elevated)',
-                        color: Number(glassMlInput) === preset ? '#030712' : 'var(--text-secondary)',
-                        padding: '2px 8px',
-                        fontSize: '0.72rem'
-                      }}
                       onClick={() => setGlassMlInput(preset)}
+                      style={{
+                        padding: '3px 9px',
+                        borderRadius: '999px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: Number(glassMlInput) === preset ? '#56548A' : '#DCDCE6',
+                        color: Number(glassMlInput) === preset ? '#FFFFFF' : '#1A1B2F'
+                      }}
                     >
                       {preset}ml
                     </button>
                   ))}
                 </div>
 
-                {/* SUGESTÃO INTELIGENTE BASEADA NO PESO (PESO x 35ml) */}
-                <div style={{
-                  background: 'rgba(0, 229, 255, 0.08)',
-                  border: '1px solid rgba(0, 229, 255, 0.25)',
-                  borderRadius: '10px',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '10px',
-                  flexWrap: 'wrap'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
-                      Sugestão com base no seu peso ({user?.weight ? `${user.weight} kg` : '70 kg'} × 35 ml):
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                      Meta calculada: <strong>{((user?.weight || 70) * 35).toLocaleString('pt-BR')} ml</strong> (~{Math.max(1, Math.round(((user?.weight || 70) * 35) / (Number(glassMlInput) || 250)))} copos de {glassMlInput || 250} ml)
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const recMl = (user?.weight || 70) * 35;
-                      const recGlasses = Math.max(1, Math.round(recMl / (Number(glassMlInput) || 250)));
-                      setWaterTargetInput(recGlasses);
-                    }}
-                    style={{
-                      background: 'var(--accent-cyan)',
-                      color: '#030712',
-                      border: 'none',
-                      borderRadius: 'var(--radius-pill)',
-                      padding: '5px 12px',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Aplicar Sugestão
-                  </button>
-                </div>
-
-                <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)' }}>
-                  Total configurado: {waterTargetInput || 0} copos × {glassMlInput || 0} ml = {((Number(waterTargetInput) || 0) * (Number(glassMlInput) || 0)).toLocaleString('pt-BR')} ml
-                </div>
-
-                <button type="submit" className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                  Salvar Preferências
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '12px',
+                    backgroundColor: '#211F38',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Salvar Meta de Água
                 </button>
               </form>
             ) : (
               <>
-                <div className="water-controls">
-                  <div className="water-counter">
-                    {waterGlasses} <span>/ {waterTarget} copos</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 0 14px 0' }}>
+                  <div>
+                    <span style={{ fontSize: '28px', fontWeight: 700, color: '#1A1B2F' }}>
+                      {waterGlasses}
+                    </span>
+                    <span style={{ fontSize: '13px', color: '#5A5B75', fontWeight: 500, marginLeft: '6px' }}>
+                      / {waterTarget} copos ({glassMl}ml)
+                    </span>
                   </div>
 
-                  <div className="water-btn-group">
-                    <button 
-                      className="btn-icon-round"
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
                       onClick={handleDeleteLastWater}
                       disabled={waterGlasses <= 0}
-                      title="Desfazer / Remover último copo de água"
+                      style={{
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '10px',
+                        backgroundColor: '#DCDCE6',
+                        color: '#1A1B2F',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: waterGlasses <= 0 ? 'not-allowed' : 'pointer',
+                        opacity: waterGlasses <= 0 ? 0.4 : 1
+                      }}
+                      title="Remover 1 copo"
                     >
-                      <Minus size={18} />
+                      <Minus size={15} />
                     </button>
 
-                    <button 
-                      className="btn-icon-round primary"
+                    <button
+                      type="button"
                       onClick={handleAddWater}
-                      title="Registrar +1 copo de água"
+                      style={{
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '10px',
+                        backgroundColor: '#211F38',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
+                      title="Adicionar +1 copo"
                     >
-                      <Plus size={20} strokeWidth={2.8} />
+                      <Plus size={16} />
                     </button>
                   </div>
                 </div>
 
-                <div style={{ marginTop: '14px' }}>
-                  <div className="habit-progress-track">
-                    <div className="habit-progress-bar" style={{ width: `${waterPercent}%` }} />
+                <div>
+                  <div style={{ width: '100%', height: '8px', borderRadius: '999px', backgroundColor: '#DCDCE6', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, waterPercent)}%`,
+                        height: '100%',
+                        borderRadius: '999px',
+                        backgroundColor: '#56548A',
+                        transition: 'width 0.3s ease'
+                      }}
+                    />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                    <span>{(waterGlasses * glassMl).toLocaleString('pt-BR')} ml ingeridos ({glassMl}ml/copo)</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '11px', color: '#5A5B75', fontWeight: 500 }}>
+                    <span>{(waterGlasses * glassMl).toLocaleString('pt-BR')} ml ingeridos</span>
                     <span>Faltam {(Math.max(0, waterTarget - waterGlasses) * glassMl).toLocaleString('pt-BR')} ml</span>
                   </div>
                 </div>
@@ -794,240 +936,659 @@ export function DashboardTab({
           </div>
         </div>
 
-        {/* SONO */}
-        <div className="health-widget">
+        {/* COLUNA 2: CICLO DE SONO */}
+        <div
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.56)',
+            backdropFilter: 'blur(18px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(18px) saturate(150%)',
+            borderRadius: '26px',
+            padding: '22px',
+            color: '#1A1B2F',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            border: '1px solid rgba(255, 255, 255, 0.68)',
+            boxShadow: '0 12px 32px rgba(20, 18, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88)'
+          }}
+        >
           <div>
-            <div className="health-widget-header">
-              <div className="widget-icon-title">
-                <div className="widget-icon-box sleep">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#211F38', color: '#FDE68A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Moon size={18} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.92rem', fontWeight: 700 }}>Ciclo de Sono</span>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Registro manual</div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#1A1B2F', margin: 0 }}>Ciclo de Sono</h3>
+                  <span style={{ fontSize: '11.5px', color: '#5A5B75' }}>Registro diário de descanso</span>
                 </div>
               </div>
-              <button 
-                className="section-badge"
-                style={{ cursor: 'pointer', background: 'var(--surface-elevated)' }}
+
+              <button
+                type="button"
                 onClick={() => setSleepEditMode(!sleepEditMode)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '999px',
+                  backgroundColor: sleepEditMode ? '#211F38' : '#E5E5EE',
+                  color: sleepEditMode ? '#FFFFFF' : '#1A1B2F',
+                  border: 'none',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
               >
                 {sleepEditMode ? 'Fechar' : 'Ajustar'}
               </button>
             </div>
 
             {sleepEditMode ? (
-              <form onSubmit={handleSaveSleep} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <form onSubmit={handleSaveSleep} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Dormiu:</label>
-                    <input 
-                      type="time" 
-                      className="input-dark" 
+                    <label style={{ fontSize: '11px', color: '#5A5B75', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Dormiu às:</label>
+                    <input
+                      type="time"
                       value={bedTimeInput}
                       onChange={(e) => setBedTimeInput(e.target.value)}
-                      style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                      style={{ width: '100%', padding: '7px 10px', borderRadius: '10px', border: '1px solid #C5C7DE', backgroundColor: '#FFFFFF', fontSize: '12.5px', color: '#1A1B2F' }}
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Acordou:</label>
-                    <input 
-                      type="time" 
-                      className="input-dark" 
+                    <label style={{ fontSize: '11px', color: '#5A5B75', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Acordou às:</label>
+                    <input
+                      type="time"
                       value={wakeTimeInput}
                       onChange={(e) => setWakeTimeInput(e.target.value)}
-                      style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                      style={{ width: '100%', padding: '7px 10px', borderRadius: '10px', border: '1px solid #C5C7DE', backgroundColor: '#FFFFFF', fontSize: '12.5px', color: '#1A1B2F' }}
                     />
                   </div>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
-                  Duração calculada: {calculateSleepHours(bedTimeInput, wakeTimeInput)}h de sono
+
+                <div style={{ fontSize: '11.5px', color: '#56548A', fontWeight: 600 }}>
+                  Total calculado: {calculateSleepHours(bedTimeInput, wakeTimeInput)}h de sono
                 </div>
-                <button type="submit" className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                  Salvar Ciclo ({calculateSleepHours(bedTimeInput, wakeTimeInput)}h)
+
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '12px',
+                    backgroundColor: '#211F38',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Salvar Horários
                 </button>
               </form>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px' }}>
                 <div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    {sleepHours}h <span style={{ fontSize: '0.85rem', color: 'var(--accent-indigo)' }}>dormidas</span>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#1A1B2F' }}>
+                    {sleepHours}h <span style={{ fontSize: '13px', fontWeight: 500, color: '#5A5B75' }}>dormidas</span>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {currentBedTime} às {currentWakeTime}
+                  <div style={{ fontSize: '12px', color: '#5A5B75', marginTop: '4px' }}>
+                    Das <strong>{currentBedTime}</strong> às <strong>{currentWakeTime}</strong>
                   </div>
                 </div>
-                <span className="priority-badge low" style={{ fontSize: '0.7rem' }}>
-                  {sleepHours >= 7 ? 'Sono Ideal' : 'Sono Curto'}
+
+                <span
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    backgroundColor: sleepHours >= 7 ? 'rgba(16, 185, 129, 0.16)' : 'rgba(245, 158, 11, 0.18)',
+                    color: sleepHours >= 7 ? '#047857' : '#B45309'
+                  }}
+                >
+                  {sleepHours >= 7 ? 'Sono Ideal (≥7h)' : 'Sono Curto (<7h)'}
                 </span>
               </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* 5. REQUISITO 1: ROTINA DE HÁBITOS DIÁRIOS (ONDE SÃO ALOCADOS OS HÁBITOS) */}
-      <div className="section-header">
-        <div className="section-title-wrap">
-          <Clock size={18} color="var(--accent-cyan)" />
-          <h2 className="section-title">Rotina de Hábitos Diários</h2>
-          <span className="section-badge">{pendingHabits.length} Pendentes</span>
+        {/* COLUNA 3: CATEGORIAS / TEMAS */}
+        <div
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.52)',
+            backdropFilter: 'blur(18px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(18px) saturate(150%)',
+            borderRadius: '26px',
+            padding: '22px',
+            color: '#1A1B2F',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            border: '1px solid rgba(255, 255, 255, 0.65)',
+            boxShadow: '0 12px 32px rgba(20, 18, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85)'
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#211F38', color: '#C4B5FD', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Tag size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#1A1B2F', margin: 0 }}>Categorias / Temas</h3>
+                  <span style={{ fontSize: '11.5px', color: '#5A5B75' }}>{tags.length} temas ativos</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowTagCreator(!showTagCreator)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '999px',
+                  backgroundColor: '#211F38',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={12} />
+                <span>{showTagCreator ? 'Fechar' : 'Nova'}</span>
+              </button>
+            </div>
+
+            {/* Criador Rápido Inline de Categorias com Paleta */}
+            {showTagCreator && (
+              <form onSubmit={handleCreateTagSubmit} style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '14px', marginBottom: '12px', border: '1px solid #D5D6E0' }}>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Nome da categoria..."
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    autoFocus
+                    required
+                    style={{ flex: 1, padding: '6px 10px', borderRadius: '8px', border: '1px solid #C5C7DE', fontSize: '12px', color: '#1A1B2F', outline: 'none' }}
+                  />
+                  <button
+                    type="submit"
+                    style={{ padding: '6px 12px', borderRadius: '8px', backgroundColor: '#56548A', color: '#FFFFFF', border: 'none', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Adicionar
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '10.5px', color: '#5A5B75', fontWeight: 600 }}>Paleta:</span>
+                  {DEFAULT_PALETTES.map((pal, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setNewTagColor(pal)}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        backgroundColor: pal.color,
+                        border: newTagColor.color === pal.color ? '2px solid #1A1B2F' : '2px solid transparent',
+                        cursor: 'pointer'
+                      }}
+                      title={pal.name}
+                    />
+                  ))}
+                </div>
+              </form>
+            )}
+
+            {/* Lista de Tags Coloridas com opção de Excluir */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', maxHeight: '115px', overflowY: 'auto' }}>
+              {tags.map((t) => (
+                <span
+                  key={t.id || t.name}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: '999px',
+                    backgroundColor: '#FFFFFF',
+                    border: `1.5px solid ${t.color || '#56548A'}`,
+                    color: '#1A1B2F',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: t.color || '#56548A' }} />
+                  <span>{t.name}</span>
+                  {onDeleteTag && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onDeleteTag(t.id, t.name);
+                        showToast?.(`Categoria "${t.name}" excluída`, () => onAddTag?.(t));
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#7E7F9A',
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                      title={`Excluir ${t.name}`}
+                    >
+                      <X size={12} strokeWidth={2.5} />
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <button 
-          className="btn-primary"
-          style={{ padding: '6px 14px', fontSize: '0.82rem' }}
-          onClick={onOpenAdd}
-        >
-          <Plus size={16} strokeWidth={2.6} />
-          Adicionar Hábito
-        </button>
       </div>
 
-      <div className="habits-list">
-        {pendingHabits.length === 0 ? (
-          <div className="card-native" style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-secondary)' }}>
-            <CheckCircle2 size={36} color="var(--accent-cyan)" style={{ margin: '0 auto 12px' }} />
-            <h3 style={{ color: 'var(--text-primary)', fontSize: '1.05rem', marginBottom: '4px' }}>
-              Nenhum Hábito Pendente!
-            </h3>
-            <p style={{ fontSize: '0.82rem' }}>
-              Todos os seus hábitos da rotina diária foram concluídos ou você está em uma conta limpa. Clique em "Adicionar Hábito" para registrar um novo.
-            </p>
-          </div>
-        ) : (
-          pendingHabits.map((habit) => {
-            const IconComponent = CATEGORY_ICONS[habit.category] || BookOpen;
-            const habitTag = tags.find(t => t.id === habit.tagId || t.name === habit.category);
-            const progress = habit.target > 0 ? Math.round((habit.current / habit.target) * 100) : 0;
-            const priorityClass = habit.priority === 'Alta' ? 'high' : habit.priority === 'Média' ? 'medium' : 'low';
-            const priorityBorder = habit.priority === 'Alta' 
-              ? 'var(--accent-rose)' 
-              : habit.priority === 'Baixa' 
-                ? 'var(--accent-emerald)' 
-                : 'var(--accent-amber)';
-
-            return (
-              <div key={habit.id} className="habit-card-wide" style={{ borderLeft: `4px solid ${priorityBorder}` }}>
-                <div className="habit-category-box">
-                  <IconComponent size={24} />
-                </div>
-
-                <div className="habit-content-wrap">
-                  <div className="habit-top-row">
-                    <span className="habit-title">{habit.title}</span>
-
-                    {habitTag && (
-                      <span 
-                        className="tag-badge"
-                        style={{ color: habitTag.color, background: habitTag.bg, border: `1px solid ${habitTag.color}40` }}
-                      >
-                        {habitTag.name}
-                      </span>
-                    )}
-
-                    <span className={`priority-badge ${priorityClass}`}>
-                      {habit.priority}
-                    </span>
-
-                    <span className="effort-badge">
-                      Esforço: {habit.effort}
-                    </span>
-                  </div>
-
-                  <div className="habit-progress-line-wrap">
-                    <div className="habit-progress-track">
-                      <div 
-                        className="habit-progress-bar"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <span className="habit-meta-text">
-                      {habit.current} / {habit.target} {habit.unit}
-                    </span>
-                  </div>
-                </div>
-
-                {habit.completionStyle === 'numeric' ? (
-                  <button 
-                    className="habit-action-btn"
-                    onClick={() => incrementHabit(habit.id)}
-                    title="Adicionar +1 progresso"
-                  >
-                    <Plus size={16} strokeWidth={2.6} />
-                    <span>+1</span>
-                  </button>
-                ) : (
-                  <button 
-                    className="habit-action-btn"
-                    onClick={() => toggleHabit(habit.id)}
-                    title="Concluir Hábito"
-                  >
-                    <Check size={18} strokeWidth={2.6} />
-                    <span>Concluir</span>
-                  </button>
-                )}
+      {/* ================================================================== */}
+      {/* LINHA 3: ROTINA DE HÁBITOS DIÁRIOS + ACORDEÃO DE CONCLUÍDOS        */}
+      {/* ================================================================== */}
+      <div
+        style={{
+          backgroundColor: '#211F38',
+          borderRadius: '28px',
+          padding: '26px',
+          color: '#FFFFFF',
+          boxShadow: '0 16px 38px rgba(33, 31, 56, 0.2)'
+        }}
+      >
+        {/* Header da Rotina de Hábitos */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '42px', height: '42px', borderRadius: '14px', backgroundColor: '#56548A', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={20} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#FFFFFF', margin: 0 }}>
+                  Rotina de Hábitos Diários
+                </h2>
+                <span style={{ padding: '3px 10px', borderRadius: '999px', backgroundColor: '#353358', color: '#D0D2E8', fontSize: '11.5px', fontWeight: 600 }}>
+                  {pendingHabits.length} Pendentes
+                </span>
               </div>
-            );
-          })
+              <span style={{ fontSize: '12px', color: '#A9ABC6' }}>
+                Ordenados por prioridade (Alta, Média, Baixa) com controle de esforço e consistência
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenAdd}
+            style={{
+              padding: '9px 18px',
+              borderRadius: '999px',
+              backgroundColor: '#56548A',
+              color: '#FFFFFF',
+              border: 'none',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              boxShadow: '0 6px 16px rgba(86, 84, 138, 0.4)'
+            }}
+          >
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Adicionar Hábito</span>
+          </button>
+        </div>
+
+        {/* Campo de Criação Rápida Inline ("Criar hábito rápido... Pressione Enter") */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '12px 16px',
+            borderRadius: '16px',
+            backgroundColor: '#2C2A4A',
+            border: '1px solid rgba(255,255,255,0.1)',
+            marginBottom: '18px'
+          }}
+        >
+          <Plus size={16} color="#A9ABC6" />
+          <input
+            type="text"
+            placeholder="Criar hábito rápido... (Pressione Enter)"
+            value={quickHabitInput}
+            onChange={(e) => setQuickHabitInput(e.target.value)}
+            onKeyDown={handleQuickHabitKeyDown}
+            style={{
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: '#FFFFFF',
+              fontSize: '13px'
+            }}
+          />
+        </div>
+
+        {/* Lista de Hábitos Pendentes Ordenados por Prioridade */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {pendingHabits.length === 0 ? (
+            <div
+              style={{
+                backgroundColor: '#2C2A4A',
+                borderRadius: '20px',
+                padding: '28px 20px',
+                textAlign: 'center',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}
+            >
+              <CheckCircle2 size={28} color="#34D399" style={{ margin: '0 auto 8px' }} />
+              <div style={{ fontSize: '15px', fontWeight: 600, color: '#FFFFFF' }}>
+                Todos os hábitos de hoje foram concluídos!
+              </div>
+              <div style={{ fontSize: '12px', color: '#A9ABC6', marginTop: '4px' }}>
+                Use o campo acima ou clique em "+ Adicionar Hábito" para criar uma nova rotina.
+              </div>
+            </div>
+          ) : (
+            pendingHabits.map((habit) => {
+              const IconComponent = CATEGORY_ICONS[habit.category] || BookOpen;
+              const habitTag = tags.find(t => t.id === habit.tagId || t.name === habit.category);
+              const progress = habit.target > 0 ? Math.round((habit.current / habit.target) * 100) : 0;
+
+              const priorityColors = habit.priority === 'Alta'
+                ? { bg: 'rgba(244, 63, 94, 0.2)', color: '#FDA4AF', dot: '#F43F5E' }
+                : habit.priority === 'Baixa'
+                  ? { bg: 'rgba(16, 185, 129, 0.2)', color: '#6EE7B7', dot: '#10B981' }
+                  : { bg: 'rgba(245, 158, 11, 0.2)', color: '#FDE68A', dot: '#F59E0B' };
+
+              return (
+                <div
+                  key={habit.id}
+                  style={{
+                    backgroundColor: '#353358',
+                    borderRadius: '18px',
+                    padding: '16px 18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                    border: '1px solid rgba(255,255,255,0.07)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '12px',
+                        backgroundColor: '#211F38',
+                        color: '#C4B5FD',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      <IconComponent size={19} />
+                    </div>
+
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      {/* Linha de Título + Categoria + Prioridade + Esforço */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '14.5px', fontWeight: 600, color: '#FFFFFF' }}>
+                          {habit.title}
+                        </span>
+
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            padding: '2px 9px',
+                            borderRadius: '999px',
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            color: habitTag?.color || '#E2E4F0',
+                            fontWeight: 600
+                          }}
+                        >
+                          {habit.category || 'Geral'}
+                        </span>
+
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            padding: '2px 9px',
+                            borderRadius: '999px',
+                            backgroundColor: priorityColors.bg,
+                            color: priorityColors.color,
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px'
+                          }}
+                        >
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: priorityColors.dot }} />
+                          Prioridade {habit.priority || 'Média'}
+                        </span>
+
+                        <span style={{ fontSize: '11px', color: '#A9ABC6' }}>
+                          Esforço: <strong>{habit.effort || 'Médio'}</strong>
+                        </span>
+                      </div>
+
+                      {/* Barra de Progresso do Hábito */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ flex: 1, height: '6px', borderRadius: '999px', backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: `${progress}%`,
+                              height: '100%',
+                              borderRadius: '999px',
+                              backgroundColor: '#A5B4FC',
+                              transition: 'width 0.3s ease'
+                            }}
+                          />
+                        </div>
+                        <span style={{ fontSize: '11.5px', color: '#D0D2E8', fontWeight: 600, flexShrink: 0 }}>
+                          {habit.current} / {habit.target} {habit.unit}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botão de Conclusão: Toque Rápido ou Incremento Numérico (+1) */}
+                  {habit.completionStyle === 'numeric' || (habit.target && habit.target > 1) ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => incrementHabit(habit.id)}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '12px',
+                          backgroundColor: '#56548A',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                        title="Incrementar +1 no progresso"
+                      >
+                        <Plus size={14} strokeWidth={2.5} />
+                        <span>+1</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleHabit(habit.id)}
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '10px',
+                          backgroundColor: 'rgba(255,255,255,0.1)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer'
+                        }}
+                        title="Concluir tudo agora"
+                      >
+                        <Check size={16} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleHabit(habit.id)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '12px',
+                        backgroundColor: '#56548A',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        flexShrink: 0
+                      }}
+                      title="Marcar hábito como concluído"
+                    >
+                      <Check size={15} strokeWidth={2.5} />
+                      <span>Concluir</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Acordeão de Hábitos Concluídos (Seção recolhível com botão "Desfazer") */}
+        {completedHabits.length > 0 && (
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              type="button"
+              onClick={() => setShowCompletedAccordion(!showCompletedAccordion)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '14px',
+                backgroundColor: '#2C2A4A',
+                color: '#E2E4F0',
+                border: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 600
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span
+                  style={{
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    color: '#34D399',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Check size={13} strokeWidth={3} />
+                </span>
+                <span>Hábitos Concluídos Hoje ({completedHabits.length})</span>
+              </div>
+              {showCompletedAccordion ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+            </button>
+
+            {showCompletedAccordion && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                {completedHabits.map((habit) => (
+                  <div
+                    key={habit.id}
+                    style={{
+                      backgroundColor: '#2A2845',
+                      borderRadius: '14px',
+                      padding: '12px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      opacity: 0.85
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <span
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '6px',
+                          backgroundColor: '#10B981',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}
+                      >
+                        <Check size={13} strokeWidth={3} />
+                      </span>
+                      <div>
+                        <div style={{ fontSize: '13.5px', fontWeight: 500, color: '#C5C7DE', textDecoration: 'line-through' }}>
+                          {habit.title}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#8E90B0' }}>
+                          {habit.category} • {habit.target} {habit.unit} • Concluído
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleHabit(habit.id)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '999px',
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        color: '#E2E4F0',
+                        border: 'none',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        flexShrink: 0
+                      }}
+                    >
+                      Desfazer
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      {/* ACORDEÃO PARA HÁBITOS CONCLUÍDOS */}
-      {completedHabits.length > 0 && (
-        <div style={{ marginTop: '16px' }}>
-          <div 
-            className="accordion-header"
-            onClick={() => setShowCompletedAccordion(!showCompletedAccordion)}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle2 size={16} color="var(--accent-emerald)" />
-              <span>Hábitos Concluídos Hoje ({completedHabits.length})</span>
-            </div>
-            {showCompletedAccordion ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </div>
-
-          {showCompletedAccordion && (
-            <div className="habits-list" style={{ marginTop: '10px' }}>
-              {completedHabits.map((habit) => (
-                <div 
-                  key={habit.id} 
-                  className="habit-card-wide" 
-                  style={{ opacity: 0.75, background: 'rgba(17, 23, 36, 0.6)' }}
-                >
-                  <div className="habit-category-box" style={{ color: 'var(--accent-emerald)' }}>
-                    <Check size={22} strokeWidth={2.6} />
-                  </div>
-
-                  <div className="habit-content-wrap">
-                    <div className="habit-top-row">
-                      <span className="habit-title" style={{ textDecoration: 'line-through', color: 'var(--text-secondary)' }}>
-                        {habit.title}
-                      </span>
-                      <span className="priority-badge low">Concluído</span>
-                    </div>
-                    <div className="habit-progress-line-wrap">
-                      <div className="habit-progress-track">
-                        <div className="habit-progress-bar" style={{ width: '100%', background: 'var(--accent-emerald)' }} />
-                      </div>
-                      <span className="habit-meta-text">{habit.target} {habit.unit}</span>
-                    </div>
-                  </div>
-
-                  <button 
-                    className="habit-action-btn completed"
-                    onClick={() => toggleHabit(habit.id)}
-                    title="Desmarcar tarefa"
-                  >
-                    <Check size={16} strokeWidth={2.6} />
-                    <span>Feito</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

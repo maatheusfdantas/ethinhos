@@ -94,23 +94,36 @@ export const INITIAL_TAGS = [
 export const INITIAL_WORKOUTS = [
   {
     id: 'wo_a',
-    name: 'Treino A - Peito, Ombro e Tríceps',
-    scheduledDays: [1], // Segundas
+    name: 'Treino A (Peito & Tríceps)',
+    scheduledDays: [2], // Terças
     scheduledTime: '18:30',
     exercises: [
-      { id: 'ex_1', name: 'Supino Reto com Barra', sets: 4, reps: 10, weightKg: 80, restSec: 90, showWeight: true, showRestTimer: true },
-      { id: 'ex_2', name: 'Desenvolvimento Militar', sets: 3, reps: 12, weightKg: 40, restSec: 60, showWeight: true, showRestTimer: true },
-      { id: 'ex_3', name: 'Tríceps Corda na Polia', sets: 4, reps: 15, weightKg: 25, restSec: 45, showWeight: true, showRestTimer: true }
+      { id: 'ex_1', name: 'Supino Reto', sets: 4, reps: 4, weightKg: 65, restSec: 90, showWeight: true, showRestTimer: true },
+      { id: 'ex_2', name: 'Supino Inclinado', sets: 3, reps: 10, weightKg: 55, restSec: 60, showWeight: true, showRestTimer: true },
+      { id: 'ex_3', name: 'Crossover na Polia', sets: 3, reps: 12, weightKg: 15, restSec: 60, showWeight: true, showRestTimer: true },
+      { id: 'ex_4', name: 'Tríceps Testa', sets: 3, reps: 10, weightKg: 26, restSec: 45, showWeight: true, showRestTimer: true }
     ]
   },
   {
     id: 'wo_b',
-    name: 'Treino B - Costas e Bíceps',
-    scheduledDays: [3], // Quartas
+    name: 'Treino B (Costas & Bíceps)',
+    scheduledDays: [4], // Quintas
     scheduledTime: '18:30',
     exercises: [
-      { id: 'ex_4', name: 'Puxada Frontal Alta', sets: 4, reps: 12, weightKg: 65, restSec: 60, showWeight: true, showRestTimer: true },
-      { id: 'ex_5', name: 'Remada Curvada', sets: 4, reps: 10, weightKg: 70, restSec: 90, showWeight: true, showRestTimer: true }
+      { id: 'ex_5', name: 'Puxada Frontal Alta', sets: 4, reps: 12, weightKg: 65, restSec: 60, showWeight: true, showRestTimer: true },
+      { id: 'ex_6', name: 'Remada Curvada', sets: 4, reps: 10, weightKg: 70, restSec: 90, showWeight: true, showRestTimer: true },
+      { id: 'ex_7', name: 'Rosca Direta Barra W', sets: 3, reps: 12, weightKg: 30, restSec: 60, showWeight: true, showRestTimer: true }
+    ]
+  },
+  {
+    id: 'wo_c',
+    name: 'Treino C (Pernas & Ombros)',
+    scheduledDays: [6], // Sábados
+    scheduledTime: '10:00',
+    exercises: [
+      { id: 'ex_8', name: 'Agachamento Livre', sets: 4, reps: 8, weightKg: 90, restSec: 120, showWeight: true, showRestTimer: true },
+      { id: 'ex_9', name: 'Leg Press 45°', sets: 4, reps: 12, weightKg: 180, restSec: 90, showWeight: true, showRestTimer: true },
+      { id: 'ex_10', name: 'Desenvolvimento com Halteres', sets: 3, reps: 10, weightKg: 24, restSec: 60, showWeight: true, showRestTimer: true }
     ]
   }
 ];
