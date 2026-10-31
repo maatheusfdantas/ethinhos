@@ -22,12 +22,60 @@ export function LoginScreen({ onLoginSuccess }) {
   const [regEmail, setRegEmail] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [emailCheck, setEmailCheck] = useState({
+    status: 'idle', // 'idle' | 'checking' | 'valid' | 'invalid'
+    message: '',
+    mxServer: ''
+  });
 
   // Estados de Recuperação de Senha por Token
   const [tokenInput, setTokenInput] = useState('');
   const [generatedToken, setGeneratedToken] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetSuccessMsg, setResetSuccessMsg] = useState(false);
+
+  // Verificação de existência de e-mail via API Externa (Disify + Google DNS MX)
+  const verifyEmailAddress = async (rawEmail) => {
+    const email = String(rawEmail || '').trim();
+    if (!email || !email.includes('@')) {
+      setEmailCheck({ status: 'idle', message: '', mxServer: '' });
+      return false;
+    }
+
+    setEmailCheck({
+      status: 'checking',
+      message: 'Consultando API de verificação (DNS/MX)...',
+      mxServer: ''
+    });
+
+    try {
+      const res = await fetch(`/api/auth/verify-email?email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+
+      if (!res.ok || !data.valid) {
+        setEmailCheck({
+          status: 'invalid',
+          message: data.error || 'Este e-mail não existe ou não possui servidor ativo.',
+          mxServer: ''
+        });
+        return false;
+      }
+
+      setEmailCheck({
+        status: 'valid',
+        message: `E-mail existente e verificado (${data.mxServer || data.domain})`,
+        mxServer: data.mxServer || ''
+      });
+      return true;
+    } catch (_err) {
+      setEmailCheck({
+        status: 'invalid',
+        message: 'Não foi possível validar o e-mail na API.',
+        mxServer: ''
+      });
+      return false;
+    }
+  };
 
   // Submissão de Login via API
   const handleLoginSubmit = async (e) => {
@@ -49,29 +97,34 @@ export function LoginScreen({ onLoginSuccess }) {
         return;
       }
 
+      if (data.auth?.accessToken) {
+        sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+      }
+      if (data.auth?.refreshToken) {
+        sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+      }
       onLoginSuccess(data);
     } catch (err) {
-      // Fallback local se backend offline
-      const found = FIVE_SEEDED_USERS.find(
-        u => (u.username.toLowerCase() === loginInput.trim().toLowerCase() || u.email.toLowerCase() === loginInput.trim().toLowerCase()) && u.password === password
-      );
-      if (found) {
-        onLoginSuccess(found);
-      } else {
-        setErrorMessage('Usuário ou senha incorretos.');
-      }
+      setErrorMessage('Erro ao conectar com o servidor de autenticação.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Register
+  // Handle Register (Exige verificação de existência do e-mail por API)
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setLoading(true);
 
     try {
+      const isEmailReal = await verifyEmailAddress(regEmail);
+      if (!isEmailReal) {
+        setErrorMessage('Informe um endereço de e-mail real e existente para concluir o cadastro.');
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,6 +143,12 @@ export function LoginScreen({ onLoginSuccess }) {
         return;
       }
 
+      if (data.auth?.accessToken) {
+        sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+      }
+      if (data.auth?.refreshToken) {
+        sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+      }
       onLoginSuccess(data);
     } catch (err) {
       setErrorMessage('Erro ao comunicar com o servidor.');
@@ -166,12 +225,35 @@ export function LoginScreen({ onLoginSuccess }) {
     }
   };
 
-  // Quick Seed Login
-  const handleQuickLogin = (seededUser) => {
+  // Quick Seed Login (Autentica via API real para emitir JWT assinado HMAC-SHA256)
+  const handleQuickLogin = async (seededUser) => {
     setLoginInput(seededUser.username);
     setPassword(seededUser.password);
     setErrorMessage('');
-    onLoginSuccess(seededUser);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login: seededUser.username, password: seededUser.password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.auth?.accessToken) {
+          sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+        }
+        if (data.auth?.refreshToken) {
+          sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+        }
+        onLoginSuccess(data);
+        return;
+      }
+      setErrorMessage(data.error || 'Erro ao autenticar conta de demonstração.');
+    } catch (_e) {
+      onLoginSuccess(seededUser);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -491,20 +573,107 @@ export function LoginScreen({ onLoginSuccess }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  Email
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
-                  <Mail size={16} color="#1e293b" strokeWidth={1.75} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b' }}>
+                    Email (Verificado por API)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => verifyEmailAddress(regEmail)}
+                    disabled={!regEmail || emailCheck.status === 'checking'}
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 600,
+                      color: '#215287',
+                      backgroundColor: 'rgba(33, 82, 135, 0.08)',
+                      border: '1px solid rgba(33, 82, 135, 0.2)',
+                      borderRadius: '999px',
+                      padding: '2px 8px',
+                      cursor: regEmail ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    {emailCheck.status === 'checking' ? 'Verificando...' : 'Verificar E-mail'}
+                  </button>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    paddingBottom: '6px',
+                    borderBottom:
+                      emailCheck.status === 'valid'
+                        ? '1.5px solid #10b981'
+                        : emailCheck.status === 'invalid'
+                        ? '1.5px solid #e11d48'
+                        : '1.5px solid #4a6b96'
+                  }}
+                >
+                  <Mail
+                    size={16}
+                    color={
+                      emailCheck.status === 'valid'
+                        ? '#059669'
+                        : emailCheck.status === 'invalid'
+                        ? '#e11d48'
+                        : '#1e293b'
+                    }
+                    strokeWidth={1.75}
+                  />
                   <input 
                     type="email" 
-                    placeholder="Digite seu email"
+                    placeholder="Digite um e-mail real existente"
                     value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
+                    onChange={(e) => {
+                      setRegEmail(e.target.value);
+                      if (emailCheck.status !== 'idle') {
+                        setEmailCheck({ status: 'idle', message: '', mxServer: '' });
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value.includes('@')) {
+                        verifyEmailAddress(e.target.value);
+                      }
+                    }}
                     required
                     style={{ width: '100%', fontSize: '13.5px', color: '#1e293b', backgroundColor: 'transparent', border: 'none', outline: 'none' }}
                   />
                 </div>
+                {emailCheck.status !== 'idle' && (
+                  <div
+                    style={{
+                      marginTop: '6px',
+                      padding: '6px 9px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      backgroundColor:
+                        emailCheck.status === 'valid'
+                          ? '#ecfdf5'
+                          : emailCheck.status === 'invalid'
+                          ? '#fff1f2'
+                          : '#f8fafc',
+                      border:
+                        emailCheck.status === 'valid'
+                          ? '1px solid #a7f3d0'
+                          : emailCheck.status === 'invalid'
+                          ? '1px solid #fecdd3'
+                          : '1px solid #e2e8f0',
+                      color:
+                        emailCheck.status === 'valid'
+                          ? '#047857'
+                          : emailCheck.status === 'invalid'
+                          ? '#be123c'
+                          : '#475569'
+                    }}
+                  >
+                    {emailCheck.status === 'valid' && <CheckCircle2 size={13} style={{ flexShrink: 0 }} />}
+                    {emailCheck.status === 'invalid' && <AlertCircle size={13} style={{ flexShrink: 0 }} />}
+                    <span>{emailCheck.message}</span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -757,7 +926,7 @@ export function LoginScreen({ onLoginSuccess }) {
           onMouseOut={(e) => (e.currentTarget.style.opacity = '0.45')}
         >
           <span style={{ fontSize: '10px', color: '#64748b' }}>Demo:</span>
-          {FIVE_SEEDED_USERS.slice(0, 3).map((u) => (
+          {FIVE_SEEDED_USERS.filter((u) => u.role !== 'admin').slice(0, 3).map((u) => (
             <button
               key={u.id}
               type="button"

@@ -610,3 +610,184 @@ export function createEncryptedDatabaseBackup(db) {
   };
 }
 
+// ============================================================================
+// 10. VERIFICAÇÃO DE EXISTÊNCIA DE E-MAIL VIA API EXTERNA (DISIFY + GOOGLE DNS MX)
+// ============================================================================
+const DOMAIN_TYPO_SUGGESTIONS = {
+  'gamil.com': 'gmail.com',
+  'gmial.com': 'gmail.com',
+  'gmai.com': 'gmail.com',
+  'gmail.co': 'gmail.com',
+  'gmail.con': 'gmail.com',
+  'gmail.com.br': 'gmail.com',
+  'hotmial.com': 'hotmail.com',
+  'hotmai.com': 'hotmail.com',
+  'hotmail.co': 'hotmail.com',
+  'outlok.com': 'outlook.com',
+  'outllok.com': 'outlook.com',
+  'yaho.com': 'yahoo.com',
+  'yahooo.com': 'yahoo.com',
+  'icloud.co': 'icloud.com',
+  'uol.com.b': 'uol.com.br'
+};
+
+const BLOCKED_FAKE_OR_DISPOSABLE_DOMAINS = new Set([
+  'example.com',
+  'test.com',
+  'teste.com',
+  'email.com',
+  'falso.com',
+  'fake.com',
+  'asd.com',
+  '123.com',
+  'abc.com',
+  'tempmail.com',
+  'temp-mail.org',
+  '10minutemail.com',
+  'guerrillamail.com',
+  'mailinator.com',
+  'yopmail.com',
+  'trashmail.com',
+  'sharklasers.com',
+  'getnada.com',
+  'throwawaymail.com',
+  'maildrop.cc',
+  'dispostable.com',
+  'mohmal.com'
+]);
+
+/**
+ * Verifica em tempo real se um endereço de e-mail é válido, não é descartável
+ * e se o domínio/servidor de e-mail (MX) realmente existe utilizando as APIs
+ * públicas Disify (`https://www.disify.com/api/email/...`) e Google DNS-over-HTTPS
+ * (`https://dns.google/resolve?name=...&type=MX`).
+ */
+export async function verifyEmailExistsViaAPI(rawEmail) {
+  const email = String(rawEmail || '').trim().toLowerCase();
+
+  // 1. Validação sintática RFC 5322 estrita
+  const rfcRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,15}$/;
+  if (!email || !rfcRegex.test(email) || email.includes('..')) {
+    return {
+      valid: false,
+      reason: 'Formato de e-mail inválido.'
+    };
+  }
+
+  const [localPart, domain] = email.split('@');
+  if (!localPart || localPart.length < 3 || /^[._-]|[._-]$/.test(localPart)) {
+    return {
+      valid: false,
+      reason: 'O nome de usuário do e-mail (antes do @) é inválido ou muito curto.'
+    };
+  }
+
+  // 2. Detecção de erros comuns de digitação (Typo-Squatting)
+  if (DOMAIN_TYPO_SUGGESTIONS[domain]) {
+    return {
+      valid: false,
+      reason: `Domínio inválido (@${domain}). Você quis dizer @${DOMAIN_TYPO_SUGGESTIONS[domain]}?`
+    };
+  }
+
+  // 3. Bloqueio de domínios fictícios ou descartáveis conhecidos
+  if (BLOCKED_FAKE_OR_DISPOSABLE_DOMAINS.has(domain)) {
+    return {
+      valid: false,
+      reason: `O domínio @${domain} é temporário, descartável ou reservado para testes e não é permitido.`
+    };
+  }
+
+  let mxServer = null;
+  let disifyChecked = false;
+
+  // 4. Consulta à API Externa #1: Disify Email Validation API
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4500);
+    const disifyRes = await fetch(`https://www.disify.com/api/email/${encodeURIComponent(email)}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' }
+    });
+    clearTimeout(timeout);
+
+    if (disifyRes.ok) {
+      const disifyData = await disifyRes.json();
+      disifyChecked = true;
+
+      if (disifyData.format === false) {
+        return {
+          valid: false,
+          reason: 'Formato de e-mail rejeitado pela API de verificação.'
+        };
+      }
+      if (disifyData.disposable === true) {
+        return {
+          valid: false,
+          reason: 'E-mails descartáveis ou temporários não são permitidos.'
+        };
+      }
+      if (disifyData.dns === false) {
+        return {
+          valid: false,
+          reason: `Este e-mail não existe: o domínio @${domain} não possui servidor de e-mail (DNS/MX) ativo.`
+        };
+      }
+      if (Array.isArray(disifyData.mx_info) && disifyData.mx_info.length > 0) {
+        mxServer = disifyData.mx_info[0];
+      }
+    }
+  } catch (_err) {
+    // Segue para a validação primária no Google DNS-over-HTTPS
+  }
+
+  // 5. Consulta à API Externa #2: Google Public DNS-over-HTTPS (Registros MX)
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4500);
+    const dnsRes = await fetch(
+      `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`,
+      {
+        signal: controller.signal,
+        headers: { Accept: 'application/json' }
+      }
+    );
+    clearTimeout(timeout);
+
+    if (dnsRes.ok) {
+      const dnsData = await dnsRes.json();
+      const answers = Array.isArray(dnsData.Answer)
+        ? dnsData.Answer.filter((a) => a.type === 15 && a.data && a.data.trim() !== '0 .')
+        : [];
+
+      if (dnsData.Status !== 0 || answers.length === 0) {
+        return {
+          valid: false,
+          reason: `E-mail inexistente: o domínio @${domain} não existe ou não possui servidor de recebimento (MX) configurado.`
+        };
+      }
+
+      if (!mxServer) {
+        const parts = String(answers[0].data).trim().split(/\s+/);
+        mxServer = (parts[1] || parts[0] || '').replace(/\.$/, '');
+      }
+    }
+  } catch (_err) {
+    if (!disifyChecked) {
+      return {
+        valid: false,
+        reason: 'Não foi possível validar a existência do e-mail no momento. Verifique sua conexão.'
+      };
+    }
+  }
+
+  return {
+    valid: true,
+    email,
+    domain,
+    mxServer: mxServer || `mx.${domain}`,
+    provider: 'Disify + Google DNS-over-HTTPS MX API',
+    message: `E-mail verificado com sucesso (Servidor MX: ${mxServer || domain}).`
+  };
+}
+

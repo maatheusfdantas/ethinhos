@@ -260,6 +260,12 @@ export function App() {
 
   // Handler: Login Success (US35)
   const handleLoginSuccess = (authenticatedUser) => {
+    if (authenticatedUser?.auth?.accessToken) {
+      sessionStorage.setItem('ethos_access_token', authenticatedUser.auth.accessToken);
+    }
+    if (authenticatedUser?.auth?.refreshToken) {
+      sessionStorage.setItem('ethos_refresh_token', authenticatedUser.auth.refreshToken);
+    }
     setUser(authenticatedUser);
     setShowWelcomeIntro(true);
     setBootKey(prev => prev + 1);
@@ -275,6 +281,8 @@ export function App() {
     setUser(null);
     setShowWelcomeIntro(false);
     sessionStorage.removeItem('ethos_current_user');
+    sessionStorage.removeItem('ethos_access_token');
+    sessionStorage.removeItem('ethos_refresh_token');
     localStorage.removeItem('ethos_current_user');
     setShowAuthModal(false);
     setShowProfileModal(false);

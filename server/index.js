@@ -20,7 +20,11 @@ import {
   securityHeadersMiddleware,
   sanitizeObject,
   logSecurityEvent,
-  createEncryptedDatabaseBackup
+  createEncryptedDatabaseBackup,
+  verifyEmailExistsViaAPI,
+  authenticateJWT,
+  enforceOwnership,
+  requireAdmin
 } from './security.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -165,8 +169,21 @@ app.post('/api/auth/login', authRateLimiter, (req, res) => {
   });
 });
 
-// Cadastro com senha hasheada via scrypt + salt individual
-app.post('/api/auth/register', authRateLimiter, (req, res) => {
+// Endpoint dedicado para verificação em tempo real da existência do e-mail via API externa
+app.get('/api/auth/verify-email', authRateLimiter, async (req, res) => {
+  const email = String(req.query.email || '').trim();
+  const check = await verifyEmailExistsViaAPI(email);
+  if (!check.valid) {
+    return res.status(422).json({
+      valid: false,
+      error: check.reason
+    });
+  }
+  return res.json(check);
+});
+
+// Cadastro com verificação real de existência de e-mail via API + senha hasheada via scrypt + salt individual
+app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   const { name, email, username, password } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
@@ -174,6 +191,14 @@ app.post('/api/auth/register', authRateLimiter, (req, res) => {
 
   if (String(password).length < 6) {
     return res.status(400).json({ error: 'A senha deve possuir pelo menos 6 caracteres.' });
+  }
+
+  // Verificação obrigatória de existência do e-mail via APIs externas (Disify + Google DNS MX)
+  const emailVerification = await verifyEmailExistsViaAPI(email);
+  if (!emailVerification.valid) {
+    return res.status(422).json({
+      error: emailVerification.reason || 'O e-mail informado não existe ou não pôde ser verificado.'
+    });
   }
 
   const cleanUsername = username?.trim() || email.split('@')[0];
@@ -363,6 +388,10 @@ app.post('/api/auth/reset-password', authRateLimiter, (req, res) => {
 
   res.json({ success: true, message: 'Senha atualizada com scrypt e sessões antigas revogadas!' });
 });
+
+// Proteção Anti-IDOR e Autenticação JWT Obrigatória para todas as rotas de dados do usuário
+app.use('/api/user/:id', authenticateJWT, enforceOwnership('id'));
+app.use('/api/admin', authenticateJWT, requireAdmin);
 
 // Atualizar Perfil (Sem Mass Assignment de role/permissions)
 app.put('/api/user/:id/profile', (req, res) => {
