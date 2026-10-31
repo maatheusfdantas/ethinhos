@@ -10,7 +10,8 @@ compatibility_date = "2025-04-01"
 # ou via CLI (`npx wrangler d1 create ethos-db`), o backend `functions/api/[[path]].js`
 # cria e popula automaticamente todas as tabelas relacionais na primeira requisição.
 #
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "ethos-db"
-# database_id = "COLE_O_DATABASE_ID_GERADO_PELO_WRANGLER_AQUI"
+[[d1_databases]]
+binding = "DB"
+database_name = "ethos-db"
+database_id = "3c7da96b-92c2-4d9b-8f1a-48bee2493535"
+
