@@ -39,6 +39,11 @@ CREATE TABLE IF NOT EXISTS habits (
   effort TEXT NOT NULL DEFAULT 'Médio',
   priority TEXT NOT NULL DEFAULT 'Média',
   tag_id TEXT,
+  subclass_id TEXT,
+  subclass_name TEXT,
+  tracking_type TEXT NOT NULL DEFAULT 'done',
+  period_type TEXT NOT NULL DEFAULT 'day',
+  period_config TEXT NOT NULL DEFAULT '{}',
   repeat_days TEXT NOT NULL DEFAULT '[1,2,3,4,5]',
   completed INTEGER NOT NULL DEFAULT 0,
   completion_style TEXT NOT NULL DEFAULT 'quick',
@@ -79,7 +84,45 @@ CREATE TABLE IF NOT EXISTS tags (
   name TEXT NOT NULL,
   color TEXT NOT NULL,
   bg TEXT NOT NULL,
-  icon TEXT NOT NULL DEFAULT 'Bookmark'
+  icon TEXT NOT NULL DEFAULT 'Bookmark',
+  is_shared INTEGER NOT NULL DEFAULT 0,
+  has_subclasses INTEGER NOT NULL DEFAULT 0
+);
+
+-- ============================================================================
+-- ARQUITETURA DE CATEGORIAS DINÂMICAS E MODULARES (NÚCLEO + CAPACIDADES)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  color TEXT NOT NULL,
+  bg TEXT NOT NULL DEFAULT 'rgba(129, 140, 248, 0.15)',
+  icon TEXT NOT NULL DEFAULT 'Bookmark',
+  is_shared INTEGER NOT NULL DEFAULT 0,
+  has_subclasses INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS subclasses (
+  id TEXT PRIMARY KEY,
+  category_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'Média',
+  metadata TEXT NOT NULL DEFAULT '{"hours":0}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS category_members (
+  id TEXT PRIMARY KEY,
+  category_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  member_email TEXT,
+  member_name TEXT,
+  role TEXT NOT NULL DEFAULT 'collaborator',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS checkins (
@@ -127,3 +170,4 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   used INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
 );
+

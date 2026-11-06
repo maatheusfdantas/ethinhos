@@ -476,11 +476,23 @@ app.post('/api/system/reset', (_req, res) => {
 app.get('/api/user/:id/data', (req, res) => {
   const { id } = req.params;
 
-  const habits = db.prepare(`SELECT * FROM habits WHERE user_id = ?`).all(id).map((h) => ({
-    ...h,
-    completed: h.completed === 1,
-    repeatDays: JSON.parse(h.repeat_days || '[1,2,3,4,5]')
-  }));
+  const habits = db.prepare(`SELECT * FROM habits WHERE user_id = ?`).all(id).map((h) => {
+    let parsedConfig = {};
+    try {
+      parsedConfig = JSON.parse(h.period_config || '{}');
+    } catch (_e) {}
+
+    return {
+      ...h,
+      subclassId: h.subclass_id || null,
+      subclassName: h.subclass_name || null,
+      trackingType: h.tracking_type || (h.completion_style === 'numeric' || h.completion_style === 'increment' ? 'counter' : 'done'),
+      periodType: h.period_type || 'day',
+      periodConfig: parsedConfig,
+      completed: h.completed === 1,
+      repeatDays: JSON.parse(h.repeat_days || '[1,2,3,4,5]')
+    };
+  });
 
   // Descriptografa observações pessoais (notes) com AES-256-GCM ao entregar ao titular
   const events = db
@@ -519,7 +531,62 @@ app.get('/api/user/:id/data', (req, res) => {
     };
   }
 
-  const tags = db.prepare(`SELECT * FROM tags WHERE user_id = ? OR user_id = 'global'`).all(id);
+  const rawCategories = db
+    .prepare(`SELECT * FROM categories WHERE user_id = ? OR user_id = 'global'`)
+    .all(id);
+  const customTags = db
+    .prepare(`SELECT * FROM tags WHERE user_id = ? OR user_id = 'global'`)
+    .all(id);
+
+  const mergedCatMap = new Map();
+  for (const c of [...rawCategories, ...customTags]) {
+    if (!mergedCatMap.has(c.id)) {
+      const subs = db
+        .prepare(`SELECT * FROM subclasses WHERE category_id = ? ORDER BY created_at ASC`)
+        .all(c.id)
+        .map((s) => {
+          let meta = { hours: 0 };
+          try {
+            meta = JSON.parse(s.metadata || '{"hours":0}');
+          } catch (_e) {}
+          return {
+            id: s.id,
+            category_id: s.category_id,
+            name: s.name,
+            priority: s.priority || 'Média',
+            hours: Number(meta.hours || 0),
+            metadata: meta
+          };
+        });
+
+      const members = db
+        .prepare(`SELECT * FROM category_members WHERE category_id = ? ORDER BY created_at ASC`)
+        .all(c.id)
+        .map((m) => ({
+          id: m.id,
+          category_id: m.category_id,
+          user_id: m.user_id,
+          email: m.member_email,
+          name: m.member_name || (m.member_email ? m.member_email.split('@')[0] : 'Membro'),
+          role: m.role || 'collaborator'
+        }));
+
+      mergedCatMap.set(c.id, {
+        id: c.id,
+        user_id: c.user_id,
+        name: c.name,
+        color: c.color,
+        bg: c.bg,
+        icon: c.icon || 'Bookmark',
+        is_shared: Boolean(c.is_shared),
+        has_subclasses: Boolean(c.has_subclasses) && subs.length > 0,
+        subclasses: subs,
+        members
+      });
+    }
+  }
+
+  const tags = Array.from(mergedCatMap.values());
 
   const user = db
     .prepare(
@@ -527,7 +594,7 @@ app.get('/api/user/:id/data', (req, res) => {
     )
     .get(id);
 
-  res.json({ habits, events, health, tags, user });
+  res.json({ habits, events, health, tags, categories: tags, user });
 });
 
 // Criar Hábito
@@ -535,13 +602,16 @@ app.post('/api/user/:id/habit', (req, res) => {
   const { id } = req.params;
   const habit = req.body;
   const habitId = habit.id || `hab_${Date.now()}`;
+  const trackingType = habit.trackingType || (habit.completionStyle === 'numeric' || habit.completionStyle === 'increment' ? 'counter' : 'done');
+  const periodType = habit.periodType || 'day';
+  const periodConfig = typeof habit.periodConfig === 'object' ? JSON.stringify(habit.periodConfig) : (habit.periodConfig || '{}');
 
   db.prepare(`
     INSERT INTO habits (
       id, user_id, title, category, icon_name, target, current,
-      unit, effort, priority, tag_id, repeat_days, completed,
-      completion_style, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      unit, effort, priority, tag_id, subclass_id, subclass_name,
+      repeat_days, completed, completion_style, tracking_type, period_type, period_config, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     habitId,
     id,
@@ -554,22 +624,36 @@ app.post('/api/user/:id/habit', (req, res) => {
     habit.effort || 'Médio',
     habit.priority || 'Média',
     habit.tagId || null,
+    habit.subclassId || null,
+    habit.subclassName || null,
     JSON.stringify(habit.repeatDays || [1, 2, 3, 4, 5]),
     habit.completed ? 1 : 0,
-    habit.completionStyle || 'quick',
+    habit.completionStyle || (trackingType === 'counter' ? 'increment' : 'quick'),
+    trackingType,
+    periodType,
+    periodConfig,
     new Date().toISOString()
   );
 
   res.status(201).json({ success: true, id: habitId });
 });
 
-// Atualizar Hábito
+// Atualizar Hábito (com suporte opcional a sub-classe coringa no dia)
 app.put('/api/user/:id/habit/:habitId', (req, res) => {
   const { id, habitId } = req.params;
-  const { current, completed } = req.body;
-  db.prepare(`UPDATE habits SET current = ?, completed = ? WHERE id = ? AND user_id = ?`).run(
+  const { current, completed, subclassId, subclassName } = req.body;
+  db.prepare(`
+    UPDATE habits SET
+      current = ?,
+      completed = ?,
+      subclass_id = COALESCE(?, subclass_id),
+      subclass_name = COALESCE(?, subclass_name)
+    WHERE id = ? AND user_id = ?
+  `).run(
     current,
     completed ? 1 : 0,
+    subclassId !== undefined ? subclassId : null,
+    subclassName !== undefined ? subclassName : null,
     habitId,
     id
   );
@@ -593,8 +677,9 @@ app.post('/api/user/:id/event', (req, res) => {
   db.prepare(`
     INSERT INTO events (
       id, user_id, title, date, all_day, start_time, end_time,
-      category, repeat_rule, location, notes, priority, completed, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+      category, subclass_id, subclass_name, author_name,
+      repeat_rule, location, notes, priority, completed, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
   `).run(
     eventId,
     id,
@@ -604,6 +689,9 @@ app.post('/api/user/:id/event', (req, res) => {
     event.startTime || '09:00',
     event.endTime || '10:00',
     event.category || 'Geral',
+    event.subclassId || null,
+    event.subclassName || null,
+    event.authorName || null,
     event.repeat || 'Nunca',
     event.location || '',
     encryptedNotes,
@@ -633,24 +721,155 @@ app.delete('/api/user/:id/event/:eventId', (req, res) => {
   res.json({ success: true });
 });
 
-// Criar Nova Categoria / Tema
+// Passo A: Criação Rápida de Categoria (Nasce puramente Básica: is_shared = false, has_subclasses = false)
 app.post('/api/user/:id/tag', (req, res) => {
   const { id } = req.params;
-  const { name, color, bg, icon } = req.body;
-  const tagId = `tag_${Date.now()}`;
+  const { id: customId, name, color, bg, icon } = req.body;
+  const tagId = customId || `tag_${Date.now()}`;
+  const nowIso = new Date().toISOString();
 
   db.prepare(`
-    INSERT INTO tags (id, user_id, name, color, bg, icon)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(tagId, id, name, color, bg, icon || 'Bookmark');
+    INSERT OR REPLACE INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?)
+  `).run(tagId, id, name, color, bg || 'rgba(129, 140, 248, 0.15)', icon || 'Bookmark', nowIso);
 
-  res.status(201).json({ success: true, tag: { id: tagId, name, color, bg, icon: icon || 'Bookmark' } });
+  db.prepare(`
+    INSERT OR REPLACE INTO tags (id, user_id, name, color, bg, icon, is_shared, has_subclasses)
+    VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+  `).run(tagId, id, name, color, bg || 'rgba(129, 140, 248, 0.15)', icon || 'Bookmark');
+
+  res.status(201).json({
+    success: true,
+    tag: {
+      id: tagId,
+      user_id: id,
+      name,
+      color,
+      bg: bg || 'rgba(129, 140, 248, 0.15)',
+      icon: icon || 'Bookmark',
+      is_shared: false,
+      has_subclasses: false,
+      subclasses: [],
+      members: []
+    }
+  });
+});
+
+// Passo B & Passo D: Evolução para Configuração Avançada de Categoria (Sub-classes + Compartilhamento + Restrição Antibug)
+app.put('/api/user/:id/category/:catId/config', (req, res) => {
+  const { id, catId } = req.params;
+  const { name, color, bg, icon, is_shared, has_subclasses, subclasses = [], members = [] } = req.body;
+
+  // Restrição Antibug: impede que existam sub-classes vazias caso has_subclasses esteja ativo
+  if (has_subclasses && (!Array.isArray(subclasses) || subclasses.length === 0)) {
+    return res.status(400).json({
+      error: 'Restrição Antibug: Para ativar Sub-classes / Matérias, é obrigatório cadastrar pelo menos 1 sub-classe.'
+    });
+  }
+
+  const nowIso = new Date().toISOString();
+  const existingCat = db.prepare(`SELECT * FROM categories WHERE id = ? OR name = ?`).get(catId, name || catId);
+  const resolvedId = existingCat?.id || catId;
+
+  if (existingCat) {
+    db.prepare(`
+      UPDATE categories SET
+        name = COALESCE(?, name),
+        color = COALESCE(?, color),
+        bg = COALESCE(?, bg),
+        icon = COALESCE(?, icon),
+        is_shared = ?,
+        has_subclasses = ?
+      WHERE id = ?
+    `).run(name || null, color || null, bg || null, icon || null, is_shared ? 1 : 0, has_subclasses ? 1 : 0, resolvedId);
+  } else {
+    db.prepare(`
+      INSERT INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      resolvedId,
+      id,
+      name || resolvedId,
+      color || '#818cf8',
+      bg || 'rgba(129, 140, 248, 0.15)',
+      icon || 'Bookmark',
+      is_shared ? 1 : 0,
+      has_subclasses ? 1 : 0,
+      nowIso
+    );
+  }
+
+  // Sincroniza Subclasses da categoria
+  db.prepare(`DELETE FROM subclasses WHERE category_id = ?`).run(resolvedId);
+  for (const sub of subclasses) {
+    if (!sub?.name?.trim()) continue;
+    const subId = sub.id || `sub_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const metaJson = JSON.stringify({ hours: Number(sub.hours || sub.metadata?.hours || 0) });
+    db.prepare(`
+      INSERT INTO subclasses (id, category_id, name, priority, metadata, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(subId, resolvedId, sub.name.trim(), sub.priority || 'Média', metaJson, nowIso);
+  }
+
+  // Sincroniza Category_Members (Modo Colaborativo)
+  db.prepare(`DELETE FROM category_members WHERE category_id = ?`).run(resolvedId);
+  for (const mem of members) {
+    if (!mem?.email?.trim() && !mem?.name?.trim()) continue;
+    const memId = mem.id || `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    db.prepare(`
+      INSERT INTO category_members (id, category_id, user_id, member_email, member_name, role, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      memId,
+      resolvedId,
+      mem.user_id || `usr_${(mem.email || mem.name).toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+      (mem.email || '').trim().toLowerCase(),
+      (mem.name || mem.email?.split('@')[0] || 'Colaborador').trim(),
+      mem.role || 'collaborator',
+      nowIso
+    );
+  }
+
+  res.json({
+    success: true,
+    categoryId: resolvedId,
+    is_shared: Boolean(is_shared),
+    has_subclasses: Boolean(has_subclasses)
+  });
+});
+
+// Passo C & E: Registrar horas/esforço em Sub-classe (Pomodoro ou Hábito Coringa) para Drill-Down Analítico
+app.post('/api/user/:id/category/:catId/log-effort', (req, res) => {
+  const { catId } = req.params;
+  const { subclassId, subclassName, hoursDelta = 0.5 } = req.body;
+
+  if (subclassId || subclassName) {
+    const subRow = db
+      .prepare(`SELECT * FROM subclasses WHERE (id = ? OR LOWER(name) = LOWER(?)) AND category_id = ?`)
+      .get(subclassId || '', subclassName || '', catId);
+
+    if (subRow) {
+      let meta = { hours: 0 };
+      try {
+        meta = JSON.parse(subRow.metadata || '{"hours":0}');
+      } catch (_e) {}
+      meta.hours = Number((Number(meta.hours || 0) + Number(hoursDelta || 0.5)).toFixed(2));
+      db.prepare(`UPDATE subclasses SET metadata = ? WHERE id = ?`).run(JSON.stringify(meta), subRow.id);
+    }
+  }
+
+  res.json({ success: true });
 });
 
 // Remover Tag / Categoria Customizada
 app.delete('/api/user/:id/tag/:tagId', (req, res) => {
   const { id, tagId } = req.params;
   db.prepare(`DELETE FROM tags WHERE (id = ? OR name = ?) AND (user_id = ? OR user_id = 'global')`).run(
+    tagId,
+    tagId,
+    id
+  );
+  db.prepare(`DELETE FROM categories WHERE (id = ? OR name = ?) AND (user_id = ? OR user_id = 'global')`).run(
     tagId,
     tagId,
     id

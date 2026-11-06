@@ -561,7 +561,10 @@ async function ensureDatabaseReady(env) {
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS habits (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, icon_name TEXT NOT NULL, target INTEGER NOT NULL DEFAULT 1, current INTEGER NOT NULL DEFAULT 0, unit TEXT NOT NULL DEFAULT 'vezes', effort TEXT NOT NULL DEFAULT 'Médio', priority TEXT NOT NULL DEFAULT 'Média', tag_id TEXT, repeat_days TEXT NOT NULL DEFAULT '[1,2,3,4,5]', completed INTEGER NOT NULL DEFAULT 0, completion_style TEXT NOT NULL DEFAULT 'quick', created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL, date TEXT NOT NULL, all_day INTEGER NOT NULL DEFAULT 0, start_time TEXT, end_time TEXT, category TEXT DEFAULT 'Geral', repeat_rule TEXT DEFAULT 'Nunca', location TEXT, notes TEXT, priority TEXT NOT NULL DEFAULT 'Média', completed INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS health (user_id TEXT PRIMARY KEY, water_glasses INTEGER NOT NULL DEFAULT 0, water_target INTEGER NOT NULL DEFAULT 10, glass_ml INTEGER NOT NULL DEFAULT 250, water_history TEXT NOT NULL DEFAULT '[]', sleep_bed_time TEXT NOT NULL DEFAULT '23:30', sleep_wake_time TEXT NOT NULL DEFAULT '07:00', sleep_logged INTEGER NOT NULL DEFAULT 0)`),
-      env.DB.prepare(`CREATE TABLE IF NOT EXISTS tags (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, color TEXT NOT NULL, bg TEXT NOT NULL, icon TEXT NOT NULL DEFAULT 'Bookmark')`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS tags (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, color TEXT NOT NULL, bg TEXT NOT NULL, icon TEXT NOT NULL DEFAULT 'Bookmark', is_shared INTEGER NOT NULL DEFAULT 0, has_subclasses INTEGER NOT NULL DEFAULT 0)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, color TEXT NOT NULL, bg TEXT NOT NULL DEFAULT 'rgba(129, 140, 248, 0.15)', icon TEXT NOT NULL DEFAULT 'Bookmark', is_shared INTEGER NOT NULL DEFAULT 0, has_subclasses INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS subclasses (id TEXT PRIMARY KEY, category_id TEXT NOT NULL, name TEXT NOT NULL, priority TEXT NOT NULL DEFAULT 'Média', metadata TEXT NOT NULL DEFAULT '{"hours":0}', created_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS category_members (id TEXT PRIMARY KEY, category_id TEXT NOT NULL, user_id TEXT NOT NULL, member_email TEXT, member_name TEXT, role TEXT NOT NULL DEFAULT 'collaborator', created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_audit_logs (id TEXT PRIMARY KEY, user_id TEXT, event_type TEXT NOT NULL, ip_address TEXT, user_agent TEXT, metadata TEXT, correlation_id TEXT, created_at TEXT NOT NULL)`)
     ]);
 
@@ -1146,15 +1149,61 @@ export async function onRequest(context) {
       const eventsRes = await storage.db.prepare(`SELECT * FROM events WHERE user_id = ? ORDER BY date ASC, start_time ASC`).bind(userId).all();
       const healthRow = await storage.db.prepare(`SELECT * FROM health WHERE user_id = ?`).bind(userId).first();
       const tagsRes = await storage.db.prepare(`SELECT * FROM tags WHERE user_id = ? OR user_id = 'global'`).bind(userId).all();
+      const catsRes = await storage.db.prepare(`SELECT * FROM categories WHERE user_id = ? OR user_id = 'global'`).bind(userId).all();
+      const subsRes = await storage.db.prepare(`SELECT * FROM subclasses`).all();
+      const memsRes = await storage.db.prepare(`SELECT * FROM category_members`).all();
       const userRow = await storage.db.prepare(`SELECT id, username, email, name, avatar, role, is_active, subscription_tier, is_public, streak_days, points, weight, height FROM users WHERE id = ?`).bind(userId).first();
+
+      const allSubs = subsRes.results || [];
+      const allMems = memsRes.results || [];
+      const mergedMap = new Map();
+      for (const c of [...(catsRes.results || []), ...(tagsRes.results || [])]) {
+        if (!mergedMap.has(c.id)) {
+          const catSubs = allSubs
+            .filter((s) => s.category_id === c.id)
+            .map((s) => {
+              let meta = { hours: 0 };
+              try {
+                meta = JSON.parse(s.metadata || '{"hours":0}');
+              } catch (_e) {}
+              return { id: s.id, category_id: s.category_id, name: s.name, priority: s.priority || 'Média', hours: Number(meta.hours || 0), metadata: meta };
+            });
+          const catMems = allMems
+            .filter((m) => m.category_id === c.id)
+            .map((m) => ({ id: m.id, category_id: m.category_id, user_id: m.user_id, email: m.member_email, name: m.member_name, role: m.role || 'collaborator' }));
+          mergedMap.set(c.id, {
+            id: c.id,
+            user_id: c.user_id,
+            name: c.name,
+            color: c.color,
+            bg: c.bg,
+            icon: c.icon || 'Bookmark',
+            is_shared: Boolean(c.is_shared),
+            has_subclasses: Boolean(c.has_subclasses) && catSubs.length > 0,
+            subclasses: catSubs,
+            members: catMems
+          });
+        }
+      }
 
       return jsonResponse(
         {
-          habits: (habitsRes.results || []).map((h) => ({
-            ...h,
-            completed: h.completed === 1,
-            repeatDays: JSON.parse(h.repeat_days || '[1,2,3,4,5]')
-          })),
+          habits: (habitsRes.results || []).map((h) => {
+            let parsedCfg = {};
+            try {
+              parsedCfg = JSON.parse(h.period_config || '{}');
+            } catch (_e) {}
+            return {
+              ...h,
+              subclassId: h.subclass_id || null,
+              subclassName: h.subclass_name || null,
+              trackingType: h.tracking_type || (h.completion_style === 'numeric' || h.completion_style === 'increment' ? 'counter' : 'done'),
+              periodType: h.period_type || 'day',
+              periodConfig: parsedCfg,
+              completed: h.completed === 1,
+              repeatDays: JSON.parse(h.repeat_days || '[1,2,3,4,5]')
+            };
+          }),
           events: (eventsRes.results || []).map((e) => ({
             ...e,
             allDay: e.all_day === 1,
@@ -1182,7 +1231,8 @@ export async function onRequest(context) {
                 waterHistory: [],
                 sleep: { bedTime: '23:30', wakeTime: '07:00', logged: false }
               },
-          tags: tagsRes.results || [],
+          tags: Array.from(mergedMap.values()),
+          categories: Array.from(mergedMap.values()),
           user: userRow
         },
         200,
@@ -1218,10 +1268,14 @@ export async function onRequest(context) {
   if (createHabitMatch && method === 'POST') {
     const userId = createHabitMatch[1];
     const habitId = body.id || `hab_${Date.now()}`;
+    const trackingType = body.trackingType || (body.completionStyle === 'numeric' || body.completionStyle === 'increment' ? 'counter' : 'done');
+    const periodType = body.periodType || 'day';
+    const periodConfig = typeof body.periodConfig === 'object' ? JSON.stringify(body.periodConfig) : (body.periodConfig || '{}');
+
     if (storage.mode === 'd1') {
       await storage.db
         .prepare(
-          `INSERT INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, repeat_days, completed, completion_style, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, subclass_id, subclass_name, tracking_type, period_type, period_config, repeat_days, completed, completion_style, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           habitId,
@@ -1235,9 +1289,14 @@ export async function onRequest(context) {
           body.effort || 'Médio',
           body.priority || 'Média',
           body.tagId || null,
+          body.subclassId || null,
+          body.subclassName || null,
+          trackingType,
+          periodType,
+          periodConfig,
           JSON.stringify(body.repeatDays || [1, 2, 3, 4, 5]),
           body.completed ? 1 : 0,
-          body.completionStyle || 'quick',
+          body.completionStyle || (trackingType === 'counter' ? 'increment' : 'quick'),
           new Date().toISOString()
         )
         .run();
@@ -1371,6 +1430,133 @@ export async function onRequest(context) {
           userId
         )
         .run();
+    }
+    return jsonResponse({ success: true }, 200, correlationId, request);
+  }
+
+  // Passo A: Criar Categoria Básica (`/api/user/:id/tag`)
+  const createTagMatch = pathname.match(/^\/api\/user\/([^/]+)\/tag$/);
+  if (createTagMatch && method === 'POST') {
+    const userId = createTagMatch[1];
+    const tagId = body.id || `tag_${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    if (storage.mode === 'd1') {
+      await storage.db
+        .prepare(`INSERT OR REPLACE INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?)`)
+        .bind(tagId, userId, body.name, body.color || '#818cf8', body.bg || 'rgba(129, 140, 248, 0.15)', body.icon || 'Bookmark', nowIso)
+        .run();
+      await storage.db
+        .prepare(`INSERT OR REPLACE INTO tags (id, user_id, name, color, bg, icon) VALUES (?, ?, ?, ?, ?, ?)`)
+        .bind(tagId, userId, body.name, body.color || '#818cf8', body.bg || 'rgba(129, 140, 248, 0.15)', body.icon || 'Bookmark')
+        .run();
+    }
+    return jsonResponse(
+      {
+        success: true,
+        tag: {
+          id: tagId,
+          user_id: userId,
+          name: body.name,
+          color: body.color || '#818cf8',
+          bg: body.bg || 'rgba(129, 140, 248, 0.15)',
+          icon: body.icon || 'Bookmark',
+          is_shared: false,
+          has_subclasses: false,
+          subclasses: [],
+          members: []
+        }
+      },
+      201,
+      correlationId,
+      request
+    );
+  }
+
+  // Passo B & D: Configuração Avançada de Categoria com Restrição Antibug (`/api/user/:id/category/:catId/config`)
+  const catConfigMatch = pathname.match(/^\/api\/user\/([^/]+)\/category\/([^/]+)\/config$/);
+  if (catConfigMatch && method === 'PUT') {
+    const [, userId, catId] = catConfigMatch;
+    const { name, color, bg, icon, is_shared, has_subclasses, subclasses = [], members = [] } = body;
+
+    if (has_subclasses && (!Array.isArray(subclasses) || subclasses.length === 0)) {
+      return jsonResponse(
+        { error: 'Restrição Antibug: Para ativar Sub-classes / Matérias, é obrigatório cadastrar pelo menos 1 sub-classe.' },
+        400,
+        correlationId,
+        request
+      );
+    }
+
+    const nowIso = new Date().toISOString();
+    if (storage.mode === 'd1') {
+      await storage.db
+        .prepare(
+          `INSERT INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             name = COALESCE(excluded.name, categories.name),
+             color = COALESCE(excluded.color, categories.color),
+             bg = COALESCE(excluded.bg, categories.bg),
+             icon = COALESCE(excluded.icon, categories.icon),
+             is_shared = excluded.is_shared,
+             has_subclasses = excluded.has_subclasses`
+        )
+        .bind(
+          catId,
+          userId,
+          name || catId,
+          color || '#818cf8',
+          bg || 'rgba(129, 140, 248, 0.15)',
+          icon || 'Bookmark',
+          is_shared ? 1 : 0,
+          has_subclasses ? 1 : 0,
+          nowIso
+        )
+        .run();
+
+      await storage.db.prepare(`DELETE FROM subclasses WHERE category_id = ?`).bind(catId).run();
+      for (const sub of subclasses) {
+        if (!sub?.name?.trim()) continue;
+        const subId = sub.id || `sub_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+        await storage.db
+          .prepare(`INSERT INTO subclasses (id, category_id, name, priority, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+          .bind(subId, catId, sub.name.trim(), sub.priority || 'Média', JSON.stringify({ hours: Number(sub.hours || 0) }), nowIso)
+          .run();
+      }
+
+      await storage.db.prepare(`DELETE FROM category_members WHERE category_id = ?`).bind(catId).run();
+      for (const mem of members) {
+        if (!mem?.email?.trim() && !mem?.name?.trim()) continue;
+        const memId = mem.id || `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+        await storage.db
+          .prepare(`INSERT INTO category_members (id, category_id, user_id, member_email, member_name, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+          .bind(
+            memId,
+            catId,
+            mem.user_id || `usr_${(mem.email || mem.name).toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+            (mem.email || '').trim().toLowerCase(),
+            (mem.name || mem.email?.split('@')[0] || 'Colaborador').trim(),
+            mem.role || 'collaborator',
+            nowIso
+          )
+          .run();
+      }
+    }
+
+    return jsonResponse({ success: true, categoryId: catId }, 200, correlationId, request);
+  }
+
+  const logEffortMatch = pathname.match(/^\/api\/user\/([^/]+)\/category\/([^/]+)\/log-effort$/);
+  if (logEffortMatch && method === 'POST') {
+    return jsonResponse({ success: true }, 200, correlationId, request);
+  }
+
+  const deleteTagMatch = pathname.match(/^\/api\/user\/([^/]+)\/tag\/([^/]+)$/);
+  if (deleteTagMatch && method === 'DELETE') {
+    const [, userId, tagId] = deleteTagMatch;
+    if (storage.mode === 'd1') {
+      await storage.db.prepare(`DELETE FROM tags WHERE (id = ? OR name = ?) AND (user_id = ? OR user_id = 'global')`).bind(tagId, tagId, userId).run();
+      await storage.db.prepare(`DELETE FROM categories WHERE (id = ? OR name = ?) AND (user_id = ? OR user_id = 'global')`).bind(tagId, tagId, userId).run();
     }
     return jsonResponse({ success: true }, 200, correlationId, request);
   }

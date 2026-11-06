@@ -128,7 +128,7 @@ export function initDatabase() {
     );
   `);
 
-  // 8. Tabela de Tags / Categorias Customizadas
+  // 8. Tabela de Tags / Categorias Customizadas + Modelo Modular (Categories, Subclasses, Category_Members)
   db.exec(`
     CREATE TABLE IF NOT EXISTS tags (
       id TEXT PRIMARY KEY,
@@ -136,12 +136,91 @@ export function initDatabase() {
       name TEXT NOT NULL,
       color TEXT NOT NULL,
       bg TEXT NOT NULL,
-      icon TEXT NOT NULL DEFAULT 'Bookmark'
+      icon TEXT NOT NULL DEFAULT 'Bookmark',
+      is_shared INTEGER NOT NULL DEFAULT 0,
+      has_subclasses INTEGER NOT NULL DEFAULT 0
     );
   `);
 
   try {
     db.exec(`ALTER TABLE tags ADD COLUMN icon TEXT NOT NULL DEFAULT 'Bookmark';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE tags ADD COLUMN is_shared INTEGER NOT NULL DEFAULT 0;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE tags ADD COLUMN has_subclasses INTEGER NOT NULL DEFAULT 0;`);
+  } catch (e) {}
+
+  // Tabela Categories (O Núcleo — separa o Rótulo das Capacidades)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL,
+      bg TEXT NOT NULL DEFAULT 'rgba(129, 140, 248, 0.15)',
+      icon TEXT NOT NULL DEFAULT 'Bookmark',
+      is_shared INTEGER NOT NULL DEFAULT 0,
+      has_subclasses INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  // Tabela Subclasses (Contextos Detalhados / Matérias)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS subclasses (
+      id TEXT PRIMARY KEY,
+      category_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      priority TEXT NOT NULL DEFAULT 'Média',
+      metadata TEXT NOT NULL DEFAULT '{"hours":0}',
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  // Tabela Category_Members (Para Categorias Compartilhadas / Modo Colaborativo)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS category_members (
+      id TEXT PRIMARY KEY,
+      category_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      member_email TEXT,
+      member_name TEXT,
+      role TEXT NOT NULL DEFAULT 'collaborator',
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  try {
+    db.exec(`ALTER TABLE habits ADD COLUMN subclass_id TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE habits ADD COLUMN subclass_name TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE habits ADD COLUMN tracking_type TEXT NOT NULL DEFAULT 'done';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE habits ADD COLUMN period_type TEXT NOT NULL DEFAULT 'day';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE habits ADD COLUMN period_config TEXT NOT NULL DEFAULT '{}';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN subclass_id TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN subclass_name TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN author_name TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE checkins ADD COLUMN subclass_id TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE checkins ADD COLUMN subclass_name TEXT;`);
   } catch (e) {}
 
   try {
@@ -288,6 +367,52 @@ export function seedFiveUsers() {
   seedUserData('usr_lucas_dev', 'mid');
   seedUserData('usr_bruno_preguica', 'low');
   seedUserData('usr_clean', 'clean');
+  seedDefaultCategories();
+}
+
+export function seedDefaultCategories() {
+  const nowIso = new Date().toISOString();
+  const baseCategories = [
+    { id: 'tag_facul', user_id: 'global', name: 'Faculdade', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)', icon: 'BookOpen', is_shared: 1, has_subclasses: 1 },
+    { id: 'tag_trab', user_id: 'global', name: 'Trabalho', color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.15)', icon: 'Bookmark', is_shared: 0, has_subclasses: 0 },
+    { id: 'tag_saude', user_id: 'global', name: 'Saúde', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', icon: 'Dumbbell', is_shared: 0, has_subclasses: 0 },
+    { id: 'tag_pessoal', user_id: 'global', name: 'Pessoal', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)', icon: 'Sparkles', is_shared: 0, has_subclasses: 0 },
+    { id: 'tag_casa', user_id: 'global', name: 'Casa', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)', icon: 'Home', is_shared: 0, has_subclasses: 0 }
+  ];
+
+  for (const cat of baseCategories) {
+    const existing = db.prepare(`SELECT id FROM categories WHERE id = ?`).get(cat.id);
+    if (!existing) {
+      db.prepare(`
+        INSERT INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(cat.id, cat.user_id, cat.name, cat.color, cat.bg, cat.icon, cat.is_shared, cat.has_subclasses, nowIso);
+    }
+  }
+
+  // Sub-classes iniciais de "Faculdade" (Redes: 8h, Cálculo: 7h -> 15h totais na semana)
+  const faculSubs = [
+    { id: 'sub_redes', category_id: 'tag_facul', name: 'Redes de Computadores', priority: 'Alta', metadata: JSON.stringify({ hours: 8, order: 1 }) },
+    { id: 'sub_calculo', category_id: 'tag_facul', name: 'Cálculo', priority: 'Alta', metadata: JSON.stringify({ hours: 7, order: 2 }) }
+  ];
+  for (const sub of faculSubs) {
+    const exSub = db.prepare(`SELECT id FROM subclasses WHERE id = ?`).get(sub.id);
+    if (!exSub) {
+      db.prepare(`
+        INSERT INTO subclasses (id, category_id, name, priority, metadata, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(sub.id, sub.category_id, sub.name, sub.priority, sub.metadata, nowIso);
+    }
+  }
+
+  // Membro colaborador inicial em "Faculdade" (Sebastian)
+  const exMember = db.prepare(`SELECT id FROM category_members WHERE id = 'mem_sebastian'`).get();
+  if (!exMember) {
+    db.prepare(`
+      INSERT INTO category_members (id, category_id, user_id, member_email, member_name, role, created_at)
+      VALUES ('mem_sebastian', 'tag_facul', 'usr_sebastian', 'sebastian@ethos.dev', 'Sebastian', 'collaborator', ?)
+    `).run(nowIso);
+  }
 }
 
 function seedUserData(userId, profileType) {

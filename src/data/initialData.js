@@ -82,13 +82,74 @@ export const FIVE_SEEDED_USERS = [
   }
 ];
 
-// CATEGORIAS E TEMAS PADRÃO
+// CATEGORIAS E TEMAS PADRÃO (ARQUITETURA DE CATEGORIAS DINÂMICAS E MODULARES)
+// Separa estritamente o Rótulo (name, color, icon) das Capacidades (is_shared, has_subclasses, subclasses, members)
 export const INITIAL_TAGS = [
-  { id: 'tag_facul', name: 'Faculdade', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)', icon: 'BookOpen' },
-  { id: 'tag_trab', name: 'Trabalho', color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.15)', icon: 'Bookmark' },
-  { id: 'tag_saude', name: 'Saúde', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', icon: 'Dumbbell' },
-  { id: 'tag_pessoal', name: 'Pessoal', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)', icon: 'Sparkles' },
-  { id: 'tag_casa', name: 'Casa', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)', icon: 'Home' }
+  {
+    id: 'tag_facul',
+    user_id: 'global',
+    name: 'Faculdade',
+    color: '#818cf8',
+    bg: 'rgba(129, 140, 248, 0.15)',
+    icon: 'BookOpen',
+    is_shared: true,
+    has_subclasses: true,
+    subclasses: [
+      { id: 'sub_redes', category_id: 'tag_facul', name: 'Redes de Computadores', priority: 'Alta', hours: 8 },
+      { id: 'sub_calculo', category_id: 'tag_facul', name: 'Cálculo', priority: 'Alta', hours: 7 }
+    ],
+    members: [
+      { id: 'mem_sebastian', category_id: 'tag_facul', user_id: 'usr_sebastian', name: 'Sebastian', email: 'sebastian@ethos.dev', role: 'collaborator' }
+    ]
+  },
+  {
+    id: 'tag_trab',
+    user_id: 'global',
+    name: 'Trabalho',
+    color: '#00e5ff',
+    bg: 'rgba(0, 229, 255, 0.15)',
+    icon: 'Bookmark',
+    is_shared: false,
+    has_subclasses: false,
+    subclasses: [],
+    members: []
+  },
+  {
+    id: 'tag_saude',
+    user_id: 'global',
+    name: 'Saúde',
+    color: '#f43f5e',
+    bg: 'rgba(244, 63, 94, 0.15)',
+    icon: 'Dumbbell',
+    is_shared: false,
+    has_subclasses: false,
+    subclasses: [],
+    members: []
+  },
+  {
+    id: 'tag_pessoal',
+    user_id: 'global',
+    name: 'Pessoal',
+    color: '#34d399',
+    bg: 'rgba(52, 211, 153, 0.15)',
+    icon: 'Sparkles',
+    is_shared: false,
+    has_subclasses: false,
+    subclasses: [],
+    members: []
+  },
+  {
+    id: 'tag_casa',
+    user_id: 'global',
+    name: 'Casa',
+    color: '#fbbf24',
+    bg: 'rgba(251, 191, 36, 0.15)',
+    icon: 'Home',
+    is_shared: false,
+    has_subclasses: false,
+    subclasses: [],
+    members: []
+  }
 ];
 
 export const INITIAL_WORKOUTS = [

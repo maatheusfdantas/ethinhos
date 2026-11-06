@@ -19,7 +19,10 @@ import {
   Tag,
   Target,
   X,
-  Sliders
+  Sliders,
+  Settings,
+  Layers,
+  Users
 } from 'lucide-react';
 import { isEventForDate } from '../services/storage';
 
@@ -30,8 +33,23 @@ const CATEGORY_ICONS = {
   Casa: Home,
   Pessoal: Sparkles,
   Finanças: Activity,
-  CheckCircle2: CheckCircle2
+  CheckCircle2: CheckCircle2,
+  BookOpen,
+  Bookmark,
+  Dumbbell,
+  Home,
+  Sparkles,
+  Tag
 };
+
+const QUICK_ICON_OPTIONS = [
+  { id: 'BookOpen', label: 'Estudo', Icon: BookOpen },
+  { id: 'Bookmark', label: 'Trabalho', Icon: Bookmark },
+  { id: 'Dumbbell', label: 'Saúde', Icon: Dumbbell },
+  { id: 'Sparkles', label: 'Lazer/Pessoal', Icon: Sparkles },
+  { id: 'Home', label: 'Casa', Icon: Home },
+  { id: 'Tag', label: 'Geral', Icon: Tag }
+];
 
 const DEFAULT_PALETTES = [
   { name: 'Roxo', color: '#6A67CE', bg: 'rgba(106, 103, 206, 0.14)' },
@@ -55,6 +73,8 @@ export function DashboardTab({
   onOpenWorkout,
   onAddTag,
   onDeleteTag,
+  onConfigureCategory,
+  onLogSubclassEffort,
   onToggleEvent,
   onSwitchTab,
   showToast
@@ -71,10 +91,14 @@ export function DashboardTab({
   const [waterTargetInput, setWaterTargetInput] = useState(health?.waterTarget || 10);
   const [glassMlInput, setGlassMlInput] = useState(health?.glassMl || 250);
 
-  // Estados de Categorias / Temas
+  // Estados de Categorias / Temas (Passo A: Criação Rápida Básica)
   const [showTagCreator, setShowTagCreator] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState(DEFAULT_PALETTES[0]);
+  const [newTagIcon, setNewTagIcon] = useState('Sparkles');
+
+  // Passo C (Hábito Coringa / Multiuso): Seletor opcional de sub-classe ao concluir hábito
+  const [activeHabitSubclassPrompt, setActiveHabitSubclassPrompt] = useState(null);
 
   // Estado de criação rápida inline de hábito
   const [quickHabitInput, setQuickHabitInput] = useState('');
@@ -253,6 +277,58 @@ export function DashboardTab({
   };
 
   // Handlers de Hábitos
+  const triggerOptionalSubclassSelector = (habitObj) => {
+    if (!habitObj) return;
+    const cat = tags.find(t => t.id === habitObj.tagId || t.name === habitObj.category);
+    if (cat && cat.has_subclasses && Array.isArray(cat.subclasses) && cat.subclasses.length > 0) {
+      setActiveHabitSubclassPrompt({
+        habitId: habitObj.id,
+        habitTitle: habitObj.title,
+        categoryName: cat.name,
+        categoryId: cat.id,
+        subclasses: cat.subclasses
+      });
+    }
+  };
+
+  const handleAssignHabitSubclass = async (habitId, categoryName, subclassObj) => {
+    const subName = subclassObj ? subclassObj.name : null;
+    const subId = subclassObj ? subclassObj.id : null;
+
+    setHabits(prev => prev.map(h => {
+      if (h.id === habitId) {
+        return { ...h, subclassId: subId, subclassName: subName };
+      }
+      return h;
+    }));
+
+    setActiveHabitSubclassPrompt(null);
+
+    if (subName) {
+      onLogSubclassEffort?.(categoryName, subName, 1);
+    } else {
+      showToast?.(`Esforço registrado na categoria geral "${categoryName}"`);
+    }
+
+    if (user) {
+      try {
+        const targetHabit = habits.find(h => h.id === habitId);
+        await fetch(`/api/user/${user.id}/habit/${habitId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            current: targetHabit?.target || 1,
+            completed: true,
+            subclassId: subId,
+            subclassName: subName
+          })
+        });
+      } catch (err) {
+        console.error('Erro ao salvar sub-classe do hábito:', err);
+      }
+    }
+  };
+
   const toggleHabit = async (id) => {
     const targetHabit = habits.find(h => h.id === id);
     const nextCompleted = targetHabit ? !targetHabit.completed : true;
@@ -264,6 +340,12 @@ export function DashboardTab({
       }
       return h;
     }));
+
+    if (nextCompleted) {
+      triggerOptionalSubclassSelector(targetHabit);
+    } else if (activeHabitSubclassPrompt?.habitId === id) {
+      setActiveHabitSubclassPrompt(null);
+    }
 
     showToast?.(
       nextCompleted ? `Hábito "${targetHabit?.title || 'Rotina'}" concluído` : `Hábito "${targetHabit?.title || 'Rotina'}" desmarcado`,
@@ -306,6 +388,7 @@ export function DashboardTab({
     }));
 
     if (nextCompleted) {
+      triggerOptionalSubclassSelector(targetHabit);
       showToast?.(`Meta atingida em "${targetHabit?.title}"!`, () => toggleHabit(id));
     }
 
@@ -332,7 +415,7 @@ export function DashboardTab({
     }
   };
 
-  // Criar Categoria / Tema
+  // Passo A: Criar Categoria / Tema (Nasce puramente Básica: is_shared = false, has_subclasses = false)
   const handleCreateTagSubmit = (e) => {
     e.preventDefault();
     if (!newTagName.trim()) return;
@@ -342,10 +425,14 @@ export function DashboardTab({
       name: newTagName.trim(),
       color: newTagColor.color,
       bg: newTagColor.bg,
-      icon: 'Tag'
+      icon: newTagIcon || 'Sparkles',
+      is_shared: false,
+      has_subclasses: false,
+      subclasses: [],
+      members: []
     });
 
-    showToast?.(`Categoria "${newTagName.trim()}" adicionada`);
+    showToast?.(`Categoria básica "${newTagName.trim()}" criada com sucesso`);
     setNewTagName('');
     setShowTagCreator(false);
   };
@@ -1103,13 +1190,13 @@ export function DashboardTab({
               </button>
             </div>
 
-            {/* Criador Rápido Inline de Categorias com Paleta */}
+            {/* Passo A: Criador Rápido Inline de Categorias com Paleta e Ícone (Nasce puramente Básica) */}
             {showTagCreator && (
               <form onSubmit={handleCreateTagSubmit} style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '14px', marginBottom: '12px', border: '1px solid #D5D6E0' }}>
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
                   <input
                     type="text"
-                    placeholder="Nome da categoria..."
+                    placeholder="Nome da categoria (ex: Lazer)..."
                     value={newTagName}
                     onChange={(e) => setNewTagName(e.target.value)}
                     autoFocus
@@ -1120,74 +1207,157 @@ export function DashboardTab({
                     type="submit"
                     style={{ padding: '6px 12px', borderRadius: '8px', backgroundColor: '#56548A', color: '#FFFFFF', border: 'none', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
                   >
-                    Adicionar
+                    Salvar
                   </button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '10.5px', color: '#5A5B75', fontWeight: 600 }}>Paleta:</span>
-                  {DEFAULT_PALETTES.map((pal, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setNewTagColor(pal)}
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        backgroundColor: pal.color,
-                        border: newTagColor.color === pal.color ? '2px solid #1A1B2F' : '2px solid transparent',
-                        cursor: 'pointer'
-                      }}
-                      title={pal.name}
-                    />
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ fontSize: '10.5px', color: '#5A5B75', fontWeight: 600 }}>Cor:</span>
+                    {DEFAULT_PALETTES.map((pal, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setNewTagColor(pal)}
+                        style={{
+                          width: '17px',
+                          height: '17px',
+                          borderRadius: '50%',
+                          backgroundColor: pal.color,
+                          border: newTagColor.color === pal.color ? '2px solid #1A1B2F' : '2px solid transparent',
+                          cursor: 'pointer'
+                        }}
+                        title={pal.name}
+                      />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontSize: '10.5px', color: '#5A5B75', fontWeight: 600 }}>Ícone:</span>
+                    {QUICK_ICON_OPTIONS.map(({ id, label, Icon }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setNewTagIcon(id)}
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '6px',
+                          backgroundColor: newTagIcon === id ? '#211F38' : '#F3F4F8',
+                          color: newTagIcon === id ? '#FFFFFF' : '#5A5B75',
+                          border: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer'
+                        }}
+                        title={label}
+                      >
+                        <Icon size={12} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </form>
             )}
 
-            {/* Lista de Tags Coloridas com opção de Excluir */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', maxHeight: '115px', overflowY: 'auto' }}>
-              {tags.map((t) => (
-                <span
-                  key={t.id || t.name}
-                  style={{
-                    padding: '5px 11px',
-                    borderRadius: '999px',
-                    backgroundColor: '#FFFFFF',
-                    border: `1.5px solid ${t.color || '#56548A'}`,
-                    color: '#1A1B2F',
-                    fontSize: '11.5px',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: t.color || '#56548A' }} />
-                  <span>{t.name}</span>
-                  {onDeleteTag && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onDeleteTag(t.id, t.name);
-                        showToast?.(`Categoria "${t.name}" excluída`, () => onAddTag?.(t));
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#7E7F9A',
-                        cursor: 'pointer',
-                        padding: 0,
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}
-                      title={`Excluir ${t.name}`}
-                    >
-                      <X size={12} strokeWidth={2.5} />
-                    </button>
-                  )}
-                </span>
-              ))}
+            {/* Passo B: Lista de Categorias com Ícone Discreto de Engrenagem (Configuração Avançada) + Excluir */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', maxHeight: '125px', overflowY: 'auto' }}>
+              {tags.map((t) => {
+                const subCount = Array.isArray(t.subclasses) ? t.subclasses.length : 0;
+                return (
+                  <span
+                    key={t.id || t.name}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '999px',
+                      backgroundColor: '#FFFFFF',
+                      border: `1.5px solid ${t.color || '#56548A'}`,
+                      color: '#1A1B2F',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: t.color || '#56548A' }} />
+                    <span>{t.name}</span>
+
+                    {t.has_subclasses && subCount > 0 && (
+                      <span
+                        title={`${subCount} sub-classes ativas`}
+                        style={{
+                          fontSize: '9.5px',
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: '999px',
+                          backgroundColor: 'rgba(106, 103, 206, 0.14)',
+                          color: '#56548A',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}
+                      >
+                        <Layers size={9} />
+                        {subCount}
+                      </span>
+                    )}
+
+                    {t.is_shared && (
+                      <span
+                        title="Categoria compartilhada (Modo Colaborativo)"
+                        style={{
+                          color: '#059669',
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Users size={11} />
+                      </span>
+                    )}
+
+                    {onConfigureCategory && (
+                      <button
+                        type="button"
+                        onClick={() => onConfigureCategory(t)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#56548A',
+                          cursor: 'pointer',
+                          padding: '1px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                        title={`Configuração Avançada de "${t.name}" (Sub-classes e Compartilhamento)`}
+                      >
+                        <Settings size={12} strokeWidth={2.3} />
+                      </button>
+                    )}
+
+                    {onDeleteTag && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDeleteTag(t.id, t.name);
+                          showToast?.(`Categoria "${t.name}" excluída`, () => onAddTag?.(t));
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#7E7F9A',
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                        title={`Excluir ${t.name}`}
+                      >
+                        <X size={12} strokeWidth={2.5} />
+                      </button>
+                    )}
+                  </span>
+                );
+              })}
             </div>
           </div>
         </div>

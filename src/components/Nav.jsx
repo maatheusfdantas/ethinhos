@@ -10,6 +10,7 @@ import {
   Timer,
   Dumbbell,
   Users,
+  CheckCircle2,
   X
 } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export function DesktopSidebar({
   userPermissions = {}, 
   user,
   tags = [],
+  onConfigureCategory,
   onOpenProfile,
   onOpenAuth,
   onLogout,
@@ -29,6 +31,7 @@ export function DesktopSidebar({
 }) {
   const navItems = [
     { id: 'dashboard', label: 'Painel Principal', icon: LayoutGrid, enabled: true },
+    { id: 'habits', label: 'Hábitos & Rotinas', icon: CheckCircle2, enabled: userPermissions.habits !== false },
     { id: 'calendar', label: 'Agenda Semanal', icon: Calendar, enabled: true },
     { id: 'workouts', label: 'Musculação & Treino', icon: Dumbbell, enabled: userPermissions.workouts !== false },
     { id: 'focus', label: 'Foco Pomodoro', icon: Timer, enabled: userPermissions.focus !== false },
@@ -176,33 +179,88 @@ export function DesktopSidebar({
           </button>
         </div>
 
-        {/* 4. ÁREAS DE FOCO / CATEGORIAS REAIS */}
+        {/* 4. ÁREAS DE FOCO / CATEGORIAS MODULARES (PASSO B) */}
         <div style={{ marginTop: '24px', padding: '0 10px' }}>
-          <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#FFFFFF', marginBottom: '6px' }}>
+          <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>
             Áreas de Foco
           </div>
           <div style={{ fontSize: '10px', fontWeight: 700, color: '#797B9E', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '10px' }}>
-            CATEGORIAS ATIVAS
+            CATEGORIAS MODULARES
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', maxHeight: '165px', overflowY: 'auto' }}>
             {tags.map((tag) => (
               <div 
-                key={tag.name}
-                onClick={() => handleSelectTab('dashboard')}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#D8DAE8', cursor: 'pointer' }}
+                key={tag.id || tag.name}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '6px',
+                  padding: '4px 6px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  fontSize: '12px',
+                  color: '#D8DAE8'
+                }}
               >
-                <span 
-                  style={{ 
-                    width: '8px', 
-                    height: '8px', 
-                    borderRadius: '50%', 
-                    backgroundColor: tag.color || '#6366f1', 
-                    display: 'inline-block',
-                    flexShrink: 0
-                  }} 
-                />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tag.name}</span>
+                <div
+                  onClick={() => handleSelectTab('dashboard')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, cursor: 'pointer' }}
+                >
+                  <span 
+                    style={{ 
+                      width: '8px', 
+                      height: '8px', 
+                      borderRadius: '50%', 
+                      backgroundColor: tag.color || '#6366f1', 
+                      display: 'inline-block',
+                      flexShrink: 0
+                    }} 
+                  />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tag.name}</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  {tag.has_subclasses && tag.subclasses?.length > 0 && (
+                    <span
+                      style={{
+                        fontSize: '9.5px',
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: '999px',
+                        backgroundColor: 'rgba(129, 140, 248, 0.2)',
+                        color: '#C7D2FE'
+                      }}
+                      title={`${tag.subclasses.length} sub-classes ativas`}
+                    >
+                      {tag.subclasses.length}
+                    </span>
+                  )}
+                  {tag.is_shared && (
+                    <Users size={11} color="#38BDF8" title="Categoria Compartilhada" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCloseMobile?.();
+                      onConfigureCategory?.(tag);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: '2px',
+                      color: '#8E90B0',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                    title={`Configuração Avançada de ${tag.name}`}
+                  >
+                    <Settings size={13} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -344,17 +402,17 @@ export function MobileBottomNav({ activeTab, setActiveTab, onOpenAdd, isAdmin, u
       <button
         type="button"
         style={{
-          color: activeTab === 'calendar' ? '#FFFFFF' : '#A9ABC6',
-          backgroundColor: activeTab === 'calendar' ? '#56548A' : 'transparent',
+          color: activeTab === 'habits' ? '#FFFFFF' : '#A9ABC6',
+          backgroundColor: activeTab === 'habits' ? '#56548A' : 'transparent',
           border: 'none',
           borderRadius: '12px',
           padding: '5px 10px'
         }}
         className="flex flex-col items-center gap-0.5"
-        onClick={() => setActiveTab('calendar')}
+        onClick={() => setActiveTab('habits')}
       >
-        <Calendar size={17} />
-        <span className="text-[10px] font-medium">Agenda</span>
+        <CheckCircle2 size={17} />
+        <span className="text-[10px] font-medium">Hábitos</span>
       </button>
 
       {userPermissions.habits !== false && (
@@ -379,6 +437,22 @@ export function MobileBottomNav({ activeTab, setActiveTab, onOpenAdd, isAdmin, u
           <Plus size={19} strokeWidth={2.4} />
         </button>
       )}
+
+      <button
+        type="button"
+        style={{
+          color: activeTab === 'calendar' ? '#FFFFFF' : '#A9ABC6',
+          backgroundColor: activeTab === 'calendar' ? '#56548A' : 'transparent',
+          border: 'none',
+          borderRadius: '12px',
+          padding: '5px 10px'
+        }}
+        className="flex flex-col items-center gap-0.5"
+        onClick={() => setActiveTab('calendar')}
+      >
+        <Calendar size={17} />
+        <span className="text-[10px] font-medium">Agenda</span>
+      </button>
 
       {userPermissions.workouts !== false && (
         <button

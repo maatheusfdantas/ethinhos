@@ -227,6 +227,54 @@ export function verifyAccessToken(token) {
 }
 
 /**
+ * Middleware para validar o Access Token JWT nos cabeçalhos das requisições
+ */
+export function authenticateJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Acesso negado. Token de autenticação ausente ou inválido.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const payload = verifyAccessToken(token);
+  if (!payload) {
+    return res.status(401).json({ error: 'Sessão expirada ou token inválido. Faça login novamente.' });
+  }
+
+  req.user = payload;
+  next();
+}
+
+/**
+ * Middleware para garantir que o usuário só acesse e modifique os próprios recursos (Anti-IDOR)
+ */
+export function enforceOwnership(paramName = 'id') {
+  return (req, res, next) => {
+    const targetUserId = req.params[paramName];
+    if (!req.user) {
+      return res.status(401).json({ error: 'Usuário não autenticado.' });
+    }
+
+    // Administradores podem acessar qualquer recurso
+    if (req.user.role === 'admin' || req.user.sub === targetUserId || req.user.id === targetUserId) {
+      return next();
+    }
+
+    return res.status(403).json({ error: 'Acesso proibido. Você não tem permissão para acessar este recurso.' });
+  };
+}
+
+/**
+ * Middleware para exigir papel de Administrador
+ */
+export function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acesso restrito a administradores.' });
+  }
+  next();
+}
+
+/**
  * Cria tabelas de segurança no banco SQLite:
  * - user_sessions (controle de refresh tokens, rotação e detecção de reuso)
  * - audit_logs (trilha de auditoria imutável encadeada por hash)

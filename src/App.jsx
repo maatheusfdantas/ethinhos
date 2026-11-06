@@ -8,6 +8,7 @@ import {
 import { Header } from './components/Header';
 import { DesktopSidebar, MobileBottomNav } from './components/Nav';
 import { DashboardTab } from './components/DashboardTab';
+import { HabitsTab } from './components/HabitsTab';
 import { AddModal } from './components/AddModal';
 import { WorkoutTab } from './components/WorkoutTab';
 import { FocusTab } from './components/FocusTab';
@@ -19,9 +20,10 @@ import { ProfileModal } from './components/ProfileModal';
 import { AdminPortalTab } from './components/AdminPortalTab';
 import { LoginScreen } from './components/LoginScreen';
 import { WelcomeIntro } from './components/WelcomeIntro';
+import { CategoryConfigModal } from './components/CategoryConfigModal';
 
 import { INITIAL_TAGS, INITIAL_WORKOUTS, INITIAL_BADGES } from './data/initialData';
-import { Lock, Shield, Plus, Search, Bell, X, Menu } from 'lucide-react';
+import { Lock, Shield, Plus, Search, Bell, X, Menu, Users, Flame, Play } from 'lucide-react';
 import { GlobalProgressBar } from './components/GlobalProgressBar';
 import { Toast } from './components/Toast';
 
@@ -69,6 +71,12 @@ export function App() {
 
   // Modals & Header Controls
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addModalInitialMode, setAddModalInitialMode] = useState('event');
+
+  const handleOpenAdd = (targetMode = 'event') => {
+    setAddModalInitialMode(targetMode);
+    setShowAddModal(true);
+  };
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
@@ -76,6 +84,16 @@ export function App() {
   const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [bootKey, setBootKey] = useState(0);
+
+  // Passo B & Passo D: Configuração Avançada de Categoria & Dinâmica Colaborativa em Tempo Real
+  const [configCategory, setConfigCategory] = useState(null);
+  const [syncedFocusRequest, setSyncedFocusRequest] = useState(null);
+  const [sharedPomodoroAlert, setSharedPomodoroAlert] = useState({
+    active: true,
+    memberName: 'Sebastian',
+    categoryName: 'Faculdade',
+    subclassName: 'Redes de Computadores'
+  });
 
   // Discreet Toast Notification (with Undo / Ctrl+Z support)
   const [toast, setToast] = useState(null);
@@ -96,7 +114,35 @@ export function App() {
         if (data.events) setEvents(data.events);
         if (data.health) setHealth(data.health);
         if (data.tags && data.tags.length > 0) {
-          setTags([...INITIAL_TAGS, ...data.tags.filter(t => !INITIAL_TAGS.find(it => it.name === t.name))]);
+          const mergedTags = INITIAL_TAGS.map((initTag) => {
+            const backendMatch = data.tags.find((bt) => bt.id === initTag.id || bt.name === initTag.name);
+            if (!backendMatch) return initTag;
+            return {
+              ...initTag,
+              ...backendMatch,
+              is_shared: backendMatch.is_shared !== undefined ? Boolean(backendMatch.is_shared) : initTag.is_shared,
+              has_subclasses:
+                backendMatch.has_subclasses !== undefined ? Boolean(backendMatch.has_subclasses) : initTag.has_subclasses,
+              subclasses:
+                Array.isArray(backendMatch.subclasses) && backendMatch.subclasses.length > 0
+                  ? backendMatch.subclasses
+                  : initTag.subclasses || [],
+              members:
+                Array.isArray(backendMatch.members) && backendMatch.members.length > 0
+                  ? backendMatch.members
+                  : initTag.members || []
+            };
+          });
+          const extraTags = data.tags
+            .filter((t) => !INITIAL_TAGS.find((it) => it.id === t.id || it.name === t.name))
+            .map((t) => ({
+              ...t,
+              is_shared: Boolean(t.is_shared),
+              has_subclasses: Boolean(t.has_subclasses),
+              subclasses: Array.isArray(t.subclasses) ? t.subclasses : [],
+              members: Array.isArray(t.members) ? t.members : []
+            }));
+          setTags([...mergedTags, ...extraTags]);
         }
         if (data.user) {
           setUser(prev => ({ ...prev, ...data.user }));
@@ -179,19 +225,81 @@ export function App() {
     }
   };
 
-  // Handler: Add New Tag / Category (Requisito 4)
+  // Passo A: Criação Rápida de Categoria (Nasce puramente Básica: is_shared = false, has_subclasses = false)
   const handleAddTag = async (newTag) => {
-    setTags(prev => [...prev, newTag]);
+    const basicCategory = {
+      ...newTag,
+      is_shared: false,
+      has_subclasses: false,
+      subclasses: [],
+      members: []
+    };
+    setTags(prev => [...prev, basicCategory]);
 
     if (user) {
       try {
         await fetch(`/api/user/${user.id}/tag`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newTag)
+          body: JSON.stringify(basicCategory)
         });
       } catch (e) {
         console.error('Error saving tag:', e);
+      }
+    }
+  };
+
+  // Passo B & D: Evolução para Configuração Avançada de Categoria (Sub-classes + Compartilhamento + Restrição Antibug)
+  const handleUpdateCategoryConfig = async (updatedCat) => {
+    setTags(prev =>
+      prev.map(t => (t.id === updatedCat.id || t.name === updatedCat.name ? { ...t, ...updatedCat } : t))
+    );
+    showToast(
+      `Categoria "${updatedCat.name}" atualizada (${
+        updatedCat.has_subclasses ? `${updatedCat.subclasses?.length || 0} sub-classes` : 'Básica'
+      }${updatedCat.is_shared ? ' • Compartilhada' : ''})`
+    );
+
+    if (user) {
+      try {
+        await fetch(`/api/user/${user.id}/category/${encodeURIComponent(updatedCat.id || updatedCat.name)}/config`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedCat)
+        });
+      } catch (e) {
+        console.error('Error updating category config:', e);
+      }
+    }
+  };
+
+  // Passo C & E: Registrar horas/esforço em Sub-classe (Pomodoro ou Hábito Coringa) para Drill-Down Analítico
+  const handleLogSubclassEffort = async (categoryNameOrId, subclassName, hoursDelta = 0.5) => {
+    const targetCat = tags.find(t => t.id === categoryNameOrId || t.name === categoryNameOrId);
+    if (!targetCat) return;
+
+    setTags(prev =>
+      prev.map(cat => {
+        if (cat.id !== targetCat.id && cat.name !== targetCat.name) return cat;
+        if (!subclassName || !Array.isArray(cat.subclasses)) return cat;
+        const nextSubs = cat.subclasses.map(sub =>
+          sub.name === subclassName
+            ? { ...sub, hours: Number((Number(sub.hours || 0) + Number(hoursDelta)).toFixed(2)) }
+            : sub
+        );
+        return { ...cat, subclasses: nextSubs };
+      })
+    );
+
+    if (user && subclassName) {
+      try {
+        await fetch(`/api/user/${user.id}/category/${encodeURIComponent(targetCat.id)}/log-effort`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subclassName, hoursDelta })
+        });
+      } catch (e) {
+        console.error('Error logging subclass effort:', e);
       }
     }
   };
@@ -330,11 +438,12 @@ export function App() {
         <DesktopSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          onOpenAdd={() => setShowAddModal(true)}
+          onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
           isAdmin={isAdmin}
           userPermissions={permissions}
           user={user}
           tags={tags}
+          onConfigureCategory={(cat) => setConfigCategory(cat)}
           onOpenProfile={() => setShowProfileModal(true)}
           onOpenAuth={() => setShowAuthModal(true)}
           onLogout={handleLogout}
@@ -400,7 +509,7 @@ export function App() {
               {/* Botão + Create (Pílula Preta/Escura) */}
               <button
                 type="button"
-                onClick={() => setShowAddModal(true)}
+                onClick={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
                 style={{
                   height: '38px',
                   padding: '0 16px',
@@ -505,6 +614,101 @@ export function App() {
             </div>
           </header>
 
+          {/* PASSO D: ALERTA SUTIL EM TEMPO REAL DE POMODORO COMPARTILHADO */}
+          {sharedPomodoroAlert?.active && tags.some(t => t.name === sharedPomodoroAlert.categoryName && t.is_shared) && (
+            <div
+              style={{
+                backgroundColor: '#211F38',
+                borderRadius: '18px',
+                padding: '12px 16px',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                boxShadow: '0 8px 24px rgba(33, 31, 56, 0.16)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(56, 189, 248, 0.18)',
+                    color: '#38BDF8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  <Users size={16} />
+                </div>
+                <div style={{ fontSize: '12.5px', lineHeight: 1.35 }}>
+                  <strong style={{ color: '#38BDF8' }}>{sharedPomodoroAlert.memberName}</strong> iniciou um Pomodoro em{' '}
+                  <strong style={{ color: '#FDE68A' }}>{sharedPomodoroAlert.subclassName}</strong>{' '}
+                  <span style={{ color: '#A9ABC6', fontSize: '11.5px' }}>({sharedPomodoroAlert.categoryName})</span> — deseja focar junto?
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSyncedFocusRequest({
+                      categoryName: sharedPomodoroAlert.categoryName,
+                      subclassName: sharedPomodoroAlert.subclassName,
+                      memberName: sharedPomodoroAlert.memberName,
+                      timestamp: Date.now()
+                    });
+                    setSharedPomodoroAlert(prev => ({ ...prev, active: false }));
+                    setActiveTab('focus');
+                    showToast(`Sincronizado com ${sharedPomodoroAlert.memberName} em ${sharedPomodoroAlert.subclassName}!`);
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '999px',
+                    backgroundColor: '#38BDF8',
+                    color: '#1A1B2F',
+                    border: 'none',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Play size={12} fill="#1A1B2F" />
+                  <span>Focar Junto Agora</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSharedPomodoroAlert(prev => ({ ...prev, active: false }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: 'none',
+                    color: '#A9ABC6',
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                  title="Dispensar alerta"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* CONTEÚDO DA ABA ATIVA */}
           <main style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* TAB 1: DASHBOARD (PAINEL PRINCIPAL FIEL AO MOCKUP) */}
@@ -518,12 +722,27 @@ export function App() {
                 setHealth={setHealth}
                 tags={tags}
                 user={user}
-                onOpenAdd={() => setShowAddModal(true)}
+                onOpenAdd={() => handleOpenAdd('habit')}
                 onOpenWorkout={() => setActiveTab('workouts')}
                 onAddTag={handleAddTag}
                 onDeleteTag={handleDeleteTag}
+                onConfigureCategory={(cat) => setConfigCategory(cat)}
+                onLogSubclassEffort={handleLogSubclassEffort}
                 onToggleEvent={handleToggleEvent}
                 onSwitchTab={setActiveTab}
+                showToast={showToast}
+              />
+            )}
+
+            {/* TAB: HÁBITOS & ROTINAS (ABA DEDICADA EXCLUSIVAMENTE A HÁBITOS) */}
+            {activeTab === 'habits' && (
+              <HabitsTab
+                habits={habits}
+                setHabits={setHabits}
+                tags={tags}
+                user={user}
+                onOpenAddHabit={() => handleOpenAdd('habit')}
+                onLogSubclassEffort={handleLogSubclassEffort}
                 showToast={showToast}
               />
             )}
@@ -536,6 +755,7 @@ export function App() {
                 habits={habits}
                 setHabits={setHabits}
                 workouts={workouts}
+                tags={tags}
                 onOpenAdd={() => setShowAddModal(true)}
                 onToggleEvent={handleToggleEvent}
                 onAddEvent={handleAddEvent}
@@ -590,6 +810,11 @@ export function App() {
                   ) : (
                     <FocusTab
                       user={user}
+                      tags={tags}
+                      syncedFocusRequest={syncedFocusRequest}
+                      onConfigureCategory={(cat) => setConfigCategory(cat)}
+                      onLogSubclassEffort={handleLogSubclassEffort}
+                      onTriggerSharedPomodoro={(info) => setSharedPomodoroAlert({ active: true, ...info })}
                       onFocusComplete={handleFocusComplete}
                     />
                   )
@@ -609,6 +834,8 @@ export function App() {
                     <TelemetryTab
                       habits={habits}
                       health={health}
+                      tags={tags}
+                      onConfigureCategory={(cat) => setConfigCategory(cat)}
                       heatmapData={[]}
                       user={user}
                     />
@@ -654,7 +881,7 @@ export function App() {
       <MobileBottomNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenAdd={() => setShowAddModal(true)}
+        onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
         isAdmin={isAdmin}
         userPermissions={permissions}
       />
@@ -665,11 +892,23 @@ export function App() {
       {/* MODAL OVERLAYS */}
       <AddModal
         isOpen={showAddModal}
+        initialMode={addModalInitialMode}
         onClose={() => setShowAddModal(false)}
         onAddHabit={handleAddHabit}
         onAddEvent={handleAddEvent}
         tags={tags}
         onAddTag={handleAddTag}
+      />
+
+      <CategoryConfigModal
+        isOpen={Boolean(configCategory)}
+        category={configCategory}
+        onClose={() => setConfigCategory(null)}
+        onSaveConfig={handleUpdateCategoryConfig}
+        onTriggerSharedPomodoro={(info) => {
+          setSharedPomodoroAlert({ active: true, ...info });
+          showToast(`Alerta colaborativo disparado: ${info.memberName} iniciou Pomodoro em ${info.subclassName}!`);
+        }}
       />
 
       <AuthModal
