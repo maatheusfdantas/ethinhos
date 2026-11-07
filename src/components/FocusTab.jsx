@@ -11,83 +11,78 @@ import {
   CheckCircle2, 
   Sparkles, 
   BookOpen, 
-  X,
-  Flame,
-  Plus,
-  Minus,
-  Sliders
+  X, 
+  Flame, 
+  Plus, 
+  Minus, 
+  Sliders,
+  Settings,
+  Layers,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { CleanIcon } from './IconLibrary';
 
-const SUBJECT_OPTIONS = [
-  'Sistemas Operacionais',
-  'Estruturas de Dados e Algoritmos',
-  'Arquitetura de Software',
-  'Banco de Dados Distribuídos',
-  'Engenharia de Requisitos',
-  'Cálculo e Álgebra Linear'
-];
-
-export function FocusTab({ user, onFocusComplete }) {
-  // Preset durations in minutes (US05 & Request 4)
+export function FocusTab({
+  user,
+  tags = [],
+  syncedFocusRequest,
+  onConfigureCategory,
+  onCreateCategory,
+  onLogSubclassEffort,
+  onTriggerSharedPomodoro,
+  onFocusComplete
+}) {
+  // Duração predefinida em minutos
   const [selectedDurationMins, setSelectedDurationMins] = useState(25);
   const [customInputMins, setCustomInputMins] = useState(30);
   const [isCustomMode, setIsCustomMode] = useState(false);
 
-  // Classes de Estudo Customizáveis (Criar e Deletar)
-  const [subjects, setSubjects] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ethos_focus_subjects');
-      return saved ? JSON.parse(saved) : SUBJECT_OPTIONS;
-    } catch {
-      return SUBJECT_OPTIONS;
+  // REQUISITO 3: Seleção de Categorias Reais do Usuário
+  const [selectedCategoryId, setSelectedCategoryId] = useState(() => {
+    if (syncedFocusRequest?.category) {
+      const match = tags.find(t => t.name.toLowerCase() === syncedFocusRequest.category.toLowerCase() || t.id === syncedFocusRequest.category);
+      if (match) return match.id;
     }
+    const studyCat = tags.find(t => t.has_subclasses || t.name.toLowerCase().includes('facul') || t.name.toLowerCase().includes('estudo'));
+    return studyCat?.id || tags[0]?.id || 'tag_facul';
   });
-  const [subject, setSubject] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ethos_focus_subjects');
-      const parsed = saved ? JSON.parse(saved) : SUBJECT_OPTIONS;
-      return parsed[0] || 'Sistemas Operacionais';
-    } catch {
-      return 'Sistemas Operacionais';
-    }
+
+  // REQUISITO 3: Sub-classe opcional (string vazia = "Geral / Sem subclasse")
+  const [selectedSubclassName, setSelectedSubclassName] = useState(() => {
+    return syncedFocusRequest?.subclass || '';
   });
-  const [newSubjectInput, setNewSubjectInput] = useState('');
-  const [showSubjectManager, setShowSubjectManager] = useState(false);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('ethos_focus_subjects', JSON.stringify(subjects));
-    } catch (e) {
-      console.warn('Error saving subjects:', e);
-    }
-  }, [subjects]);
-
-  const handleAddSubject = (e) => {
-    e.preventDefault();
-    const clean = newSubjectInput.trim();
-    if (!clean) return;
-    if (subjects.includes(clean)) {
-      setSubject(clean);
-      setNewSubjectInput('');
-      return;
-    }
-    const updated = [...subjects, clean];
-    setSubjects(updated);
-    setSubject(clean);
-    setNewSubjectInput('');
+  // Categoria ativa atual
+  const currentCategory = tags.find(t => t.id === selectedCategoryId || t.name === selectedCategoryId) || tags[0] || {
+    id: 'tag_default',
+    name: 'Estudos',
+    color: '#818cf8',
+    icon: 'BookOpen',
+    has_subclasses: false,
+    subclasses: []
   };
 
-  const handleDeleteSubject = (subToDelete) => {
-    if (subjects.length <= 1) {
-      alert('Você deve manter pelo menos uma classe de estudo.');
-      return;
+  const hasSubclasses = Boolean(currentCategory.has_subclasses && Array.isArray(currentCategory.subclasses) && currentCategory.subclasses.length > 0);
+
+  // Sincronização externa (ex: disparos compartilhados ou atalhos)
+  useEffect(() => {
+    if (syncedFocusRequest?.category) {
+      const match = tags.find(t => t.name.toLowerCase() === syncedFocusRequest.category.toLowerCase() || t.id === syncedFocusRequest.category);
+      if (match) {
+        setSelectedCategoryId(match.id);
+        if (syncedFocusRequest.subclass) {
+          setSelectedSubclassName(syncedFocusRequest.subclass);
+        }
+      }
     }
-    const updated = subjects.filter(s => s !== subToDelete);
-    setSubjects(updated);
-    if (subject === subToDelete) {
-      setSubject(updated[0]);
-    }
+  }, [syncedFocusRequest, tags]);
+
+  // Ao trocar de categoria, reseta a subclasse para geral
+  const handleSelectCategory = (catId) => {
+    if (isActive) return;
+    setSelectedCategoryId(catId);
+    setSelectedSubclassName('');
   };
 
   // Timer states
@@ -96,12 +91,12 @@ export function FocusTab({ user, onFocusComplete }) {
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
-  // US24: Anti-fraud pause limit
+  // Anti-fraud pause limit
   const MAX_PAUSE_SECONDS = 120; // 2 minutes maximum cumulative pause
   const [pauseSecondsLeft, setPauseSecondsLeft] = useState(MAX_PAUSE_SECONDS);
   const [fraudWarning, setFraudWarning] = useState(false);
 
-  // US06: Celebration Modal & Canvas State
+  // Celebration Modal & Canvas State
   const [showCelebration, setShowCelebration] = useState(false);
   const [completedSessionData, setCompletedSessionData] = useState(null);
   const canvasRef = useRef(null);
@@ -139,14 +134,13 @@ export function FocusTab({ user, onFocusComplete }) {
         setSecondsLeft(prev => prev - 1);
       }, 1000);
     } else if (isActive && !isPaused && secondsLeft === 0) {
-      // Completed Focus Session!
       handleSessionFinished();
     }
 
     return () => clearInterval(timer);
   }, [isActive, isPaused, secondsLeft]);
 
-  // US24: Anti-fraud pause countdown effect
+  // Anti-fraud pause countdown effect
   useEffect(() => {
     let pauseTimer = null;
 
@@ -187,7 +181,7 @@ export function FocusTab({ user, onFocusComplete }) {
     setFraudWarning(false);
   };
 
-  // US06: When focus finishes, trigger confetti and open celebration canvas modal
+  // Conclusão da sessão de foco
   const handleSessionFinished = () => {
     setIsActive(false);
     setIsPaused(false);
@@ -202,8 +196,20 @@ export function FocusTab({ user, onFocusComplete }) {
       // safe fallback
     }
 
+    const durationInHours = Number((selectedDurationMins / 60).toFixed(2));
+    const categoryName = currentCategory?.name || 'Estudos';
+    const subclassName = selectedSubclassName || null;
+    const displaySubject = subclassName ? `${categoryName} • ${subclassName}` : categoryName;
+
+    // Registra esforço na sub-classe se selecionada
+    if (subclassName && onLogSubclassEffort) {
+      onLogSubclassEffort(currentCategory.id || currentCategory.name, subclassName, durationInHours);
+    }
+
     const sessionInfo = {
-      subject,
+      subject: displaySubject,
+      category: categoryName,
+      subclass: subclassName,
       durationMins: selectedDurationMins,
       date: new Date().toLocaleDateString('pt-BR'),
       userName: user?.name || 'Eu Matheus',
@@ -215,7 +221,7 @@ export function FocusTab({ user, onFocusComplete }) {
     onFocusComplete?.(sessionInfo);
   };
 
-  // Draw commemorative image on Canvas (US06)
+  // Renderiza certificado comemorativo no Canvas
   useEffect(() => {
     if (showCelebration && completedSessionData && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -252,7 +258,7 @@ export function FocusTab({ user, onFocusComplete }) {
       ctx.font = '14px Inter, sans-serif';
       ctx.fillText('PROTOCOLO ANTI-FRAUDE ATIVADO', width / 2, 98);
 
-      // Big minutes circle / box
+      // Círculo de minutos
       ctx.fillStyle = 'rgba(59, 130, 246, 0.12)';
       ctx.beginPath();
       ctx.arc(width / 2, 180, 60, 0, Math.PI * 2);
@@ -269,12 +275,12 @@ export function FocusTab({ user, onFocusComplete }) {
       ctx.font = 'bold 12px Inter, sans-serif';
       ctx.fillText('MINUTOS DE FOCO', width / 2, 216);
 
-      // Subject Info
+      // Matéria / Categoria vinculada
       ctx.fillStyle = '#f8fafc';
       ctx.font = 'bold 18px Inter, sans-serif';
       ctx.fillText(completedSessionData.subject, width / 2, 280);
 
-      // User & Date
+      // Usuário & Data
       ctx.fillStyle = '#818cf8';
       ctx.font = '600 15px Inter, sans-serif';
       ctx.fillText(`Conquistado por: ${completedSessionData.userName}`, width / 2, 315);
@@ -283,7 +289,7 @@ export function FocusTab({ user, onFocusComplete }) {
       ctx.font = '13px Inter, sans-serif';
       ctx.fillText(`Data de Conclusão: ${completedSessionData.date}`, width / 2, 345);
 
-      // Anti-fraud badge
+      // Selo de verificação
       ctx.fillStyle = completedSessionData.fraudProtected ? '#34d399' : '#f43f5e';
       ctx.font = 'bold 12px Inter, sans-serif';
       ctx.fillText(
@@ -296,11 +302,10 @@ export function FocusTab({ user, onFocusComplete }) {
     }
   }, [showCelebration, completedSessionData]);
 
-  // Download commemorative PNG image (US06)
   const handleDownloadImage = () => {
     if (!canvasRef.current) return;
     const link = document.createElement('a');
-    link.download = `ethos-foco-${completedSessionData?.subject?.replace(/\s+/g, '_') || 'sessao'}.png`;
+    link.download = `ethos-foco-${selectedDurationMins}min-${Date.now()}.png`;
     link.href = canvasRef.current.toDataURL('image/png');
     link.click();
   };
@@ -308,22 +313,24 @@ export function FocusTab({ user, onFocusComplete }) {
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const progressPercent = Math.round(((totalSeconds - secondsLeft) / totalSeconds) * 100);
+  const progressPercent = totalSeconds > 0 ? ((totalSeconds - secondsLeft) / totalSeconds) * 100 : 0;
+  const currentSubjectDisplay = selectedSubclassName ? `${currentCategory.name} • ${selectedSubclassName}` : currentCategory.name;
 
   return (
     <div className="space-y-6">
-      {/* SECTION HEADER */}
-      <div className="flex items-center justify-between gap-3">
+      
+      {/* HEADER SECTION */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-orange-500/15 border border-orange-400/30 text-orange-400 flex items-center justify-center shadow-[0_0_15px_rgba(251,146,60,0.25)]">
             <Timer size={20} />
           </div>
           <div>
             <h2 className="text-xl font-semibold text-white tracking-tight">Cronômetro de Foco & Produtividade</h2>
-            <p className="text-xs text-slate-400 font-medium">Sessões imersivas com proteção anti-fraude</p>
+            <p className="text-xs text-slate-400 font-medium">Sessões imersivas vinculadas às suas categorias modulares</p>
           </div>
         </div>
         <div className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-500/10 border border-orange-400/20 text-orange-300 shadow-[0_0_10px_rgba(251,146,60,0.15)] flex items-center gap-1.5">
@@ -332,96 +339,183 @@ export function FocusTab({ user, onFocusComplete }) {
         </div>
       </div>
 
-      {/* VINCULAÇÃO A UMA CLASSE DE ESTUDO (CRIAR E DELETAR) - BENTO CARD */}
+      {/* REQUISITO 3: VINCULAÇÃO A UMA CATEGORIA REAL + SELEÇÃO OPCIONAL DE SUB-CLASSE */}
       <div className="bento-card p-6">
-        <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-400/30 text-indigo-400 flex items-center justify-center">
-              <BookOpen size={15} />
+            <div 
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{
+                backgroundColor: `${currentCategory.color || '#818cf8'}20`,
+                border: `1.5px solid ${currentCategory.color || '#818cf8'}40`,
+                color: currentCategory.color || '#818cf8'
+              }}
+            >
+              <CleanIcon name={currentCategory.icon || 'BookOpen'} size={18} color={currentCategory.color || '#818cf8'} strokeWidth={2.2} />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300 block">
-                Classe de Estudo Vinculada
+              <label className="text-xs font-semibold text-slate-200 block">
+                Área & Classe de Estudo Vinculada
               </label>
-              <span className="text-[11px] text-slate-400">Direcione seu tempo de foco com precisão</span>
+              <span className="text-[11px] text-slate-400">
+                Selecione a categoria de estudo e, opcionalmente, uma matéria ou sub-classe
+              </span>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowSubjectManager(!showSubjectManager)}
-            disabled={isActive}
-            className="glass-pill-btn !py-1 !px-3 !text-xs !bg-white/[0.04] text-slate-300 hover:text-white disabled:opacity-40"
-          >
-            {showSubjectManager ? 'Fechar Gerenciador' : '+ Gerenciar Classes'}
-          </button>
+          <div className="flex items-center gap-2">
+            {onConfigureCategory && (
+              <button
+                type="button"
+                onClick={() => onConfigureCategory(currentCategory)}
+                disabled={isActive}
+                className="glass-pill-btn !py-1 !px-3 !text-xs !bg-white/[0.04] text-slate-300 hover:text-white disabled:opacity-40 flex items-center gap-1.5"
+                title="Editar sub-classes ou detalhes desta categoria"
+              >
+                <Settings size={12} />
+                <span>Editar Categoria</span>
+              </button>
+            )}
+
+            {onCreateCategory && (
+              <button
+                type="button"
+                onClick={onCreateCategory}
+                disabled={isActive}
+                className="glass-pill-btn !py-1 !px-3 !text-xs !bg-indigo-500/20 !border-indigo-400/40 text-indigo-200 hover:text-white disabled:opacity-40 flex items-center gap-1.5"
+                title="Criar nova categoria modular"
+              >
+                <Plus size={12} />
+                <span>Nova Categoria</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* FORM INLINE PARA CRIAR E DELETAR CLASSES DE ESTUDO */}
-        {showSubjectManager && (
-          <div className="bento-subcard p-4 rounded-2xl border border-white/[0.08] mb-4 space-y-3">
-            <span className="text-xs font-semibold text-white block">
-              Cadastrar Nova Classe de Estudo:
-            </span>
-            <form onSubmit={handleAddSubject} className="flex gap-2">
-              <input
-                type="text"
-                className="flex-1 px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-400/50"
-                placeholder="Nome da classe (ex: Inteligência Artificial, Bioquímica)"
-                value={newSubjectInput}
-                onChange={(e) => setNewSubjectInput(e.target.value)}
-                autoFocus
-              />
-              <button 
-                type="submit" 
-                className="glass-pill-btn !py-2 !px-4 !text-xs !bg-orange-500/20 !border-orange-400/40 text-orange-200 flex items-center gap-1.5 shrink-0 shadow-[0_0_10px_rgba(251,146,60,0.2)]"
-              >
-                <Plus size={14} />
-                Adicionar
-              </button>
-            </form>
+        {/* 1. SELETOR DE CATEGORIAS DO USUÁRIO */}
+        <div className="space-y-2 mb-4">
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+            1. Selecione a Categoria de Foco:
+          </span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+            {tags.map((cat) => {
+              const isSelected = cat.id === currentCategory.id || cat.name === currentCategory.name;
+              const subCount = Array.isArray(cat.subclasses) ? cat.subclasses.length : 0;
+              return (
+                <button
+                  key={cat.id || cat.name}
+                  type="button"
+                  disabled={isActive}
+                  onClick={() => handleSelectCategory(cat.id || cat.name)}
+                  className={`p-2.5 rounded-xl border text-left flex flex-col justify-between gap-1.5 transition-all ${
+                    isSelected
+                      ? 'bg-white/[0.08] shadow-[0_0_12px_rgba(255,255,255,0.06)]'
+                      : 'bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.08]'
+                  }`}
+                  style={{
+                    borderColor: isSelected ? (cat.color || '#818cf8') : 'rgba(255,255,255,0.08)'
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <CleanIcon name={cat.icon || 'Bookmark'} size={16} color={cat.color || '#818cf8'} strokeWidth={2} />
+                    {cat.has_subclasses && subCount > 0 && (
+                      <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">
+                        {subCount} subs
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-semibold text-white truncate w-full">
+                    {cat.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-            <span className="text-[11px] text-slate-400 block">
-              Classes cadastradas (clique no X para deletar):
+        {/* 2. SELETOR OPCIONAL DE SUB-CLASSE / MATÉRIA */}
+        <div className="pt-3 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              2. Matéria / Sub-classe (Opcional):
             </span>
-            <div className="flex gap-2 flex-wrap">
-              {subjects.map((subItem) => (
-                <span
-                  key={subItem}
-                  className={`text-xs px-2.5 py-1 rounded-full flex items-center gap-2 transition-all ${
-                    subItem === subject
-                      ? 'bg-orange-500/20 border border-orange-400/40 text-orange-200 shadow-[0_0_8px_rgba(251,146,60,0.25)]'
-                      : 'bg-white/[0.04] border border-white/10 text-slate-300'
+            {hasSubclasses && (
+              <span className="text-[11px] text-slate-400">
+                {selectedSubclassName ? (
+                  <span className="text-emerald-400 font-semibold">✓ Sub-classe selecionada: {selectedSubclassName}</span>
+                ) : (
+                  <span className="text-slate-400">Nenhuma selecionada (estudo geral nesta categoria)</span>
+                )}
+              </span>
+            )}
+          </div>
+
+          {hasSubclasses ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Opção 1: Sem subclasse (Geral) */}
+                <button
+                  type="button"
+                  disabled={isActive}
+                  onClick={() => setSelectedSubclassName('')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                    selectedSubclassName === ''
+                      ? 'bg-orange-500/20 border-orange-400/50 text-orange-200 shadow-[0_0_10px_rgba(251,146,60,0.2)]'
+                      : 'bg-white/[0.03] border-white/10 text-slate-400 hover:text-white'
                   }`}
                 >
-                  {subItem}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteSubject(subItem);
-                    }}
-                    className="w-4 h-4 rounded-full bg-white/[0.1] hover:bg-rose-500/30 hover:text-rose-300 flex items-center justify-center text-slate-400 transition-colors"
-                    title={`Deletar classe "${subItem}"`}
-                  >
-                    <X size={10} strokeWidth={2.8} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+                  ★ Geral ({currentCategory.name})
+                </button>
 
-        <select 
-          className="w-full px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-white focus:outline-none focus:border-orange-400/50 disabled:opacity-50"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          disabled={isActive}
-        >
-          {subjects.map((sub, idx) => (
-            <option key={idx} value={sub} className="bg-[#0B0F17] text-white">{sub}</option>
-          ))}
-        </select>
+                {/* Opção 2+: Cada Sub-classe da categoria */}
+                {currentCategory.subclasses.map((sub) => {
+                  const isSubSelected = selectedSubclassName === sub.name;
+                  return (
+                    <button
+                      key={sub.id || sub.name}
+                      type="button"
+                      disabled={isActive}
+                      onClick={() => setSelectedSubclassName(sub.name)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                        isSubSelected
+                          ? 'bg-indigo-500/25 border-indigo-400/60 text-white shadow-[0_0_12px_rgba(129,140,248,0.25)]'
+                          : 'bg-white/[0.03] border-white/10 text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <span>{sub.name}</span>
+                      {sub.priority && (
+                        <span className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold ${
+                          sub.priority === 'Alta' ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-500/20 text-slate-300'
+                        }`}>
+                          {sub.priority}
+                        </span>
+                      )}
+                      {Number(sub.hours) > 0 && (
+                        <span className="text-[9.5px] text-slate-400">({sub.hours}h)</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-slate-400 flex-wrap">
+              <span>
+                A categoria <strong>{currentCategory.name}</strong> não possui sub-classes cadastradas. O foco será contabilizado na categoria geral.
+              </span>
+              {onConfigureCategory && (
+                <button
+                  type="button"
+                  disabled={isActive}
+                  onClick={() => onConfigureCategory(currentCategory)}
+                  className="text-xs text-indigo-300 hover:text-indigo-200 underline font-medium"
+                >
+                  + Adicionar matérias a esta categoria
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ADJUSTABLE DURATION PRESETS & CUSTOM TIME (GLASS PILLS) */}
@@ -538,12 +632,11 @@ export function FocusTab({ user, onFocusComplete }) {
         )}
       </div>
 
-      {/* FOCUS MAIN TIMER CARD (BENTO CARD WITH WARM GRADIENT & AMBIENT GLOW) */}
+      {/* FOCUS MAIN TIMER CARD */}
       <div className="bento-card p-10 flex flex-col items-center justify-center relative overflow-hidden text-center">
-        {/* Ambient Backlight for Pomodoro */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-orange-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-        {/* US24: ANTI-FRAUD STATUS PILL */}
+        {/* ANTI-FRAUD STATUS PILL */}
         <div className={`px-3.5 py-1.5 rounded-full text-xs font-medium border mb-8 flex items-center gap-2 transition-all ${
           pauseSecondsLeft <= 20 
             ? 'bg-rose-500/15 border-rose-400/30 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
@@ -562,7 +655,7 @@ export function FocusTab({ user, onFocusComplete }) {
           )}
         </div>
 
-        {/* CIRCULAR TIMER WITH DUAL GRADIENT (AMBER TO CORAL) */}
+        {/* CIRCULAR TIMER */}
         <div className="relative w-64 h-64 flex items-center justify-center mb-8">
           <svg className="absolute inset-0 w-full h-full -rotate-90">
             <defs>
@@ -597,7 +690,7 @@ export function FocusTab({ user, onFocusComplete }) {
             />
           </svg>
 
-          {/* TIMER DIGITS (PROTAGONIST NUMBERS) */}
+          {/* TIMER DIGITS */}
           <div className="relative z-10 flex flex-col items-center">
             <div className="text-5xl font-semibold tracking-tight text-white tabular-nums drop-shadow-[0_0_15px_rgba(251,146,60,0.35)]">
               {formatTime(secondsLeft)}
@@ -614,11 +707,11 @@ export function FocusTab({ user, onFocusComplete }) {
             Foco Ativo em
           </span>
           <h3 className="text-base font-semibold text-white">
-            {subject}
+            {currentSubjectDisplay}
           </h3>
         </div>
 
-        {/* TIMER CONTROLS (DATA-DRIVEN GLOW, TRANSLUCENT GLASS PILLS) */}
+        {/* TIMER CONTROLS */}
         <div className="flex items-center justify-center gap-3.5 flex-wrap">
           {!isActive ? (
             <button 
@@ -664,7 +757,7 @@ export function FocusTab({ user, onFocusComplete }) {
         </div>
       </div>
 
-      {/* MODAL COMEMORATIVO COM GERAÇÃO DE IMAGEM NO CANVAS (US06) */}
+      {/* MODAL COMEMORATIVO COM GERAÇÃO DE IMAGEM NO CANVAS */}
       {showCelebration && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" onClick={() => setShowCelebration(false)}>
           <div className="bento-card max-w-lg w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
@@ -686,7 +779,6 @@ export function FocusTab({ user, onFocusComplete }) {
               Aqui está sua imagem comemorativa gerada dinamicamente via Canvas:
             </p>
 
-            {/* RENDERED HTML5 CANVAS */}
             <div className="flex justify-center mb-5">
               <canvas 
                 ref={canvasRef} 

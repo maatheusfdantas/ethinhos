@@ -1,3 +1,4 @@
+import { CleanIcon } from './IconLibrary';
 import React from 'react';
 import { 
   LayoutGrid, 
@@ -24,6 +25,7 @@ export function DesktopSidebar({
   user,
   tags = [],
   onConfigureCategory,
+  onCreateCategory,
   onOpenProfile,
   onOpenAuth,
   onLogout,
@@ -198,8 +200,32 @@ export function DesktopSidebar({
           <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>
             Áreas de Foco
           </div>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: '#797B9E', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '10px' }}>
-            CATEGORIAS MODULARES
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#797B9E', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              CATEGORIAS MODULARES
+            </div>
+            {onCreateCategory && (
+              <button
+                type="button"
+                onClick={onCreateCategory}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#A5A6F6',
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}
+                title="Adicionar Nova Categoria Modular"
+              >
+                <Plus size={12} />
+                <span>Nova</span>
+              </button>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', maxHeight: '165px', overflowY: 'auto' }}>
@@ -222,16 +248,7 @@ export function DesktopSidebar({
                   onClick={() => handleSelectTab('dashboard')}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, cursor: 'pointer' }}
                 >
-                  <span 
-                    style={{ 
-                      width: '8px', 
-                      height: '8px', 
-                      borderRadius: '50%', 
-                      backgroundColor: tag.color || '#6366f1', 
-                      display: 'inline-block',
-                      flexShrink: 0
-                    }} 
-                  />
+                  <CleanIcon name={tag.icon || 'Bookmark'} size={13} color={tag.color || '#6366f1'} strokeWidth={2.2} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tag.name}</span>
                 </div>
 

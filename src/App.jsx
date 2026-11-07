@@ -269,11 +269,16 @@ export function App() {
 
   // Passo B & D: Evolução para Configuração Avançada de Categoria (Sub-classes + Compartilhamento + Restrição Antibug)
   const handleUpdateCategoryConfig = async (updatedCat) => {
-    setTags(prev =>
-      prev.map(t => (t.id === updatedCat.id || t.name === updatedCat.name ? { ...t, ...updatedCat } : t))
-    );
+    setTags(prev => {
+      const exists = prev.some(t => t.id === updatedCat.id || t.name === updatedCat.name);
+      if (exists) {
+        return prev.map(t => (t.id === updatedCat.id || t.name === updatedCat.name ? { ...t, ...updatedCat, isNew: false } : t));
+      } else {
+        return [...prev, { ...updatedCat, id: updatedCat.id || `tag_${Date.now()}`, isNew: false }];
+      }
+    });
     showToast(
-      `Categoria "${updatedCat.name}" atualizada (${
+      `Categoria "${updatedCat.name}" ${updatedCat.isNew ? 'criada' : 'atualizada'} (${
         updatedCat.has_subclasses ? `${updatedCat.subclasses?.length || 0} sub-classes` : 'Básica'
       }${updatedCat.is_shared ? ' • Compartilhada' : ''})`
     );
@@ -289,6 +294,22 @@ export function App() {
         console.error('Error updating category config:', e);
       }
     }
+  };
+
+  // Abrir Modal para Criar Nova Categoria Modular do Zero
+  const handleOpenCreateCategory = () => {
+    setConfigCategory({
+      isNew: true,
+      id: `tag_${Date.now()}`,
+      name: '',
+      color: '#818cf8',
+      bg: 'rgba(129, 140, 248, 0.15)',
+      icon: 'BookOpen',
+      has_subclasses: false,
+      is_shared: false,
+      subclasses: [],
+      members: []
+    });
   };
 
   // Passo C & E: Registrar horas/esforço em Sub-classe (Pomodoro ou Hábito Coringa) para Drill-Down Analítico
@@ -463,6 +484,8 @@ export function App() {
           user={user}
           tags={tags}
           onConfigureCategory={(cat) => setConfigCategory(cat)}
+                      onCreateCategory={handleOpenCreateCategory}
+          onCreateCategory={handleOpenCreateCategory}
           onOpenProfile={() => setShowProfileModal(true)}
           onOpenAuth={() => setShowAuthModal(true)}
           onLogout={handleLogout}
@@ -743,6 +766,7 @@ export function App() {
                 user={user}
                 onOpenAdd={() => handleOpenAdd('habit')}
                 onOpenWorkout={() => setActiveTab('workouts')}
+                onCreateCategory={handleOpenCreateCategory}
                 onAddTag={handleAddTag}
                 onDeleteTag={handleDeleteTag}
                 onConfigureCategory={(cat) => setConfigCategory(cat)}
@@ -933,6 +957,7 @@ export function App() {
         category={configCategory}
         onClose={() => setConfigCategory(null)}
         onSaveConfig={handleUpdateCategoryConfig}
+        onDeleteCategory={handleDeleteTag}
         onTriggerSharedPomodoro={(info) => {
           setSharedPomodoroAlert({ active: true, ...info });
           showToast(`Alerta colaborativo disparado: ${info.memberName} iniciou Pomodoro em ${info.subclassName}!`);

@@ -1,3 +1,4 @@
+import { CleanIcon } from './IconLibrary';
 import React, { useState, useEffect } from 'react';
 import { 
   Check, 
@@ -74,6 +75,7 @@ export function DashboardTab({
   onAddTag,
   onDeleteTag,
   onConfigureCategory,
+  onCreateCategory,
   onLogSubclassEffort,
   onToggleEvent,
   onSwitchTab,
@@ -1170,7 +1172,7 @@ export function DashboardTab({
 
               <button
                 type="button"
-                onClick={() => setShowTagCreator(!showTagCreator)}
+                onClick={() => { if (onCreateCategory) { onCreateCategory(); } else { setShowTagCreator(!showTagCreator); } }}
                 style={{
                   padding: '5px 12px',
                   borderRadius: '999px',
@@ -1186,7 +1188,7 @@ export function DashboardTab({
                 }}
               >
                 <Plus size={12} />
-                <span>{showTagCreator ? 'Fechar' : 'Nova'}</span>
+                <span>Nova Categoria</span>
               </button>
             </div>
 
@@ -1279,7 +1281,7 @@ export function DashboardTab({
                       gap: '6px'
                     }}
                   >
-                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: t.color || '#56548A' }} />
+                    <CleanIcon name={t.icon || 'Bookmark'} size={13} color={t.color || '#56548A'} strokeWidth={2.2} />
                     <span>{t.name}</span>
 
                     {t.has_subclasses && subCount > 0 && (
