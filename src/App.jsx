@@ -29,28 +29,33 @@ import { GlobalProgressBar } from './components/GlobalProgressBar';
 import { Toast } from './components/Toast';
 
 export function App() {
-  // REQUISITO: SEMPRE O LOCALHOST DEVE ENVIAR PARA A PÁGINA DE LOGIN PRIMEIRO
-  // (Exceto quando retornando do callback OAuth 2.0 do Google Calendar: ?google_auth=...)
   const isReturningFromGoogleOAuth = typeof window !== 'undefined' && window.location.search.includes('google_auth=');
 
+  // Persistência de sessão: restaura o usuário logado ao recarregar a página
   const [user, setUser] = useState(() => {
-    if (isReturningFromGoogleOAuth) {
-      const saved = sessionStorage.getItem('ethos_current_user');
+    try {
+      const saved = localStorage.getItem('ethos_current_user') || sessionStorage.getItem('ethos_current_user');
       if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
+        return JSON.parse(saved);
       }
+    } catch (e) {
+      console.warn('Erro ao restaurar sessão salva:', e);
+    }
+    if (isReturningFromGoogleOAuth) {
       return { id: 'usr_1', name: 'Lucas Dev', username: 'lucas', email: 'lucas@ethos.dev', role: 'user', avatar: 'LD' };
     }
     return null;
   });
 
-  // Limpa qualquer resquício de sessão ao inicializar normalmente
+  // Mantém localStorage e sessionStorage sempre sincronizados com o estado do usuário
   useEffect(() => {
-    if (!isReturningFromGoogleOAuth) {
-      sessionStorage.removeItem('ethos_current_user');
-      localStorage.removeItem('ethos_current_user');
+    if (user) {
+      try {
+        localStorage.setItem('ethos_current_user', JSON.stringify(user));
+        sessionStorage.setItem('ethos_current_user', JSON.stringify(user));
+      } catch (e) {}
     }
-  }, []);
+  }, [user]);
 
   // User-specific states
   const [tags, setTags] = useState(INITIAL_TAGS);
@@ -68,7 +73,22 @@ export function App() {
   const [feed, setFeed] = useState([]);
 
   // Active Navigation Tab (abre direto na aba Calendário ao retornar do Google OAuth)
-  const [activeTab, setActiveTab] = useState(() => isReturningFromGoogleOAuth ? 'calendar' : 'dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (isReturningFromGoogleOAuth) return 'calendar';
+    try {
+      const savedTab = localStorage.getItem('ethos_active_tab');
+      if (savedTab) return savedTab;
+    } catch (e) {}
+    return 'dashboard';
+  });
+
+  useEffect(() => {
+    if (activeTab) {
+      try {
+        localStorage.setItem('ethos_active_tab', activeTab);
+      } catch (e) {}
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (user?.id && !user.pagePreferences) {
@@ -410,10 +430,16 @@ export function App() {
   const handleLoginSuccess = (authenticatedUser) => {
     if (authenticatedUser?.auth?.accessToken) {
       sessionStorage.setItem('ethos_access_token', authenticatedUser.auth.accessToken);
+      localStorage.setItem('ethos_access_token', authenticatedUser.auth.accessToken);
     }
     if (authenticatedUser?.auth?.refreshToken) {
       sessionStorage.setItem('ethos_refresh_token', authenticatedUser.auth.refreshToken);
+      localStorage.setItem('ethos_refresh_token', authenticatedUser.auth.refreshToken);
     }
+    try {
+      localStorage.setItem('ethos_current_user', JSON.stringify(authenticatedUser));
+      sessionStorage.setItem('ethos_current_user', JSON.stringify(authenticatedUser));
+    } catch (e) {}
     setUser(authenticatedUser);
     setShowWelcomeIntro(true);
     setBootKey(prev => prev + 1);
@@ -432,6 +458,9 @@ export function App() {
     sessionStorage.removeItem('ethos_access_token');
     sessionStorage.removeItem('ethos_refresh_token');
     localStorage.removeItem('ethos_current_user');
+    localStorage.removeItem('ethos_access_token');
+    localStorage.removeItem('ethos_refresh_token');
+    localStorage.removeItem('ethos_active_tab');
     setShowAuthModal(false);
     setShowProfileModal(false);
     setShowAddModal(false);

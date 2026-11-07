@@ -99,9 +99,11 @@ export function LoginScreen({ onLoginSuccess }) {
 
       if (data.auth?.accessToken) {
         sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+        localStorage.setItem('ethos_access_token', data.auth.accessToken);
       }
       if (data.auth?.refreshToken) {
         sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+        localStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
       }
       onLoginSuccess(data);
     } catch (err) {
@@ -153,9 +155,11 @@ export function LoginScreen({ onLoginSuccess }) {
 
       if (data.auth?.accessToken) {
         sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+        localStorage.setItem('ethos_access_token', data.auth.accessToken);
       }
       if (data.auth?.refreshToken) {
         sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+        localStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
       }
       onLoginSuccess(data);
     } catch (err) {
@@ -190,9 +194,11 @@ export function LoginScreen({ onLoginSuccess }) {
 
       if (data.auth?.accessToken) {
         sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+        localStorage.setItem('ethos_access_token', data.auth.accessToken);
       }
       if (data.auth?.refreshToken) {
         sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+        localStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
       }
       onLoginSuccess(data.user ? { ...data.user, auth: data.auth } : data);
     } catch (err) {
@@ -308,9 +314,11 @@ export function LoginScreen({ onLoginSuccess }) {
       if (res.ok) {
         if (data.auth?.accessToken) {
           sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+        localStorage.setItem('ethos_access_token', data.auth.accessToken);
         }
         if (data.auth?.refreshToken) {
           sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+        localStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
         }
         onLoginSuccess(data);
         return;

@@ -153,9 +153,11 @@ export function AuthModal({
 
       if (data.auth?.accessToken) {
         sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+        localStorage.setItem('ethos_access_token', data.auth.accessToken);
       }
       if (data.auth?.refreshToken) {
         sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+        localStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
       }
       onLoginSuccess(data.user ? { ...data.user, auth: data.auth } : data);
       onClose();
