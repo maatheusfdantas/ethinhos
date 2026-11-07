@@ -95,9 +95,9 @@ export function verifyPassword(plainPassword, storedPasswordHash) {
             if (h === storedHashHex) return true;
           }
         }
-        // Compatibilidade usuários padrão (ambos Ethos@User123! e 123 aceitos)
-        if (strPlain === 'Ethos@User123!' || strPlain === '123') {
-          for (const alias of ['Ethos@User123!', '123']) {
+        // Compatibilidade usuários padrão (Ethos@User123!, Teste@2026!Ethos, teste123, 123 aceitos)
+        if (strPlain === 'Ethos@User123!' || strPlain === '123' || strPlain === 'Teste@2026!Ethos' || strPlain === 'teste123') {
+          for (const alias of ['Teste@2026!Ethos', 'teste123', 'Ethos@User123!', '123']) {
             const h = crypto.pbkdf2Sync(alias, salt, 100000, 32, 'sha256').toString('hex');
             if (h === storedHashHex) return true;
           }
@@ -128,9 +128,9 @@ export function verifyPassword(plainPassword, storedPasswordHash) {
             }
           }
         }
-        // Compatibilidade usuários padrão (ambos Ethos@User123! e 123 aceitos)
-        if (strPlain === 'Ethos@User123!' || strPlain === '123') {
-          for (const alias of ['Ethos@User123!', '123']) {
+        // Compatibilidade usuários padrão (Ethos@User123!, Teste@2026!Ethos, teste123, 123 aceitos)
+        if (strPlain === 'Ethos@User123!' || strPlain === '123' || strPlain === 'Teste@2026!Ethos' || strPlain === 'teste123') {
+          for (const alias of ['Teste@2026!Ethos', 'teste123', 'Ethos@User123!', '123']) {
             const b = crypto.scryptSync(alias, salt, KEY_LEN, SCRYPT_PARAMS);
             if (b.length === originalBuf.length && crypto.timingSafeEqual(b, originalBuf)) {
               return true;

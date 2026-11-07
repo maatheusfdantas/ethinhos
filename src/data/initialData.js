@@ -1,10 +1,10 @@
-// 5 USUÁRIOS PRÉ-CONFIGURADOS (Requisito 6)
+// USUÁRIOS ATIVOS DO SISTEMA (ADMIN E USUÁRIO DE TESTE)
 export const FIVE_SEEDED_USERS = [
   {
     id: 'usr_admin',
     username: 'admin',
     email: 'admin@ethos.dev',
-    password: 'admin123',
+    password: 'Admin@2026!Ethos',
     name: 'Administrador Ethos',
     avatar: 'AD',
     role: 'admin',
@@ -12,73 +12,25 @@ export const FIVE_SEEDED_USERS = [
     subscription_tier: 'Enterprise / Fundador',
     is_public: true,
     badge: 'Admin Master',
-    description: 'Acesso total ao portal de administração, controle de assinaturas e permissões.',
+    description: 'Acesso total ao portal de administração, controle de configurações e métricas globais.',
     streak_days: 0,
     points: 9999
   },
   {
-    id: 'usr_matheus_pro',
-    username: 'matheus.pro',
-    email: 'matheus@pro.dev',
-    password: '123',
-    name: 'Matheus Alta Performance',
-    avatar: 'MP',
+    id: 'usr_teste',
+    username: 'teste',
+    email: 'teste@ethos.dev',
+    password: 'Teste@2026!Ethos',
+    name: 'Usuário Teste',
+    avatar: 'UT',
     role: 'user',
     is_active: true,
     subscription_tier: 'Pro (Anual)',
     is_public: true,
-    badge: 'Desempenho Muito Bom',
-    description: 'Ofensiva de 14 dias, 100% de hábitos feitos, hidratação completa e eventos agendados.',
-    streak_days: 14,
-    points: 3450
-  },
-  {
-    id: 'usr_lucas_dev',
-    username: 'lucas.dev',
-    email: 'lucas@dev.com',
-    password: '123',
-    name: 'Lucas Intermediário',
-    avatar: 'LD',
-    role: 'user',
-    is_active: true,
-    subscription_tier: 'Pro (Mensal)',
-    is_public: true,
-    badge: 'Uso Intermediário',
-    description: 'Acompanha a rotina mas de forma moderada: 4 dias de ofensiva, hábitos parciais.',
-    streak_days: 4,
-    points: 1250
-  },
-  {
-    id: 'usr_bruno_preguica',
-    username: 'bruno.preguica',
-    email: 'bruno@gmail.com',
-    password: '123',
-    name: 'Bruno Não Empenhado',
-    avatar: 'BP',
-    role: 'user',
-    is_active: true,
-    subscription_tier: 'Gratuito',
-    is_public: true,
-    badge: 'Pouco Empenhado',
-    description: 'Constância baixa: 0 dias de ofensiva, poucos hábitos feitos, sono desregulado.',
-    streak_days: 0,
-    points: 180
-  },
-  {
-    id: 'usr_clean',
-    username: 'usuario.clean',
-    email: 'clean@ethos.dev',
-    password: '123',
-    name: 'Novo Usuário Clean',
-    avatar: 'UC',
-    role: 'user',
-    is_active: true,
-    subscription_tier: 'Gratuito',
-    is_public: true,
-    badge: 'Totalmente Zerado',
-    description: 'Conta 100% limpa para testar o sistema do zero: sem hábitos, sem água, sem eventos.',
-    streak_days: 0,
-    points: 0
+    badge: 'Conta de Teste',
+    description: 'Conta padrão de usuário para testes funcionais de hábitos, agenda, foco e métricas.',
+    streak_days: 1,
+    points: 500
   }
 ];
 

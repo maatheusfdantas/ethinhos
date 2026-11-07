@@ -51,3 +51,4 @@ export async function enviarEmailTeste(destinatario = 'eumatheusdantas1214@gmail
 // Executa se chamado diretamente
 const targetEmail = process.argv[2] || 'eumatheusdantas1214@gmail.com';
 enviarEmailTeste(targetEmail);
+

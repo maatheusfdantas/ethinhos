@@ -1084,8 +1084,8 @@ export function LoginScreen({ onLoginSuccess }) {
           onMouseOver={(e) => (e.currentTarget.style.opacity = '1')}
           onMouseOut={(e) => (e.currentTarget.style.opacity = '0.45')}
         >
-          <span style={{ fontSize: '10px', color: '#64748b' }}>Demo:</span>
-          {FIVE_SEEDED_USERS.filter((u) => u.role !== 'admin').slice(0, 3).map((u) => (
+          <span style={{ fontSize: '10px', color: '#64748b' }}>Acesso Rápido:</span>
+          {FIVE_SEEDED_USERS.map((u) => (
             <button
               key={u.id}
               type="button"
@@ -1100,7 +1100,7 @@ export function LoginScreen({ onLoginSuccess }) {
                 cursor: 'pointer'
               }}
             >
-              {u.name.split(' ')[0]}
+              {u.name.split(' ')[0]} ({u.role === 'admin' ? 'Admin' : 'Teste'})
             </button>
           ))}
         </div>

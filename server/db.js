@@ -287,6 +287,11 @@ export function initDatabase() {
 export function seedFiveUsers() {
   const allPerms = JSON.stringify({ focus: true, workouts: true, telemetry: true, social: true, habits: true });
 
+  // Remove todos os outros usuários cadastrados, mantendo estritamente o admin e o usuário de teste
+  try {
+    db.exec(`DELETE FROM users WHERE id NOT IN ('usr_admin', 'usr_teste');`);
+  } catch (e) {}
+
   const allSeedUsers = [
     {
       id: 'usr_admin',
@@ -304,154 +309,19 @@ export function seedFiveUsers() {
       points: 9999
     },
     {
-      id: 'usr_admin_local',
-      username: 'admin.local',
-      email: 'admin@ethos.local',
-      password: hashPassword('Admin@2026!Ethos'),
-      name: 'Administrador Ethos (Local)',
-      avatar: 'AL',
-      role: 'admin',
-      is_active: 1,
-      subscription_tier: 'Enterprise / Fundador',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 0,
-      points: 9999
-    },
-    {
-      id: 'usr_matheus_pro',
-      username: 'matheus.pro',
-      email: 'matheus@pro.dev',
-      password: hashPassword('Ethos@User123!'),
-      name: 'Matheus Alta Performance',
-      avatar: 'MP',
+      id: 'usr_teste',
+      username: 'teste',
+      email: 'teste@ethos.dev',
+      password: hashPassword('Teste@2026!Ethos'),
+      name: 'Usuário Teste',
+      avatar: 'UT',
       role: 'user',
       is_active: 1,
       subscription_tier: 'Pro (Anual)',
       is_public: 1,
       permissions: allPerms,
-      streak_days: 14,
-      points: 3450
-    },
-    {
-      id: 'usr_matheus_ethos',
-      username: 'matheus',
-      email: 'matheus@ethos.dev',
-      password: hashPassword('Ethos@User123!'),
-      name: 'Matheus Ethos',
-      avatar: 'ME',
-      role: 'user',
-      is_active: 1,
-      subscription_tier: 'Pro (Anual)',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 14,
-      points: 3450
-    },
-    {
-      id: 'usr_lucas_dev',
-      username: 'lucas.dev',
-      email: 'lucas@dev.com',
-      password: hashPassword('Ethos@User123!'),
-      name: 'Lucas Intermediário',
-      avatar: 'LD',
-      role: 'user',
-      is_active: 1,
-      subscription_tier: 'Pro (Mensal)',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 4,
-      points: 1250
-    },
-    {
-      id: 'usr_lucas_ethos',
-      username: 'lucas',
-      email: 'lucas@ethos.dev',
-      password: hashPassword('Ethos@User123!'),
-      name: 'Lucas Ethos',
-      avatar: 'LE',
-      role: 'user',
-      is_active: 1,
-      subscription_tier: 'Pro (Mensal)',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 4,
-      points: 1250
-    },
-    {
-      id: 'usr_ana_paula',
-      username: 'ana.paula',
-      email: 'ana@ethos.dev',
-      password: hashPassword('Ethos@User123!'),
-      name: 'Ana Paula Mendes',
-      avatar: 'AP',
-      role: 'user',
-      is_active: 1,
-      subscription_tier: 'Pro (Mensal)',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 7,
-      points: 1820
-    },
-    {
-      id: 'usr_beatriz_costa',
-      username: 'beatriz.costa',
-      email: 'beatriz@ethos.dev',
-      password: hashPassword('Ethos@User123!'),
-      name: 'Beatriz Costa',
-      avatar: 'BC',
-      role: 'user',
-      is_active: 1,
-      subscription_tier: 'Pro (Anual)',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 12,
-      points: 2940
-    },
-    {
-      id: 'usr_carlos_eduardo',
-      username: 'carlos.eduardo',
-      email: 'carlos@ethos.dev',
-      password: hashPassword('Ethos@User123!'),
-      name: 'Carlos Eduardo',
-      avatar: 'CE',
-      role: 'user',
-      is_active: 1,
-      subscription_tier: 'Gratuito',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 3,
-      points: 620
-    },
-    {
-      id: 'usr_bruno_preguica',
-      username: 'bruno.preguica',
-      email: 'bruno@gmail.com',
-      password: hashPassword('123'),
-      name: 'Bruno Não Empenhado',
-      avatar: 'BP',
-      role: 'user',
-      is_active: 1,
-      subscription_tier: 'Gratuito',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 0,
-      points: 180
-    },
-    {
-      id: 'usr_clean',
-      username: 'usuario.clean',
-      email: 'clean@ethos.dev',
-      password: hashPassword('123'),
-      name: 'Novo Usuário Clean',
-      avatar: 'UC',
-      role: 'user',
-      is_active: 1,
-      subscription_tier: 'Gratuito',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 0,
-      points: 0
+      streak_days: 1,
+      points: 500
     }
   ];
 
