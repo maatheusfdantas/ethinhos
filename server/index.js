@@ -1,3 +1,8 @@
+// Carrega automaticamente variáveis do arquivo .env
+try {
+  process.loadEnvFile();
+} catch (e) {}
+
 import express from 'express';
 import cors from 'cors';
 import crypto from 'node:crypto';
@@ -26,6 +31,13 @@ import {
   enforceOwnership,
   requireAdmin
 } from './security.js';
+import { sendVerificationEmail, sendPasswordResetEmail } from './emailService.js';
+import {
+  createAuthToken,
+  validateAndConsumeToken,
+  maskEmail,
+  TOKEN_EXPIRATION
+} from './authTokens.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -226,8 +238,8 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
     INSERT INTO users (
       id, username, email, password, name, avatar, role,
       is_active, subscription_tier, is_public, permissions,
-      streak_days, points, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, 'user', 1, 'Gratuito', 1, ?, 0, 0, ?)
+      streak_days, points, email_verified, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 'user', 1, 'Gratuito', 1, ?, 0, 0, 0, ?)
   `).run(
     newId,
     cleanUsername,
@@ -244,31 +256,154 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
     VALUES (?, 0, 10, '[]', '23:30', '07:00', 0)
   `).run(newId);
 
-  const newUserObj = { id: newId, username: cleanUsername, role: 'user' };
-  const tokens = issueSessionTokens(db, newUserObj, req);
+  // Gera o token de verificação seguro e com expiração
+  const tokenData = createAuthToken(db, {
+    userId: newId,
+    type: 'email_verification',
+    durationMs: TOKEN_EXPIRATION.EMAIL_VERIFICATION_MS
+  });
+
+  // Dispara o e-mail via Resend
+  await sendVerificationEmail({
+    email: email.trim(),
+    name: name.trim(),
+    token: tokenData.rawToken,
+    expiresInMinutes: tokenData.expiresInMinutes
+  });
 
   logSecurityEvent(db, {
     correlationId: req.correlationId,
-    eventType: 'USER_REGISTERED',
+    eventType: 'USER_REGISTERED_PENDING_VERIFICATION',
     actorUserId: newId,
     ipAddress: req.ip,
-    metadata: { username: cleanUsername, email: email.trim() }
+    metadata: { username: cleanUsername, email: email.trim(), expiresInMinutes: tokenData.expiresInMinutes }
   });
 
   res.status(201).json({
-    id: newId,
+    success: true,
+    requireVerification: true,
+    userId: newId,
     username: cleanUsername,
     email: email.trim(),
+    maskedEmail: maskEmail(email.trim()),
     name: name.trim(),
     avatar: initials,
     role: 'user',
-    is_active: true,
-    subscription_tier: 'Gratuito',
-    is_public: true,
-    permissions: JSON.parse(defaultPermissions),
-    streak_days: 0,
-    points: 0,
+    expiresInMinutes: tokenData.expiresInMinutes,
+    message: `Conta criada com sucesso! Enviamos um código de confirmação para ${maskEmail(email.trim())}.`
+  });
+});
+
+// Endpoint para validar o token de confirmação de e-mail ao criar a conta
+app.post('/api/auth/verify-email-token', authRateLimiter, async (req, res) => {
+  const { email, token } = req.body;
+  if (!email || !token) {
+    return res.status(400).json({ error: 'Informe o e-mail e o código de verificação recebido.' });
+  }
+
+  const user = db.prepare(`SELECT * FROM users WHERE LOWER(email) = LOWER(?)`).get(email);
+  if (!user) {
+    return res.status(404).json({ error: 'Usuário não encontrado.' });
+  }
+
+  if (user.email_verified === 1) {
+    const tokens = issueSessionTokens(db, user, req);
+    return res.json({
+      success: true,
+      alreadyVerified: true,
+      message: 'Seu e-mail já foi verificado anteriormente!',
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        role: user.role,
+        permissions: JSON.parse(user.permissions || '{}')
+      },
+      auth: tokens
+    });
+  }
+
+  const validation = validateAndConsumeToken(db, {
+    userId: user.id,
+    type: 'email_verification',
+    rawToken: String(token).trim()
+  });
+
+  if (!validation.valid) {
+    return res.status(400).json({ error: validation.error || 'Código inválido ou expirado.' });
+  }
+
+  // Marca o e-mail do usuário como verificado
+  db.prepare(`UPDATE users SET email_verified = 1 WHERE id = ?`).run(user.id);
+
+  logSecurityEvent(db, {
+    correlationId: req.correlationId,
+    eventType: 'EMAIL_VERIFIED_SUCCESS',
+    actorUserId: user.id,
+    ipAddress: req.ip,
+    metadata: { email: user.email }
+  });
+
+  const tokens = issueSessionTokens(db, user, req);
+
+  res.json({
+    success: true,
+    message: 'E-mail validado com sucesso! Bem-vindo ao Ethos.',
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      role: user.role,
+      permissions: JSON.parse(user.permissions || '{}'),
+      streak_days: user.streak_days || 0,
+      points: user.points || 0
+    },
     auth: tokens
+  });
+});
+
+// Endpoint para reenviar o código de verificação de conta
+app.post('/api/auth/resend-verification', authRateLimiter, async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Informe o e-mail cadastrado.' });
+  }
+
+  const user = db.prepare(`SELECT * FROM users WHERE LOWER(email) = LOWER(?)`).get(email);
+  if (!user) {
+    return res.status(404).json({ error: 'Nenhum usuário encontrado com este e-mail.' });
+  }
+
+  if (user.email_verified === 1) {
+    return res.json({
+      success: true,
+      alreadyVerified: true,
+      message: 'Este e-mail já foi verificado com sucesso.'
+    });
+  }
+
+  const tokenData = createAuthToken(db, {
+    userId: user.id,
+    type: 'email_verification',
+    durationMs: TOKEN_EXPIRATION.EMAIL_VERIFICATION_MS
+  });
+
+  await sendVerificationEmail({
+    email: user.email,
+    name: user.name,
+    token: tokenData.rawToken,
+    expiresInMinutes: tokenData.expiresInMinutes
+  });
+
+  res.json({
+    success: true,
+    maskedEmail: maskEmail(user.email),
+    expiresInMinutes: tokenData.expiresInMinutes,
+    message: `Novo código de verificação enviado com sucesso para ${maskEmail(user.email)}.`
   });
 });
 
@@ -306,8 +441,8 @@ app.post('/api/auth/logout-all', (req, res) => {
   });
 });
 
-// Solicitação de Token de Recuperação (Uso Único + Expiração Curta de 15 min + Hash SHA-256)
-app.post('/api/auth/forgot-password', authRateLimiter, (req, res) => {
+// Solicitação de Token de Recuperação de Senha (Resend + Uso Único + Expiração Curta de 15 min + Hash SHA-256)
+app.post('/api/auth/forgot-password', authRateLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Informe o e-mail cadastrado.' });
 
@@ -315,32 +450,35 @@ app.post('/api/auth/forgot-password', authRateLimiter, (req, res) => {
   const user = stmt.get(email);
   if (!user) return res.status(404).json({ error: 'Nenhum usuário encontrado com este e-mail.' });
 
-  const rawToken = crypto.randomInt(100000, 999999).toString();
-  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
-
-  // Invalida tokens anteriores pendentes do usuário
-  db.prepare(`UPDATE password_reset_tokens SET used = 1 WHERE user_id = ?`).run(user.id);
-
-  db.prepare(`
-    INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at, used, created_at)
-    VALUES (?, ?, ?, ?, 0, ?)
-  `).run(`prt_${crypto.randomUUID()}`, user.id, tokenHash, expiresAt, new Date().toISOString());
+  // Cria token criptograficamente seguro e armazena apenas seu hash no banco
+  const tokenData = createAuthToken(db, {
+    userId: user.id,
+    type: 'password_reset',
+    durationMs: TOKEN_EXPIRATION.PASSWORD_RESET_MS
+  });
 
   logSecurityEvent(db, {
     correlationId: req.correlationId,
     eventType: 'PASSWORD_RESET_REQUESTED',
     actorUserId: user.id,
     ipAddress: req.ip,
-    metadata: { email: user.email, expiresAt }
+    metadata: { email: user.email, expiresAt: tokenData.expiresAt }
   });
 
+  // Disparo com Resend (HTML responsivo + fallback em texto puro)
+  await sendPasswordResetEmail({
+    email: user.email,
+    name: user.name,
+    token: tokenData.rawToken,
+    expiresInMinutes: tokenData.expiresInMinutes
+  });
+
+  // NUNCA expor o token no payload JSON de resposta ao cliente
   res.json({
     success: true,
-    email: user.email,
-    token: rawToken, // Exibido apenas para fins de teste local sem servidor SMTP
-    expiresInMinutes: 15,
-    message: 'Token de uso único (expiração 15 min) gerado e armazenado com hash SHA-256.'
+    maskedEmail: maskEmail(user.email),
+    expiresInMinutes: tokenData.expiresInMinutes,
+    message: `Código de verificação enviado com sucesso para ${maskEmail(user.email)}. Verifique sua caixa de entrada e spam.`
   });
 });
 
@@ -348,33 +486,29 @@ app.post('/api/auth/forgot-password', authRateLimiter, (req, res) => {
 app.post('/api/auth/reset-password', authRateLimiter, (req, res) => {
   const { email, token, newPassword } = req.body;
   if (!email || !token || !newPassword) {
-    return res.status(400).json({ error: 'Dados incompletos para redefinição.' });
+    return res.status(400).json({ error: 'Dados incompletos para redefinição de senha.' });
+  }
+
+  if (String(newPassword).length < 6) {
+    return res.status(400).json({ error: 'A nova senha deve possuir pelo menos 6 caracteres.' });
   }
 
   const user = db.prepare(`SELECT * FROM users WHERE LOWER(email) = LOWER(?)`).get(email);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
-  const candidateHash = crypto.createHash('sha256').update(String(token).trim()).digest('hex');
-  const resetRecord = db
-    .prepare(`
-      SELECT * FROM password_reset_tokens
-      WHERE user_id = ? AND token_hash = ? AND used = 0
-      ORDER BY created_at DESC LIMIT 1
-    `)
-    .get(user.id, candidateHash);
+  // Valida e consome o token de forma atômica (Single-Use estrito)
+  const validation = validateAndConsumeToken(db, {
+    userId: user.id,
+    type: 'password_reset',
+    rawToken: String(token).trim()
+  });
 
-  if (!resetRecord) {
-    return res.status(400).json({ error: 'Token de recuperação inválido ou já utilizado.' });
+  if (!validation.valid) {
+    return res.status(400).json({ error: validation.error || 'Código de recuperação inválido ou expirado.' });
   }
 
-  if (new Date(resetRecord.expires_at).getTime() < Date.now()) {
-    db.prepare(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`).run(resetRecord.id);
-    return res.status(400).json({ error: 'Token de recuperação expirado (limite de 15 minutos).' });
-  }
-
-  // Marca token como usado (uso único), atualiza senha com scrypt e revoga todas as sessões antigas
+  // Atualiza senha com scrypt + salt individual e revoga todas as sessões anteriores
   const newPasswordHash = hashPassword(String(newPassword));
-  db.prepare(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`).run(resetRecord.id);
   db.prepare(`UPDATE users SET password = ?, reset_token = NULL WHERE id = ?`).run(newPasswordHash, user.id);
   db.prepare(`UPDATE user_sessions SET is_revoked = 1 WHERE user_id = ?`).run(user.id);
 
@@ -386,7 +520,10 @@ app.post('/api/auth/reset-password', authRateLimiter, (req, res) => {
     metadata: { email: user.email }
   });
 
-  res.json({ success: true, message: 'Senha atualizada com scrypt e sessões antigas revogadas!' });
+  res.json({
+    success: true,
+    message: 'Senha redefinida com sucesso! Todas as sessões anteriores foram desconectadas por segurança.'
+  });
 });
 
 // Proteção Anti-IDOR e Autenticação JWT Obrigatória para todas as rotas de dados do usuário
@@ -394,16 +531,21 @@ app.use('/api/user/:id', authenticateJWT, enforceOwnership('id'));
 app.use('/api/admin', authenticateJWT, requireAdmin);
 
 // Atualizar Perfil (Sem Mass Assignment de role/permissions)
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN page_preferences TEXT;`);
+} catch (e) {}
+
 app.put('/api/user/:id/profile', (req, res) => {
   const { id } = req.params;
-  const { name, is_public, weight, height } = req.body;
+  const { name, is_public, weight, height, pagePreferences } = req.body;
 
   db.prepare(`
     UPDATE users SET
       name = COALESCE(?, name),
       is_public = CASE WHEN ? IS NOT NULL THEN ? ELSE is_public END,
       weight = CASE WHEN ? IS NOT NULL THEN ? ELSE weight END,
-      height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END
+      height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END,
+      page_preferences = CASE WHEN ? IS NOT NULL THEN ? ELSE page_preferences END
     WHERE id = ?
   `).run(
     name || null,
@@ -413,6 +555,8 @@ app.put('/api/user/:id/profile', (req, res) => {
     weight !== undefined && weight !== null ? Number(weight) : null,
     height !== undefined && height !== null ? Number(height) : null,
     height !== undefined && height !== null ? Number(height) : null,
+    pagePreferences ? JSON.stringify(pagePreferences) : null,
+    pagePreferences ? JSON.stringify(pagePreferences) : null,
     id
   );
 
@@ -588,13 +732,94 @@ app.get('/api/user/:id/data', (req, res) => {
 
   const tags = Array.from(mergedCatMap.values());
 
+  let badHabits = [];
+  try {
+    badHabits = db.prepare(`SELECT * FROM bad_habits WHERE user_id = ? ORDER BY created_at DESC`).all(id).map((bh) => {
+      const relapses = db.prepare(`SELECT * FROM bad_habit_relapses WHERE bad_habit_id = ? ORDER BY relapsed_at DESC`).all(bh.id);
+      return {
+        ...bh,
+        relapses
+      };
+    });
+  } catch (e) {}
+
   const user = db
     .prepare(
-      `SELECT id, username, email, name, avatar, role, is_active, subscription_tier, is_public, streak_days, points, weight, height FROM users WHERE id = ?`
+      `SELECT id, username, email, name, avatar, role, is_active, subscription_tier, is_public, streak_days, points, weight, height, page_preferences FROM users WHERE id = ?`
     )
     .get(id);
 
-  res.json({ habits, events, health, tags, categories: tags, user });
+  let pagePreferences = null;
+  if (user?.page_preferences) {
+    try { pagePreferences = JSON.parse(user.page_preferences); } catch (e) {}
+  }
+
+  res.json({ habits, badHabits, events, health, tags, categories: tags, user: user ? { ...user, pagePreferences } : null });
+});
+
+// ==========================================
+// ENDPOINTS DE MAUS HÁBITOS & VÍCIOS (SOBRIEDADE)
+// ==========================================
+app.post('/api/user/:id/bad-habit', (req, res) => {
+  const { id } = req.params;
+  const { title, category, icon_name, started_at, cost_per_day, motivational_reason, impact_description } = req.body;
+  if (!title) return res.status(400).json({ error: 'Título é obrigatório.' });
+
+  const habitId = `bh_${Date.now()}`;
+  db.prepare(`
+    INSERT INTO bad_habits (id, user_id, title, category, icon_name, started_at, cost_per_day, motivational_reason, impact_description, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    habitId,
+    id,
+    title.trim(),
+    category || 'Superação Pessoal',
+    icon_name || 'ShieldOff',
+    started_at || new Date().toISOString(),
+    parseFloat(cost_per_day) || 0,
+    motivational_reason || '',
+    impact_description || 'Melhora progressiva da clareza mental e foco.',
+    new Date().toISOString()
+  );
+
+  res.json({ success: true, id: habitId });
+});
+
+app.delete('/api/user/:id/bad-habit/:habitId', (req, res) => {
+  const { id, habitId } = req.params;
+  db.prepare(`DELETE FROM bad_habits WHERE id = ? AND user_id = ?`).run(habitId, id);
+  db.prepare(`DELETE FROM bad_habit_relapses WHERE bad_habit_id = ? AND user_id = ?`).run(habitId, id);
+  res.json({ success: true });
+});
+
+app.post('/api/user/:id/bad-habit/:habitId/relapse', (req, res) => {
+  const { id, habitId } = req.params;
+  const { trigger, lesson, days_achieved } = req.body;
+
+  const relapseId = `rel_${Date.now()}`;
+  db.prepare(`
+    INSERT INTO bad_habit_relapses (id, bad_habit_id, user_id, relapsed_at, days_achieved, trigger, lesson, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    relapseId,
+    habitId,
+    id,
+    new Date().toISOString(),
+    parseInt(days_achieved) || 0,
+    trigger || 'Estresse',
+    lesson || '',
+    new Date().toISOString()
+  );
+
+  // Reinicia o contador para agora e incrementa contagem de recaída
+  db.prepare(`
+    UPDATE bad_habits SET
+      started_at = ?,
+      relapse_count = relapse_count + 1
+    WHERE id = ? AND user_id = ?
+  `).run(new Date().toISOString(), habitId, id);
+
+  res.json({ success: true });
 });
 
 // Criar Hábito

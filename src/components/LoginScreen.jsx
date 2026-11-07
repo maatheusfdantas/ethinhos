@@ -30,7 +30,7 @@ export function LoginScreen({ onLoginSuccess }) {
 
   // Estados de Recuperação de Senha por Token
   const [tokenInput, setTokenInput] = useState('');
-  const [generatedToken, setGeneratedToken] = useState(null);
+  const [maskedEmail, setMaskedEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [resetSuccessMsg, setResetSuccessMsg] = useState(false);
 
@@ -143,6 +143,14 @@ export function LoginScreen({ onLoginSuccess }) {
         return;
       }
 
+      if (data.requireVerification) {
+        setMaskedEmail(data.maskedEmail || regEmail);
+        setTokenInput('');
+        setMode('register_verify');
+        setLoading(false);
+        return;
+      }
+
       if (data.auth?.accessToken) {
         sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
       }
@@ -150,6 +158,66 @@ export function LoginScreen({ onLoginSuccess }) {
         sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
       }
       onLoginSuccess(data);
+    } catch (err) {
+      setErrorMessage('Erro ao comunicar com o servidor.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Validar código de confirmação de e-mail no cadastro
+  const handleVerifyRegisterToken = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/verify-email-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: regEmail.trim(),
+          token: tokenInput.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.error || 'Código incorreto ou expirado.');
+        setLoading(false);
+        return;
+      }
+
+      if (data.auth?.accessToken) {
+        sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+      }
+      if (data.auth?.refreshToken) {
+        sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+      }
+      onLoginSuccess(data.user ? { ...data.user, auth: data.auth } : data);
+    } catch (err) {
+      setErrorMessage('Erro ao comunicar com o servidor.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reenviar código de confirmação de e-mail
+  const handleResendRegisterCode = async () => {
+    setErrorMessage('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: regEmail.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'Novo código de verificação enviado!');
+      } else {
+        setErrorMessage(data.error || 'Erro ao reenviar código.');
+      }
     } catch (err) {
       setErrorMessage('Erro ao comunicar com o servidor.');
     } finally {
@@ -172,16 +240,15 @@ export function LoginScreen({ onLoginSuccess }) {
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.error || 'Erro ao solicitar token.');
+        setErrorMessage(data.error || 'Erro ao solicitar token de recuperação.');
         setLoading(false);
         return;
       }
 
-      setGeneratedToken(data.token);
+      setMaskedEmail(data.maskedEmail || loginInput.trim());
       setMode('forgot_verify');
     } catch (err) {
-      const token = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedToken(token);
+      setMaskedEmail(loginInput.trim());
       setMode('forgot_verify');
     } finally {
       setLoading(false);
@@ -358,6 +425,7 @@ export function LoginScreen({ onLoginSuccess }) {
           >
             {mode === 'login' && 'Entrar no Ethos'}
             {mode === 'register' && 'Cadastrar no Ethos'}
+            {mode === 'register_verify' && 'Confirmar E-mail'}
             {mode === 'forgot_request' && 'Recuperar Senha'}
             {mode === 'forgot_verify' && 'Validar Código'}
           </h1>
@@ -746,6 +814,92 @@ export function LoginScreen({ onLoginSuccess }) {
           )}
 
           {/* ========================================================== */}
+          {/* 2.1. CONFIRMAÇÃO DE E-MAIL (CADASTRO / RESEND)             */}
+          {/* ========================================================== */}
+          {mode === 'register_verify' && (
+            <form onSubmit={handleVerifyRegisterToken} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Mail size={15} color="#16a34a" />
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#15803d' }}>
+                    Validação de Segurança
+                  </span>
+                </div>
+                <p style={{ fontSize: '12px', color: '#1f2937', margin: 0, lineHeight: 1.45 }}>
+                  Enviamos um código de ativação de 6 dígitos para <strong>{maskedEmail || regEmail}</strong>. Digite o código para validar sua conta.
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
+                  Código de 6 dígitos
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
+                  <KeyRound size={16} color="#1e293b" strokeWidth={1.75} />
+                  <input 
+                    type="text" 
+                    placeholder="000000"
+                    maxLength={6}
+                    value={tokenInput}
+                    onChange={(e) => setTokenInput(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      fontSize: '18px',
+                      fontWeight: 700,
+                      letterSpacing: '4px',
+                      color: '#1e293b',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      textAlign: 'center'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  height: '42px',
+                  borderRadius: '7px',
+                  backgroundColor: '#16a34a',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  cursor: 'pointer',
+                  marginTop: '4px'
+                }}
+              >
+                {loading ? 'VALIDANDO...' : 'CONFIRMAR E ENTRAR'}
+              </button>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '12px' }}>
+                <button
+                  type="button"
+                  onClick={handleResendRegisterCode}
+                  disabled={loading}
+                  style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                >
+                  Reenviar código
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setErrorMessage(''); setMode('login'); }}
+                  style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                >
+                  Voltar ao Login
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ========================================================== */}
           {/* 3. RECUPERAR SENHA                                         */}
           {/* ========================================================== */}
           {mode === 'forgot_request' && (
@@ -815,11 +969,16 @@ export function LoginScreen({ onLoginSuccess }) {
           {/* ========================================================== */}
           {mode === 'forgot_verify' && (
             <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: '#f0f7ff', border: '1px solid #bae6fd', textAlign: 'center' }}>
-                <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 600, color: '#0369a1', display: 'block' }}>
-                  Token de Recuperação:
-                </span>
-                <strong style={{ fontSize: '16px', letterSpacing: '0.15em', color: '#0f172a' }}>{generatedToken}</strong>
+              <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f0f7ff', border: '1px solid #bae6fd', textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Mail size={15} color="#0284c7" />
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#0369a1' }}>
+                    Código Enviado por E-mail
+                  </span>
+                </div>
+                <p style={{ fontSize: '12px', color: '#334155', margin: 0, lineHeight: 1.45 }}>
+                  Enviamos um código de 6 dígitos para o e-mail <strong>{maskedEmail || loginInput}</strong>. Digite-o abaixo junto com a sua nova senha (expira em 15 min).
+                </p>
               </div>
 
               <div>

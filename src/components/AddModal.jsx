@@ -323,12 +323,12 @@ export function AddModal({
 
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A1B2F', margin: 0, lineHeight: 1.15 }}>
-                {mode === 'event' ? 'Novo Evento / Compromisso' : 'Configurar Novo Hábito'}
+                {mode === 'event' ? 'Novo Evento / Compromisso' : 'Novo Hábito Diário'}
               </h3>
               <span style={{ fontSize: '11px', color: '#5A5B75' }}>
                 {mode === 'event' 
                   ? 'Compromisso sincronizado na agenda semanal e diária' 
-                  : 'Defina a forma de marcação, o período e as regras de frequência'}
+                  : 'Rotina diária com meta, frequência e prioridade'}
               </span>
             </div>
           </div>
@@ -591,11 +591,11 @@ export function AddModal({
             {/* LINHA SUPERIOR: Nome do Hábito */}
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#3A3B55', marginBottom: '4px' }}>
-                Nome do Hábito / Rotina
+                Nome do Hábito
               </label>
               <input
                 type="text"
-                placeholder="Ex: Ler 20 páginas, Meditação matinal, Beber 2L de água, Treino..."
+                placeholder="Ex: Ler 20 páginas, Meditação, Beber água..."
                 value={habitTitle}
                 onChange={(e) => setHabitTitle(e.target.value)}
                 autoFocus

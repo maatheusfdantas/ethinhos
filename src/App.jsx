@@ -9,6 +9,7 @@ import { Header } from './components/Header';
 import { DesktopSidebar, MobileBottomNav } from './components/Nav';
 import { DashboardTab } from './components/DashboardTab';
 import { HabitsTab } from './components/HabitsTab';
+import { BadHabitsTab } from './components/BadHabitsTab';
 import { AddModal } from './components/AddModal';
 import { WorkoutTab } from './components/WorkoutTab';
 import { FocusTab } from './components/FocusTab';
@@ -68,6 +69,23 @@ export function App() {
 
   // Active Navigation Tab (abre direto na aba Calendário ao retornar do Google OAuth)
   const [activeTab, setActiveTab] = useState(() => isReturningFromGoogleOAuth ? 'calendar' : 'dashboard');
+
+  useEffect(() => {
+    if (user?.id && !user.pagePreferences) {
+      try {
+        const saved = localStorage.getItem(`ethos_pages_${user.id}`);
+        if (saved) {
+          setUser(prev => ({ ...prev, pagePreferences: JSON.parse(saved) }));
+        }
+      } catch (e) {}
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.pagePreferences && user.pagePreferences[activeTab] === false) {
+      setActiveTab('dashboard');
+    }
+  }, [user?.pagePreferences, activeTab]);
 
   // Modals & Header Controls
   const [showAddModal, setShowAddModal] = useState(false);
@@ -441,6 +459,7 @@ export function App() {
           onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
           isAdmin={isAdmin}
           userPermissions={permissions}
+        user={user}
           user={user}
           tags={tags}
           onConfigureCategory={(cat) => setConfigCategory(cat)}
@@ -747,6 +766,14 @@ export function App() {
               />
             )}
 
+            {/* TAB: MAUS HÁBITOS & VÍCIOS (SUPERAÇÃO, SOBRIEDADE E DESEMPENHO) */}
+            {activeTab === 'bad_habits' && (
+              <BadHabitsTab
+                user={user}
+                showToast={showToast}
+              />
+            )}
+
             {/* TAB 4: CALENDÁRIO / AGENDA MENSAL, SEMANAL E DIÁRIA */}
             {activeTab === 'calendar' && (
               <CalendarTab
@@ -787,7 +814,7 @@ export function App() {
             )}
 
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
-            {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && (
+            {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && (
               <div 
                 style={{
                   backgroundColor: '#211F38',
@@ -884,6 +911,7 @@ export function App() {
         onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
         isAdmin={isAdmin}
         userPermissions={permissions}
+        user={user}
       />
 
       {/* DISCREET TOAST NOTIFICATION (WITH UNDO / CTRL+Z) */}

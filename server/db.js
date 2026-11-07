@@ -251,21 +251,65 @@ export function initDatabase() {
   // 10. Tabelas de Segurança (Sessões Rotativas, Logs de Auditoria, Tokens de Recuperação)
   initSecurityTables(db);
 
-  // Sincronizar os 5 Usuários Obrigatórios com senhas hasheadas via scrypt
+  // 11. Tabela de Maus Hábitos & Vícios (Superação e Sobriedade)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bad_habits (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      icon_name TEXT NOT NULL,
+      started_at TEXT NOT NULL,
+      cost_per_day REAL DEFAULT 0,
+      motivational_reason TEXT,
+      impact_description TEXT,
+      best_streak_days INTEGER DEFAULT 0,
+      relapse_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS bad_habit_relapses (
+      id TEXT PRIMARY KEY,
+      bad_habit_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      relapsed_at TEXT NOT NULL,
+      days_achieved INTEGER DEFAULT 0,
+      trigger TEXT,
+      lesson TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  // Sincronizar os Usuários Obrigatórios com senhas hasheadas via scrypt
   seedFiveUsers();
 }
 
 export function seedFiveUsers() {
   const allPerms = JSON.stringify({ focus: true, workouts: true, telemetry: true, social: true, habits: true });
 
-  const fiveUsers = [
+  const allSeedUsers = [
     {
       id: 'usr_admin',
       username: 'admin',
       email: 'admin@ethos.dev',
-      password: hashPassword('admin123'),
+      password: hashPassword('Admin@2026!Ethos'),
       name: 'Administrador Ethos',
       avatar: 'AD',
+      role: 'admin',
+      is_active: 1,
+      subscription_tier: 'Enterprise / Fundador',
+      is_public: 1,
+      permissions: allPerms,
+      streak_days: 0,
+      points: 9999
+    },
+    {
+      id: 'usr_admin_local',
+      username: 'admin.local',
+      email: 'admin@ethos.local',
+      password: hashPassword('Admin@2026!Ethos'),
+      name: 'Administrador Ethos (Local)',
+      avatar: 'AL',
       role: 'admin',
       is_active: 1,
       subscription_tier: 'Enterprise / Fundador',
@@ -278,9 +322,24 @@ export function seedFiveUsers() {
       id: 'usr_matheus_pro',
       username: 'matheus.pro',
       email: 'matheus@pro.dev',
-      password: hashPassword('123'),
+      password: hashPassword('Ethos@User123!'),
       name: 'Matheus Alta Performance',
       avatar: 'MP',
+      role: 'user',
+      is_active: 1,
+      subscription_tier: 'Pro (Anual)',
+      is_public: 1,
+      permissions: allPerms,
+      streak_days: 14,
+      points: 3450
+    },
+    {
+      id: 'usr_matheus_ethos',
+      username: 'matheus',
+      email: 'matheus@ethos.dev',
+      password: hashPassword('Ethos@User123!'),
+      name: 'Matheus Ethos',
+      avatar: 'ME',
       role: 'user',
       is_active: 1,
       subscription_tier: 'Pro (Anual)',
@@ -293,7 +352,7 @@ export function seedFiveUsers() {
       id: 'usr_lucas_dev',
       username: 'lucas.dev',
       email: 'lucas@dev.com',
-      password: hashPassword('123'),
+      password: hashPassword('Ethos@User123!'),
       name: 'Lucas Intermediário',
       avatar: 'LD',
       role: 'user',
@@ -303,6 +362,66 @@ export function seedFiveUsers() {
       permissions: allPerms,
       streak_days: 4,
       points: 1250
+    },
+    {
+      id: 'usr_lucas_ethos',
+      username: 'lucas',
+      email: 'lucas@ethos.dev',
+      password: hashPassword('Ethos@User123!'),
+      name: 'Lucas Ethos',
+      avatar: 'LE',
+      role: 'user',
+      is_active: 1,
+      subscription_tier: 'Pro (Mensal)',
+      is_public: 1,
+      permissions: allPerms,
+      streak_days: 4,
+      points: 1250
+    },
+    {
+      id: 'usr_ana_paula',
+      username: 'ana.paula',
+      email: 'ana@ethos.dev',
+      password: hashPassword('Ethos@User123!'),
+      name: 'Ana Paula Mendes',
+      avatar: 'AP',
+      role: 'user',
+      is_active: 1,
+      subscription_tier: 'Pro (Mensal)',
+      is_public: 1,
+      permissions: allPerms,
+      streak_days: 7,
+      points: 1820
+    },
+    {
+      id: 'usr_beatriz_costa',
+      username: 'beatriz.costa',
+      email: 'beatriz@ethos.dev',
+      password: hashPassword('Ethos@User123!'),
+      name: 'Beatriz Costa',
+      avatar: 'BC',
+      role: 'user',
+      is_active: 1,
+      subscription_tier: 'Pro (Anual)',
+      is_public: 1,
+      permissions: allPerms,
+      streak_days: 12,
+      points: 2940
+    },
+    {
+      id: 'usr_carlos_eduardo',
+      username: 'carlos.eduardo',
+      email: 'carlos@ethos.dev',
+      password: hashPassword('Ethos@User123!'),
+      name: 'Carlos Eduardo',
+      avatar: 'CE',
+      role: 'user',
+      is_active: 1,
+      subscription_tier: 'Gratuito',
+      is_public: 1,
+      permissions: allPerms,
+      streak_days: 3,
+      points: 620
     },
     {
       id: 'usr_bruno_preguica',
@@ -336,8 +455,8 @@ export function seedFiveUsers() {
     }
   ];
 
-  for (const u of fiveUsers) {
-    const existing = db.prepare(`SELECT id FROM users WHERE username = ? OR email = ?`).get(u.username, u.email);
+  for (const u of allSeedUsers) {
+    const existing = db.prepare(`SELECT id FROM users WHERE id = ? OR username = ? OR email = ?`).get(u.id, u.username, u.email);
     if (!existing) {
       db.prepare(`
         INSERT INTO users (
@@ -358,8 +477,8 @@ export function seedFiveUsers() {
           name = ?,
           subscription_tier = ?, 
           permissions = ?
-        WHERE username = ?
-      `).run(u.password, u.role, u.name, u.subscription_tier, u.permissions, u.username);
+        WHERE id = ? OR username = ? OR email = ?
+      `).run(u.password, u.role, u.name, u.subscription_tier, u.permissions, u.id, u.username, u.email);
     }
   }
 

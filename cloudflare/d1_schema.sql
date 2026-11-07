@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
   points INTEGER NOT NULL DEFAULT 0,
   weight REAL DEFAULT 70.0,
   height REAL DEFAULT 1.75,
+  email_verified INTEGER NOT NULL DEFAULT 0,
   reset_token TEXT,
   mfa_enabled INTEGER NOT NULL DEFAULT 0,
   mfa_secret_enc TEXT,
@@ -170,4 +171,45 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   used INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS auth_tokens (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL,
+  type TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_tokens_lookup ON auth_tokens (user_id, type, used);
+
+-- Tabela de Maus Hábitos & Vícios (Superação de Vícios e Monitoramento de Sobriedade)
+CREATE TABLE IF NOT EXISTS bad_habits (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  icon_name TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  cost_per_day REAL DEFAULT 0,
+  motivational_reason TEXT,
+  impact_description TEXT,
+  best_streak_days INTEGER DEFAULT 0,
+  relapse_count INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bad_habit_relapses (
+  id TEXT PRIMARY KEY,
+  bad_habit_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  relapsed_at TEXT NOT NULL,
+  days_achieved INTEGER DEFAULT 0,
+  trigger TEXT,
+  lesson TEXT,
+  created_at TEXT NOT NULL
+);
+
+
 

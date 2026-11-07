@@ -32,7 +32,7 @@ export function AuthModal({
 
   // Password Recovery Token states (US36)
   const [tokenInput, setTokenInput] = useState('');
-  const [generatedToken, setGeneratedToken] = useState(null);
+  const [maskedEmail, setMaskedEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [resetSuccessMsg, setResetSuccessMsg] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -60,6 +60,13 @@ export function AuthModal({
         return;
       }
 
+      if (data.requireVerification) {
+        setMaskedEmail(data.maskedEmail || email.trim());
+        setTokenInput('');
+        setMode('register_verify');
+        setLoading(false);
+        return;
+      }
       onLoginSuccess(data);
       onClose();
     } catch (err) {
@@ -122,6 +129,65 @@ export function AuthModal({
     }
   };
 
+  const handleVerifyRegisterToken = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/verify-email-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          token: tokenInput.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.error || 'Código incorreto ou expirado.');
+        setLoading(false);
+        return;
+      }
+
+      if (data.auth?.accessToken) {
+        sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+      }
+      if (data.auth?.refreshToken) {
+        sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+      }
+      onLoginSuccess(data.user ? { ...data.user, auth: data.auth } : data);
+      onClose();
+    } catch (err) {
+      setErrorMessage('Erro de conexão com o banco de dados.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendRegisterCode = async () => {
+    setErrorMessage('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'Novo código enviado com sucesso!');
+      } else {
+        setErrorMessage(data.error || 'Erro ao reenviar código.');
+      }
+    } catch (err) {
+      setErrorMessage('Erro ao comunicar com o servidor.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // US36: Solicitar token de recuperação
   const handleRequestToken = async (e) => {
     e.preventDefault();
@@ -142,12 +208,12 @@ export function AuthModal({
         return;
       }
 
-      setGeneratedToken(data.token);
+      setMaskedEmail(data.maskedEmail || email.trim());
       setMode('forgot_verify');
     } catch (err) {
       // Mock fallback
       const token = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedToken(token);
+      setMaskedEmail(email.trim());
       setMode('forgot_verify');
     } finally {
       setLoading(false);
@@ -208,6 +274,7 @@ export function AuthModal({
             <h2 className="modal-title">
               {mode === 'login' && 'Autenticação no Ethos'}
               {mode === 'register' && 'Criar Conta no Ethos'}
+              {mode === 'register_verify' && 'Confirmar E-mail'}
               {mode === 'forgot_request' && 'Recuperar Senha'}
               {mode === 'forgot_verify' && 'Validar Token'}
             </h2>
@@ -410,6 +477,42 @@ export function AuthModal({
           </form>
         )}
 
+        {/* 2.1. CONFIRMAR E-MAIL (NOVA CONTA) */}
+        {mode === 'register_verify' && (
+          <form onSubmit={handleVerifyRegisterToken}>
+            <div style={{ padding: '12px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid var(--accent-cyan)', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem' }}>
+              Enviamos um código de verificação para <strong>{maskedEmail || email}</strong>. Digite o código de 6 dígitos abaixo para ativar sua conta.
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Código de 6 dígitos</label>
+              <input 
+                type="text" 
+                className="input-dark" 
+                placeholder="000000"
+                maxLength={6}
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                required
+                style={{ textAlign: 'center', fontSize: '1.25rem', letterSpacing: '4px', fontWeight: 'bold' }}
+              />
+            </div>
+
+            <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '8px' }} disabled={loading}>
+              {loading ? 'VALIDANDO...' : 'CONFIRMAR E ENTRAR'}
+            </button>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '14px', fontSize: '0.82rem' }}>
+              <button type="button" onClick={handleResendRegisterCode} style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', cursor: 'pointer', textDecoration: 'underline' }}>
+                Reenviar código
+              </button>
+              <button type="button" onClick={() => { setErrorMessage(''); setMode('login'); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                Voltar ao login
+              </button>
+            </div>
+          </form>
+        )}
+
         {/* 3. RECUPERAR SENHA (US36) */}
         {mode === 'forgot_request' && (
           <form onSubmit={handleRequestToken}>
@@ -450,13 +553,13 @@ export function AuthModal({
           <form onSubmit={handleResetPassword}>
             <div className="card-native" style={{ background: 'rgba(0, 229, 255, 0.1)', borderColor: 'var(--accent-cyan)', marginBottom: '16px', padding: '14px' }}>
               <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 700, textTransform: 'uppercase' }}>
-                Simulação de E-mail (Token SQLite)
+                Código de Verificação Enviado por E-mail
               </span>
               <div style={{ fontSize: '1.3rem', fontFamily: 'monospace', letterSpacing: '4px', fontWeight: 800, color: 'var(--accent-cyan)', margin: '6px 0' }}>
-                TOKEN: {generatedToken}
+                Enviamos um código de 6 dígitos para o e-mail: {maskedEmail || email}
               </div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                Copie o token de 6 dígitos e digite abaixo.
+                Consulte sua caixa de entrada e pasta de spam para inserir o código abaixo.
               </span>
             </div>
 

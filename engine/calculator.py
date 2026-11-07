@@ -157,7 +157,7 @@ class AnalyticsPipeline:
         """
         Metric 1: Daily Progress
         Daily Progress = (sum of progress_ratio for expected habits today / count of expected habits today) * 100
-        """
+        """ 
         t_date_str = format_date(target_date or self.ref_date)
         today_occs = [o for o in classified_occurrences if o.expected_date == t_date_str]
         if not today_occs:

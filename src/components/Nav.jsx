@@ -11,6 +11,7 @@ import {
   Dumbbell,
   Users,
   CheckCircle2,
+  ShieldOff,
   X
 } from 'lucide-react';
 
@@ -29,14 +30,27 @@ export function DesktopSidebar({
   mobileOpen = false,
   onCloseMobile
 }) {
+  const defaultPagePreferences = {
+    dashboard: true,
+    telemetry: true,
+    habits: true,
+    bad_habits: true,
+    calendar: true,
+    workouts: true,
+    focus: true,
+    social: true
+  };
+  const pages = { ...defaultPagePreferences, ...(user?.pagePreferences || {}) };
+
   const navItems = [
     { id: 'dashboard', label: 'Painel Principal', icon: LayoutGrid, enabled: true },
-    { id: 'habits', label: 'Hábitos & Rotinas', icon: CheckCircle2, enabled: userPermissions.habits !== false },
-    { id: 'calendar', label: 'Agenda Semanal', icon: Calendar, enabled: true },
-    { id: 'workouts', label: 'Musculação & Treino', icon: Dumbbell, enabled: userPermissions.workouts !== false },
-    { id: 'focus', label: 'Foco Pomodoro', icon: Timer, enabled: userPermissions.focus !== false },
-    { id: 'telemetry', label: 'Análise de Progresso', icon: TrendingUp, enabled: userPermissions.telemetry !== false },
-    { id: 'social', label: 'Comunidade', icon: Users, enabled: userPermissions.social !== false },
+    { id: 'habits', label: 'Hábitos & Rotinas', icon: CheckCircle2, enabled: pages.habits !== false && userPermissions.habits !== false },
+    { id: 'bad_habits', label: 'Maus Hábitos & Vícios', icon: ShieldOff, enabled: pages.bad_habits !== false },
+    { id: 'calendar', label: 'Agenda Semanal', icon: Calendar, enabled: pages.calendar !== false },
+    { id: 'workouts', label: 'Musculação & Treino', icon: Dumbbell, enabled: pages.workouts !== false && userPermissions.workouts !== false },
+    { id: 'focus', label: 'Foco Pomodoro', icon: Timer, enabled: pages.focus !== false && userPermissions.focus !== false },
+    { id: 'telemetry', label: 'Análise de Progresso', icon: TrendingUp, enabled: true },
+    { id: 'social', label: 'Comunidade', icon: Users, enabled: pages.social !== false && userPermissions.social !== false },
   ];
 
   if (isAdmin) {
@@ -372,7 +386,19 @@ export function DesktopSidebar({
   );
 }
 
-export function MobileBottomNav({ activeTab, setActiveTab, onOpenAdd, isAdmin, userPermissions = {} }) {
+export function MobileBottomNav({ activeTab, setActiveTab, onOpenAdd, isAdmin, userPermissions = {}, user }) {
+  const defaultPagePreferences = {
+    dashboard: true,
+    telemetry: true,
+    habits: true,
+    bad_habits: true,
+    calendar: true,
+    workouts: true,
+    focus: true,
+    social: true
+  };
+  const pages = { ...defaultPagePreferences, ...(user?.pagePreferences || {}) };
+
   return (
     <nav 
       style={{
@@ -399,21 +425,41 @@ export function MobileBottomNav({ activeTab, setActiveTab, onOpenAdd, isAdmin, u
         <span className="text-[10px] font-medium">Painel</span>
       </button>
 
-      <button
-        type="button"
-        style={{
-          color: activeTab === 'habits' ? '#FFFFFF' : '#A9ABC6',
-          backgroundColor: activeTab === 'habits' ? '#56548A' : 'transparent',
-          border: 'none',
-          borderRadius: '12px',
-          padding: '5px 10px'
-        }}
-        className="flex flex-col items-center gap-0.5"
-        onClick={() => setActiveTab('habits')}
-      >
-        <CheckCircle2 size={17} />
-        <span className="text-[10px] font-medium">Hábitos</span>
-      </button>
+      {pages.habits !== false && userPermissions.habits !== false && (
+        <button
+          type="button"
+          style={{
+            color: activeTab === 'habits' ? '#FFFFFF' : '#A9ABC6',
+            backgroundColor: activeTab === 'habits' ? '#56548A' : 'transparent',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '5px 10px'
+          }}
+          className="flex flex-col items-center gap-0.5"
+          onClick={() => setActiveTab('habits')}
+        >
+          <CheckCircle2 size={17} />
+          <span className="text-[10px] font-medium">Hábitos</span>
+        </button>
+      )}
+
+      {pages.bad_habits !== false && (
+        <button
+          type="button"
+          style={{
+            color: activeTab === 'bad_habits' ? '#FFFFFF' : '#A9ABC6',
+            backgroundColor: activeTab === 'bad_habits' ? '#56548A' : 'transparent',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '5px 10px'
+          }}
+          className="flex flex-col items-center gap-0.5"
+          onClick={() => setActiveTab('bad_habits')}
+        >
+          <ShieldOff size={17} />
+          <span className="text-[10px] font-medium">Vícios</span>
+        </button>
+      )}
 
       {userPermissions.habits !== false && (
         <button
@@ -438,23 +484,25 @@ export function MobileBottomNav({ activeTab, setActiveTab, onOpenAdd, isAdmin, u
         </button>
       )}
 
-      <button
-        type="button"
-        style={{
-          color: activeTab === 'calendar' ? '#FFFFFF' : '#A9ABC6',
-          backgroundColor: activeTab === 'calendar' ? '#56548A' : 'transparent',
-          border: 'none',
-          borderRadius: '12px',
-          padding: '5px 10px'
-        }}
-        className="flex flex-col items-center gap-0.5"
-        onClick={() => setActiveTab('calendar')}
-      >
-        <Calendar size={17} />
-        <span className="text-[10px] font-medium">Agenda</span>
-      </button>
+      {pages.calendar !== false && (
+        <button
+          type="button"
+          style={{
+            color: activeTab === 'calendar' ? '#FFFFFF' : '#A9ABC6',
+            backgroundColor: activeTab === 'calendar' ? '#56548A' : 'transparent',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '5px 10px'
+          }}
+          className="flex flex-col items-center gap-0.5"
+          onClick={() => setActiveTab('calendar')}
+        >
+          <Calendar size={17} />
+          <span className="text-[10px] font-medium">Agenda</span>
+        </button>
+      )}
 
-      {userPermissions.workouts !== false && (
+      {pages.workouts !== false && userPermissions.workouts !== false && (
         <button
           type="button"
           style={{
