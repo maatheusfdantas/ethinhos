@@ -20,7 +20,8 @@ import {
   Zap,
   TrendingUp,
   Activity,
-  Layers
+  Layers,
+  ArrowLeft
 } from 'lucide-react';
 
 // =====================================================================
@@ -109,70 +110,43 @@ function getWorkoutTheme(workout, index) {
 function CardIllustration({ type }) {
   switch (type) {
     case 'meditation':
-      // Personagem com headphone, rosto sorridente e ondas sonoras
       return (
         <svg width="112" height="78" viewBox="0 0 112 78" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible' }}>
           <path d="M 12 40 C 22 28, 32 50, 44 38" stroke="rgba(255,255,255,0.28)" strokeWidth="3" strokeLinecap="round" fill="none" />
           <path d="M 20 54 C 28 46, 36 60, 48 52" stroke="rgba(255,255,255,0.2)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-          
-          {/* Headphone Arch */}
           <path d="M 46 42 C 46 22, 90 22, 90 42" stroke="#211F38" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-          
-          {/* Head */}
           <circle cx="68" cy="45" r="23" fill="#FDBA74" />
-          
-          {/* Earcups */}
           <rect x="42" y="36" width="9" height="15" rx="4.5" fill="#F59E0B" stroke="#211F38" strokeWidth="1.5" />
           <rect x="85" y="36" width="9" height="15" rx="4.5" fill="#F59E0B" stroke="#211F38" strokeWidth="1.5" />
-          
-          {/* Closed Smiling Eyes */}
           <path d="M 59 43 Q 63 39, 67 43" stroke="#211F38" strokeWidth="2.4" strokeLinecap="round" fill="none" />
           <path d="M 73 43 Q 77 39, 81 43" stroke="#211F38" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-          
-          {/* Rosy Cheeks */}
           <circle cx="56" cy="49" r="3.2" fill="#EA580C" opacity="0.45" />
           <circle cx="83" cy="49" r="3.2" fill="#EA580C" opacity="0.45" />
-          
-          {/* Cheerful Smile */}
           <path d="M 62 49 Q 69 57, 77 49" stroke="#211F38" strokeWidth="2.4" strokeLinecap="round" fill="none" />
         </svg>
       );
 
     case 'cloud':
-      // Nuvenzinha fofa serena com olhos fechados e estrelinhas
       return (
         <svg width="112" height="78" viewBox="0 0 112 78" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible' }}>
-          {/* Nuvem de fundo sutil */}
           <path d="M 16 32 Q 22 24, 30 28 Q 38 24, 44 30 Q 48 36, 40 40 Q 20 40, 16 32 Z" fill="rgba(255,255,255,0.22)" />
-          
-          {/* Estrelinhas */}
           <circle cx="22" cy="18" r="1.8" fill="#FFFFFF" opacity="0.8" />
           <circle cx="98" cy="22" r="2.2" fill="#FFFFFF" opacity="0.8" />
-          
-          {/* Corpo da Nuvem */}
           <path 
             d="M 38 58 C 30 58, 24 50, 28 42 C 28 32, 40 26, 50 30 C 56 19, 74 19, 82 30 C 92 27, 102 34, 100 44 C 106 50, 102 58, 92 58 Z" 
             fill="#E0F2FE" 
           />
-          
-          {/* Olhos Serenos Fechados */}
           <path d="M 50 44 Q 55 42, 60 44" stroke="#0284C7" strokeWidth="2.3" strokeLinecap="round" fill="none" />
           <path d="M 70 44 Q 75 42, 80 44" stroke="#0284C7" strokeWidth="2.3" strokeLinecap="round" fill="none" />
-          
-          {/* Bochechas */}
           <circle cx="47" cy="49" r="3" fill="#38BDF8" opacity="0.6" />
           <circle cx="83" cy="49" r="3" fill="#38BDF8" opacity="0.6" />
-          
-          {/* Sorriso Tranquilo */}
           <path d="M 61 50 Q 65.5 54, 70 50" stroke="#0284C7" strokeWidth="2.2" strokeLinecap="round" fill="none" />
         </svg>
       );
 
     case 'night':
-      // Cama aconchegante, travesseiro macio e lua crescente
       return (
         <svg width="112" height="78" viewBox="0 0 112 78" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible' }}>
-          {/* Lua Crescente Dourada */}
           <path 
             d="M 28 16 C 26 21, 27 26, 31 29 C 34 31, 38 31, 41 29 C 37 34, 30 35, 25 31 C 21 27, 22 20, 28 16 Z" 
             fill="#FDE047" 
@@ -180,115 +154,68 @@ function CardIllustration({ type }) {
           />
           <circle cx="16" cy="18" r="1.5" fill="#FFFFFF" opacity="0.75" />
           <circle cx="46" cy="14" r="1.3" fill="#FFFFFF" opacity="0.7" />
-          
-          {/* Cabeceira da Cama */}
           <rect x="46" y="24" width="6" height="44" rx="3" fill="#818CF8" opacity="0.6" />
-          
-          {/* Travesseiro Macio */}
           <rect x="52" y="32" width="22" height="26" rx="6" fill="#F8FAFC" transform="rotate(-6 52 32)" />
-          
-          {/* Rosto dormindo tranquilamente */}
           <ellipse cx="76" cy="42" rx="14" ry="12" fill="#FED7AA" />
-          
-          {/* Cobertor Aconchegante */}
           <path d="M 60 48 C 66 44, 75 45, 82 48 L 102 58 C 104 60, 102 68, 96 68 L 56 68 Z" fill="#6366F1" />
-          
-          {/* Olho dormindo */}
           <path d="M 72 41 Q 76 44, 80 41" stroke="#4338CA" strokeWidth="2.2" strokeLinecap="round" fill="none" />
         </svg>
       );
 
     case 'runner':
-      // Personagem dinâmico correndo com tênis esportivo e faixa na cabeça
       return (
         <svg width="112" height="78" viewBox="0 0 112 78" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible' }}>
-          {/* Linhas de movimento e poeira */}
           <path d="M 32 62 L 44 62" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" />
           <path d="M 26 56 L 38 56" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" />
           <circle cx="42" cy="52" r="2" fill="rgba(255,255,255,0.35)" />
-          
-          {/* Cabeça */}
           <circle cx="75" cy="28" r="11" fill="#FED7AA" />
-          
-          {/* Faixa esportiva na cabeça */}
           <rect x="65" y="23" width="20" height="4.5" rx="2" fill="#38BDF8" />
-          
-          {/* Olho e Sorriso */}
           <circle cx="78" cy="27" r="1.4" fill="#991B1B" />
           <path d="M 74 30 Q 78 33, 81 30" stroke="#991B1B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-          
-          {/* Tronco */}
           <path d="M 72 38 L 77 52 L 68 52 Z" fill="#1E293B" />
-          
-          {/* Braço Esquerdo */}
           <path d="M 70 40 Q 60 38, 57 44" stroke="#FED7AA" strokeWidth="3.8" strokeLinecap="round" fill="none" />
-          
-          {/* Braço Direito em Movimento */}
           <path d="M 74 40 Q 84 42, 90 36" stroke="#FED7AA" strokeWidth="3.8" strokeLinecap="round" fill="none" />
-          
-          {/* Perna Traseira com Tênis Turquesa */}
           <path d="M 69 52 L 58 60 L 52 60" stroke="#FED7AA" strokeWidth="3.5" strokeLinecap="round" fill="none" />
           <rect x="46" y="58" width="10" height="5" rx="2.5" fill="#2DD4BF" />
-          
-          {/* Perna Dianteira em Passada Larga */}
           <path d="M 75 52 L 83 62 L 91 63" stroke="#FED7AA" strokeWidth="3.5" strokeLinecap="round" fill="none" />
           <rect x="88" y="61" width="11" height="5" rx="2.5" fill="#2DD4BF" />
         </svg>
       );
 
     case 'heart':
-      // Coração amigável exibindo bíceps fortão e olhão fofo
       return (
         <svg width="112" height="78" viewBox="0 0 112 78" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible' }}>
-          {/* Ondas concêntricas de vitalidade */}
           <circle cx="72" cy="42" r="26" stroke="rgba(255,255,255,0.24)" strokeWidth="2" strokeDasharray="3 3" />
-          
-          {/* Braço Esquerdo Flexionado */}
           <path d="M 56 43 C 48 43, 44 36, 47 30 C 49 26, 54 28, 54 32" stroke="#DC2626" strokeWidth="5.2" strokeLinecap="round" fill="none" />
-          
-          {/* Braço Direito Fortão (Bíceps) */}
           <path d="M 86 43 C 94 43, 100 36, 96 28 C 94 24, 88 26, 88 31" stroke="#DC2626" strokeWidth="5.2" strokeLinecap="round" fill="none" />
-          
-          {/* Corpo do Coração */}
           <path 
             d="M 72 62 C 64 54, 52 46, 52 36 C 52 28, 58 23, 65 23 C 69 23, 71 26, 72 28 C 73 26, 75 23, 79 23 C 86 23, 92 28, 92 36 C 92 46, 80 54, 72 62 Z" 
             fill="#EF4444" 
           />
-          
-          {/* Olho Amigável com Brilho */}
           <circle cx="72" cy="36" r="6" fill="#FFFFFF" />
           <circle cx="73" cy="36" r="3.2" fill="#1E293B" />
           <circle cx="74" cy="35" r="1.2" fill="#FFFFFF" />
-          
-          {/* Sorrisão Confiante */}
           <path d="M 66 45 Q 72 51, 78 45" stroke="#991B1B" strokeWidth="2.2" strokeLinecap="round" fill="none" />
         </svg>
       );
 
     case 'gears':
-      // Engrenagens interconectadas e estrelinhas de produtividade
       return (
         <svg width="112" height="78" viewBox="0 0 112 78" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible' }}>
-          {/* Engrenagem Menor Esquerda */}
           <g transform="translate(44, 48)">
             <circle cx="0" cy="0" r="14" fill="#A7F3D0" />
             <circle cx="0" cy="0" r="6" fill="#047857" />
             <rect x="-2" y="-17" width="4" height="34" rx="2" fill="#A7F3D0" />
             <rect x="-17" y="-2" width="34" height="4" rx="2" fill="#A7F3D0" />
           </g>
-          
-          {/* Engrenagem Maior Direita */}
           <g transform="translate(78, 38)">
             <circle cx="0" cy="0" r="22" fill="#FEF08A" />
             <circle cx="0" cy="0" r="10" fill="#FFFFFF" />
             <circle cx="0" cy="0" r="4.5" fill="#047857" />
-            {/* Dentes da engrenagem */}
             <rect x="-3" y="-26" width="6" height="52" rx="2.5" fill="#FEF08A" />
             <rect x="-26" y="-3" width="52" height="6" rx="2.5" fill="#FEF08A" />
             <rect x="-18" y="-18" width="36" height="36" rx="4" fill="#FEF08A" transform="rotate(45)" />
           </g>
-          
-          {/* Estrelas Brilhantes de Sucesso */}
           <path d="M 94 14 Q 96 18, 100 20 Q 96 22, 94 26 Q 92 22, 88 20 Q 92 18, 94 14 Z" fill="#FFFFFF" opacity="0.85" />
           <circle cx="34" cy="24" r="2.2" fill="#FFFFFF" opacity="0.75" />
         </svg>
@@ -303,22 +230,33 @@ function CardIllustration({ type }) {
 // COMPONENTE PRINCIPAL: WORKOUT TAB
 // =====================================================================
 export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
+  // Controle de Visualização: 'list' (visão geral dos cards) ou 'session' (tela dedicada do treino)
+  const [currentView, setCurrentView] = useState('list');
   const [activeWorkoutId, setActiveWorkoutId] = useState(workouts[0]?.id || 'wo_a');
   
   // Estados dos Modais
   const [showNewExerciseModal, setShowNewExerciseModal] = useState(false);
   const [showEditExerciseModal, setShowEditExerciseModal] = useState(false);
   const [showNewWorkoutModal, setShowNewWorkoutModal] = useState(false);
+  const [showEditWorkoutModal, setShowEditWorkoutModal] = useState(false);
   const [showFinishConfirmModal, setShowFinishConfirmModal] = useState(false);
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
   const [showDeleteExerciseConfirm, setShowDeleteExerciseConfirm] = useState(null);
 
-  // Estados do Formulário de Nova Ficha de Treino
+  // Estados de Criação de Ficha
   const [newWorkoutName, setNewWorkoutName] = useState('');
   const [newWorkoutSubtitle, setNewWorkoutSubtitle] = useState('');
   const [newWorkoutTheme, setNewWorkoutTheme] = useState('orange');
   const [newWorkoutDays, setNewWorkoutDays] = useState([1]);
   const [newWorkoutTime, setNewWorkoutTime] = useState('18:30');
+
+  // Estados de Edição Rápida de Ficha
+  const [editingWorkoutId, setEditingWorkoutId] = useState(null);
+  const [editWorkoutName, setEditWorkoutName] = useState('');
+  const [editWorkoutSubtitle, setEditWorkoutSubtitle] = useState('');
+  const [editWorkoutTheme, setEditWorkoutTheme] = useState('orange');
+  const [editWorkoutDays, setEditWorkoutDays] = useState([1]);
+  const [editWorkoutTime, setEditWorkoutTime] = useState('18:30');
 
   // Estados do Formulário de Exercício (Adicionar / Editar)
   const [editingExerciseId, setEditingExerciseId] = useState(null);
@@ -355,6 +293,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
   }, [isResting, activeRestSeconds]);
 
   const currentWorkout = workouts.find(w => w.id === activeWorkoutId) || workouts[0] || { id: 'wo_empty', name: 'Meu Treino', exercises: [] };
+  const currentWorkoutTheme = getWorkoutTheme(currentWorkout, workouts.findIndex(w => w.id === currentWorkout?.id));
   const isWorkoutCompleted = !!completedWorkoutsToday[currentWorkout?.id];
 
   // Iniciar ou reiniciar descanso em uma atividade específica
@@ -542,6 +481,44 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     const remaining = workouts.filter(w => w.id !== wId);
     setWorkouts(remaining);
     setActiveWorkoutId(remaining[0]?.id);
+    if (activeWorkoutId === wId) {
+      setCurrentView('list');
+    }
+  };
+
+  // Abrir Modal de Edição de Ficha de Treino
+  const handleOpenEditWorkout = (workout, e) => {
+    if (e) e.stopPropagation();
+    setEditingWorkoutId(workout.id);
+    setEditWorkoutName(workout.name);
+    setEditWorkoutSubtitle(workout.subtitle || '');
+    setEditWorkoutTheme(workout.theme || 'orange');
+    setEditWorkoutDays(workout.scheduledDays || [1]);
+    setEditWorkoutTime(workout.scheduledTime || '18:30');
+    setShowEditWorkoutModal(true);
+  };
+
+  // Submeter Edição de Ficha
+  const handleEditWorkoutSubmit = (e) => {
+    e.preventDefault();
+    if (!editWorkoutName.trim() || !editingWorkoutId) return;
+
+    setWorkouts(prev => prev.map(w => {
+      if (w.id === editingWorkoutId) {
+        return {
+          ...w,
+          name: editWorkoutName.trim(),
+          subtitle: editWorkoutSubtitle.trim() || 'Foco em força e hipertrofia progressiva',
+          theme: editWorkoutTheme || 'orange',
+          scheduledDays: editWorkoutDays,
+          scheduledTime: editWorkoutTime || '18:30'
+        };
+      }
+      return w;
+    }));
+
+    setShowEditWorkoutModal(false);
+    setEditingWorkoutId(null);
   };
 
   // Confirmar Finalização do Treino
@@ -613,6 +590,13 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     setShowNewWorkoutModal(false);
   };
 
+  // Iniciar treino e navegar para a aba dedicada
+  const handleStartWorkoutSession = (workoutId, e) => {
+    if (e) e.stopPropagation();
+    setActiveWorkoutId(workoutId);
+    setCurrentView('session');
+  };
+
   // Métricas gerais da sessão atual baseadas nas séries feitas
   const currentExercises = currentWorkout?.exercises || [];
   const totalTargetSets = currentExercises.reduce((acc, ex) => acc + Math.max(1, Number(ex.sets) || 1), 0);
@@ -643,6 +627,825 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     return acc + (done * repsCount * kg);
   }, 0);
 
+  // =========================================================================
+  // RENDERIZAÇÃO: ABA DEDICADA DA ROTINA DE TREINO (VIEW === 'session')
+  // =========================================================================
+  if (currentView === 'session') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        
+        {/* BARRA SUPERIOR DE NAVEGAÇÃO E RETORNO */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setCurrentView('list')}
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.72)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255, 255, 255, 0.85)',
+              borderRadius: '999px',
+              padding: '9px 18px',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#1A1B2F',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 6px 18px rgba(33, 31, 56, 0.08)'
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Voltar para Todas as Fichas</span>
+          </button>
+
+          {/* Troca Rápida de Ficha na barra superior */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            {workouts.map((w, idx) => {
+              const isSelected = w.id === activeWorkoutId;
+              const isDone = !!completedWorkoutsToday[w.id];
+              return (
+                <button
+                  key={w.id}
+                  type="button"
+                  onClick={() => setActiveWorkoutId(w.id)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '12px',
+                    border: isSelected ? '1.5px solid #211F38' : '1px solid rgba(33, 31, 56, 0.12)',
+                    backgroundColor: isSelected ? '#211F38' : 'rgba(255, 255, 255, 0.65)',
+                    color: isSelected ? '#FFFFFF' : '#1A1B2F',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <span>{w.name}</span>
+                  {isDone && <CheckCircle2 size={13} color="#34D399" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* HERO BANNER DA FICHA ATIVA COM TEMA VISUAL E ILUSTRAÇÃO */}
+        <div
+          style={{
+            background: currentWorkoutTheme.gradient,
+            borderRadius: '26px',
+            padding: '24px 28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '18px',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.14)',
+            color: '#FFFFFF',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+              <span
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.28)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  color: '#FFFFFF',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  padding: '4px 12px',
+                  borderRadius: '999px',
+                  border: '1px solid rgba(255, 255, 255, 0.4)'
+                }}
+              >
+                Sessão em Andamento
+              </span>
+
+              {isWorkoutCompleted && (
+                <span
+                  style={{
+                    backgroundColor: '#10B981',
+                    color: '#FFFFFF',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    padding: '4px 12px',
+                    borderRadius: '999px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <Award size={13} /> Concluído Hoje (+50 pts)
+                </span>
+              )}
+            </div>
+
+            <h2 style={{ fontSize: '26px', fontWeight: 800, margin: '4px 0 6px 0', letterSpacing: '-0.02em', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
+              {currentWorkout.name}
+            </h2>
+
+            <p style={{ fontSize: '14px', color: currentWorkoutTheme.subColor, margin: '0 0 14px 0', fontWeight: 500, lineHeight: 1.4 }}>
+              {currentWorkout.subtitle || 'Foco em força, hipertrofia e progressão de carga.'}
+            </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={(e) => handleOpenEditWorkout(currentWorkout, e)}
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  color: '#1A1B2F',
+                  border: 'none',
+                  borderRadius: '999px',
+                  padding: '7px 16px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.18)'
+                }}
+              >
+                <Edit3 size={13} />
+                <span>Editar Esta Ficha</span>
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 600, color: currentWorkoutTheme.subColor }}>
+                  Dias:
+                </span>
+                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dName, dIdx) => {
+                  const isSelected = (currentWorkout.scheduledDays || []).includes(dIdx);
+                  return (
+                    <button
+                      key={dName}
+                      type="button"
+                      onClick={() => handleToggleWorkoutDay(currentWorkout.id, dIdx)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: isSelected ? '#FFFFFF' : 'rgba(255, 255, 255, 0.22)',
+                        color: isSelected ? '#1A1B2F' : '#FFFFFF',
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {dName}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ flexShrink: 0, zIndex: 1, display: 'flex', alignItems: 'center' }}>
+            <CardIllustration type={currentWorkoutTheme.illustration} />
+          </div>
+        </div>
+
+        {/* MÉTRICAS DE PROGRESSO DA SESSÃO */}
+        <div
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.56)',
+            backdropFilter: 'blur(18px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(18px) saturate(150%)',
+            borderRadius: '24px',
+            padding: '20px 24px',
+            border: '1px solid rgba(255, 255, 255, 0.72)',
+            boxShadow: '0 10px 28px rgba(20, 18, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+            <div style={{ width: '66px', height: '66px', position: 'relative', flexShrink: 0 }}>
+              <svg width="66" height="66" viewBox="0 0 68 68">
+                <circle cx="34" cy="34" r={ringRadius} fill="none" stroke="#CFCFD9" strokeWidth="6.5" />
+                <circle
+                  cx="34"
+                  cy="34"
+                  r={ringRadius}
+                  fill="none"
+                  stroke={isWorkoutCompleted ? '#10B981' : '#211F38'}
+                  strokeWidth="6.5"
+                  strokeLinecap="round"
+                  strokeDasharray={ringCircumference}
+                  strokeDashoffset={ringOffset}
+                  transform="rotate(-90 34 34)"
+                  style={{ transition: 'stroke-dashoffset 0.35s ease' }}
+                />
+              </svg>
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: isWorkoutCompleted ? '#059669' : '#1A1B2F'
+                }}
+              >
+                {effectiveProgress}%
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A1B2F', margin: 0 }}>
+                {totalDoneSets} de {totalTargetSets} séries concluídas
+              </h3>
+              <p style={{ fontSize: '12px', color: '#5A5B75', margin: '3px 0 0 0' }}>
+                {completedExercisesCount} de {currentExercises.length} exercícios finalizados • {totalEstimatedWeightMoved} kg movimentados
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={handleOpenAddExercise}
+              style={{
+                backgroundColor: '#211F38',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '999px',
+                padding: '9px 18px',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(33, 31, 56, 0.2)'
+              }}
+            >
+              <Plus size={14} />
+              <span>Novo Exercício</span>
+            </button>
+
+            {!isWorkoutCompleted ? (
+              <button
+                type="button"
+                onClick={() => setShowFinishConfirmModal(true)}
+                style={{
+                  backgroundColor: '#10B981',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '999px',
+                  padding: '9px 20px',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+                }}
+              >
+                <CheckCircle2 size={15} />
+                <span>Finalizar Treino (+50 pts)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowResetConfirmModal(true)}
+                style={{
+                  backgroundColor: 'rgba(33, 31, 56, 0.12)',
+                  color: '#211F38',
+                  border: 'none',
+                  borderRadius: '999px',
+                  padding: '9px 18px',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <RotateCcw size={14} />
+                <span>Reiniciar Sessão</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* BANNER DE CRONÔMETRO DE DESCANSO ATIVO */}
+        {activeRestSeconds > 0 && (
+          <div
+            style={{
+              backgroundColor: '#211F38',
+              border: '1px solid rgba(166, 180, 232, 0.35)',
+              borderRadius: '20px',
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              boxShadow: '0 8px 24px rgba(33, 31, 56, 0.25)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  backgroundColor: '#56548A',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Clock size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#A6B4E8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Descanso em Andamento {restingExerciseObj ? `• ${restingExerciseObj.name}` : ''}
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.15 }}>
+                  {activeRestSeconds}s <span style={{ fontSize: '13px', fontWeight: 500, color: '#C5C7DE' }}>restantes</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleTogglePauseRest}
+                style={{
+                  padding: '7px 15px',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: 'rgba(255,255,255,0.14)',
+                  color: '#FFFFFF',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                {isResting ? <Pause size={13} /> : <Play size={13} />}
+                <span>{isResting ? 'Pausar' : 'Retomar'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveRestSeconds(prev => prev + 15)}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: 'rgba(255,255,255,0.14)',
+                  color: '#FFFFFF',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                +15s
+              </button>
+
+              <button
+                type="button"
+                onClick={handleStopRest}
+                style={{
+                  padding: '7px 15px',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: '#E6E7F2',
+                  color: '#1A1B2F',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Encerrar Descanso
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* LISTA DE EXERCÍCIOS DA FICHA */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {currentExercises.length === 0 ? (
+            <div
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.56)',
+                backdropFilter: 'blur(16px)',
+                borderRadius: '22px',
+                padding: '42px 24px',
+                textAlign: 'center',
+                border: '1px solid rgba(255, 255, 255, 0.72)'
+              }}
+            >
+              <Dumbbell size={36} color="#56548A" style={{ margin: '0 auto 12px auto', display: 'block', opacity: 0.6 }} />
+              <p style={{ fontSize: '15px', fontWeight: 600, color: '#1A1B2F', margin: '0 0 6px 0' }}>
+                Nenhum exercício cadastrado nesta ficha ainda
+              </p>
+              <p style={{ fontSize: '13px', color: '#5A5B75', margin: '0 0 18px 0' }}>
+                Adicione seu primeiro exercício para começar a registrar séries e cargas.
+              </p>
+              <button
+                type="button"
+                onClick={handleOpenAddExercise}
+                style={{
+                  backgroundColor: '#211F38',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '999px',
+                  padding: '10px 22px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Plus size={15} />
+                <span>Adicionar Primeiro Exercício</span>
+              </button>
+            </div>
+          ) : (
+            currentExercises.map((ex, index) => {
+              const totalSets = Math.max(1, Number(ex.sets) || 1);
+              const doneSets = Math.min(totalSets, completedSetsMap[ex.id] || 0);
+              const isAllSetsDone = doneSets >= totalSets;
+              const isThisResting = restingExerciseId === ex.id && activeRestSeconds > 0;
+              const setPercent = Math.round((doneSets / totalSets) * 100);
+
+              return (
+                <div
+                  key={ex.id || index}
+                  style={{
+                    backgroundColor: isAllSetsDone ? 'rgba(220, 252, 231, 0.75)' : '#FFFFFF',
+                    borderRadius: '20px',
+                    padding: '18px 22px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px',
+                    border: isAllSetsDone ? '1.5px solid #10B981' : isThisResting ? '1.5px solid #56548A' : '1px solid rgba(33, 31, 56, 0.08)',
+                    boxShadow: '0 6px 20px rgba(33, 31, 56, 0.05)',
+                    transition: 'all 0.18s ease'
+                  }}
+                >
+                  {/* Linha superior: Check geral, nome, meta, carga, descanso, ações */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '14px',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, flex: 1 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAllSets(ex)}
+                        title={isAllSetsDone ? 'Reiniciar séries deste exercício' : 'Marcar todas as séries como concluídas'}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '9px',
+                          border: isAllSetsDone ? 'none' : '2px solid #56548A',
+                          backgroundColor: isAllSetsDone ? '#10B981' : '#FFFFFF',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          padding: 0
+                        }}
+                      >
+                        {isAllSetsDone && <Check size={16} strokeWidth={3} />}
+                      </button>
+
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              fontSize: '16px',
+                              fontWeight: 700,
+                              color: '#1A1B2F',
+                              textDecoration: isAllSetsDone ? 'line-through' : 'none',
+                              opacity: isAllSetsDone ? 0.75 : 1
+                            }}
+                          >
+                            {ex.name}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '2px 9px',
+                              borderRadius: '999px',
+                              backgroundColor: isAllSetsDone ? 'rgba(16, 185, 129, 0.22)' : 'rgba(33, 31, 56, 0.08)',
+                              color: isAllSetsDone ? '#065F46' : '#211F38'
+                            }}
+                          >
+                            {doneSets}/{totalSets} séries ({setPercent}%)
+                          </span>
+                        </div>
+
+                        <div style={{ fontSize: '12.5px', color: '#4E506B', fontWeight: 500, marginTop: '2px' }}>
+                          Meta: {totalSets} séries × {ex.reps} repetições
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      {/* Cronômetro e Seletor de Descanso */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          backgroundColor: isThisResting ? '#211F38' : '#ECEEF5',
+                          borderRadius: '999px',
+                          padding: '3px 4px 3px 10px',
+                          gap: '6px'
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleStartExerciseRest(ex.id, ex.restSec || 60)}
+                          title="Ativar cronômetro de descanso"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: isThisResting ? '#6EE7B7' : '#211F38',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 4px'
+                          }}
+                        >
+                          <Clock size={13} />
+                          <span>
+                            {isThisResting ? `Descansando: ${activeRestSeconds}s` : 'Descanso'}
+                          </span>
+                        </button>
+
+                        <select
+                          value={ex.restSec || 60}
+                          onChange={(e) => handleChangeExerciseRestSec(ex.id, Number(e.target.value))}
+                          title="Escolher tempo de descanso"
+                          style={{
+                            backgroundColor: '#FFFFFF',
+                            color: '#1A1B2F',
+                            border: 'none',
+                            borderRadius: '999px',
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value={30}>30s</option>
+                          <option value={45}>45s</option>
+                          <option value={60}>60s</option>
+                          <option value={90}>90s</option>
+                          <option value={120}>120s</option>
+                          <option value={180}>180s</option>
+                        </select>
+                      </div>
+
+                      {/* Ajuste de Carga */}
+                      {ex.showWeight !== false && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            backgroundColor: '#ECEEF5',
+                            borderRadius: '999px',
+                            padding: '3px 6px'
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleAdjustWeight(ex.id, -1)}
+                            title="Diminuir carga (-1 kg)"
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '50%',
+                              border: 'none',
+                              backgroundColor: '#FFFFFF',
+                              color: '#211F38',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: '14px',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            −
+                          </button>
+
+                          <span
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              color: '#1A1B2F',
+                              minWidth: '48px',
+                              textAlign: 'center'
+                            }}
+                          >
+                            {ex.weightKg} kg
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAdjustWeight(ex.id, 1)}
+                            title="Aumentar carga (+1 kg)"
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '50%',
+                              border: 'none',
+                              backgroundColor: '#FFFFFF',
+                              color: '#211F38',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: '14px',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Botões Editar / Excluir Exercício */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditExercise(ex)}
+                        title="Editar exercício"
+                        style={{
+                          background: 'rgba(33, 31, 56, 0.08)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: '#3A3C58',
+                          cursor: 'pointer',
+                          padding: '7px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Edit3 size={14} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteExerciseConfirm(ex.id)}
+                        title="Excluir exercício"
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: '#991B1B',
+                          cursor: 'pointer',
+                          padding: '7px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Barra de Marcação de Séries Feitas */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      paddingTop: '10px',
+                      borderTop: '1px solid rgba(33, 31, 56, 0.07)',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#4E506B', marginRight: '4px' }}>
+                        Marcar Séries:
+                      </span>
+
+                      {Array.from({ length: totalSets }, (_, sIdx) => {
+                        const setNumber = sIdx + 1;
+                        const isSetDone = setNumber <= doneSets;
+
+                        return (
+                          <button
+                            key={setNumber}
+                            type="button"
+                            onClick={() => {
+                              const nextVal = isSetDone && doneSets === setNumber ? setNumber - 1 : setNumber;
+                              handleSetCountChange(ex, nextVal, nextVal > doneSets);
+                            }}
+                            style={{
+                              padding: '6px 13px',
+                              borderRadius: '10px',
+                              border: isSetDone ? 'none' : '1px solid #C4C6D8',
+                              backgroundColor: isSetDone ? '#211F38' : '#F8FAFC',
+                              color: isSetDone ? '#FFFFFF' : '#3A3C58',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              boxShadow: isSetDone ? '0 3px 8px rgba(33, 31, 56, 0.2)' : 'none',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {isSetDone && <Check size={12} strokeWidth={3} color="#34D399" />}
+                            <span>{setNumber}ª Série</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSetCountChange(ex, doneSets - 1, false)}
+                        disabled={doneSets <= 0}
+                        style={{
+                          padding: '5px 11px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          backgroundColor: 'rgba(33, 31, 56, 0.08)',
+                          color: '#211F38',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: doneSets <= 0 ? 'not-allowed' : 'pointer',
+                          opacity: doneSets <= 0 ? 0.45 : 1
+                        }}
+                      >
+                        −1 Série
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSetCountChange(ex, doneSets + 1, true)}
+                        disabled={doneSets >= totalSets}
+                        style={{
+                          padding: '5px 13px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          backgroundColor: doneSets >= totalSets ? '#10B981' : '#56548A',
+                          color: '#FFFFFF',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: doneSets >= totalSets ? 'default' : 'pointer'
+                        }}
+                      >
+                        {doneSets >= totalSets ? 'Concluído ✓' : '+1 Série Feita'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // RENDERIZAÇÃO: VISÃO GERAL DE CARDS (VIEW === 'list')
+  // =========================================================================
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       
@@ -651,7 +1454,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
       {/* ================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         
-        {/* CARD 1 (7 COLUNAS): PROGRESSO DA SESSÃO & FORÇA */}
+        {/* CARD 1 (7 COLUNAS): PROGRESSO GERAL & FORÇA */}
         <div
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.56)',
@@ -707,14 +1510,14 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
             <div style={{ flex: 1, maxWidth: '170px', height: '52px' }}>
               <svg viewBox="0 0 130 48" width="100%" height="100%" style={{ overflow: 'visible' }}>
                 <defs>
-                  <linearGradient id="strengthGrad" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="strengthGradList" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#6D6B9E" stopOpacity="0.45" />
                     <stop offset="100%" stopColor="#6D6B9E" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
                 <path
                   d="M 6 42 Q 25 22, 42 28 T 78 24 T 118 6 L 118 44 L 6 44 Z"
-                  fill="url(#strengthGrad)"
+                  fill="url(#strengthGradList)"
                 />
                 <path
                   d="M 6 42 Q 25 22, 42 28 T 78 24 T 118 6"
@@ -765,7 +1568,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '8px', borderTop: '1px solid rgba(33, 31, 56, 0.08)' }}>
             <span style={{ fontSize: '11px', fontWeight: 700, color: '#4E506B', backgroundColor: 'rgba(33, 31, 56, 0.06)', padding: '3px 9px', borderRadius: '8px' }}>
-              ✓ {totalDoneSets}/{totalTargetSets} Séries
+              ✓ {totalDoneSets}/{totalTargetSets} Séries Feitas
             </span>
             <span style={{ fontSize: '11px', fontWeight: 700, color: '#4E506B', backgroundColor: 'rgba(33, 31, 56, 0.06)', padding: '3px 9px', borderRadius: '8px' }}>
               🏋️ {totalEstimatedWeightMoved} kg movimentados
@@ -886,7 +1689,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
               Minhas Fichas de Treino & Rotinas
             </h3>
             <span style={{ fontSize: '12.5px', color: '#5A5B75' }}>
-              Selecione uma ficha abaixo para visualizar os exercícios ou iniciar sua sessão
+              Clique em um card para abrir a aba dedicada do treino ou use os botões de ação rápida
             </span>
           </div>
 
@@ -913,37 +1716,35 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
           </button>
         </div>
 
-        {/* LISTA DE CARDS ESTILO HEADSPACE */}
+        {/* LISTA DE CARDS ESTILO HEADSPACE (SEM EXPANDIR ABAIXO DO CARD) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {workouts.map((w, idx) => {
             const theme = getWorkoutTheme(w, idx);
-            const isActive = w.id === activeWorkoutId;
             const isDone = !!completedWorkoutsToday[w.id];
             const exerciseCount = w.exercises?.length || 0;
             const targetSets = w.exercises?.reduce((acc, ex) => acc + Math.max(1, Number(ex.sets) || 1), 0) || 0;
 
             return (
-              <div key={w.id} style={{ display: 'flex', flexDirection: 'column' }}>
-                {/* CARD VISUAL PRINCIPAL FIEL À IMAGEM DE REFERÊNCIA */}
-                <div
-                  onClick={() => setActiveWorkoutId(w.id)}
-                  style={{
-                    background: theme.gradient,
-                    borderRadius: '24px',
-                    padding: '20px 24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    boxShadow: isActive ? '0 12px 32px rgba(0,0,0,0.18)' : '0 6px 18px rgba(0,0,0,0.06)',
-                    border: isActive ? '2.5px solid #FFFFFF' : '1.5px solid rgba(255,255,255,0.22)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    transform: isActive ? 'scale(1.008)' : 'scale(1)'
-                  }}
-                >
-                  {/* LADO ESQUERDO: TÍTULO, SUBTÍTULO E TAGS */}
+              <div
+                key={w.id}
+                onClick={() => handleStartWorkoutSession(w.id)}
+                style={{
+                  background: theme.gradient,
+                  borderRadius: '24px',
+                  padding: '20px 24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                  border: '1.5px solid rgba(255,255,255,0.25)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                {/* LINHA SUPERIOR: TÍTULO, SUBTÍTULO E ILUSTRAÇÃO */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  {/* LADO ESQUERDO: TÍTULO, SUBTÍTULO E DIAS */}
                   <div style={{ flex: 1, minWidth: 0, paddingRight: '16px', zIndex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
                       <h4
@@ -958,24 +1759,6 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
                       >
                         {w.name}
                       </h4>
-
-                      {isActive && (
-                        <span
-                          style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.28)',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
-                            color: '#FFFFFF',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            padding: '3px 10px',
-                            borderRadius: '999px',
-                            border: '1px solid rgba(255, 255, 255, 0.4)'
-                          }}
-                        >
-                          ● Ativo Agora
-                        </span>
-                      )}
 
                       {isDone && (
                         <span
@@ -1040,11 +1823,6 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
                           Livre / Sem agendamento
                         </span>
                       )}
-
-                      <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#FFFFFF', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700, opacity: 0.95 }}>
-                        {isActive ? 'Expandido' : 'Clique para treinar'}
-                        {isActive ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </span>
                     </div>
                   </div>
 
@@ -1054,684 +1832,90 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
                   </div>
                 </div>
 
-                {/* PAINEL EXPANSÍVEL: ROTINA ATIVA COM CONTROLE DE EXERCÍCIOS, SÉRIES E DESCANSO */}
-                {isActive && (
-                  <div
+                {/* BARRA DE ACESSO RÁPIDO DO CARD: INICIAR TREINO, EDITAR FICHA, EXCLUIR */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginTop: '14px',
+                    paddingTop: '12px',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.22)',
+                    flexWrap: 'wrap',
+                    zIndex: 2
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => handleStartWorkoutSession(w.id, e)}
                     style={{
-                      backgroundColor: '#211F38',
-                      borderRadius: '24px',
-                      padding: '22px',
-                      marginTop: '10px',
-                      marginBottom: '10px',
-                      color: '#FFFFFF',
-                      boxShadow: '0 16px 36px rgba(33, 31, 56, 0.22)',
-                      animation: 'fadeIn 0.25s ease'
+                      backgroundColor: '#FFFFFF',
+                      color: '#1A1B2F',
+                      border: 'none',
+                      borderRadius: '999px',
+                      padding: '7px 18px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
                     }}
                   >
-                    {/* Cabeçalho da Rotina Ativa */}
-                    <div
+                    <Play size={13} fill="#1A1B2F" />
+                    <span>{isDone ? 'Abrir Treino' : 'Iniciar Treino'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleOpenEditWorkout(w, e)}
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.22)',
+                      color: '#FFFFFF',
+                      border: '1px solid rgba(255, 255, 255, 0.35)',
+                      borderRadius: '999px',
+                      padding: '7px 15px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      backdropFilter: 'blur(6px)'
+                    }}
+                  >
+                    <Edit3 size={13} />
+                    <span>Editar Ficha</span>
+                  </button>
+
+                  {workouts.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteWorkout(w.id);
+                      }}
+                      title="Excluir ficha de treino"
                       style={{
-                        display: 'flex',
+                        backgroundColor: 'rgba(0, 0, 0, 0.15)',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '999px',
+                        width: '32px',
+                        height: '32px',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '14px',
-                        marginBottom: '18px',
-                        flexWrap: 'wrap'
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        marginLeft: 'auto'
                       }}
                     >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                          <h2 style={{ fontSize: '19px', fontWeight: 700, color: '#FFFFFF', margin: 0, letterSpacing: '-0.01em' }}>
-                            Rotina: {currentWorkout?.name}
-                          </h2>
-                          <span
-                            style={{
-                              backgroundColor: '#E6E7F2',
-                              color: '#1A1B2F',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              padding: '3px 10px',
-                              borderRadius: '999px'
-                            }}
-                          >
-                            Hipertrofia & Força
-                          </span>
-                        </div>
-                        <p style={{ fontSize: '12px', color: '#A9ABC6', margin: '4px 0 0 0' }}>
-                          Marque cada série executada e utilize o cronômetro para controlar o descanso entre as séries.
-                        </p>
-                      </div>
-
-                      {/* Botões de Ação da Ficha */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          onClick={handleOpenAddExercise}
-                          style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                            color: '#FFFFFF',
-                            border: '1px solid rgba(255, 255, 255, 0.18)',
-                            borderRadius: '999px',
-                            padding: '8px 16px',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <Plus size={14} />
-                          <span>Novo Exercício</span>
-                        </button>
-
-                        {!isWorkoutCompleted ? (
-                          <button
-                            type="button"
-                            onClick={() => setShowFinishConfirmModal(true)}
-                            style={{
-                              backgroundColor: '#56548A',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: '999px',
-                              padding: '8px 18px',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              boxShadow: '0 6px 16px rgba(86, 84, 138, 0.45)'
-                            }}
-                          >
-                            <CheckCircle2 size={14} />
-                            <span>Finalizar Treino</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setShowResetConfirmModal(true)}
-                            style={{
-                              backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                              color: '#E2E4F0',
-                              border: 'none',
-                              borderRadius: '999px',
-                              padding: '8px 14px',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}
-                          >
-                            <RotateCcw size={13} />
-                            <span>Reiniciar Sessão</span>
-                          </button>
-                        )}
-
-                        {workouts.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteWorkout(currentWorkout.id)}
-                            title="Excluir esta ficha de treino"
-                            style={{
-                              background: 'rgba(255,255,255,0.08)',
-                              border: 'none',
-                              color: '#FCA5A5',
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '50%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Dias de Agendamento da Ficha */}
-                    <div
-                      style={{
-                        padding: '10px 14px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                        borderRadius: '14px',
-                        marginBottom: '16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '8px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#D5D7E8', fontWeight: 600 }}>
-                        <CalendarCheck size={14} color="#A6B4E8" />
-                        <span>Dias agendados na Agenda Semanal:</span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dName, dIdx) => {
-                          const isSelected = (currentWorkout?.scheduledDays || []).includes(dIdx);
-                          return (
-                            <button
-                              key={dName}
-                              type="button"
-                              onClick={() => handleToggleWorkoutDay(currentWorkout.id, dIdx)}
-                              style={{
-                                padding: '4px 9px',
-                                borderRadius: '8px',
-                                border: 'none',
-                                backgroundColor: isSelected ? '#56548A' : 'rgba(255, 255, 255, 0.08)',
-                                color: isSelected ? '#FFFFFF' : '#A9ABC6',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              {dName}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* BANNER DE CRONÔMETRO DE DESCANSO ATIVO */}
-                    {activeRestSeconds > 0 && (
-                      <div
-                        style={{
-                          backgroundColor: '#35335A',
-                          border: '1px solid rgba(166, 180, 232, 0.35)',
-                          borderRadius: '18px',
-                          padding: '14px 18px',
-                          marginBottom: '16px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          flexWrap: 'wrap',
-                          gap: '12px'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div
-                            style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '12px',
-                              backgroundColor: '#56548A',
-                              color: '#FFFFFF',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            <Clock size={20} />
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#A6B4E8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                              Descanso em Andamento {restingExerciseObj ? `• ${restingExerciseObj.name}` : ''}
-                            </div>
-                            <div style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.15 }}>
-                              {activeRestSeconds}s <span style={{ fontSize: '12px', fontWeight: 500, color: '#C5C7DE' }}>restantes</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <button
-                            type="button"
-                            onClick={handleTogglePauseRest}
-                            style={{
-                              padding: '6px 13px',
-                              borderRadius: '999px',
-                              border: 'none',
-                              backgroundColor: 'rgba(255,255,255,0.14)',
-                              color: '#FFFFFF',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '5px'
-                            }}
-                          >
-                            {isResting ? <Pause size={13} /> : <Play size={13} />}
-                            <span>{isResting ? 'Pausar' : 'Retomar'}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setActiveRestSeconds(prev => prev + 15)}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: '999px',
-                              border: 'none',
-                              backgroundColor: 'rgba(255,255,255,0.14)',
-                              color: '#FFFFFF',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            +15s
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={handleStopRest}
-                            style={{
-                              padding: '6px 13px',
-                              borderRadius: '999px',
-                              border: 'none',
-                              backgroundColor: '#E6E7F2',
-                              color: '#1A1B2F',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Encerrar Descanso
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* LISTA DE EXERCÍCIOS */}
-                    {currentExercises.length === 0 ? (
-                      <div
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.06)',
-                          borderRadius: '18px',
-                          padding: '32px 24px',
-                          textAlign: 'center'
-                        }}
-                      >
-                        <p style={{ fontSize: '14px', color: '#C5C7DE', margin: '0 0 14px 0' }}>
-                          Nenhum exercício cadastrado nesta ficha ainda.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={handleOpenAddExercise}
-                          style={{
-                            backgroundColor: '#E6E7F2',
-                            color: '#1A1B2F',
-                            border: 'none',
-                            borderRadius: '999px',
-                            padding: '8px 18px',
-                            fontSize: '12.5px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <Plus size={14} />
-                          <span>Adicionar Primeiro Exercício</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {currentExercises.map((ex, index) => {
-                          const totalSets = Math.max(1, Number(ex.sets) || 1);
-                          const doneSets = Math.min(totalSets, completedSetsMap[ex.id] || 0);
-                          const isAllSetsDone = doneSets >= totalSets;
-                          const isThisResting = restingExerciseId === ex.id && activeRestSeconds > 0;
-                          const setPercent = Math.round((doneSets / totalSets) * 100);
-
-                          return (
-                            <div
-                              key={ex.id || index}
-                              style={{
-                                backgroundColor: isAllSetsDone ? '#D6DFEB' : '#E6E7F2',
-                                borderRadius: '16px',
-                                padding: '14px 18px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '12px',
-                                border: isAllSetsDone ? '1.5px solid #10B981' : isThisResting ? '1.5px solid #56548A' : '1px solid transparent',
-                                transition: 'all 0.18s ease'
-                              }}
-                            >
-                              {/* Linha superior: Check geral, nome, meta, carga, descanso, ações */}
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: '14px',
-                                  flexWrap: 'wrap'
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleAllSets(ex)}
-                                    title={isAllSetsDone ? 'Reiniciar séries deste exercício' : 'Marcar todas as séries como feitas'}
-                                    style={{
-                                      width: '26px',
-                                      height: '26px',
-                                      borderRadius: '8px',
-                                      border: isAllSetsDone ? 'none' : '2px solid #56548A',
-                                      backgroundColor: isAllSetsDone ? '#10B981' : '#FFFFFF',
-                                      color: '#FFFFFF',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      cursor: 'pointer',
-                                      flexShrink: 0,
-                                      padding: 0
-                                    }}
-                                  >
-                                    {isAllSetsDone && <Check size={15} strokeWidth={3} />}
-                                  </button>
-
-                                  <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                      <span
-                                        style={{
-                                          fontSize: '15.5px',
-                                          fontWeight: 700,
-                                          color: '#1A1B2F',
-                                          textDecoration: isAllSetsDone ? 'line-through' : 'none',
-                                          opacity: isAllSetsDone ? 0.72 : 1
-                                        }}
-                                      >
-                                        {ex.name}
-                                      </span>
-                                      <span
-                                        style={{
-                                          fontSize: '11px',
-                                          fontWeight: 700,
-                                          padding: '2px 9px',
-                                          borderRadius: '999px',
-                                          backgroundColor: isAllSetsDone ? 'rgba(16, 185, 129, 0.18)' : 'rgba(33, 31, 56, 0.1)',
-                                          color: isAllSetsDone ? '#065F46' : '#211F38'
-                                        }}
-                                      >
-                                        {doneSets}/{totalSets} séries ({setPercent}%)
-                                      </span>
-                                    </div>
-
-                                    <div style={{ fontSize: '12px', color: '#4E506B', fontWeight: 500, marginTop: '2px' }}>
-                                      Meta: {totalSets} séries × {ex.reps} repetições
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                  {/* Cronômetro e Seletor de Descanso */}
-                                  <div
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      backgroundColor: isThisResting ? '#211F38' : '#D5D7E8',
-                                      borderRadius: '999px',
-                                      padding: '3px 4px 3px 10px',
-                                      gap: '6px'
-                                    }}
-                                  >
-                                    <button
-                                      type="button"
-                                      onClick={() => handleStartExerciseRest(ex.id, ex.restSec || 60)}
-                                      title="Clique para ativar o cronômetro de descanso desta atividade"
-                                      style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: isThisResting ? '#6EE7B7' : '#211F38',
-                                        fontSize: '11.5px',
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        padding: '3px 4px'
-                                      }}
-                                    >
-                                      <Clock size={13} />
-                                      <span>
-                                        {isThisResting ? `Descansando: ${activeRestSeconds}s` : 'Ativar Descanso'}
-                                      </span>
-                                    </button>
-
-                                    <select
-                                      value={ex.restSec || 60}
-                                      onChange={(e) => handleChangeExerciseRestSec(ex.id, Number(e.target.value))}
-                                      title="Escolher tempo de descanso desta atividade"
-                                      style={{
-                                        backgroundColor: '#FFFFFF',
-                                        color: '#1A1B2F',
-                                        border: 'none',
-                                        borderRadius: '999px',
-                                        padding: '3px 8px',
-                                        fontSize: '11px',
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        outline: 'none'
-                                      }}
-                                    >
-                                      <option value={30}>30s</option>
-                                      <option value={45}>45s</option>
-                                      <option value={60}>60s</option>
-                                      <option value={90}>90s</option>
-                                      <option value={120}>120s</option>
-                                      <option value={180}>180s</option>
-                                    </select>
-                                  </div>
-
-                                  {/* Ajuste de Carga */}
-                                  {ex.showWeight !== false && (
-                                    <div
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px',
-                                        backgroundColor: '#D5D7E8',
-                                        borderRadius: '999px',
-                                        padding: '3px 6px'
-                                      }}
-                                    >
-                                      <button
-                                        type="button"
-                                        onClick={() => handleAdjustWeight(ex.id, -1)}
-                                        title="Diminuir carga (-1 kg)"
-                                        style={{
-                                          width: '24px',
-                                          height: '24px',
-                                          borderRadius: '50%',
-                                          border: 'none',
-                                          backgroundColor: '#FFFFFF',
-                                          color: '#211F38',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          cursor: 'pointer',
-                                          fontWeight: 800,
-                                          fontSize: '14px',
-                                          padding: 0
-                                        }}
-                                      >
-                                        −
-                                      </button>
-
-                                      <span
-                                        style={{
-                                          fontSize: '13px',
-                                          fontWeight: 800,
-                                          color: '#1A1B2F',
-                                          minWidth: '46px',
-                                          textAlign: 'center'
-                                        }}
-                                      >
-                                        {ex.weightKg} kg
-                                      </span>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => handleAdjustWeight(ex.id, 1)}
-                                        title="Aumentar carga (+1 kg)"
-                                        style={{
-                                          width: '24px',
-                                          height: '24px',
-                                          borderRadius: '50%',
-                                          border: 'none',
-                                          backgroundColor: '#FFFFFF',
-                                          color: '#211F38',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          cursor: 'pointer',
-                                          fontWeight: 800,
-                                          fontSize: '14px',
-                                          padding: 0
-                                        }}
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  )}
-
-                                  {/* Botões Editar / Excluir Exercício */}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenEditExercise(ex)}
-                                    title="Editar exercício"
-                                    style={{
-                                      background: 'rgba(33, 31, 56, 0.08)',
-                                      border: 'none',
-                                      borderRadius: '8px',
-                                      color: '#3A3C58',
-                                      cursor: 'pointer',
-                                      padding: '6px',
-                                      display: 'flex',
-                                      alignItems: 'center'
-                                    }}
-                                  >
-                                    <Edit3 size={13} />
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowDeleteExerciseConfirm(ex.id)}
-                                    title="Excluir exercício"
-                                    style={{
-                                      background: 'rgba(239, 68, 68, 0.12)',
-                                      border: 'none',
-                                      borderRadius: '8px',
-                                      color: '#991B1B',
-                                      cursor: 'pointer',
-                                      padding: '6px',
-                                      display: 'flex',
-                                      alignItems: 'center'
-                                    }}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Barra de Marcação de Séries Feitas */}
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: '10px',
-                                  paddingTop: '10px',
-                                  borderTop: '1px solid rgba(33, 31, 56, 0.09)',
-                                  flexWrap: 'wrap'
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#4E506B', marginRight: '4px' }}>
-                                    Marcar Séries:
-                                  </span>
-
-                                  {Array.from({ length: totalSets }, (_, sIdx) => {
-                                    const setNumber = sIdx + 1;
-                                    const isSetDone = setNumber <= doneSets;
-
-                                    return (
-                                      <button
-                                        key={setNumber}
-                                        type="button"
-                                        onClick={() => {
-                                          const nextVal = isSetDone && doneSets === setNumber ? setNumber - 1 : setNumber;
-                                          handleSetCountChange(ex, nextVal, nextVal > doneSets);
-                                        }}
-                                        style={{
-                                          padding: '5px 12px',
-                                          borderRadius: '9px',
-                                          border: isSetDone ? 'none' : '1px solid #B8BACF',
-                                          backgroundColor: isSetDone ? '#211F38' : '#FFFFFF',
-                                          color: isSetDone ? '#FFFFFF' : '#3A3C58',
-                                          fontSize: '11.5px',
-                                          fontWeight: 700,
-                                          cursor: 'pointer',
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '5px',
-                                          boxShadow: isSetDone ? '0 3px 8px rgba(33, 31, 56, 0.2)' : 'none',
-                                          transition: 'all 0.15s ease'
-                                        }}
-                                      >
-                                        {isSetDone && <Check size={11} strokeWidth={3} color="#34D399" />}
-                                        <span>{setNumber}ª Série</span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleSetCountChange(ex, doneSets - 1, false)}
-                                    disabled={doneSets <= 0}
-                                    style={{
-                                      padding: '4px 10px',
-                                      borderRadius: '8px',
-                                      border: 'none',
-                                      backgroundColor: 'rgba(33, 31, 56, 0.1)',
-                                      color: '#211F38',
-                                      fontSize: '11px',
-                                      fontWeight: 700,
-                                      cursor: doneSets <= 0 ? 'not-allowed' : 'pointer',
-                                      opacity: doneSets <= 0 ? 0.45 : 1
-                                    }}
-                                  >
-                                    −1 Série
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => handleSetCountChange(ex, doneSets + 1, true)}
-                                    disabled={doneSets >= totalSets}
-                                    style={{
-                                      padding: '4px 11px',
-                                      borderRadius: '8px',
-                                      border: 'none',
-                                      backgroundColor: doneSets >= totalSets ? '#10B981' : '#56548A',
-                                      color: '#FFFFFF',
-                                      fontSize: '11px',
-                                      fontWeight: 700,
-                                      cursor: doneSets >= totalSets ? 'default' : 'pointer'
-                                    }}
-                                  >
-                                    {doneSets >= totalSets ? 'Concluído ✓' : '+1 Série Feita'}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -1741,6 +1925,151 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
       {/* =====================================================================
           MODAIS FUNCIONAIS
          ===================================================================== */}
+
+      {/* MODAL: EDITAR FICHA DE TREINO */}
+      {showEditWorkoutModal && (
+        <div className="modal-overlay" onClick={() => setShowEditWorkoutModal(false)}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit3 size={19} color="#56548A" />
+                <h2 className="modal-title">Editar Ficha de Treino</h2>
+              </div>
+              <button className="modal-close-btn" onClick={() => setShowEditWorkoutModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditWorkoutSubmit}>
+              <div className="form-group">
+                <label className="form-label">Nome da Ficha de Treino</label>
+                <input 
+                  type="text" 
+                  className="input-dark" 
+                  placeholder="ex: Treino A • Peito & Tríceps"
+                  value={editWorkoutName}
+                  onChange={(e) => setEditWorkoutName(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Subtítulo / Descrição do Foco</label>
+                <input 
+                  type="text" 
+                  className="input-dark" 
+                  placeholder="ex: Supino, inclinado e tríceps • Hipertrofia"
+                  value={editWorkoutSubtitle}
+                  onChange={(e) => setEditWorkoutSubtitle(e.target.value)}
+                />
+              </div>
+
+              {/* Seletor de Tema Visual */}
+              <div className="form-group">
+                <label className="form-label">Estilo Visual do Card</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '6px' }}>
+                  {WORKOUT_THEMES.map((theme) => {
+                    const isSelected = editWorkoutTheme === theme.id;
+                    return (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        onClick={() => setEditWorkoutTheme(theme.id)}
+                        style={{
+                          background: theme.gradient,
+                          color: '#FFFFFF',
+                          border: isSelected ? '2.5px solid #FFFFFF' : '1px solid transparent',
+                          borderRadius: '12px',
+                          padding: '10px 8px',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.25)' : 'none'
+                        }}
+                      >
+                        {isSelected && <Check size={12} strokeWidth={3} />}
+                        <span>{theme.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Dias na Agenda Semanal</label>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((dayLetter, dayIdx) => {
+                    const isSelected = editWorkoutDays.includes(dayIdx);
+                    return (
+                      <button
+                        key={dayIdx}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setEditWorkoutDays(prev => prev.filter(d => d !== dayIdx));
+                          } else {
+                            setEditWorkoutDays(prev => [...prev, dayIdx]);
+                          }
+                        }}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          border: '1px solid',
+                          borderColor: isSelected ? 'var(--accent-cyan)' : 'var(--border-subtle)',
+                          background: isSelected ? 'var(--accent-cyan)' : 'var(--surface-elevated)',
+                          color: isSelected ? '#030712' : 'var(--text-secondary)',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {dayLetter}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Horário Sugerido na Agenda</label>
+                <input 
+                  type="time" 
+                  className="input-dark" 
+                  value={editWorkoutTime}
+                  onChange={(e) => setEditWorkoutTime(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  style={{ flex: 1 }}
+                  onClick={() => setShowEditWorkoutModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  style={{ flex: 1.5 }}
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: NOVO EXERCÍCIO */}
       {showNewExerciseModal && (
