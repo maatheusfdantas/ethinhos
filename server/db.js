@@ -311,7 +311,7 @@ export function seedFiveUsers() {
     {
       id: 'usr_teste',
       username: 'teste',
-      email: 'teste@ethos.dev',
+      email: 'eumatheusdantas1214@gmail.com',
       password: hashPassword('Teste@2026!Ethos'),
       name: 'Usuário Teste',
       avatar: 'UT',
@@ -342,13 +342,15 @@ export function seedFiveUsers() {
     } else {
       db.prepare(`
         UPDATE users SET 
+          username = ?,
+          email = ?,
           password = ?, 
           role = ?, 
           name = ?,
           subscription_tier = ?, 
           permissions = ?
         WHERE id = ? OR username = ? OR email = ?
-      `).run(u.password, u.role, u.name, u.subscription_tier, u.permissions, u.id, u.username, u.email);
+      `).run(u.username, u.email, u.password, u.role, u.name, u.subscription_tier, u.permissions, u.id, u.username, u.email);
     }
   }
 

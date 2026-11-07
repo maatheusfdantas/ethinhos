@@ -19,7 +19,7 @@ export const FIVE_SEEDED_USERS = [
   {
     id: 'usr_teste',
     username: 'teste',
-    email: 'teste@ethos.dev',
+    email: 'eumatheusdantas1214@gmail.com',
     password: 'Teste@2026!Ethos',
     name: 'Usuário Teste',
     avatar: 'UT',

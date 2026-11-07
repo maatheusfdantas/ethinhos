@@ -233,6 +233,44 @@ export async function sendEmail({ to, subject, html, text }) {
 
     if (error) {
       console.error('[RESEND ERROR] Falha ao enviar e-mail:', error);
+
+      // Tratamento inteligente para o Sandbox do Resend:
+      // O plano gratuito do Resend só permite envio para o e-mail do dono da conta (eumatheusdantas1214@gmail.com).
+      // Se alguém testar com outro e-mail (ex: teste@ethos.dev), redirecionamos automaticamente para a conta dona
+      // para que o e-mail real chegue com o código e possa ser testado imediatamente!
+      if (error.message && error.message.includes('You can only send testing emails to your own email address')) {
+        const match = error.message.match(/\(([^)]+)\)/);
+        const ownerEmail = match ? match[1].trim() : 'eumatheusdantas1214@gmail.com';
+        console.log(`[RESEND SANDBOX ROUTE] Redirecionando disparo de teste para o e-mail da sua conta do Resend: ${ownerEmail}`);
+
+        try {
+          const fallbackRes = await client.emails.send({
+            from: fromAddress,
+            to: [ownerEmail],
+            subject: `[Teste para ${recipient.join(', ')}] ${subject}`,
+            html: `
+              <div style="background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-family: sans-serif; font-size: 13px; color: #92400E; line-height: 1.5;">
+                <strong>⚠️ Aviso do Sandbox do Resend:</strong><br>
+                Este e-mail foi solicitado para o endereço fictício <code>${recipient.join(', ')}</code>. Como o plano gratuito do Resend (sem domínio personalizado verificado) restringe disparos apenas ao e-mail proprietário da conta, o Ethos entregou esta mensagem com segurança na sua caixa de entrada pessoal.
+              </div>
+            ` + html,
+            text: text ? `[Aviso Sandbox: Solicitado para ${recipient.join(', ')}]\n\n${text}` : undefined
+          });
+
+          if (!fallbackRes.error) {
+            console.log(`[RESEND SUCCESS VIA SANDBOX OWNER] Entregue para ${ownerEmail} (ID: ${fallbackRes.data?.id})`);
+            return {
+              success: true,
+              id: fallbackRes.data?.id,
+              sandboxRedirected: true,
+              targetEmail: ownerEmail
+            };
+          }
+        } catch (fbErr) {
+          console.error('[RESEND FALLBACK ERROR]', fbErr);
+        }
+      }
+
       return {
         success: false,
         error: error.message || 'Erro ao disparar e-mail via Resend.'

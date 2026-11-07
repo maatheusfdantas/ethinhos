@@ -443,12 +443,13 @@ app.post('/api/auth/logout-all', (req, res) => {
 
 // Solicitação de Token de Recuperação de Senha (Resend + Uso Único + Expiração Curta de 15 min + Hash SHA-256)
 app.post('/api/auth/forgot-password', authRateLimiter, async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Informe o e-mail cadastrado.' });
+  const { email, login } = req.body;
+  const inputIdentifier = String(email || login || '').trim().toLowerCase();
+  if (!inputIdentifier) return res.status(400).json({ error: 'Informe o e-mail ou nome de usuário cadastrado.' });
 
-  const stmt = db.prepare(`SELECT * FROM users WHERE LOWER(email) = LOWER(?)`);
-  const user = stmt.get(email);
-  if (!user) return res.status(404).json({ error: 'Nenhum usuário encontrado com este e-mail.' });
+  const stmt = db.prepare(`SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?`);
+  const user = stmt.get(inputIdentifier, inputIdentifier);
+  if (!user) return res.status(404).json({ error: 'Nenhum usuário encontrado com esta credencial.' });
 
   // Cria token criptograficamente seguro e armazena apenas seu hash no banco
   const tokenData = createAuthToken(db, {
@@ -465,27 +466,32 @@ app.post('/api/auth/forgot-password', authRateLimiter, async (req, res) => {
     metadata: { email: user.email, expiresAt: tokenData.expiresAt }
   });
 
-  // Disparo com Resend (HTML responsivo + fallback em texto puro)
-  await sendPasswordResetEmail({
+  // Disparo com Resend (HTML responsivo + fallback inteligente de sandbox)
+  const emailResult = await sendPasswordResetEmail({
     email: user.email,
     name: user.name,
     token: tokenData.rawToken,
     expiresInMinutes: tokenData.expiresInMinutes
   });
 
+  const deliveredTo = emailResult?.targetEmail || user.email;
+
   // NUNCA expor o token no payload JSON de resposta ao cliente
   res.json({
     success: true,
-    maskedEmail: maskEmail(user.email),
+    maskedEmail: maskEmail(deliveredTo),
     expiresInMinutes: tokenData.expiresInMinutes,
-    message: `Código de verificação enviado com sucesso para ${maskEmail(user.email)}. Verifique sua caixa de entrada e spam.`
+    message: emailResult?.sandboxRedirected
+      ? `Código enviado com sucesso para ${maskEmail(deliveredTo)} (Modo Sandbox do Resend: entregue no seu e-mail cadastrado).`
+      : `Código de verificação enviado com sucesso para ${maskEmail(deliveredTo)}. Verifique sua caixa de entrada e spam.`
   });
 });
 
 // Validação de Token de Uso Único e Redefinição com Hashing scrypt
 app.post('/api/auth/reset-password', authRateLimiter, (req, res) => {
-  const { email, token, newPassword } = req.body;
-  if (!email || !token || !newPassword) {
+  const { email, login, token, newPassword } = req.body;
+  const inputIdentifier = String(email || login || '').trim().toLowerCase();
+  if (!inputIdentifier || !token || !newPassword) {
     return res.status(400).json({ error: 'Dados incompletos para redefinição de senha.' });
   }
 
@@ -493,7 +499,7 @@ app.post('/api/auth/reset-password', authRateLimiter, (req, res) => {
     return res.status(400).json({ error: 'A nova senha deve possuir pelo menos 6 caracteres.' });
   }
 
-  const user = db.prepare(`SELECT * FROM users WHERE LOWER(email) = LOWER(?)`).get(email);
+  const user = db.prepare(`SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?`).get(inputIdentifier, inputIdentifier);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
   // Valida e consome o token de forma atômica (Single-Use estrito)

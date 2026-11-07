@@ -439,7 +439,7 @@ function maskEmailEdge(emailStr) {
 }
 
 async function sendResendEmailEdge(env, { to, subject, html, text }) {
-  const apiKey = env?.RESEND_API_KEY || (typeof process !== 'undefined' ? process.env?.RESEND_API_KEY : '');
+  const apiKey = env?.RESEND_API_KEY || (typeof process !== 'undefined' ? process.env?.RESEND_API_KEY : '') || 're_UT5T9E4B_9qkasyb3dheYv4Spd5yvJz3o';
   const recipient = Array.isArray(to) ? to : [to];
   const from = env?.RESEND_FROM || (typeof process !== 'undefined' ? process.env?.RESEND_FROM : '') || 'Ethos <onboarding@resend.dev>';
 
@@ -467,6 +467,40 @@ async function sendResendEmailEdge(env, { to, subject, html, text }) {
     const data = await res.json();
     if (!res.ok) {
       console.error('[EDGE RESEND ERROR]', data);
+
+      // Tratamento para Sandbox do Resend: se o destinatário for diferente do e-mail da conta, entrega para o dono
+      if (data?.message && data.message.includes('You can only send testing emails to your own email address')) {
+        const match = data.message.match(/\(([^)]+)\)/);
+        const ownerEmail = match ? match[1].trim() : 'eumatheusdantas1214@gmail.com';
+        console.log(`[EDGE RESEND SANDBOX ROUTE] Redirecionando para ${ownerEmail}`);
+
+        const fallbackRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from,
+            to: [ownerEmail],
+            subject: `[Teste para ${recipient.join(', ')}] ${subject}`,
+            html: `
+              <div style="background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-family: sans-serif; font-size: 13px; color: #92400E; line-height: 1.5;">
+                <strong>⚠️ Aviso do Sandbox do Resend:</strong><br>
+                Este e-mail foi solicitado para o endereço fictício <code>${recipient.join(', ')}</code>. Como o plano gratuito do Resend restringe disparos ao e-mail proprietário da conta, o Ethos entregou esta mensagem na sua caixa de entrada pessoal.
+              </div>
+            ` + html,
+            text: text ? `[Aviso Sandbox: Solicitado para ${recipient.join(', ')}]\n\n${text}` : undefined
+          })
+        });
+
+        const fallbackData = await fallbackRes.json();
+        if (fallbackRes.ok) {
+          console.log(`[EDGE RESEND SUCCESS VIA SANDBOX OWNER] Entregue para ${ownerEmail} (ID: ${fallbackData?.id})`);
+          return { success: true, id: fallbackData?.id, sandboxRedirected: true, targetEmail: ownerEmail };
+        }
+      }
+
       return { success: false, error: data?.message || 'Erro ao enviar via Resend Edge' };
     }
     return { success: true, id: data?.id };
@@ -1490,22 +1524,22 @@ export async function onRequest(context) {
   // SOLICITAÇÃO SEGURA DE RECUPERAÇÃO DE SENHA (`/api/auth/forgot-password`)
   // --------------------------------------------------------------------------
   if (pathname === '/api/auth/forgot-password' && method === 'POST') {
-    const email = String(body.email || '').trim().toLowerCase();
-    if (!email) {
-      return jsonResponse({ error: 'Informe o e-mail cadastrado.' }, 400, correlationId, request);
+    const inputIdentifier = String(body.email || body.login || '').trim().toLowerCase();
+    if (!inputIdentifier) {
+      return jsonResponse({ error: 'Informe o e-mail ou nome de usuário cadastrado.' }, 400, correlationId, request);
     }
 
     let user = null;
     if (storage.mode === 'd1') {
-      user = await storage.db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').bind(email).first();
+      user = await storage.db.prepare('SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?').bind(inputIdentifier, inputIdentifier).first();
     } else {
       for (const u of storage.store.users.values()) {
-        if (u.email.toLowerCase() === email) { user = u; break; }
+        if (u.email.toLowerCase() === inputIdentifier || u.username.toLowerCase() === inputIdentifier) { user = u; break; }
       }
     }
 
     if (!user) {
-      return jsonResponse({ error: 'Nenhum usuário encontrado com este e-mail.' }, 404, correlationId, request);
+      return jsonResponse({ error: 'Nenhum usuário encontrado com esta credencial.' }, 404, correlationId, request);
     }
 
     // Gerar token criptográfico de 6 dígitos aleatório
@@ -1531,19 +1565,22 @@ export async function onRequest(context) {
     }
 
     // Dispara via Resend
-    await sendPasswordResetEmailEdge(env, {
+    const emailResult = await sendPasswordResetEmailEdge(env, {
       email: user.email,
       name: user.name,
       token: rawToken,
       expiresInMinutes: 15
     });
 
-    const masked = maskEmailEdge(user.email);
+    const targetAddr = emailResult?.targetEmail || user.email;
+    const masked = maskEmailEdge(targetAddr);
     return jsonResponse({
       success: true,
       maskedEmail: masked,
       expiresInMinutes: 15,
-      message: `Código de verificação enviado com sucesso para ${masked}. Verifique seu e-mail.`
+      message: emailResult?.sandboxRedirected
+        ? `Código enviado com sucesso para ${masked} (Modo Sandbox: e-mail registrado na conta do Resend).`
+        : `Código de verificação enviado com sucesso para ${masked}. Verifique seu e-mail.`
     }, 200, correlationId, request);
   }
 
@@ -1551,11 +1588,11 @@ export async function onRequest(context) {
   // REDEFINIÇÃO DE SENHA COM TOKEN (`/api/auth/reset-password`)
   // --------------------------------------------------------------------------
   if (pathname === '/api/auth/reset-password' && method === 'POST') {
-    const email = String(body.email || '').trim().toLowerCase();
+    const inputIdentifier = String(body.email || body.login || '').trim().toLowerCase();
     const token = String(body.token || '').trim();
     const newPassword = String(body.newPassword || '');
 
-    if (!email || !token || !newPassword) {
+    if (!inputIdentifier || !token || !newPassword) {
       return jsonResponse({ error: 'Dados incompletos para redefinição.' }, 400, correlationId, request);
     }
     if (newPassword.length < 6) {
@@ -1564,10 +1601,10 @@ export async function onRequest(context) {
 
     let user = null;
     if (storage.mode === 'd1') {
-      user = await storage.db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').bind(email).first();
+      user = await storage.db.prepare('SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?').bind(inputIdentifier, inputIdentifier).first();
     } else {
       for (const u of storage.store.users.values()) {
-        if (u.email.toLowerCase() === email) { user = u; break; }
+        if (u.email.toLowerCase() === inputIdentifier || u.username.toLowerCase() === inputIdentifier) { user = u; break; }
       }
     }
 

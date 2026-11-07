@@ -56,7 +56,7 @@ INSERT INTO users (
 ) VALUES (
   'usr_teste',
   'teste',
-  'teste@ethos.dev',
+  'eumatheusdantas1214@gmail.com',
   'pbkdf2$663dd8840a89df17f69b39d2539eadc5$e5ed0191f53323c19c425ae34740b4829bf26d247f6c612d219807b0c62b4573',
   'Usuário Teste',
   'UT',
@@ -71,7 +71,7 @@ INSERT INTO users (
   '2026-11-01T00:00:00.000Z'
 ) ON CONFLICT (id) DO UPDATE SET
   username = 'teste',
-  email = 'teste@ethos.dev',
+  email = 'eumatheusdantas1214@gmail.com',
   password = 'pbkdf2$663dd8840a89df17f69b39d2539eadc5$e5ed0191f53323c19c425ae34740b4829bf26d247f6c612d219807b0c62b4573',
   name = 'Usuário Teste',
   role = 'user',
