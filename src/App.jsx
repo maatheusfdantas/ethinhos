@@ -951,7 +951,12 @@ export function App() {
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
         user={user}
-        onUpdateUser={setUser}
+        onUpdateUser={(updated) => {
+          setUser(updated);
+          try {
+            localStorage.setItem('ethos_current_user', JSON.stringify(updated));
+          } catch (e) {}
+        }}
         onLogout={handleLogout}
       />
     </div>

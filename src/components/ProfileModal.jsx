@@ -1,20 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, 
   User, 
-  Globe, 
-  Lock, 
-  Flame, 
-  Trophy, 
-  Save, 
+  ChevronDown, 
+  ChevronUp, 
+  Check, 
+  AlertTriangle, 
+  Download, 
+  LogOut, 
+  Trash2, 
+  Camera, 
   ShieldCheck, 
-  CheckCircle2,
-  Scale,
-  Download,
-  LogOut,
-  Trash2,
   Sliders,
+  Lock,
   LayoutGrid,
   TrendingUp,
   ShieldOff,
@@ -25,22 +24,33 @@ import {
 } from 'lucide-react';
 
 export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) {
-  const [activeSection, setActiveSection] = useState('profile'); // 'profile' | 'pages' | 'security'
-  const [name, setName] = useState(user?.name || 'Eu Matheus');
-  const [bio, setBio] = useState(user?.bio || 'Engenharia de Software & Produtividade Extrema');
-  const [isPublic, setIsPublic] = useState(user?.isPublic ?? true);
-  const [weight, setWeight] = useState(user?.weight !== undefined ? user.weight : 70.0);
-  const [height, setHeight] = useState(user?.height !== undefined ? user.height : 1.75);
-  const [savedSuccess, setSavedSuccess] = useState(false);
-  const [securityFeedback, setSecurityFeedback] = useState('');
+  // Dados Pessoais
+  const [name, setName] = useState(user?.name || 'Matheus D.');
+  const [email, setEmail] = useState(user?.email || 'matheus.d@email.com');
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || user?.photoUrl || '');
+  const fileInputRef = useRef(null);
 
-  // Preferências de visibilidade das páginas da interface
-  // REQUISITO: Usuários decidem quais abas querem, mas abas principais e estatísticas são fixas
+  // Preferências
+  const [language, setLanguage] = useState(user?.language || 'Portuguese');
+  const [timezone, setTimezone] = useState(user?.timezone || 'UTC-3');
+  const [theme, setTheme] = useState(user?.theme || 'Escuro');
+  const [emailNotifications, setEmailNotifications] = useState(user?.emailNotifications !== false);
+
+  // Estados de Interface e Feedback
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [showPagesConfig, setShowPagesConfig] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordFeedback, setPasswordFeedback] = useState({ type: '', text: '' });
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Preferências de Páginas da Interface
   const defaultPagePreferences = {
     dashboard: true,   // FIXO / OBRIGATÓRIO
     telemetry: true,   // FIXO / ESTATÍSTICAS OBRIGATÓRIO
     habits: true,      // Customizável
-    bad_habits: true,  // Customizável (Nova aba de vícios/maus hábitos)
+    bad_habits: true,  // Customizável (Maus hábitos / sobriedade)
     calendar: true,    // Customizável
     workouts: true,    // Customizável
     focus: true,       // Customizável
@@ -55,72 +65,34 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
     return { ...defaultPagePreferences, ...(user?.pagePreferences || {}) };
   });
 
+  useEffect(() => {
+    if (user) {
+      setName(user.name || 'Matheus D.');
+      setEmail(user.email || 'matheus.d@email.com');
+      setAvatarUrl(user.avatarUrl || user.photoUrl || '');
+      if (user.pagePreferences) {
+        setPagePreferences(prev => ({ ...prev, ...user.pagePreferences }));
+      }
+    }
+  }, [user, isOpen]);
+
   if (!isOpen || typeof document === 'undefined') return null;
 
-  const numWeight = parseFloat(weight);
-  const numHeight = parseFloat(height);
-  const isValidBmi = numWeight > 0 && numHeight > 0;
-  const bmiValue = isValidBmi ? (numWeight / (numHeight * numHeight)) : 0;
-  const formattedBmi = bmiValue > 0 ? bmiValue.toFixed(1) : '--';
-
-  let bmiClass = {
-    label: 'Calculando...',
-    color: 'var(--text-secondary)',
-    bg: 'rgba(255,255,255,0.06)',
-    desc: 'Informe o peso e a altura.'
+  // Upload de Imagem de Avatar Local
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setAvatarUrl(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  if (bmiValue > 0) {
-    if (bmiValue < 18.5) {
-      bmiClass = {
-        label: 'Abaixo do peso',
-        color: 'var(--accent-amber)',
-        bg: 'rgba(251, 191, 36, 0.15)',
-        desc: 'Abaixo da faixa recomendada para sua estatura.'
-      };
-    } else if (bmiValue < 25.0) {
-      bmiClass = {
-        label: 'Peso Normal / Saudável',
-        color: 'var(--accent-emerald)',
-        bg: 'rgba(52, 211, 153, 0.15)',
-        desc: 'Excelente! Seu índice está no intervalo ideal de saúde.'
-      };
-    } else if (bmiValue < 30.0) {
-      bmiClass = {
-        label: 'Sobrepeso',
-        color: '#f97316',
-        bg: 'rgba(249, 115, 22, 0.15)',
-        desc: 'Levemente acima da faixa ideal recomendada.'
-      };
-    } else if (bmiValue < 35.0) {
-      bmiClass = {
-        label: 'Obesidade Grau I',
-        color: 'var(--accent-rose)',
-        bg: 'rgba(244, 63, 94, 0.15)',
-        desc: 'Atenção aos hábitos nutricionais e atividade física.'
-      };
-    } else if (bmiValue < 40.0) {
-      bmiClass = {
-        label: 'Obesidade Grau II',
-        color: 'var(--accent-rose)',
-        bg: 'rgba(244, 63, 94, 0.2)',
-        desc: 'Recomenda-se acompanhamento e reeducação da rotina.'
-      };
-    } else {
-      bmiClass = {
-        label: 'Obesidade Grau III',
-        color: 'var(--accent-rose)',
-        bg: 'rgba(244, 63, 94, 0.25)',
-        desc: 'Grau elevado. Atenção primordial à saúde integral.'
-      };
-    }
-  }
-
-  const minIdeal = isValidBmi ? (18.5 * numHeight * numHeight).toFixed(1) : null;
-  const maxIdeal = isValidBmi ? (24.9 * numHeight * numHeight).toFixed(1) : null;
-
+  // Salvar Alterações de Perfil
   const handleSave = async (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
     const initials = name
       .split(' ')
       .slice(0, 2)
@@ -130,11 +102,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
     const updated = {
       ...user,
       name: name.trim(),
-      bio: bio.trim(),
-      isPublic,
-      weight: numWeight || 70.0,
-      height: numHeight || 1.75,
-      avatar: initials || user.avatar,
+      email: email.trim(),
+      avatar: initials || user?.avatar || 'MD',
+      avatarUrl,
+      language,
+      timezone,
+      theme,
+      emailNotifications,
       pagePreferences
     };
 
@@ -142,7 +116,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
       localStorage.setItem(`ethos_pages_${user?.id || 'default'}`, JSON.stringify(pagePreferences));
     } catch (e) {}
 
-    onUpdateUser(updated);
+    onUpdateUser?.(updated);
 
     if (user?.id) {
       try {
@@ -151,15 +125,17 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: name.trim(),
-            bio: bio.trim(),
-            is_public: isPublic,
-            weight: numWeight || 70.0,
-            height: numHeight || 1.75,
+            email: email.trim(),
+            avatarUrl,
+            language,
+            timezone,
+            theme,
+            emailNotifications,
             pagePreferences
           })
         });
       } catch (err) {
-        console.warn('Erro ao salvar no backend:', err);
+        console.warn('Erro ao sincronizar perfil com backend:', err);
       }
     }
 
@@ -167,11 +143,54 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
     setTimeout(() => {
       setSavedSuccess(false);
       onClose();
-    }, 800);
+    }, 700);
   };
 
-  // LGPD Art. 18, V: Portabilidade / Exportação de Dados Pessoais
-  const handleExportLgpdData = async () => {
+  // Alteração de Senha
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordFeedback({ type: 'error', text: 'A nova senha deve ter no mínimo 6 caracteres.' });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          token: 'DIRECT_USER_UPDATE',
+          currentPassword,
+          newPassword
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        // Fallback: se o endpoint exigir token, enviamos o código por e-mail automaticamente
+        await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim() })
+        });
+        setPasswordFeedback({ type: 'success', text: 'Código de confirmação enviado para seu e-mail!' });
+      } else {
+        setPasswordFeedback({ type: 'success', text: 'Senha atualizada com sucesso!' });
+        setTimeout(() => {
+          setShowPasswordChange(false);
+          setPasswordFeedback({ type: '', text: '' });
+          setCurrentPassword('');
+          setNewPassword('');
+        }, 1200);
+      }
+    } catch (_err) {
+      setPasswordFeedback({ type: 'error', text: 'Falha ao atualizar a senha.' });
+    }
+  };
+
+  // Exportar Dados (LGPD)
+  const handleExportData = async () => {
     if (!user?.id) return;
     try {
       const res = await fetch(`/api/user/${user.id}/privacy/export`);
@@ -180,546 +199,690 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ethos_dados_pessoais_${user.username || user.id}.json`;
+      a.download = `ethos_dados_${user.username || 'usuario'}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      setSecurityFeedback('Exportação LGPD concluída com sucesso (JSON baixado).');
     } catch (_err) {
-      setSecurityFeedback('Erro ao exportar dados.');
+      alert('Erro ao exportar dados.');
     }
   };
 
-  // Revogar Sessões em Todos os Dispositivos
-  const handleRevokeAllSessions = async () => {
-    if (!user?.id) return;
-    try {
-      const res = await fetch('/api/auth/logout-all', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
-      });
-      const data = await res.json();
-      setSecurityFeedback(data.message || 'Sessões revogadas em todos os dispositivos.');
-    } catch (_err) {
-      setSecurityFeedback('Falha ao revogar sessões.');
+  // Desativar Conta
+  const handleDeactivate = () => {
+    if (window.confirm('Tem certeza que deseja desativar sua sessão atual? Você poderá entrar novamente a qualquer momento.')) {
+      onLogout?.();
+      onClose();
     }
   };
 
-  // LGPD Art. 18, VI: Exclusão Segura da Conta
+  // Excluir Conta Permanentemente (LGPD)
   const handleEraseAccount = async () => {
-    if (!user?.id || user.role === 'admin') return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/user/${user.id}/privacy/erase`, { method: 'DELETE' });
-      if (res.ok) {
-        onLogout?.();
-        onClose();
+      if (user?.id && user.role !== 'admin') {
+        await fetch(`/api/user/${user.id}/privacy/erase`, { method: 'DELETE' });
       }
+      onLogout?.();
+      onClose();
     } catch (_err) {
-      setSecurityFeedback('Não foi possível excluir a conta.');
+      alert('Falha ao excluir a conta.');
     }
   };
 
   return createPortal(
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
-      <div className="modal-sheet" style={{ maxWidth: '580px', maxHeight: '92vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        backgroundColor: 'rgba(15, 23, 42, 0.45)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px'
+      }}
+    >
+      {/* CARD LIQUID FROSTED GLASS FIEL À IMAGEM DE REFERÊNCIA */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: '520px',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(225, 235, 250, 0.45) 100%)',
+          backdropFilter: 'blur(32px) saturate(190%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(190%)',
+          border: '1.5px solid rgba(255, 255, 255, 0.8)',
+          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.95), inset 0 -1px 2px rgba(255, 255, 255, 0.3)',
+          borderRadius: '26px',
+          padding: '24px 28px',
+          boxSizing: 'border-box',
+          color: '#1E293B',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+        }}
+      >
+        {/* CABEÇALHO: TÍTULO + BADGES + BOTÃO SALVAR ALTERAÇÕES */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <User size={20} color="var(--accent-cyan)" />
-            <h2 className="modal-title">Configurações & Painel Pessoal</h2>
-          </div>
-          <button className="modal-close-btn" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* PROFILE HEADER SUMMARY */}
-        <div className="card-native" style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-          <div className="profile-avatar" style={{ width: 52, height: 52, fontSize: '1.2rem' }}>
-            {user?.avatar || 'EM'}
-          </div>
-          <div>
-            <h3 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', margin: 0 }}>{user?.name}</h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{user?.email}</span>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-              <span className="section-badge" style={{ color: 'var(--accent-cyan)' }}>
-                <Flame size={12} style={{ display: 'inline', marginRight: 3 }} />
-                {user?.streakDays || 7} dias de ofensiva
-              </span>
-              <span className="section-badge">
-                <Trophy size={12} style={{ display: 'inline', marginRight: 3 }} />
-                {user?.points || 1420} pts
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* ABAS INTERNAS DE NAVEGAÇÃO DO MODAL */}
-        <div 
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '6px',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            padding: '4px',
-            borderRadius: '12px',
-            marginBottom: '18px'
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveSection('profile')}
-            style={{
-              padding: '7px 8px',
-              borderRadius: '9px',
-              border: 'none',
-              backgroundColor: activeSection === 'profile' ? 'var(--accent-cyan)' : 'transparent',
-              color: activeSection === 'profile' ? '#0F172A' : 'var(--text-secondary)',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <User size={13} />
-            <span>Perfil & Biometria</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSection('pages')}
-            style={{
-              padding: '7px 8px',
-              borderRadius: '9px',
-              border: 'none',
-              backgroundColor: activeSection === 'pages' ? 'var(--accent-cyan)' : 'transparent',
-              color: activeSection === 'pages' ? '#0F172A' : 'var(--text-secondary)',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <Sliders size={13} />
-            <span>Páginas da Interface</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSection('security')}
-            style={{
-              padding: '7px 8px',
-              borderRadius: '9px',
-              border: 'none',
-              backgroundColor: activeSection === 'security' ? 'var(--accent-cyan)' : 'transparent',
-              color: activeSection === 'security' ? '#0F172A' : 'var(--text-secondary)',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <ShieldCheck size={13} />
-            <span>Segurança & LGPD</span>
-          </button>
-        </div>
-
-        <form onSubmit={handleSave}>
-          
-          {/* ========================================================================= */}
-          {/* SEÇÃO 1: PERFIL & BIOMETRIA                                               */}
-          {/* ========================================================================= */}
-          {activeSection === 'profile' && (
-            <div>
-              <div className="form-group">
-                <label className="form-label">Nome de Exibição</label>
-                <input 
-                  type="text" 
-                  className="input-dark" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Biografia / Ocupação</label>
-                <textarea 
-                  className="input-dark" 
-                  rows={2}
-                  value={bio} 
-                  onChange={(e) => setBio(e.target.value)}
-                />
-              </div>
-
-              {/* BIOMETRIA: PESO, ALTURA E CÁLCULO DE IMC */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Scale size={14} color="var(--accent-cyan)" />
-                  Biometria Corporal & Cálculo do IMC
-                </label>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                      Peso (kg)
-                    </label>
-                    <input 
-                      type="number"
-                      step="0.1"
-                      min="20"
-                      max="300"
-                      className="input-dark"
-                      value={weight}
-                      onChange={(e) => setWeight(e.target.value)}
-                      placeholder="ex: 75.0"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                      Altura (metros)
-                    </label>
-                    <input 
-                      type="number"
-                      step="0.01"
-                      min="0.50"
-                      max="2.50"
-                      className="input-dark"
-                      value={height}
-                      onChange={(e) => setHeight(e.target.value)}
-                      placeholder="ex: 1.75"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="card-native" style={{ 
-                  background: 'rgba(15, 23, 42, 0.7)', 
-                  border: `1px solid ${bmiClass.color}40`,
-                  borderRadius: '12px',
-                  padding: '14px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                      Índice de Massa Corporal (IMC)
-                    </span>
-                    <span style={{ 
-                      fontSize: '0.72rem', 
-                      fontWeight: 700, 
-                      color: bmiClass.color, 
-                      background: bmiClass.bg, 
-                      padding: '2px 8px', 
-                      borderRadius: '6px' 
-                    }}>
-                      {bmiClass.label}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                      {formattedBmi}
-                    </span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>kg/m²</span>
-                  </div>
-
-                  <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', margin: '0 0 10px 0', lineHeight: 1.4 }}>
-                    {bmiClass.desc}
-                  </p>
-
-                  {minIdeal && maxIdeal && (
-                    <div style={{ 
-                      fontSize: '0.72rem', 
-                      color: 'var(--accent-cyan)', 
-                      paddingTop: '8px', 
-                      borderTop: '1px solid rgba(255,255,255,0.06)' 
-                    }}>
-                      Faixa de peso saudável para {numHeight}m: <strong>{minIdeal} kg a {maxIdeal} kg</strong>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* SEÇÃO 2: PÁGINAS DA INTERFACE (CUSTOMIZAÇÃO EXIGIDA PELO USUÁRIO)        */}
-          {/* ========================================================================= */}
-          {activeSection === 'pages' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div 
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  backgroundColor: 'rgba(0, 229, 255, 0.08)',
-                  border: '1px solid rgba(0, 229, 255, 0.2)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <Sliders size={16} color="var(--accent-cyan)" />
-                  <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Personalizar Módulos da Interface</strong>
-                </div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.45 }}>
-                  Ative ou oculte as páginas que deseja no seu menu. O <strong>Painel Principal</strong> e as abas de <strong>Estatísticas</strong> permanecem sempre ativas para garantir a integridade dos seus relatórios.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                
-                {/* 1. Painel Principal - OBRIGATÓRIO */}
-                <div className="card-native" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <LayoutGrid size={18} color="var(--accent-cyan)" />
-                    <div>
-                      <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block' }}>Painel Principal (Dashboard)</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Visão geral dos hábitos, tarefas e cronograma diário</span>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', backgroundColor: 'rgba(0, 229, 255, 0.15)', color: 'var(--accent-cyan)' }}>
-                    OBRIGATÓRIO
-                  </span>
-                </div>
-
-                {/* 2. Análise de Progresso & Estatísticas - OBRIGATÓRIO */}
-                <div className="card-native" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <TrendingUp size={18} color="var(--accent-cyan)" />
-                    <div>
-                      <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block' }}>Análise de Progresso & Estatísticas</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Telemetria, consistência, heatmaps e métricas analíticas</span>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', backgroundColor: 'rgba(0, 229, 255, 0.15)', color: 'var(--accent-cyan)' }}>
-                    FIXO / ESTATÍSTICAS
-                  </span>
-                </div>
-
-                {/* 3. Hábitos & Rotinas */}
-                <div className="card-native" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <CheckCircle2 size={18} color="#38BDF8" />
-                    <div>
-                      <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block' }}>Hábitos & Rotinas</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Aba dedicada exclusivamente à gestão e conclusão de hábitos</span>
-                    </div>
-                  </div>
-                  <div 
-                    className={`switch-track ${pagePreferences.habits ? 'on' : ''}`}
-                    onClick={() => setPagePreferences(prev => ({ ...prev, habits: !prev.habits }))}
-                    title="Alternar visibilidade da aba Hábitos"
-                  >
-                    <div className="switch-thumb" />
-                  </div>
-                </div>
-
-                {/* 4. Maus Hábitos & Vícios (Superação) */}
-                <div className="card-native" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <ShieldOff size={18} color="#F43F5E" />
-                    <div>
-                      <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block' }}>Maus Hábitos & Vícios (Superação)</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Acompanhamento de sobriedade (cigarro, álcool, automutilação)</span>
-                    </div>
-                  </div>
-                  <div 
-                    className={`switch-track ${pagePreferences.bad_habits ? 'on' : ''}`}
-                    onClick={() => setPagePreferences(prev => ({ ...prev, bad_habits: !prev.bad_habits }))}
-                    title="Alternar visibilidade da aba Maus Hábitos"
-                  >
-                    <div className="switch-thumb" />
-                  </div>
-                </div>
-
-                {/* 5. Agenda Semanal & Calendário */}
-                <div className="card-native" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Calendar size={18} color="#FDE68A" />
-                    <div>
-                      <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block' }}>Agenda Semanal & Calendário</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Calendário visual com eventos e compromissos sincronizados</span>
-                    </div>
-                  </div>
-                  <div 
-                    className={`switch-track ${pagePreferences.calendar ? 'on' : ''}`}
-                    onClick={() => setPagePreferences(prev => ({ ...prev, calendar: !prev.calendar }))}
-                    title="Alternar visibilidade da aba Agenda"
-                  >
-                    <div className="switch-thumb" />
-                  </div>
-                </div>
-
-                {/* 6. Musculação & Treino */}
-                <div className="card-native" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Dumbbell size={18} color="#FB923C" />
-                    <div>
-                      <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block' }}>Musculação & Treino</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Fichas de exercícios, séries, repetições e carga</span>
-                    </div>
-                  </div>
-                  <div 
-                    className={`switch-track ${pagePreferences.workouts ? 'on' : ''}`}
-                    onClick={() => setPagePreferences(prev => ({ ...prev, workouts: !prev.workouts }))}
-                    title="Alternar visibilidade da aba Musculação"
-                  >
-                    <div className="switch-thumb" />
-                  </div>
-                </div>
-
-                {/* 7. Foco Pomodoro */}
-                <div className="card-native" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Timer size={18} color="#A78BFA" />
-                    <div>
-                      <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block' }}>Foco Pomodoro</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Cronômetro produtivo com sub-classes e foco colaborativo</span>
-                    </div>
-                  </div>
-                  <div 
-                    className={`switch-track ${pagePreferences.focus ? 'on' : ''}`}
-                    onClick={() => setPagePreferences(prev => ({ ...prev, focus: !prev.focus }))}
-                    title="Alternar visibilidade da aba Foco Pomodoro"
-                  >
-                    <div className="switch-thumb" />
-                  </div>
-                </div>
-
-                {/* 8. Comunidade Social */}
-                <div className="card-native" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Users size={18} color="#34D399" />
-                    <div>
-                      <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block' }}>Comunidade</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Feed de amigos, desafios em grupo e ranking de ofensivas</span>
-                    </div>
-                  </div>
-                  <div 
-                    className={`switch-track ${pagePreferences.social ? 'on' : ''}`}
-                    onClick={() => setPagePreferences(prev => ({ ...prev, social: !prev.social }))}
-                    title="Alternar visibilidade da aba Comunidade"
-                  >
-                    <div className="switch-thumb" />
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* SEÇÃO 3: SEGURANÇA & PRIVACIDADE LGPD                                     */}
-          {/* ========================================================================= */}
-          {activeSection === 'security' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="card-native" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Globe size={16} color="var(--accent-cyan)" />
-                    <div>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600, display: 'block' }}>
-                        Perfil Público / Visibilidade
-                      </span>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
-                        {isPublic 
-                          ? 'Amigos aprovados podem ver suas conclusões no feed.'
-                          : 'Nenhuma atividade é compartilhada publicamente.'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div 
-                    className={`switch-track ${isPublic ? 'on' : ''}`}
-                    onClick={() => setIsPublic(!isPublic)}
-                    title="Alternar entre Público e Privado"
-                  >
-                    <div className="switch-thumb" />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                  <button
-                    type="button"
-                    onClick={handleExportLgpdData}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.75rem', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  >
-                    <Download size={13} />
-                    Exportar Dados (LGPD)
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleRevokeAllSessions}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.75rem', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  >
-                    <LogOut size={13} />
-                    Revogar Todas Sessões
-                  </button>
-                </div>
-
-                {user?.role !== 'admin' && (
-                  <button
-                    type="button"
-                    onClick={handleEraseAccount}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.75rem', padding: '7px 10px', borderColor: 'rgba(244,63,94,0.4)', color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  >
-                    <Trash2 size={13} />
-                    Excluir Conta e Dados Pessoais (Direito ao Esquecimento)
-                  </button>
-                )}
-
-                {securityFeedback && (
-                  <div style={{ fontSize: '0.76rem', color: 'var(--accent-emerald)', fontWeight: 600 }}>
-                    {securityFeedback}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {savedSuccess && (
-            <div style={{ color: 'var(--accent-emerald)', fontSize: '0.85rem', margin: '14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <CheckCircle2 size={16} />
-              Configurações e preferências salvas com sucesso!
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            <button 
-              type="button" 
-              className="btn-secondary" 
-              style={{ flex: 1, borderColor: 'var(--accent-rose)', color: 'var(--accent-rose)' }}
-              onClick={() => {
-                onLogout?.();
-                onClose();
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1E293B', margin: 0, letterSpacing: '-0.01em' }}>
+              Configurações do Perfil
+            </h2>
+            <span
+              style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                color: '#B45309',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                fontSize: '10px',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              Sair da Conta
-            </button>
-            <button 
-              type="submit" 
-              className="btn-primary" 
-              style={{ flex: 1.5, gap: '8px' }}
+              3
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={handleSave}
+              style={{
+                background: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 100%)',
+                boxShadow: '0 0 16px rgba(99, 102, 241, 0.55)',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '999px',
+                padding: '7px 20px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
+              onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              <Save size={16} />
-              Salvar Alterações
+              {savedSuccess ? <Check size={14} /> : null}
+              <span>{savedSuccess ? 'Salvo!' : 'Salvar Alterações'}</span>
+            </button>
+
+            <span
+              style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                color: '#B45309',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                fontSize: '10px',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              7
+            </span>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#64748B',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px',
+                marginLeft: '2px'
+              }}
+            >
+              <X size={16} />
             </button>
           </div>
-        </form>
+        </div>
+
+        {/* ============================================================== */}
+        {/* SEÇÃO 1: INFORMAÇÕES PESSOAIS                                  */}
+        {/* ============================================================== */}
+        <div style={{ marginBottom: '16px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '10px' }}>
+            Informações Pessoais
+          </span>
+
+          {/* Avatar Row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '50%',
+                  backgroundColor: '#CBD5E1',
+                  border: '2px solid #FFFFFF',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <User size={30} color="#64748B" />
+                )}
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#1E293B', margin: 0 }}>
+                  {name || 'Matheus D.'}
+                </h4>
+              </div>
+            </div>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              style={{ display: 'none' }}
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.55)',
+                border: '1px solid rgba(255, 255, 255, 0.85)',
+                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
+                borderRadius: '999px',
+                padding: '5px 16px',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                color: '#334155',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.8)')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.55)')}
+            >
+              Alterar Foto
+            </button>
+          </div>
+
+          {/* Form Inputs: Nome Completo e E-mail */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: '10px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 500, marginBottom: '4px' }}>
+                Nome Completo
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.95)',
+                  boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.03)',
+                  borderRadius: '12px',
+                  padding: '8px 12px',
+                  fontSize: '12.5px',
+                  fontWeight: 500,
+                  color: '#0F172A',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 500, marginBottom: '4px' }}>
+                E-mail
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.95)',
+                  boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.03)',
+                  borderRadius: '12px',
+                  padding: '8px 12px',
+                  fontSize: '12.5px',
+                  fontWeight: 500,
+                  color: '#0F172A',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================================== */}
+        {/* SEÇÃO 2: SEGURANÇA                                             */}
+        {/* ============================================================== */}
+        <div style={{ marginBottom: '16px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
+            Segurança
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setShowPasswordChange(!showPasswordChange)}
+            style={{
+              width: '100%',
+              background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.7) 20%, rgba(244, 63, 94, 0.22) 50%, rgba(255, 255, 255, 0.7) 80%, rgba(255, 255, 255, 0.45) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.85)',
+              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.95)',
+              borderRadius: '999px',
+              padding: '10px 0',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              color: '#334155',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <span>Alterar Senha</span>
+            {showPasswordChange ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          {/* Gaveta de Alteração de Senha */}
+          {showPasswordChange && (
+            <form onSubmit={handleChangePassword} style={{ marginTop: '10px', backgroundColor: 'rgba(255, 255, 255, 0.5)', padding: '12px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.8)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '10px', color: '#475569', display: 'block', marginBottom: '2px' }}>Senha Atual</label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.9)', backgroundColor: 'rgba(255,255,255,0.8)', fontSize: '11.5px', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '10px', color: '#475569', display: 'block', marginBottom: '2px' }}>Nova Senha (min 6)</label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.9)', backgroundColor: 'rgba(255,255,255,0.8)', fontSize: '11.5px', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {passwordFeedback.text && (
+                <div style={{ fontSize: '11px', color: passwordFeedback.type === 'error' ? '#EF4444' : '#10B981', marginBottom: '6px', fontWeight: 600 }}>
+                  {passwordFeedback.text}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button
+                  type="submit"
+                  style={{ backgroundColor: '#211F38', color: '#FFFFFF', border: 'none', borderRadius: '999px', padding: '5px 14px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Salvar Nova Senha
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* ============================================================== */}
+        {/* SEÇÃO 3: PREFERÊNCIAS                                          */}
+        {/* ============================================================== */}
+        <div style={{ marginBottom: '16px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
+            Preferências
+          </span>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '10px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', color: '#475569', fontWeight: 500, marginBottom: '3px' }}>
+                Idioma
+              </label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.95)',
+                  borderRadius: '12px',
+                  padding: '6px 8px',
+                  fontSize: '11.5px',
+                  fontWeight: 500,
+                  color: '#0F172A',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="Portuguese">Portuguese</option>
+                <option value="English">English</option>
+                <option value="Español">Español</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', color: '#475569', fontWeight: 500, marginBottom: '3px' }}>
+                Fuso Horário
+              </label>
+              <select
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.95)',
+                  borderRadius: '12px',
+                  padding: '6px 8px',
+                  fontSize: '11.5px',
+                  fontWeight: 500,
+                  color: '#0F172A',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="UTC-3">UTC-3</option>
+                <option value="UTC-4">UTC-4</option>
+                <option value="UTC+0">UTC+0</option>
+                <option value="UTC-5">UTC-5</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', color: '#475569', fontWeight: 500, marginBottom: '3px' }}>
+                Tema
+              </label>
+              <select
+                value={theme}
+                onChange={(e) => setTheme(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.95)',
+                  borderRadius: '12px',
+                  padding: '6px 8px',
+                  fontSize: '11.5px',
+                  fontWeight: 500,
+                  color: '#0F172A',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="Escuro">Escuro</option>
+                <option value="Claro">Claro</option>
+                <option value="Automático">Automático</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Toggle Notificações por E-mail */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
+            <span style={{ fontSize: '11.5px', color: '#334155', fontWeight: 500 }}>
+              Notificações por E-mail
+            </span>
+
+            {/* iOS-Style Toggle Switch */}
+            <div
+              onClick={() => setEmailNotifications(!emailNotifications)}
+              style={{
+                width: '36px',
+                height: '20px',
+                borderRadius: '999px',
+                backgroundColor: emailNotifications ? '#6366F1' : 'rgba(203, 213, 225, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.85)',
+                position: 'relative',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
+                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              <div
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25)',
+                  position: 'absolute',
+                  top: '1px',
+                  left: emailNotifications ? '17px' : '2px',
+                  transition: 'left 0.2s ease'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================================== */}
+        {/* SEÇÃO 4: PÁGINAS ATIVAS NA INTERFACE (REQ. CUSTOMIZAÇÃO)       */}
+        {/* ============================================================== */}
+        <div style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={() => setShowPagesConfig(!showPagesConfig)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'rgba(255, 255, 255, 0.45)',
+              border: '1px solid rgba(255, 255, 255, 0.8)',
+              borderRadius: '12px',
+              padding: '7px 12px',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#334155',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Sliders size={13} color="#6366F1" />
+              <span>Personalizar Páginas da Interface (Hábitos, Vícios, Agenda...)</span>
+            </div>
+            {showPagesConfig ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+
+          {showPagesConfig && (
+            <div style={{ marginTop: '8px', backgroundColor: 'rgba(255, 255, 255, 0.5)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.8)', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+              {[
+                { id: 'dashboard', label: 'Painel Principal', icon: LayoutGrid, fixed: true },
+                { id: 'telemetry', label: 'Análise de Progresso', icon: TrendingUp, fixed: true },
+                { id: 'habits', label: 'Hábitos & Rotinas', icon: Check, fixed: false },
+                { id: 'bad_habits', label: 'Maus Hábitos & Vícios', icon: ShieldOff, fixed: false },
+                { id: 'calendar', label: 'Agenda Semanal', icon: Calendar, fixed: false },
+                { id: 'workouts', label: 'Musculação & Treino', icon: Dumbbell, fixed: false },
+                { id: 'focus', label: 'Foco Pomodoro', icon: Timer, fixed: false },
+                { id: 'social', label: 'Comunidade', icon: Users, fixed: false }
+              ].map(page => {
+                const isEnabled = page.fixed || pagePreferences[page.id] !== false;
+                return (
+                  <div
+                    key={page.id}
+                    onClick={() => {
+                      if (!page.fixed) {
+                        setPagePreferences(prev => ({ ...prev, [page.id]: !isEnabled }));
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '5px 8px',
+                      borderRadius: '8px',
+                      backgroundColor: isEnabled ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255, 255, 255, 0.4)',
+                      border: isEnabled ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(0,0,0,0.05)',
+                      cursor: page.fixed ? 'default' : 'pointer'
+                    }}
+                  >
+                    <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#1E293B' }}>
+                      {page.label}
+                    </span>
+                    {page.fixed ? (
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#6366F1' }}>Fixo</span>
+                    ) : (
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={() => {}}
+                        style={{ cursor: 'pointer', accentColor: '#6366F1' }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ============================================================== */}
+        {/* SEÇÃO 5: DADOS E ARMAZENAMENTO                                 */}
+        {/* ============================================================== */}
+        <div style={{ marginBottom: '16px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
+            Dados e Armazenamento
+          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ fontSize: '11px', color: '#475569', fontWeight: 500 }}>
+                  Uso de Armazenamento
+                </span>
+                <span style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>
+                  65%
+                </span>
+              </div>
+
+              {/* Barra de Progresso Degradê */}
+              <div
+                style={{
+                  width: '100%',
+                  height: '5px',
+                  borderRadius: '999px',
+                  backgroundColor: 'rgba(203, 213, 225, 0.5)',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  style={{
+                    width: '65%',
+                    height: '100%',
+                    borderRadius: '999px',
+                    background: 'linear-gradient(90deg, #6366F1 0%, #38BDF8 100%)'
+                  }}
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExportData}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.55)',
+                border: '1px solid rgba(255, 255, 255, 0.85)',
+                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
+                borderRadius: '999px',
+                padding: '5px 14px',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.8)')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.55)')}
+            >
+              Exportar Dados
+            </button>
+          </div>
+        </div>
+
+        {/* ============================================================== */}
+        {/* SEÇÃO 6: AÇÕES DA CONTA                                        */}
+        {/* ============================================================== */}
+        <div>
+          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
+            Ações da Conta
+          </span>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={handleDeactivate}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.8)',
+                borderRadius: '999px',
+                padding: '8px 0',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                color: '#475569',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.75)')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.5)')}
+            >
+              Desativar Conta
+            </button>
+
+            <button
+              type="button"
+              onClick={handleEraseAccount}
+              style={{
+                background: confirmDelete 
+                  ? 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)'
+                  : 'linear-gradient(135deg, rgba(239, 68, 68, 0.55) 0%, rgba(220, 38, 38, 0.65) 100%)',
+                border: '1px solid rgba(239, 68, 68, 0.75)',
+                boxShadow: '0 0 16px rgba(239, 68, 68, 0.45)',
+                borderRadius: '999px',
+                padding: '8px 0',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#FFFFFF',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.boxShadow = '0 0 22px rgba(239, 68, 68, 0.65)')}
+              onMouseOut={(e) => (e.currentTarget.style.boxShadow = '0 0 16px rgba(239, 68, 68, 0.45)')}
+            >
+              {confirmDelete ? 'Confirmar Exclusão' : 'Excluir Conta Permanentemente'}
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>,
     document.body
