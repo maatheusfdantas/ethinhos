@@ -375,33 +375,7 @@ export function FocusTab({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {onConfigureCategory && (
-              <button
-                type="button"
-                onClick={() => onConfigureCategory(currentCategory)}
-                disabled={isActive}
-                className="glass-pill-btn !py-1 !px-3 !text-xs !bg-white/[0.04] text-slate-300 hover:text-white disabled:opacity-40 flex items-center gap-1.5"
-                title="Editar sub-classes ou detalhes desta categoria"
-              >
-                <Settings size={12} />
-                <span>Editar Categoria</span>
-              </button>
-            )}
-
-            {onCreateCategory && (
-              <button
-                type="button"
-                onClick={onCreateCategory}
-                disabled={isActive}
-                className="glass-pill-btn !py-1 !px-3 !text-xs !bg-indigo-500/20 !border-indigo-400/40 text-indigo-200 hover:text-white disabled:opacity-40 flex items-center gap-1.5"
-                title="Criar nova categoria modular"
-              >
-                <Plus size={12} />
-                <span>Nova Categoria</span>
-              </button>
-            )}
-          </div>
+          
         </div>
 
         {/* 1. SELETOR DE CATEGORIAS DO USUÁRIO */}

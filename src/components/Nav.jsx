@@ -1,6 +1,7 @@
 import { CleanIcon } from './IconLibrary';
 import React from 'react';
 import { 
+  User,
   LayoutGrid, 
   Calendar, 
   TrendingUp, 
@@ -53,6 +54,7 @@ export function DesktopSidebar({
     { id: 'focus', label: 'Foco Pomodoro', icon: Timer, enabled: pages.focus !== false && userPermissions.focus !== false },
     { id: 'telemetry', label: 'Análise de Progresso', icon: TrendingUp, enabled: true },
     { id: 'social', label: 'Comunidade', icon: Users, enabled: pages.social !== false && userPermissions.social !== false },
+    { id: 'profile', label: 'Perfil do Usuário', icon: User, enabled: true },
   ];
 
   if (isAdmin) {

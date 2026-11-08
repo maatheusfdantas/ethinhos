@@ -16,6 +16,7 @@ import { FocusTab } from './components/FocusTab';
 import { CalendarTab } from './components/CalendarTab';
 import { TelemetryTab } from './components/TelemetryTab';
 import { SocialTab } from './components/SocialTab';
+import { ProfileTab } from './components/ProfileTab';
 import { AuthModal } from './components/AuthModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AdminPortalTab } from './components/AdminPortalTab';
@@ -540,7 +541,7 @@ export function App() {
               
 
               <h1 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 700, color: '#1A1B2F', letterSpacing: '-0.02em', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {activeTab === 'workouts' ? 'Workout & Fitness' : `Hi, ${firstName}!`}
+                {activeTab === 'workouts' ? 'Workout & Fitness' : activeTab === 'profile' ? 'Perfil do Usuário' : `Hi, ${firstName}!`}
               </h1>
             </div>
 
@@ -856,7 +857,7 @@ export function App() {
             )}
 
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
-            {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && (
+            {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && (
               <div 
                 style={{
                   backgroundColor: '#211F38',

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import confetti from 'canvas-confetti';
 import { 
   ShieldOff, 
@@ -345,6 +347,9 @@ export function BadHabitsTab({ user, showToast }) {
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('Saúde Física & Mental');
   const [newCost, setNewCost] = useState('');
+  const [newCostPeriod, setNewCostPeriod] = useState('none'); // 'none' | 'day' | 'week' | 'month'
+  const [newCostValue, setNewCostValue] = useState('');
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [newReason, setNewReason] = useState('');
   const [newStartDate, setNewStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [newStartTime, setNewStartTime] = useState('00:00');
@@ -392,7 +397,14 @@ export function BadHabitsTab({ user, showToast }) {
   const handleSelectPreset = (preset) => {
     setNewTitle(preset.title);
     setNewCategory(preset.category);
-    setNewCost(preset.cost_per_day > 0 ? String(preset.cost_per_day) : '');
+    if (preset.cost_per_day > 0) {
+      setNewCostPeriod('day');
+      setNewCostValue(String(preset.cost_per_day));
+      setShowAdvancedOptions(true);
+    } else {
+      setNewCostPeriod('none');
+      setNewCostValue('');
+    }
     setNewReason(preset.motivational_reason);
   };
 
@@ -403,13 +415,25 @@ export function BadHabitsTab({ user, showToast }) {
 
     const startDateTime = new Date(`${newStartDate}T${newStartTime || '00:00'}:00`).toISOString();
 
+    let calculatedCostPerDay = 0;
+    const numVal = parseFloat(newCostValue) || 0;
+    if (newCostPeriod === 'day') {
+      calculatedCostPerDay = numVal;
+    } else if (newCostPeriod === 'week') {
+      calculatedCostPerDay = numVal > 0 ? Number((numVal / 7).toFixed(2)) : 0;
+    } else if (newCostPeriod === 'month') {
+      calculatedCostPerDay = numVal > 0 ? Number((numVal / 30).toFixed(2)) : 0;
+    }
+
     const newHabit = {
       id: `bh_${Date.now()}`,
       title: newTitle.trim(),
       category: newCategory.trim() || 'Superação Pessoal',
       icon_name: 'ShieldOff',
       started_at: startDateTime,
-      cost_per_day: parseFloat(newCost) || 0,
+      cost_per_day: calculatedCostPerDay,
+      cost_period: newCostPeriod,
+      cost_value: numVal,
       motivational_reason: newReason.trim() || 'Construir minha melhor versão com mais saúde e dignidade.',
       impact_description: 'Melhora progressiva da clareza mental e restabelecimento do equilíbrio corporal.',
       best_streak_days: 0,
@@ -424,6 +448,9 @@ export function BadHabitsTab({ user, showToast }) {
     // Limpar campos
     setNewTitle('');
     setNewCost('');
+    setNewCostPeriod('none');
+    setNewCostValue('');
+    setShowAdvancedOptions(false);
     setNewReason('');
   };
 
@@ -963,32 +990,44 @@ export function BadHabitsTab({ user, showToast }) {
       </div>
 
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
       {/* MODAL 1: REGISTRAR RECAÍDA COM ACOLHIMENTO E SEM JULGAMENTO               */}
       {/* ========================================================================= */}
-      {relapseModalHabit && (
+      {relapseModalHabit && createPortal(
         <div
           onClick={() => setRelapseModalHabit(null)}
           style={{
             position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(8px)',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100dvh',
+            zIndex: 99999,
+            backgroundColor: 'rgba(11, 10, 20, 0.8)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '16px'
+            padding: '16px',
+            overflowY: 'auto'
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
+              margin: 'auto',
               backgroundColor: '#FFFFFF',
               borderRadius: '24px',
               maxWidth: '520px',
               width: '100%',
               padding: '24px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+              boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+              maxHeight: 'calc(100dvh - 36px)',
+              overflowY: 'auto',
+              animation: 'ethosModalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -1112,38 +1151,49 @@ export function BadHabitsTab({ user, showToast }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
       {/* MODAL 2: ADICIONAR NOVO MAU HÁBITO / VÍCIO                                */}
       {/* ========================================================================= */}
-      {showAddModal && (
+      {showAddModal && createPortal(
         <div
           onClick={() => setShowAddModal(false)}
           style={{
             position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(8px)',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100dvh',
+            zIndex: 99999,
+            backgroundColor: 'rgba(11, 10, 20, 0.8)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '16px'
+            padding: '16px',
+            overflowY: 'auto'
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
+              margin: 'auto',
               backgroundColor: '#FFFFFF',
               borderRadius: '24px',
               maxWidth: '560px',
               width: '100%',
-              maxHeight: '90vh',
+              maxHeight: 'calc(100dvh - 36px)',
               overflowY: 'auto',
               padding: '24px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+              boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+              animation: 'ethosModalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -1247,14 +1297,12 @@ export function BadHabitsTab({ user, showToast }) {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    Custo Diário Estimado (R$, opcional)
+                    Horário de Início (opcional)
                   </label>
                   <input
-                    type="number"
-                    step="0.5"
-                    placeholder="Ex: 15.00"
-                    value={newCost}
-                    onChange={(e) => setNewCost(e.target.value)}
+                    type="time"
+                    value={newStartTime}
+                    onChange={(e) => setNewStartTime(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1267,6 +1315,120 @@ export function BadHabitsTab({ user, showToast }) {
                     }}
                   />
                 </div>
+              </div>
+
+              {/* OPÇÕES AVANÇADAS: CUSTO ESTIMADO COM ALTERNÂNCIA (DIÁRIO / SEMANAL / MENSAL OU NÃO COLOCADO) */}
+              <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedOptions(prev => !prev)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    padding: '6px 0',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <DollarSign size={15} color="#059669" />
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1E293B' }}>
+                      Opções Avançadas: Custo Financeiro Estimado
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
+                    {showAdvancedOptions ? 'Ocultar ▲' : 'Configurar ▼'}
+                  </span>
+                </button>
+
+                {showAdvancedOptions && (
+                  <div
+                    style={{
+                      backgroundColor: '#F8FAFC',
+                      borderRadius: '14px',
+                      padding: '12px',
+                      border: '1px solid #E2E8F0',
+                      marginTop: '6px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}
+                  >
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                        Periodicidade do Custo:
+                      </label>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {[
+                          { id: 'none', label: 'Não colocar custo' },
+                          { id: 'day', label: 'Diário (R$/dia)' },
+                          { id: 'week', label: 'Semanal (R$/semana)' },
+                          { id: 'month', label: 'Mensal (R$/mês)' }
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setNewCostPeriod(opt.id)}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '999px',
+                              border: newCostPeriod === opt.id ? '1.5px solid #059669' : '1px solid #CBD5E1',
+                              backgroundColor: newCostPeriod === opt.id ? 'rgba(5, 150, 105, 0.12)' : '#FFFFFF',
+                              color: newCostPeriod === opt.id ? '#047857' : '#475569',
+                              fontSize: '11.5px',
+                              fontWeight: newCostPeriod === opt.id ? 700 : 500,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {newCostPeriod !== 'none' && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                          {newCostPeriod === 'day' ? 'Valor gasto por dia (R$)' : newCostPeriod === 'week' ? 'Valor gasto por semana (R$)' : 'Valor gasto por mês (R$)'}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          placeholder={newCostPeriod === 'day' ? 'Ex: 15.00' : newCostPeriod === 'week' ? 'Ex: 100.00' : 'Ex: 350.00'}
+                          value={newCostValue}
+                          onChange={(e) => setNewCostValue(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '10px',
+                            border: '1px solid #CBD5E1',
+                            fontSize: '12.5px',
+                            color: '#1E293B',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            backgroundColor: '#FFFFFF'
+                          }}
+                        />
+                        {parseFloat(newCostValue) > 0 && (
+                          <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600, display: 'block', marginTop: '4px' }}>
+                            ✓ Equivalente a R$ {
+                              newCostPeriod === 'day'
+                                ? parseFloat(newCostValue).toFixed(2)
+                                : newCostPeriod === 'week'
+                                ? (parseFloat(newCostValue) / 7).toFixed(2)
+                                : (parseFloat(newCostValue) / 30).toFixed(2)
+                            } economizados por dia de sobriedade
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1329,30 +1491,40 @@ export function BadHabitsTab({ user, showToast }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
       {/* MODAL 2.1: RESPIRAÇÃO RÁPIDA GUIADA E ANIMADA (BOX BREATHING 4-4-4)      */}
       {/* ========================================================================= */}
-      {showBreathingModal && (
+      {showBreathingModal && createPortal(
         <div
           onClick={() => setShowBreathingModal(false)}
           style={{
             position: 'fixed',
-            inset: 0,
-            zIndex: 10000,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100dvh',
+            zIndex: 99999,
             backgroundColor: 'rgba(11, 10, 20, 0.88)',
-            backdropFilter: 'blur(12px)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '16px'
+            padding: '16px',
+            overflowY: 'auto'
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
+              margin: 'auto',
               backgroundColor: '#161427',
               borderRadius: '28px',
               maxWidth: '480px',
@@ -1363,7 +1535,10 @@ export function BadHabitsTab({ user, showToast }) {
               color: '#FFFFFF',
               textAlign: 'center',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              maxHeight: 'calc(100dvh - 36px)',
+              overflowY: 'auto',
+              animation: 'ethosModalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both'
             }}
           >
             {/* Botão de Fechar */}
@@ -1623,38 +1798,49 @@ export function BadHabitsTab({ user, showToast }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
       {/* MODAL 3: SUPORTE EMOCIONAL E SOS (REDE DE APOIO + 4 FERRAMENTAS VISUAIS) */}
       {/* ========================================================================= */}
-      {showSupportModal && (
+      {showSupportModal && createPortal(
         <div
           onClick={() => setShowSupportModal(false)}
           style={{
             position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.72)',
-            backdropFilter: 'blur(10px)',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100dvh',
+            zIndex: 99999,
+            backgroundColor: 'rgba(11, 10, 20, 0.82)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '16px'
+            padding: '16px',
+            overflowY: 'auto'
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
+              margin: 'auto',
               backgroundColor: '#FFFFFF',
               borderRadius: '26px',
               maxWidth: '580px',
               width: '100%',
               padding: '24px',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25)',
-              maxHeight: '90vh',
-              overflowY: 'auto'
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.3)',
+              maxHeight: 'calc(100dvh - 36px)',
+              overflowY: 'auto',
+              animation: 'ethosModalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both'
             }}
           >
             {/* Topo do Modal */}
@@ -2246,10 +2432,20 @@ export function BadHabitsTab({ user, showToast }) {
               <span>Estou Mais Calmo, Fechar</span>
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
+      {/* MODAL DE CONFIRMAÇÃO PARA EXCLUIR VÍCIO */}
+      <ConfirmDeleteModal
+        isOpen={!!badHabitToDelete}
+        onClose={() => setBadHabitToDelete(null)}
+        isCategory={false}
+        itemName={badHabitToDelete?.title}
+        title="Excluir Registro de Vício"
+        message={`Tem certeza que deseja apagar o acompanhamento de "${badHabitToDelete?.title}"? Seu progresso de sobriedade e histórico de recaídas serão excluídos.`}
+        onConfirm={executeDeleteBadHabit}
+      />
     </div>
   );
 }
-
