@@ -232,6 +232,42 @@ export function initDatabase() {
   try {
     db.exec(`ALTER TABLE events ADD COLUMN priority TEXT NOT NULL DEFAULT 'Média';`);
   } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN end_date TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN repeat_config TEXT DEFAULT '{}';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN reminders TEXT DEFAULT '[]';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN buffer_before INTEGER DEFAULT 0;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN buffer_after INTEGER DEFAULT 0;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN is_floating INTEGER DEFAULT 0;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN energy_level TEXT DEFAULT 'deep_focus';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN meeting_url TEXT DEFAULT '';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN visibility TEXT DEFAULT 'private';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN conflict_policy TEXT DEFAULT 'allow';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE friends ADD COLUMN friend_username TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '';`);
+  } catch (e) {}
 
   // 9. Tabela de Checkins de Hábitos (Engine Analítica)
   db.exec(`
@@ -354,17 +390,13 @@ export function seedFiveUsers() {
     }
   }
 
-  seedUserData('usr_matheus_pro', 'pro');
-  seedUserData('usr_lucas_dev', 'mid');
-  seedUserData('usr_bruno_preguica', 'low');
-  seedUserData('usr_clean', 'clean');
   seedDefaultCategories();
 }
 
 export function seedDefaultCategories() {
   const nowIso = new Date().toISOString();
   const baseCategories = [
-    { id: 'tag_facul', user_id: 'global', name: 'Faculdade', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)', icon: 'BookOpen', is_shared: 1, has_subclasses: 1 },
+    { id: 'tag_facul', user_id: 'global', name: 'Faculdade', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)', icon: 'BookOpen', is_shared: 0, has_subclasses: 0 },
     { id: 'tag_trab', user_id: 'global', name: 'Trabalho', color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.15)', icon: 'Bookmark', is_shared: 0, has_subclasses: 0 },
     { id: 'tag_saude', user_id: 'global', name: 'Saúde', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', icon: 'Dumbbell', is_shared: 0, has_subclasses: 0 },
     { id: 'tag_pessoal', user_id: 'global', name: 'Pessoal', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)', icon: 'Sparkles', is_shared: 0, has_subclasses: 0 },
@@ -379,30 +411,6 @@ export function seedDefaultCategories() {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(cat.id, cat.user_id, cat.name, cat.color, cat.bg, cat.icon, cat.is_shared, cat.has_subclasses, nowIso);
     }
-  }
-
-  // Sub-classes iniciais de "Faculdade" (Redes: 8h, Cálculo: 7h -> 15h totais na semana)
-  const faculSubs = [
-    { id: 'sub_redes', category_id: 'tag_facul', name: 'Redes de Computadores', priority: 'Alta', metadata: JSON.stringify({ hours: 8, order: 1 }) },
-    { id: 'sub_calculo', category_id: 'tag_facul', name: 'Cálculo', priority: 'Alta', metadata: JSON.stringify({ hours: 7, order: 2 }) }
-  ];
-  for (const sub of faculSubs) {
-    const exSub = db.prepare(`SELECT id FROM subclasses WHERE id = ?`).get(sub.id);
-    if (!exSub) {
-      db.prepare(`
-        INSERT INTO subclasses (id, category_id, name, priority, metadata, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(sub.id, sub.category_id, sub.name, sub.priority, sub.metadata, nowIso);
-    }
-  }
-
-  // Membro colaborador inicial em "Faculdade" (Sebastian)
-  const exMember = db.prepare(`SELECT id FROM category_members WHERE id = 'mem_sebastian'`).get();
-  if (!exMember) {
-    db.prepare(`
-      INSERT INTO category_members (id, category_id, user_id, member_email, member_name, role, created_at)
-      VALUES ('mem_sebastian', 'tag_facul', 'usr_sebastian', 'sebastian@ethos.dev', 'Sebastian', 'collaborator', ?)
-    `).run(nowIso);
   }
 }
 

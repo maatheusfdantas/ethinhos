@@ -18,7 +18,22 @@ import {
   Info,
   Hash,
   Activity,
-  CalendarCheck2
+  CalendarCheck2,
+  Video,
+  Bell,
+  Shield,
+  AlertCircle,
+  CalendarX,
+  Zap,
+  Coffee,
+  Briefcase,
+  Mail,
+  Lock,
+  Globe,
+  Eye,
+  Trash2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 const DEFAULT_TAG_STYLES = [
@@ -118,6 +133,68 @@ export function AddModal({
   const [reminder, setReminder] = useState('15 min antes');
   const [participantsText, setParticipantsText] = useState('');
   const [selectedParticipants, setSelectedParticipants] = useState(['p1', 'p2']);
+
+  // Opções Avançadas do Evento (Item 4: Recorrência, Exceções, Lembretes, Buffers, Energia)
+  const [eventRepeat, setEventRepeat] = useState('Nunca');
+  const [eventRepeatDays, setEventRepeatDays] = useState([1, 2, 3, 4, 5]);
+  const [eventRepeatInterval, setEventRepeatInterval] = useState(1);
+  const [eventRepeatEndType, setEventRepeatEndType] = useState('never'); // 'never' | 'until_date' | 'count'
+  const [eventRepeatEndDate, setEventRepeatEndDate] = useState('');
+  const [eventRepeatCount, setEventRepeatCount] = useState(10);
+  const [blackoutDates, setBlackoutDates] = useState([]);
+  const [newBlackoutInput, setNewBlackoutInput] = useState('');
+
+  const [reminders, setReminders] = useState([
+    { id: 'rem_1', time: '15 min antes', channel: 'app' }
+  ]);
+
+  const [bufferBefore, setBufferBefore] = useState(0);
+  const [bufferAfter, setBufferAfter] = useState(0);
+  const [isFloating, setIsFloating] = useState(false);
+
+  const [energyLevel, setEnergyLevel] = useState('deep_focus');
+  const [meetingUrl, setMeetingUrl] = useState('');
+  const [visibility, setVisibility] = useState('private');
+  const [conflictPolicy, setConflictPolicy] = useState('allow');
+
+  const [showAdvancedEventOptions, setShowAdvancedEventOptions] = useState(false);
+  const [advancedTab, setAdvancedTab] = useState('recurrence');
+
+  const handleAddBlackoutDate = () => {
+    if (newBlackoutInput && !blackoutDates.includes(newBlackoutInput)) {
+      setBlackoutDates([...blackoutDates, newBlackoutInput].sort());
+      setNewBlackoutInput('');
+    }
+  };
+
+  const handleRemoveBlackoutDate = (dateStr) => {
+    setBlackoutDates(blackoutDates.filter(d => d !== dateStr));
+  };
+
+  const handleAddReminder = () => {
+    const newRem = {
+      id: `rem_${Date.now()}`,
+      time: '1 hora antes',
+      channel: 'email'
+    };
+    setReminders([...reminders, newRem]);
+  };
+
+  const handleRemoveReminder = (id) => {
+    if (reminders.length > 1) {
+      setReminders(reminders.filter(r => r.id !== id));
+    }
+  };
+
+  const handleToggleEventWeekday = (dIdx) => {
+    if (eventRepeatDays.includes(dIdx)) {
+      if (eventRepeatDays.length > 1) {
+        setEventRepeatDays(eventRepeatDays.filter(d => d !== dIdx));
+      }
+    } else {
+      setEventRepeatDays([...eventRepeatDays, dIdx].sort((a,b) => a - b));
+    }
+  };
 
   // Atualiza unidade recomendada ao trocar o tipo de marcação
   const handleSelectTrackingType = (type) => {
@@ -226,13 +303,29 @@ export function AddModal({
       title: eventTitle.trim(),
       date: eventDate,
       endDate: eventEndDate || eventDate,
-      allDay: false,
-      startTime,
-      endTime,
+      allDay: isFloating,
+      startTime: isFloating ? '00:00' : startTime,
+      endTime: isFloating ? '23:59' : endTime,
       category: eventCategory,
       location: location.trim(),
       description: notes.trim(),
-      reminder,
+      repeat: eventRepeat,
+      repeatConfig: {
+        repeatDays: eventRepeatDays,
+        repeatInterval: eventRepeat === 'Quinzenal' ? 2 : eventRepeatInterval,
+        repeatEndType: eventRepeatEndType,
+        repeatEndDate: eventRepeatEndDate,
+        repeatCount: Number(eventRepeatCount) || 10,
+        blackoutDates
+      },
+      reminders,
+      bufferBefore: Number(bufferBefore) || 0,
+      bufferAfter: Number(bufferAfter) || 0,
+      isFloating,
+      energyLevel,
+      meetingUrl: meetingUrl.trim(),
+      visibility,
+      conflictPolicy,
       participantsText: participantsText.trim(),
       participants: selectedParticipants,
       completed: false
@@ -405,8 +498,9 @@ export function AddModal({
         {/* MODO EVENTO                                                      */}
         {/* ================================================================= */}
         {mode === 'event' && (
-          <form onSubmit={handleCreateEventSubmit}>
-            <div className="ethos-modal-grid-2col">
+          <form onSubmit={handleCreateEventSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '18px' }}>
+              {/* COLUNA ESQUERDA: Dados Principais do Evento */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5B75', marginBottom: '4px' }}>
@@ -434,6 +528,7 @@ export function AddModal({
                   />
                 </div>
 
+                {/* Grade de Data & Hora */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
@@ -457,13 +552,14 @@ export function AddModal({
                     <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
                       Hora Início
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 9px', borderRadius: '9px', backgroundColor: '#FFFFFF', border: '1px solid #D0D2E0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 9px', borderRadius: '9px', backgroundColor: isFloating ? '#F1F2F6' : '#FFFFFF', border: '1px solid #D0D2E0' }}>
                       <Clock size={12} color="#5A5B75" />
                       <input
                         type="time"
+                        disabled={isFloating}
                         value={startTime}
                         onChange={(e) => setStartTime(e.target.value)}
-                        style={{ border: 'none', background: 'transparent', fontSize: '11.5px', fontWeight: 600, color: '#1A1B2F', width: '100%', outline: 'none' }}
+                        style={{ border: 'none', background: 'transparent', fontSize: '11.5px', fontWeight: 600, color: isFloating ? '#94A3B8' : '#1A1B2F', width: '100%', outline: 'none' }}
                       />
                     </div>
                   </div>
@@ -487,47 +583,65 @@ export function AddModal({
                     <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
                       Hora Fim
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 9px', borderRadius: '9px', backgroundColor: '#FFFFFF', border: '1px solid #D0D2E0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 9px', borderRadius: '9px', backgroundColor: isFloating ? '#F1F2F6' : '#FFFFFF', border: '1px solid #D0D2E0' }}>
                       <Clock size={12} color="#5A5B75" />
                       <input
                         type="time"
+                        disabled={isFloating}
                         value={endTime}
                         onChange={(e) => setEndTime(e.target.value)}
-                        style={{ border: 'none', background: 'transparent', fontSize: '11.5px', fontWeight: 600, color: '#1A1B2F', width: '100%', outline: 'none' }}
+                        style={{ border: 'none', background: 'transparent', fontSize: '11.5px', fontWeight: 600, color: isFloating ? '#94A3B8' : '#1A1B2F', width: '100%', outline: 'none' }}
                       />
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '8px' }}>
+                {/* Local & Link da Reunião */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
-                      Local
+                      Local Físico
                     </label>
                     <input
                       type="text"
-                      placeholder="Ex: Sala 204, Google Meet..."
+                      placeholder="Ex: Sala 204, Prédio B..."
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       style={{ width: '100%', padding: '7px 10px', borderRadius: '9px', border: '1px solid #D0D2E0', backgroundColor: '#FFFFFF', fontSize: '11.5px', color: '#1A1B2F', outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
-                      Descrição / Pauta
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
+                      <Video size={11} color="#6366F1" />
+                      <span>Link Meet / Zoom</span>
                     </label>
                     <input
-                      type="text"
-                      placeholder="Observações do compromisso..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
+                      type="url"
+                      placeholder="https://meet.google.com/..."
+                      value={meetingUrl}
+                      onChange={(e) => setMeetingUrl(e.target.value)}
                       style={{ width: '100%', padding: '7px 10px', borderRadius: '9px', border: '1px solid #D0D2E0', backgroundColor: '#FFFFFF', fontSize: '11.5px', color: '#1A1B2F', outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
+
+                {/* Descrição */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: '#5A5B75', marginBottom: '3px' }}>
+                    Descrição / Pauta
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Pauta ou observações pessoais do compromisso..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '9px', border: '1px solid #D0D2E0', backgroundColor: '#FFFFFF', fontSize: '11.5px', color: '#1A1B2F', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', justifyContent: 'space-between' }}>
+              {/* COLUNA DIREITA: Categorias + Painel Avançado de Recorrência & Flexibilidade */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'space-between' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5B75', marginBottom: '5px' }}>
                     Categoria / Tema
@@ -562,6 +676,380 @@ export function AddModal({
                   </div>
                 </div>
 
+                {/* BOTÃO EXPANSÍVEL: OPÇÕES AVANÇADAS DO EVENTO (RECORRÊNCIA, EXCEÇÕES, LEMBRETES, BUFFERS) */}
+                <div style={{ marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedEventOptions(!showAdvancedEventOptions)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid #D0D2E0',
+                      backgroundColor: '#F8F9FC',
+                      color: '#211F38',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sliders size={13} color="#6366F1" />
+                      <span>Opções Avançadas (Recorrência, Exceções & Buffer)</span>
+                    </div>
+                    {showAdvancedEventOptions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+
+                  {/* PAINEL DE ABAS AVANÇADAS */}
+                  {showAdvancedEventOptions && (
+                    <div style={{ marginTop: '8px', padding: '10px', borderRadius: '12px', border: '1px solid #D0D2E0', backgroundColor: '#FFFFFF' }}>
+                      {/* Sub-abas de Opções Avançadas */}
+                      <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '8px', borderBottom: '1px solid #E2E4F0' }}>
+                        {[
+                          { id: 'recurrence', label: 'Recorrência' },
+                          { id: 'reminders', label: 'Lembretes' },
+                          { id: 'buffer', label: 'Buffer & Tempo' },
+                          { id: 'context', label: 'Energia' },
+                          { id: 'sharing', label: 'Conflitos' }
+                        ].map(tab => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setAdvancedTab(tab.id)}
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              backgroundColor: advancedTab === tab.id ? '#211F38' : 'transparent',
+                              color: advancedTab === tab.id ? '#FFFFFF' : '#5A5B75',
+                              fontSize: '10.5px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* ABA 1: RECORRÊNCIA, FREQUÊNCIA, LIMITE & EXCEÇÕES DE DATAS */}
+                      {advancedTab === 'recurrence' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75', display: 'block', marginBottom: '2px' }}>Frequência</label>
+                              <select
+                                value={eventRepeat}
+                                onChange={(e) => setEventRepeat(e.target.value)}
+                                style={{ width: '100%', padding: '5px', borderRadius: '7px', border: '1px solid #D0D2E0', fontSize: '11px', outline: 'none' }}
+                              >
+                                <option value="Nunca">Nunca</option>
+                                <option value="Diário">Diário (Todos os dias)</option>
+                                <option value="Semanal">Semanal (Dias específicos)</option>
+                                <option value="Quinzenal">Quinzenal (A cada 2 semanas)</option>
+                                <option value="Mensal">Mensal</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75', display: 'block', marginBottom: '2px' }}>Limite de Término</label>
+                              <select
+                                value={eventRepeatEndType}
+                                onChange={(e) => setEventRepeatEndType(e.target.value)}
+                                style={{ width: '100%', padding: '5px', borderRadius: '7px', border: '1px solid #D0D2E0', fontSize: '11px', outline: 'none' }}
+                              >
+                                <option value="never">Sem data de término</option>
+                                <option value="until_date">Até data específica</option>
+                                <option value="count">Após X repetições</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Seletor de dias da semana para semanal / quinzenal */}
+                          {(eventRepeat === 'Semanal' || eventRepeat === 'Quinzenal') && (
+                            <div>
+                              <span style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75', display: 'block', marginBottom: '3px' }}>
+                                Dias de Ocorrência na Semana:
+                              </span>
+                              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                {WEEKDAYS.map(w => {
+                                  const isSel = eventRepeatDays.includes(w.dayIndex);
+                                  return (
+                                    <button
+                                      key={w.dayIndex}
+                                      type="button"
+                                      onClick={() => handleToggleEventWeekday(w.dayIndex)}
+                                      style={{
+                                        width: '26px',
+                                        height: '24px',
+                                        borderRadius: '6px',
+                                        border: isSel ? '1px solid #211F38' : '1px solid #D0D2E0',
+                                        backgroundColor: isSel ? '#211F38' : '#FFFFFF',
+                                        color: isSel ? '#FFFFFF' : '#5A5B75',
+                                        fontSize: '10px',
+                                        fontWeight: 700,
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      {w.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Configuração de Término Específico */}
+                          {eventRepeatEndType === 'until_date' && (
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75', display: 'block', marginBottom: '2px' }}>Repetir até a data:</label>
+                              <input
+                                type="date"
+                                value={eventRepeatEndDate}
+                                onChange={(e) => setEventRepeatEndDate(e.target.value)}
+                                style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #D0D2E0', fontSize: '11px', outline: 'none' }}
+                              />
+                            </div>
+                          )}
+
+                          {eventRepeatEndType === 'count' && (
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75', display: 'block', marginBottom: '2px' }}>Número de ocorrências:</label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={100}
+                                value={eventRepeatCount}
+                                onChange={(e) => setEventRepeatCount(e.target.value)}
+                                style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #D0D2E0', fontSize: '11px', outline: 'none' }}
+                              />
+                            </div>
+                          )}
+
+                          {/* EXCEÇÕES DE DATAS (BLACKOUT DATES) */}
+                          <div style={{ borderTop: '1px solid #F1F2F6', paddingTop: '6px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#5A5B75', display: 'block', marginBottom: '2px' }}>
+                              Exceções de Datas (Blackout Dates)
+                            </span>
+                            <span style={{ fontSize: '9.5px', color: '#797B9E', display: 'block', marginBottom: '4px' }}>
+                              Datas em que o evento não deve ocorrer (viagens, feriados):
+                            </span>
+                            <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                              <input
+                                type="date"
+                                value={newBlackoutInput}
+                                onChange={(e) => setNewBlackoutInput(e.target.value)}
+                                style={{ flex: 1, padding: '3px 6px', borderRadius: '6px', border: '1px solid #D0D2E0', fontSize: '10.5px', outline: 'none' }}
+                              />
+                              <button
+                                type="button"
+                                onClick={handleAddBlackoutDate}
+                                style={{ padding: '3px 8px', borderRadius: '6px', border: 'none', backgroundColor: '#6366F1', color: '#FFFFFF', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                + Exceção
+                              </button>
+                            </div>
+
+                            {blackoutDates.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {blackoutDates.map(d => (
+                                  <span key={d} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 6px', borderRadius: '6px', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#B91C1C', fontSize: '10px', fontWeight: 600 }}>
+                                    <span>{d}</span>
+                                    <button type="button" onClick={() => handleRemoveBlackoutDate(d)} style={{ background: 'none', border: 'none', color: '#B91C1C', cursor: 'pointer', padding: 0 }}>
+                                      <X size={10} />
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ABA 2: LEMBRETES & NOTIFICAÇÕES (MÚLTIPLOS ALERTAS & CANAIS) */}
+                      {advancedTab === 'reminders' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75' }}>
+                            Alertas e Canais de Notificação:
+                          </span>
+                          {reminders.map((r, idx) => (
+                            <div key={r.id || idx} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr auto', gap: '4px', alignItems: 'center' }}>
+                              <select
+                                value={r.time}
+                                onChange={(e) => {
+                                  const updated = reminders.map(it => it.id === r.id ? { ...it, time: e.target.value } : it);
+                                  setReminders(updated);
+                                }}
+                                style={{ padding: '4px', borderRadius: '6px', border: '1px solid #D0D2E0', fontSize: '10.5px', outline: 'none' }}
+                              >
+                                <option value="10 min antes">10 min antes</option>
+                                <option value="15 min antes">15 min antes</option>
+                                <option value="30 min antes">30 min antes</option>
+                                <option value="1 hora antes">1 hora antes</option>
+                                <option value="2 horas antes">2 horas antes</option>
+                                <option value="1 dia antes">1 dia antes</option>
+                              </select>
+
+                              <select
+                                value={r.channel}
+                                onChange={(e) => {
+                                  const updated = reminders.map(it => it.id === r.id ? { ...it, channel: e.target.value } : it);
+                                  setReminders(updated);
+                                }}
+                                style={{ padding: '4px', borderRadius: '6px', border: '1px solid #D0D2E0', fontSize: '10.5px', outline: 'none' }}
+                              >
+                                <option value="app">Notificação no App</option>
+                                <option value="email">E-mail (via Resend)</option>
+                                <option value="both">Ambos (App + E-mail)</option>
+                              </select>
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveReminder(r.id)}
+                                style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '2px' }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={handleAddReminder}
+                            style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#6366F1', fontSize: '10.5px', fontWeight: 600, cursor: 'pointer', padding: '2px 0' }}
+                          >
+                            + Adicionar outro lembrete
+                          </button>
+                        </div>
+                      )}
+
+                      {/* ABA 3: BUFFER TIME & EVENTOS FLUTUANTES */}
+                      {advancedTab === 'buffer' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75', display: 'block', marginBottom: '2px' }}>
+                                Buffer Antes (Preparação)
+                              </label>
+                              <select
+                                value={bufferBefore}
+                                onChange={(e) => setBufferBefore(Number(e.target.value))}
+                                style={{ width: '100%', padding: '4px', borderRadius: '6px', border: '1px solid #D0D2E0', fontSize: '10.5px', outline: 'none' }}
+                              >
+                                <option value={0}>Nenhum</option>
+                                <option value={10}>10 minutos antes</option>
+                                <option value={15}>15 minutos antes</option>
+                                <option value={30}>30 minutos antes</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75', display: 'block', marginBottom: '2px' }}>
+                                Buffer Depois (Transição)
+                              </label>
+                              <select
+                                value={bufferAfter}
+                                onChange={(e) => setBufferAfter(Number(e.target.value))}
+                                style={{ width: '100%', padding: '4px', borderRadius: '6px', border: '1px solid #D0D2E0', fontSize: '10.5px', outline: 'none' }}
+                              >
+                                <option value={0}>Nenhum</option>
+                                <option value={15}>15 minutos depois</option>
+                                <option value={30}>30 minutos depois</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', color: '#1A1B2F', fontWeight: 600, cursor: 'pointer', marginTop: '2px' }}>
+                            <input
+                              type="checkbox"
+                              checked={isFloating}
+                              onChange={(e) => setIsFloating(e.target.checked)}
+                              style={{ accentColor: '#6366F1' }}
+                            />
+                            <span>Evento Flutuante (Deadline-driven: flexível sem horário rígido)</span>
+                          </label>
+                        </div>
+                      )}
+
+                      {/* ABA 4: NÍVEL DE ENERGIA & ESFORÇO */}
+                      {advancedTab === 'context' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75' }}>
+                            Classificação de Esforço & Foco:
+                          </span>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                            {[
+                              { id: 'deep_focus', label: 'Foco Profundo', icon: Zap, color: '#818CF8' },
+                              { id: 'light_meeting', label: 'Reunião Leve', icon: Coffee, color: '#38BDF8' },
+                              { id: 'quick_task', label: 'Tarefa Rápida', icon: Check, color: '#34D399' },
+                              { id: 'recovery', label: 'Recuperação', icon: Sparkles, color: '#F472B6' }
+                            ].map(item => {
+                              const isSel = energyLevel === item.id;
+                              const Icon = item.icon;
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => setEnergyLevel(item.id)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '5px 8px',
+                                    borderRadius: '8px',
+                                    border: isSel ? '1.5px solid #6366F1' : '1px solid #D0D2E0',
+                                    backgroundColor: isSel ? 'rgba(99, 102, 241, 0.1)' : '#FFFFFF',
+                                    color: isSel ? '#211F38' : '#5A5B75',
+                                    fontSize: '10.5px',
+                                    fontWeight: isSel ? 700 : 500,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <Icon size={12} color={item.color} />
+                                  <span>{item.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ABA 5: VISIBILIDADE & CONFLITO */}
+                      {advancedTab === 'sharing' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                          <div>
+                            <label style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75', display: 'block', marginBottom: '2px' }}>Visibilidade</label>
+                            <select
+                              value={visibility}
+                              onChange={(e) => setVisibility(e.target.value)}
+                              style={{ width: '100%', padding: '4px', borderRadius: '6px', border: '1px solid #D0D2E0', fontSize: '10.5px', outline: 'none' }}
+                            >
+                              <option value="private">Privado (Apenas eu)</option>
+                              <option value="busy">Disponível / Ocupado</option>
+                              <option value="public">Público para amigos</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '10px', fontWeight: 600, color: '#5A5B75', display: 'block', marginBottom: '2px' }}>Política de Conflito</label>
+                            <select
+                              value={conflictPolicy}
+                              onChange={(e) => setConflictPolicy(e.target.value)}
+                              style={{ width: '100%', padding: '4px', borderRadius: '6px', border: '1px solid #D0D2E0', fontSize: '10.5px', outline: 'none' }}
+                            >
+                              <option value="allow">Permitir sobreposição</option>
+                              <option value="block">Bloquear se houver conflito</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* BOTÕES CANCELAR & SALVAR */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '8px', paddingTop: '8px' }}>
                   <button
                     type="button"

@@ -648,15 +648,31 @@ app.get('/api/user/:id/data', (req, res) => {
   const events = db
     .prepare(`SELECT * FROM events WHERE user_id = ? ORDER BY date ASC, start_time ASC`)
     .all(id)
-    .map((e) => ({
-      ...e,
-      notes: decryptAES256GCM(e.notes || ''),
-      allDay: e.all_day === 1,
-      completed: e.completed === 1,
-      startTime: e.start_time,
-      endTime: e.end_time,
-      repeat: e.repeat_rule
-    }));
+    .map((e) => {
+      let parsedRepeatConfig = {};
+      let parsedReminders = [];
+      try { parsedRepeatConfig = JSON.parse(e.repeat_config || '{}'); } catch (_e) {}
+      try { parsedReminders = JSON.parse(e.reminders || '[]'); } catch (_e) {}
+      return {
+        ...e,
+        notes: decryptAES256GCM(e.notes || ''),
+        allDay: e.all_day === 1,
+        completed: e.completed === 1,
+        startTime: e.start_time,
+        endTime: e.end_time,
+        endDate: e.end_date || e.date,
+        repeat: e.repeat_rule || 'Nunca',
+        repeatConfig: parsedRepeatConfig,
+        reminders: parsedReminders,
+        bufferBefore: e.buffer_before || 0,
+        bufferAfter: e.buffer_after || 0,
+        isFloating: e.is_floating === 1,
+        energyLevel: e.energy_level || 'deep_focus',
+        meetingUrl: e.meeting_url || '',
+        visibility: e.visibility || 'private',
+        conflictPolicy: e.conflict_policy || 'allow'
+      };
+    });
 
   let health = db.prepare(`SELECT * FROM health WHERE user_id = ?`).get(id);
   if (!health) {
@@ -907,15 +923,18 @@ app.post('/api/user/:id/event', (req, res) => {
 
   db.prepare(`
     INSERT INTO events (
-      id, user_id, title, date, all_day, start_time, end_time,
+      id, user_id, title, date, end_date, all_day, start_time, end_time,
       category, subclass_id, subclass_name, author_name,
-      repeat_rule, location, notes, priority, completed, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+      repeat_rule, repeat_config, reminders, buffer_before, buffer_after,
+      is_floating, energy_level, meeting_url, visibility, conflict_policy,
+      location, notes, priority, completed, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
   `).run(
     eventId,
     id,
     event.title,
     event.date,
+    event.endDate || event.date,
     event.allDay ? 1 : 0,
     event.startTime || '09:00',
     event.endTime || '10:00',
@@ -924,6 +943,15 @@ app.post('/api/user/:id/event', (req, res) => {
     event.subclassName || null,
     event.authorName || null,
     event.repeat || 'Nunca',
+    JSON.stringify(event.repeatConfig || {}),
+    JSON.stringify(event.reminders || []),
+    Number(event.bufferBefore) || 0,
+    Number(event.bufferAfter) || 0,
+    event.isFloating ? 1 : 0,
+    event.energyLevel || 'deep_focus',
+    event.meetingUrl || '',
+    event.visibility || 'private',
+    event.conflictPolicy || 'allow',
     event.location || '',
     encryptedNotes,
     event.priority || 'Média',
@@ -1322,4 +1350,166 @@ app.use((err, req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`[Ethos Secure Server] API ativa na porta ${PORT} (scrypt + AES-256-GCM + JWT + RateLimit).`);
+});
+
+
+// ==========================================
+// ENDPOINTS DE COMUNIDADE & CONEXÕES (@HANDLE)
+// ==========================================
+
+// Buscar usuários na rede por @username ou nome
+app.get('/api/community/users', authenticateJWT, (req, res) => {
+  const currentUserId = req.user?.id || '';
+  const q = (req.query.q || '').trim().replace(/^@/, '');
+
+  let users = [];
+  if (q) {
+    users = db.prepare(`
+      SELECT id, username, name, avatar, bio, streak_days, points 
+      FROM users 
+      WHERE (LOWER(username) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?)) 
+        AND id != ?
+      LIMIT 20
+    `).all(`%${q}%`, `%${q}%`, currentUserId);
+  } else {
+    users = db.prepare(`
+      SELECT id, username, name, avatar, bio, streak_days, points 
+      FROM users 
+      WHERE id != ?
+      ORDER BY streak_days DESC, points DESC
+      LIMIT 15
+    `).all(currentUserId);
+  }
+
+  const enriched = users.map(u => {
+    const friendRow = db.prepare(`SELECT status FROM friends WHERE user_id = ? AND friend_id = ?`).get(currentUserId, u.id);
+    return {
+      ...u,
+      status: friendRow?.status || 'none'
+    };
+  });
+
+  res.json({ users: enriched });
+});
+
+// Listar conexões ativas e solicitações do usuário
+app.get('/api/user/:id/connections', (req, res) => {
+  const { id } = req.params;
+  const connections = db.prepare(`
+    SELECT f.id, f.friend_id, f.friend_name, f.friend_avatar, f.friend_bio, f.friend_username, f.status,
+           u.streak_days, u.points
+    FROM friends f
+    LEFT JOIN users u ON u.id = f.friend_id
+    WHERE f.user_id = ?
+  `).all(id);
+
+  res.json({ connections });
+});
+
+// Enviar solicitação de conexão via @username ou ID
+app.post('/api/user/:id/connect', (req, res) => {
+  const { id } = req.params;
+  const { targetUserId, targetUsername } = req.body;
+
+  let target = null;
+  if (targetUserId) {
+    target = db.prepare(`SELECT id, username, name, avatar, bio FROM users WHERE id = ?`).get(targetUserId);
+  } else if (targetUsername) {
+    const cleanU = targetUsername.trim().replace(/^@/, '');
+    target = db.prepare(`SELECT id, username, name, avatar, bio FROM users WHERE LOWER(username) = LOWER(?)`).get(cleanU);
+  }
+
+  if (!target) {
+    return res.status(404).json({ error: 'Usuário não encontrado na rede Ethos.' });
+  }
+
+  if (target.id === id) {
+    return res.status(400).json({ error: 'Você não pode conectar consigo mesmo.' });
+  }
+
+  const currentUser = db.prepare(`SELECT id, username, name, avatar, bio FROM users WHERE id = ?`).get(id);
+
+  const c1Id = `conn_${id}_${target.id}`;
+  const c2Id = `conn_${target.id}_${id}`;
+
+  db.prepare(`
+    INSERT INTO friends (id, user_id, friend_id, friend_name, friend_avatar, friend_bio, friend_username, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_sent')
+    ON CONFLICT(id) DO UPDATE SET status = 'pending_sent'
+  `).run(c1Id, id, target.id, target.name, target.avatar, target.bio || '', target.username);
+
+  db.prepare(`
+    INSERT INTO friends (id, user_id, friend_id, friend_name, friend_avatar, friend_bio, friend_username, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_received')
+    ON CONFLICT(id) DO UPDATE SET status = 'pending_received'
+  `).run(c2Id, target.id, id, currentUser?.name || 'Usuário', currentUser?.avatar || 'U', currentUser?.bio || '', currentUser?.username || '');
+
+  res.json({ success: true, target });
+});
+
+// Aceitar solicitação de conexão
+app.put('/api/user/:id/connect/:targetId/accept', (req, res) => {
+  const { id, targetId } = req.params;
+
+  db.prepare(`UPDATE friends SET status = 'approved' WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)`).run(id, targetId, targetId, id);
+
+  const targetUser = db.prepare(`SELECT id, name, avatar, username FROM users WHERE id = ?`).get(targetId);
+  const currentUser = db.prepare(`SELECT id, name, avatar, username FROM users WHERE id = ?`).get(id);
+
+  if (targetUser && currentUser) {
+    const feedId = `feed_${Date.now()}`;
+    db.prepare(`
+      INSERT INTO feed (id, user_id, user_name, user_avatar, type, title, details, timestamp)
+      VALUES (?, ?, ?, ?, 'friendship', 'Nova Conexão no Ethos', ?, 'Agora mesmo')
+    `).run(feedId, id, currentUser.name, currentUser.avatar, `Agora é amigo de @${targetUser.username || targetUser.name}!`);
+  }
+
+  res.json({ success: true });
+});
+
+// Recusar / Remover conexão
+app.delete('/api/user/:id/connect/:targetId', (req, res) => {
+  const { id, targetId } = req.params;
+  db.prepare(`DELETE FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)`).run(id, targetId, targetId, id);
+  res.json({ success: true });
+});
+
+// Feed Social da Comunidade
+app.get('/api/user/:id/feed', (req, res) => {
+  const { id } = req.params;
+  const feedItems = db.prepare(`
+    SELECT f.* FROM feed f
+    WHERE f.user_id = ? 
+       OR f.user_id IN (SELECT friend_id FROM friends WHERE user_id = ? AND status = 'approved')
+    ORDER BY f.rowid DESC
+    LIMIT 30
+  `).all(id, id).map(item => {
+    let reactions = { like: 0, fire: 0, trophy: 0 };
+    try { reactions = JSON.parse(item.reactions || '{}'); } catch(e){}
+    return {
+      ...item,
+      reactions,
+      userName: item.user_name,
+      userAvatar: item.user_avatar,
+      userId: item.user_id
+    };
+  });
+
+  res.json({ feed: feedItems });
+});
+
+// Publicar no feed
+app.post('/api/user/:id/feed', (req, res) => {
+  const { id } = req.params;
+  const { type, title, details } = req.body;
+  const user = db.prepare(`SELECT name, avatar FROM users WHERE id = ?`).get(id);
+  if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+  const feedId = `feed_${Date.now()}`;
+  db.prepare(`
+    INSERT INTO feed (id, user_id, user_name, user_avatar, type, title, details, timestamp, reactions)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'Agora mesmo', '{"like":0,"fire":0,"trophy":0}')
+  `).run(feedId, id, user.name, user.avatar, type || 'focus_completed', title || 'Atividade Concluída', details || '');
+
+  res.json({ success: true, id: feedId });
 });

@@ -1717,8 +1717,68 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
         </div>
 
         {/* LISTA DE CARDS ESTILO HEADSPACE (SEM EXPANDIR ABAIXO DO CARD) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {workouts.map((w, idx) => {
+        {workouts.length === 0 ? (
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.75)',
+            backdropFilter: 'blur(16px)',
+            borderRadius: '24px',
+            padding: '48px 24px',
+            textAlign: 'center',
+            border: '1.5px dashed rgba(33, 31, 56, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '14px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.04)'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              background: '#211F38',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 8px 20px rgba(33, 31, 56, 0.25)'
+            }}>
+              <Dumbbell size={28} />
+            </div>
+            <div>
+              <h4 style={{ fontSize: '19px', fontWeight: 800, color: '#211F38', margin: '0 0 6px 0' }}>
+                Nenhuma ficha de treino cadastrada
+              </h4>
+              <p style={{ fontSize: '13px', color: '#686687', maxWidth: '400px', margin: 0, lineHeight: 1.5 }}>
+                Sua rotina de treinos está zerada para esta conta. Crie sua primeira ficha personalizada com divisão de grupos musculares, repetições e pesos.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowNewWorkoutModal(true)}
+              style={{
+                marginTop: '6px',
+                background: '#211F38',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '14px',
+                padding: '11px 22px',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(33, 31, 56, 0.2)'
+              }}
+            >
+              <Plus size={16} />
+              <span>Criar Primeira Ficha</span>
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {workouts.map((w, idx) => {
             const theme = getWorkoutTheme(w, idx);
             const isDone = !!completedWorkoutsToday[w.id];
             const exerciseCount = w.exercises?.length || 0;
@@ -1919,7 +1979,8 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* =====================================================================

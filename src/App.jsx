@@ -67,7 +67,19 @@ export function App() {
     waterHistory: [],
     sleep: { bedTime: '23:30', wakeTime: '07:00', targetHours: 8, logged: false }
   });
-  const [workouts, setWorkouts] = useState(INITIAL_WORKOUTS);
+  const [workouts, setWorkouts] = useState(() => {
+    try {
+      const activeId = localStorage.getItem('ethos_user_id') || 'usr_teste';
+      const saved = localStorage.getItem(`ethos_workouts_${activeId}`);
+      if (saved) return JSON.parse(saved);
+      if (activeId === 'usr_teste' || activeId === 'usr_admin') {
+        return INITIAL_WORKOUTS;
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [badges, setBadges] = useState(INITIAL_BADGES);
   const [friends, setFriends] = useState([]);
   const [feed, setFeed] = useState([]);

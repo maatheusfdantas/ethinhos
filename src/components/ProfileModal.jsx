@@ -20,14 +20,18 @@ import {
   Calendar,
   Dumbbell,
   Timer,
-  Users
+  Users,
+  AtSign,
+  Copy
 } from 'lucide-react';
 
 export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) {
-  // Dados Pessoais
+  // Dados Pessoais & Identidade
   const [name, setName] = useState(user?.name || 'Matheus D.');
+  const [username, setUsername] = useState(user?.username || 'matheus');
   const [email, setEmail] = useState(user?.email || 'matheus.d@email.com');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || user?.photoUrl || '');
+  const [copiedHandle, setCopiedHandle] = useState(false);
   const fileInputRef = useRef(null);
 
   // Preferências
@@ -42,19 +46,20 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
   const [showPagesConfig, setShowPagesConfig] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordFeedback, setPasswordFeedback] = useState({ type: '', text: '' });
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Preferências de Páginas da Interface
   const defaultPagePreferences = {
-    dashboard: true,   // FIXO / OBRIGATÓRIO
-    telemetry: true,   // FIXO / ESTATÍSTICAS OBRIGATÓRIO
-    habits: true,      // Customizável
-    bad_habits: true,  // Customizável (Maus hábitos / sobriedade)
-    calendar: true,    // Customizável
-    workouts: true,    // Customizável
-    focus: true,       // Customizável
-    social: true       // Customizável
+    dashboard: true,   // FIXO
+    telemetry: true,   // FIXO
+    habits: true,
+    bad_habits: true,
+    calendar: true,
+    workouts: true,
+    focus: true,
+    social: true
   };
 
   const [pagePreferences, setPagePreferences] = useState(() => {
@@ -67,8 +72,9 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
 
   useEffect(() => {
     if (user) {
-      setName(user.name || 'Matheus D.');
-      setEmail(user.email || 'matheus.d@email.com');
+      setName(user.name || '');
+      setUsername(user.username || '');
+      setEmail(user.email || '');
       setAvatarUrl(user.avatarUrl || user.photoUrl || '');
       if (user.pagePreferences) {
         setPagePreferences(prev => ({ ...prev, ...user.pagePreferences }));
@@ -78,7 +84,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
 
   if (!isOpen || typeof document === 'undefined') return null;
 
-  // Upload de Imagem de Avatar Local
+  const handleCopyHandle = () => {
+    const handleText = username.startsWith('@') ? username : `@${username}`;
+    navigator.clipboard?.writeText(handleText);
+    setCopiedHandle(true);
+    setTimeout(() => setCopiedHandle(false), 2000);
+  };
+
   const handleAvatarUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -90,20 +102,21 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
     }
   };
 
-  // Salvar Alterações de Perfil
   const handleSave = async (e) => {
     e?.preventDefault?.();
+    const cleanUsername = username.replace(/^@/, '').trim();
     const initials = name
       .split(' ')
       .slice(0, 2)
       .map(part => part[0]?.toUpperCase())
-      .join('');
+      .join('') || 'EU';
 
-    const updated = {
+    const updatedUser = {
       ...user,
       name: name.trim(),
+      username: cleanUsername,
       email: email.trim(),
-      avatar: initials || user?.avatar || 'MD',
+      avatar: initials,
       avatarUrl,
       language,
       timezone,
@@ -112,45 +125,50 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
       pagePreferences
     };
 
+    onUpdateUser?.(updatedUser);
+
     try {
       localStorage.setItem(`ethos_pages_${user?.id || 'default'}`, JSON.stringify(pagePreferences));
-    } catch (e) {}
+      localStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
+      sessionStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
+    } catch (_err) {}
 
-    onUpdateUser?.(updated);
-
-    if (user?.id) {
-      try {
+    try {
+      if (user?.id) {
         await fetch(`/api/user/${user.id}/profile`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: name.trim(),
-            email: email.trim(),
+            username: cleanUsername,
             avatarUrl,
-            language,
-            timezone,
-            theme,
-            emailNotifications,
             pagePreferences
           })
         });
-      } catch (err) {
-        console.warn('Erro ao sincronizar perfil com backend:', err);
       }
+    } catch (_err) {
+      console.warn('Backend update failed, using local profile.');
     }
 
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
       onClose();
-    }, 700);
+    }, 900);
   };
 
-  // Alteração de Senha
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      setPasswordFeedback({ type: 'error', text: 'A nova senha deve ter no mínimo 6 caracteres.' });
+    if (!currentPassword) {
+      setPasswordFeedback({ type: 'error', text: 'Informe sua senha atual.' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordFeedback({ type: 'error', text: 'A nova senha deve ter pelo menos 6 caracteres.' });
+      return;
+    }
+    if (confirmPassword && newPassword !== confirmPassword) {
+      setPasswordFeedback({ type: 'error', text: 'As novas senhas não coincidem.' });
       return;
     }
 
@@ -160,15 +178,12 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
-          token: 'DIRECT_USER_UPDATE',
           currentPassword,
           newPassword
         })
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        // Fallback: se o endpoint exigir token, enviamos o código por e-mail automaticamente
         await fetch('/api/auth/forgot-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -182,6 +197,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
           setPasswordFeedback({ type: '', text: '' });
           setCurrentPassword('');
           setNewPassword('');
+          setConfirmPassword('');
         }, 1200);
       }
     } catch (_err) {
@@ -189,7 +205,6 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
     }
   };
 
-  // Exportar Dados (LGPD)
   const handleExportData = async () => {
     if (!user?.id) return;
     try {
@@ -207,21 +222,18 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
     }
   };
 
-  // Desativar Conta
   const handleDeactivate = () => {
-    if (window.confirm('Tem certeza que deseja desativar sua sessão atual? Você poderá entrar novamente a qualquer momento.')) {
+    if (window.confirm('Tem certeza que deseja encerrar sua sessão atual? Você poderá entrar novamente a qualquer momento com suas credenciais.')) {
       onLogout?.();
       onClose();
     }
   };
 
-  // Excluir Conta Permanentemente (LGPD)
   const handleEraseAccount = async () => {
     if (!confirmDelete) {
       setConfirmDelete(true);
       return;
     }
-
     try {
       if (user?.id && user.role !== 'admin') {
         await fetch(`/api/user/${user.id}/privacy/erase`, { method: 'DELETE' });
@@ -240,7 +252,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        backgroundColor: 'rgba(15, 23, 42, 0.45)',
+        backgroundColor: 'rgba(5, 8, 16, 0.78)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         display: 'flex',
@@ -249,108 +261,74 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
         padding: '16px'
       }}
     >
-      {/* CARD LIQUID FROSTED GLASS FIEL À IMAGEM DE REFERÊNCIA */}
+      {/* CARD ETHOS GLASSMORPHISM ESCURO */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '520px',
-          maxHeight: '92vh',
+          maxWidth: '540px',
+          maxHeight: '90vh',
           overflowY: 'auto',
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(225, 235, 250, 0.45) 100%)',
-          backdropFilter: 'blur(32px) saturate(190%)',
-          WebkitBackdropFilter: 'blur(32px) saturate(190%)',
-          border: '1.5px solid rgba(255, 255, 255, 0.8)',
-          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.95), inset 0 -1px 2px rgba(255, 255, 255, 0.3)',
-          borderRadius: '26px',
+          background: 'rgba(13, 17, 30, 0.94)',
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+          borderRadius: '24px',
           padding: '24px 28px',
           boxSizing: 'border-box',
-          color: '#1E293B',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+          color: '#FFFFFF',
+          fontFamily: 'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         }}
       >
-        {/* CABEÇALHO: TÍTULO + BADGES + BOTÃO SALVAR ALTERAÇÕES */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1E293B', margin: 0, letterSpacing: '-0.01em' }}>
+        {/* CABEÇALHO */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF', margin: 0, letterSpacing: '-0.01em' }}>
               Configurações do Perfil
             </h2>
-            <span
-              style={{
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(245, 158, 11, 0.2)',
-                color: '#B45309',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-                fontSize: '10px',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              3
-            </span>
+            <p style={{ fontSize: '11.5px', color: '#94A3B8', margin: '3px 0 0' }}>
+              Gerencie seus dados pessoais, identidade na rede e preferências
+            </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
               type="button"
               onClick={handleSave}
               style={{
-                background: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 100%)',
-                boxShadow: '0 0 16px rgba(99, 102, 241, 0.55)',
+                background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+                boxShadow: '0 0 18px rgba(99, 102, 241, 0.45)',
                 color: '#FFFFFF',
                 border: 'none',
-                borderRadius: '999px',
-                padding: '7px 20px',
+                borderRadius: '12px',
+                padding: '8px 18px',
                 fontSize: '12px',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px'
+                gap: '6px'
               }}
-              onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-              onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               {savedSuccess ? <Check size={14} /> : null}
               <span>{savedSuccess ? 'Salvo!' : 'Salvar Alterações'}</span>
             </button>
 
-            <span
-              style={{
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(245, 158, 11, 0.2)',
-                color: '#B45309',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-                fontSize: '10px',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              7
-            </span>
-
             <button
               type="button"
               onClick={onClose}
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#64748B',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#94A3B8',
+                borderRadius: '10px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '4px',
-                marginLeft: '2px'
+                padding: '7px'
               }}
             >
               <X size={16} />
@@ -359,41 +337,59 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
         </div>
 
         {/* ============================================================== */}
-        {/* SEÇÃO 1: INFORMAÇÕES PESSOAIS                                  */}
+        {/* SEÇÃO 1: INFORMAÇÕES PESSOAIS & @USERNAME NA REDE              */}
         {/* ============================================================== */}
-        <div style={{ marginBottom: '16px' }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '10px' }}>
-            Informações Pessoais
+        <div style={{ marginBottom: '20px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#A5B4FC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '12px' }}>
+            Informações Pessoais & Identidade
           </span>
 
-          {/* Avatar Row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Avatar & @Handle Banner */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px', borderRadius: '16px', backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div
                 style={{
                   width: '54px',
                   height: '54px',
                   borderRadius: '50%',
-                  backgroundColor: '#CBD5E1',
-                  border: '2px solid #FFFFFF',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                  backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                  border: '2px solid rgba(129, 140, 248, 0.4)',
+                  boxShadow: '0 0 16px rgba(99, 102, 241, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  flexShrink: 0
                 }}
               >
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <User size={30} color="#64748B" />
+                  <span style={{ fontSize: '18px', fontWeight: 700, color: '#A5B4FC' }}>
+                    {name ? name.slice(0, 2).toUpperCase() : 'EU'}
+                  </span>
                 )}
               </div>
 
               <div>
-                <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#1E293B', margin: 0 }}>
-                  {name || 'Matheus D.'}
+                <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#FFFFFF', margin: 0 }}>
+                  {name || 'Usuário Ethos'}
                 </h4>
+                {/* @Handle Pill */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 8px', borderRadius: '8px', backgroundColor: 'rgba(129, 140, 248, 0.15)', border: '1px solid rgba(129, 140, 248, 0.3)', color: '#A5B4FC', fontSize: '11px', fontWeight: 600 }}>
+                    <AtSign size={11} />
+                    <span>{username.replace(/^@/, '') || 'usuario'}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyHandle}
+                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                    title="Copiar meu @"
+                  >
+                    {copiedHandle ? <Check size={12} color="#34D399" /> : <Copy size={12} />}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -409,28 +405,28 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
               type="button"
               onClick={() => fileInputRef.current?.click()}
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.55)',
-                border: '1px solid rgba(255, 255, 255, 0.85)',
-                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
-                borderRadius: '999px',
-                padding: '5px 16px',
-                fontSize: '11.5px',
+                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                borderRadius: '12px',
+                padding: '7px 16px',
+                fontSize: '12px',
                 fontWeight: 600,
-                color: '#334155',
+                color: '#E2E8F0',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease'
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.8)')}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.55)')}
             >
-              Alterar Foto
+              <Camera size={13} />
+              <span>Alterar Foto</span>
             </button>
           </div>
 
-          {/* Form Inputs: Nome Completo e E-mail */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: '10px' }}>
+          {/* Form Inputs: Nome, @username e E-mail */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 500, marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '11px', color: '#94A3B8', fontWeight: 500, marginBottom: '5px' }}>
                 Nome Completo
               </label>
               <input
@@ -439,14 +435,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                 onChange={(e) => setName(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                  border: '1px solid rgba(255, 255, 255, 0.95)',
-                  boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.03)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
                   borderRadius: '12px',
-                  padding: '8px 12px',
+                  padding: '9px 12px',
                   fontSize: '12.5px',
                   fontWeight: 500,
-                  color: '#0F172A',
+                  color: '#FFFFFF',
                   outline: 'none',
                   boxSizing: 'border-box'
                 }}
@@ -454,37 +449,63 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 500, marginBottom: '4px' }}>
-                E-mail
+              <label style={{ display: 'block', fontSize: '11px', color: '#94A3B8', fontWeight: 500, marginBottom: '5px' }}>
+                Nome de Usuário (@ na rede)
               </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                  border: '1px solid rgba(255, 255, 255, 0.95)',
-                  boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.03)',
-                  borderRadius: '12px',
-                  padding: '8px 12px',
-                  fontSize: '12.5px',
-                  fontWeight: 500,
-                  color: '#0F172A',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '9px', color: '#818cf8', fontWeight: 700, fontSize: '13px' }}>@</span>
+                <input
+                  type="text"
+                  value={username.replace(/^@/, '')}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="seu_arroba"
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '12px',
+                    padding: '9px 12px 9px 26px',
+                    fontSize: '12.5px',
+                    fontWeight: 500,
+                    color: '#FFFFFF',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
             </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', color: '#94A3B8', fontWeight: 500, marginBottom: '5px' }}>
+              E-mail
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: '100%',
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '12px',
+                padding: '9px 12px',
+                fontSize: '12.5px',
+                fontWeight: 500,
+                color: '#FFFFFF',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
           </div>
         </div>
 
         {/* ============================================================== */}
         {/* SEÇÃO 2: SEGURANÇA                                             */}
         {/* ============================================================== */}
-        <div style={{ marginBottom: '16px' }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
-            Segurança
+        <div style={{ marginBottom: '20px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#A5B4FC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '8px' }}>
+            Segurança & Acesso
           </span>
 
           <button
@@ -492,62 +513,72 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
             onClick={() => setShowPasswordChange(!showPasswordChange)}
             style={{
               width: '100%',
-              background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.7) 20%, rgba(244, 63, 94, 0.22) 50%, rgba(255, 255, 255, 0.7) 80%, rgba(255, 255, 255, 0.45) 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.85)',
-              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.95)',
-              borderRadius: '999px',
-              padding: '10px 0',
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '14px',
+              padding: '10px 14px',
               fontSize: '12.5px',
               fontWeight: 600,
-              color: '#334155',
+              color: '#F1F5F9',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
+              justifyContent: 'space-between',
               transition: 'all 0.2s ease'
             }}
           >
-            <span>Alterar Senha</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Lock size={14} color="#818CF8" />
+              <span>Alterar Senha</span>
+            </div>
             {showPasswordChange ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
 
-          {/* Gaveta de Alteração de Senha */}
           {showPasswordChange && (
-            <form onSubmit={handleChangePassword} style={{ marginTop: '10px', backgroundColor: 'rgba(255, 255, 255, 0.5)', padding: '12px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.8)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+            <form onSubmit={handleChangePassword} style={{ marginTop: '10px', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '14px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '10px', color: '#475569', display: 'block', marginBottom: '2px' }}>Senha Atual</label>
+                  <label style={{ fontSize: '10px', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Senha Atual</label>
                   <input
                     type="password"
                     placeholder="••••••••"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.9)', backgroundColor: 'rgba(255,255,255,0.8)', fontSize: '11.5px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: '#FFFFFF', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '10px', color: '#475569', display: 'block', marginBottom: '2px' }}>Nova Senha (min 6)</label>
+                  <label style={{ fontSize: '10px', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Nova Senha</label>
                   <input
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="Mínimo 6"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.9)', backgroundColor: 'rgba(255,255,255,0.8)', fontSize: '11.5px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: '#FFFFFF', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '10px', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Confirmar</label>
+                  <input
+                    type="password"
+                    placeholder="Confirmar"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: '#FFFFFF', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
               {passwordFeedback.text && (
-                <div style={{ fontSize: '11px', color: passwordFeedback.type === 'error' ? '#EF4444' : '#10B981', marginBottom: '6px', fontWeight: 600 }}>
+                <div style={{ fontSize: '11px', color: passwordFeedback.type === 'error' ? '#F87171' : '#34D399', marginBottom: '8px', fontWeight: 600 }}>
                   {passwordFeedback.text}
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   type="submit"
-                  style={{ backgroundColor: '#211F38', color: '#FFFFFF', border: 'none', borderRadius: '999px', padding: '5px 14px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ backgroundColor: '#6366F1', color: '#FFFFFF', border: 'none', borderRadius: '10px', padding: '6px 14px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Salvar Nova Senha
                 </button>
@@ -557,16 +588,16 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
         </div>
 
         {/* ============================================================== */}
-        {/* SEÇÃO 3: PREFERÊNCIAS                                          */}
+        {/* SEÇÃO 3: PREFERÊNCIAS DO SISTEMA                               */}
         {/* ============================================================== */}
-        <div style={{ marginBottom: '16px' }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
-            Preferências
+        <div style={{ marginBottom: '20px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#A5B4FC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '8px' }}>
+            Preferências do Sistema
           </span>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', color: '#475569', fontWeight: 500, marginBottom: '3px' }}>
+              <label style={{ display: 'block', fontSize: '10.5px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>
                 Idioma
               </label>
               <select
@@ -574,25 +605,25 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                 onChange={(e) => setLanguage(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                  border: '1px solid rgba(255, 255, 255, 0.95)',
-                  borderRadius: '12px',
-                  padding: '6px 8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '10px',
+                  padding: '7px 10px',
                   fontSize: '11.5px',
                   fontWeight: 500,
-                  color: '#0F172A',
+                  color: '#FFFFFF',
                   outline: 'none',
                   cursor: 'pointer'
                 }}
               >
-                <option value="Portuguese">Portuguese</option>
-                <option value="English">English</option>
-                <option value="Español">Español</option>
+                <option value="Portuguese" style={{ background: '#0F172A' }}>Português</option>
+                <option value="English" style={{ background: '#0F172A' }}>English</option>
+                <option value="Español" style={{ background: '#0F172A' }}>Español</option>
               </select>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '10px', color: '#475569', fontWeight: 500, marginBottom: '3px' }}>
+              <label style={{ display: 'block', fontSize: '10.5px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>
                 Fuso Horário
               </label>
               <select
@@ -600,26 +631,26 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                 onChange={(e) => setTimezone(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                  border: '1px solid rgba(255, 255, 255, 0.95)',
-                  borderRadius: '12px',
-                  padding: '6px 8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '10px',
+                  padding: '7px 10px',
                   fontSize: '11.5px',
                   fontWeight: 500,
-                  color: '#0F172A',
+                  color: '#FFFFFF',
                   outline: 'none',
                   cursor: 'pointer'
                 }}
               >
-                <option value="UTC-3">UTC-3</option>
-                <option value="UTC-4">UTC-4</option>
-                <option value="UTC+0">UTC+0</option>
-                <option value="UTC-5">UTC-5</option>
+                <option value="UTC-3" style={{ background: '#0F172A' }}>UTC-3 (Brasília)</option>
+                <option value="UTC-4" style={{ background: '#0F172A' }}>UTC-4 (Manaus)</option>
+                <option value="UTC+0" style={{ background: '#0F172A' }}>UTC+0 (Londres)</option>
+                <option value="UTC-5" style={{ background: '#0F172A' }}>UTC-5 (Nova York)</option>
               </select>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '10px', color: '#475569', fontWeight: 500, marginBottom: '3px' }}>
+              <label style={{ display: 'block', fontSize: '10.5px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>
                 Tema
               </label>
               <select
@@ -627,43 +658,46 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                 onChange={(e) => setTheme(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                  border: '1px solid rgba(255, 255, 255, 0.95)',
-                  borderRadius: '12px',
-                  padding: '6px 8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '10px',
+                  padding: '7px 10px',
                   fontSize: '11.5px',
                   fontWeight: 500,
-                  color: '#0F172A',
+                  color: '#FFFFFF',
                   outline: 'none',
                   cursor: 'pointer'
                 }}
               >
-                <option value="Escuro">Escuro</option>
-                <option value="Claro">Claro</option>
-                <option value="Automático">Automático</option>
+                <option value="Escuro" style={{ background: '#0F172A' }}>Escuro (Padrão)</option>
+                <option value="AMOLED" style={{ background: '#0F172A' }}>Preto Puro (AMOLED)</option>
+                <option value="Cyberpunk" style={{ background: '#0F172A' }}>Cyberpunk Neon</option>
               </select>
             </div>
           </div>
 
-          {/* Toggle Notificações por E-mail */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
-            <span style={{ fontSize: '11.5px', color: '#334155', fontWeight: 500 }}>
-              Notificações por E-mail
-            </span>
+          {/* Toggle Notificações por E-mail (Resend) */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '12px', backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <div>
+              <span style={{ fontSize: '12px', color: '#F1F5F9', fontWeight: 500, display: 'block' }}>
+                Notificações por E-mail
+              </span>
+              <span style={{ fontSize: '10.5px', color: '#64748B' }}>
+                Disparos via Resend para lembretes de agenda e alertas
+              </span>
+            </div>
 
-            {/* iOS-Style Toggle Switch */}
             <div
               onClick={() => setEmailNotifications(!emailNotifications)}
               style={{
-                width: '36px',
-                height: '20px',
+                width: '38px',
+                height: '22px',
                 borderRadius: '999px',
-                backgroundColor: emailNotifications ? '#6366F1' : 'rgba(203, 213, 225, 0.65)',
-                border: '1px solid rgba(255, 255, 255, 0.85)',
+                backgroundColor: emailNotifications ? '#6366F1' : 'rgba(255, 255, 255, 0.15)',
                 position: 'relative',
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease',
-                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                flexShrink: 0
               }}
             >
               <div
@@ -672,10 +706,9 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                   height: '16px',
                   borderRadius: '50%',
                   backgroundColor: '#FFFFFF',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25)',
                   position: 'absolute',
-                  top: '1px',
-                  left: emailNotifications ? '17px' : '2px',
+                  top: '3px',
+                  left: emailNotifications ? '19px' : '3px',
                   transition: 'left 0.2s ease'
                 }}
               />
@@ -684,9 +717,9 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
         </div>
 
         {/* ============================================================== */}
-        {/* SEÇÃO 4: PÁGINAS ATIVAS NA INTERFACE (REQ. CUSTOMIZAÇÃO)       */}
+        {/* SEÇÃO 4: PÁGINAS VISÍVEIS NA INTERFACE                         */}
         {/* ============================================================== */}
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: '20px' }}>
           <button
             type="button"
             onClick={() => setShowPagesConfig(!showPagesConfig)}
@@ -695,25 +728,25 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: 'rgba(255, 255, 255, 0.45)',
-              border: '1px solid rgba(255, 255, 255, 0.8)',
-              borderRadius: '12px',
-              padding: '7px 12px',
-              fontSize: '11px',
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '14px',
+              padding: '10px 14px',
+              fontSize: '12px',
               fontWeight: 600,
-              color: '#334155',
+              color: '#F1F5F9',
               cursor: 'pointer'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sliders size={13} color="#6366F1" />
-              <span>Personalizar Páginas da Interface (Hábitos, Vícios, Agenda...)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sliders size={14} color="#818CF8" />
+              <span>Personalizar Módulos do Menu Lateral</span>
             </div>
-            {showPagesConfig ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            {showPagesConfig ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
 
           {showPagesConfig && (
-            <div style={{ marginTop: '8px', backgroundColor: 'rgba(255, 255, 255, 0.5)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.8)', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+            <div style={{ marginTop: '8px', backgroundColor: 'rgba(255, 255, 255, 0.02)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
               {[
                 { id: 'dashboard', label: 'Painel Principal', icon: LayoutGrid, fixed: true },
                 { id: 'telemetry', label: 'Análise de Progresso', icon: TrendingUp, fixed: true },
@@ -722,7 +755,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                 { id: 'calendar', label: 'Agenda Semanal', icon: Calendar, fixed: false },
                 { id: 'workouts', label: 'Musculação & Treino', icon: Dumbbell, fixed: false },
                 { id: 'focus', label: 'Foco Pomodoro', icon: Timer, fixed: false },
-                { id: 'social', label: 'Comunidade', icon: Users, fixed: false }
+                { id: 'social', label: 'Comunidade & Conexões', icon: Users, fixed: false }
               ].map(page => {
                 const isEnabled = page.fixed || pagePreferences[page.id] !== false;
                 return (
@@ -737,18 +770,18 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '5px 8px',
-                      borderRadius: '8px',
-                      backgroundColor: isEnabled ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255, 255, 255, 0.4)',
-                      border: isEnabled ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(0,0,0,0.05)',
+                      padding: '7px 10px',
+                      borderRadius: '10px',
+                      backgroundColor: isEnabled ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                      border: isEnabled ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
                       cursor: page.fixed ? 'default' : 'pointer'
                     }}
                   >
-                    <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#1E293B' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 500, color: '#E2E8F0' }}>
                       {page.label}
                     </span>
                     {page.fixed ? (
-                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#6366F1' }}>Fixo</span>
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#818CF8' }}>Fixo</span>
                     ) : (
                       <input
                         type="checkbox"
@@ -765,96 +798,59 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
         </div>
 
         {/* ============================================================== */}
-        {/* SEÇÃO 5: DADOS E ARMAZENAMENTO                                 */}
+        {/* SEÇÃO 5: DADOS, PRIVACIDADE & AÇÕES DA CONTA                   */}
         {/* ============================================================== */}
-        <div style={{ marginBottom: '16px' }}>
-          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
-            Dados e Armazenamento
-          </span>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ fontSize: '11px', color: '#475569', fontWeight: 500 }}>
-                  Uso de Armazenamento
-                </span>
-                <span style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>
-                  65%
-                </span>
-              </div>
-
-              {/* Barra de Progresso Degradê */}
-              <div
-                style={{
-                  width: '100%',
-                  height: '5px',
-                  borderRadius: '999px',
-                  backgroundColor: 'rgba(203, 213, 225, 0.5)',
-                  overflow: 'hidden'
-                }}
-              >
-                <div
-                  style={{
-                    width: '65%',
-                    height: '100%',
-                    borderRadius: '999px',
-                    background: 'linear-gradient(90deg, #6366F1 0%, #38BDF8 100%)'
-                  }}
-                />
-              </div>
+        <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#F1F5F9', display: 'block' }}>
+                Portabilidade de Dados (LGPD)
+              </span>
+              <span style={{ fontSize: '10.5px', color: '#64748B' }}>
+                Baixe uma cópia completa dos seus hábitos, agenda e telemetria
+              </span>
             </div>
 
             <button
               type="button"
               onClick={handleExportData}
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.55)',
-                border: '1px solid rgba(255, 255, 255, 0.85)',
-                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
-                borderRadius: '999px',
-                padding: '5px 14px',
-                fontSize: '11px',
+                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '10px',
+                padding: '6px 14px',
+                fontSize: '11.5px',
                 fontWeight: 600,
-                color: '#334155',
+                color: '#E2E8F0',
                 cursor: 'pointer',
-                whiteSpace: 'nowrap'
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.8)')}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.55)')}
             >
-              Exportar Dados
+              <Download size={13} />
+              <span>Exportar Dados</span>
             </button>
           </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* SEÇÃO 6: AÇÕES DA CONTA                                        */}
-        {/* ============================================================== */}
-        <div>
-          <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
-            Ações da Conta
-          </span>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '10px' }}>
             <button
               type="button"
               onClick={handleDeactivate}
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                border: '1px solid rgba(255, 255, 255, 0.8)',
-                borderRadius: '999px',
-                padding: '8px 0',
-                fontSize: '11.5px',
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '12px',
+                padding: '9px 0',
+                fontSize: '12px',
                 fontWeight: 600,
-                color: '#475569',
+                color: '#94A3B8',
                 cursor: 'pointer',
                 textAlign: 'center',
                 transition: 'all 0.15s ease'
               }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.75)')}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.5)')}
             >
-              Desativar Conta
+              Desativar Sessão
             </button>
 
             <button
@@ -863,20 +859,17 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
               style={{
                 background: confirmDelete 
                   ? 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)'
-                  : 'linear-gradient(135deg, rgba(239, 68, 68, 0.55) 0%, rgba(220, 38, 38, 0.65) 100%)',
-                border: '1px solid rgba(239, 68, 68, 0.75)',
-                boxShadow: '0 0 16px rgba(239, 68, 68, 0.45)',
-                borderRadius: '999px',
-                padding: '8px 0',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                color: '#FFFFFF',
+                  : 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                borderRadius: '12px',
+                padding: '9px 0',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#FCA5A5',
                 cursor: 'pointer',
                 textAlign: 'center',
                 transition: 'all 0.15s ease'
               }}
-              onMouseOver={(e) => (e.currentTarget.style.boxShadow = '0 0 22px rgba(239, 68, 68, 0.65)')}
-              onMouseOut={(e) => (e.currentTarget.style.boxShadow = '0 0 16px rgba(239, 68, 68, 0.45)')}
             >
               {confirmDelete ? 'Confirmar Exclusão' : 'Excluir Conta Permanentemente'}
             </button>

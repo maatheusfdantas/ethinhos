@@ -44,15 +44,10 @@ export const INITIAL_TAGS = [
     color: '#818cf8',
     bg: 'rgba(129, 140, 248, 0.15)',
     icon: 'BookOpen',
-    is_shared: true,
-    has_subclasses: true,
-    subclasses: [
-      { id: 'sub_redes', category_id: 'tag_facul', name: 'Redes de Computadores', priority: 'Alta', hours: 8 },
-      { id: 'sub_calculo', category_id: 'tag_facul', name: 'Cálculo', priority: 'Alta', hours: 7 }
-    ],
-    members: [
-      { id: 'mem_sebastian', category_id: 'tag_facul', user_id: 'usr_sebastian', name: 'Sebastian', email: 'sebastian@ethos.dev', role: 'collaborator' }
-    ]
+    is_shared: false,
+    has_subclasses: false,
+    subclasses: [],
+    members: []
   },
   {
     id: 'tag_trab',
@@ -190,23 +185,23 @@ export const INITIAL_BADGES = [
     title: 'Guardião da Constância',
     description: '7 dias consecutivos de ofensiva e hábitos concluídos.',
     iconName: 'Flame',
-    unlocked: true,
-    unlockedAt: 'Hoje'
+    unlocked: false,
+    unlockedAt: null
   },
   {
     id: 'badge_water',
     title: 'Mestre da Hidratação',
     description: 'Bateu a meta de 2.5L de água por 5 dias.',
     iconName: 'Droplets',
-    unlocked: true,
-    unlockedAt: 'Ontem'
+    unlocked: false,
+    unlockedAt: null
   },
   {
     id: 'badge_focus',
     title: 'Foco Inabalável',
     description: 'Completou mais de 100 minutos de foco sem fraude.',
     iconName: 'Zap',
-    unlocked: true,
-    unlockedAt: 'Há 3 dias'
+    unlocked: false,
+    unlockedAt: null
   }
 ];

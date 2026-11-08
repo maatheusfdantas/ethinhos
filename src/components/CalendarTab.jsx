@@ -74,7 +74,8 @@ function formatDayMonth(d) {
   return `${day}.${month}`;
 }
 
-export function CalendarTab({ 
+export function CalendarTab({
+  user,
   events = [], 
   setEvents,
   habits = [], 
@@ -115,29 +116,96 @@ export function CalendarTab({
   const [evParticipantsText, setEvParticipantsText] = useState('');
   const [evSelectedParticipants, setEvSelectedParticipants] = useState(['p1', 'p2', 'p3']);
 
-  // Eventos iniciais demonstrativos no mês atual
+  // Eventos iniciais demonstrativos (apenas para modo demo/teste; contas reais iniciam vazias)
+  const isDemo = user?.id === 'usr_teste' || user?.id === 'usr_admin';
   const [localSeedEvents, setLocalSeedEvents] = useState(() => {
+    if (!isDemo) return [];
     const now = new Date();
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
     return [
       { id: 'seed_1', title: 'Reunião de Equipe', category: 'Faculdade', date: `${y}-${m}-02`, endDate: `${y}-${m}-02`, startTime: '10:00', endTime: '11:00', location: 'Sala 204 / Meet', description: 'Alinhamento de entregas da sprint acadêmica.', participants: ['p1', 'p2'], completed: false },
-      { id: 'seed_2', title: 'Reunião com Orientador', category: 'Faculdade', date: `${y}-${m}-03`, endDate: `${y}-${m}-03`, startTime: '09:30', endTime: '10:30', location: 'Gabinete 12', description: 'Revisão da metodologia do projeto.', participants: ['p3'], completed: false },
-      { id: 'seed_3', title: 'Revisão de Código', category: 'Trabalho', date: `${y}-${m}-04`, endDate: `${y}-${m}-04`, startTime: '14:00', endTime: '16:00', location: 'Remoto / GitHub', description: 'Code review dos PRs da semana.', participants: ['p1', 'p4'], completed: false },
-      { id: 'seed_4', title: 'Treino de Força (A)', category: 'Saúde', date: `${y}-${m}-05`, endDate: `${y}-${m}-05`, startTime: '18:00', endTime: '19:30', location: 'Academia', description: 'Foco em progressão de carga no supino.', participants: [], completed: false },
-      { id: 'seed_5', title: "Ler 'Arquitetura Limpa'", category: 'Leitura', date: `${y}-${m}-06`, endDate: `${y}-${m}-06`, startTime: '16:00', endTime: '17:00', location: 'Biblioteca', description: 'Capítulos 12 a 15.', participants: [], completed: false },
-      { id: 'seed_6', title: 'Planejamento de Sprint', category: 'Trabalho', date: `${y}-${m}-10`, endDate: `${y}-${m}-10`, startTime: '10:00', endTime: '11:30', location: 'Sala de Reuniões', description: 'Definição de metas quinzenais.', participants: ['p1', 'p2', 'p4'], completed: false },
-      { id: 'seed_7', title: 'Entrega de Relatório', category: 'Faculdade', date: `${y}-${m}-14`, endDate: `${y}-${m}-14`, startTime: '09:00', endTime: '11:00', location: 'Portal Acadêmico', description: 'Envio da versão final em PDF.', participants: ['p2'], completed: false },
-      { id: 'seed_8', title: 'Check-up Clínico', category: 'Saúde', date: `${y}-${m}-18`, endDate: `${y}-${m}-18`, startTime: '15:00', endTime: '16:00', location: 'Clínica Central', description: 'Exames de rotina anual.', participants: [], completed: false },
-      { id: 'seed_9', title: 'Revisão Mensal de Metas', category: 'Pessoal', date: toISODate(now), endDate: toISODate(now), startTime: '11:00', endTime: '12:00', location: 'Home Office', description: 'Avaliar indicadores de vitalidade e hábitos.', participants: ['p1', 'p2', 'p3'], completed: false }
+      { id: 'seed_2', title: 'Reunião com Orientador', category: 'Faculdade', date: `${y}-${m}-03`, endDate: `${y}-${m}-03`, startTime: '09:30', endTime: '10:30', location: 'Gabinete 12', description: 'Revisão da metodologia do projeto.', participants: ['p3'], completed: false }
     ];
   });
 
-  // Combina eventos reais do usuário + seeds locais (sem duplicar IDs)
+  // Combina eventos reais + expansão de recorrência dinâmica (considerando Blackout Dates / Exceções)
   const combinedEvents = useMemo(() => {
-    const userIds = new Set(events.map(e => e.id));
-    return [...events, ...localSeedEvents.filter(se => !userIds.has(se.id))];
-  }, [events, localSeedEvents]);
+    const baseList = [...events, ...localSeedEvents.filter(se => !events.some(e => e.id === se.id))];
+    const expanded = [...baseList];
+
+    // Calcula período de 60 dias ao redor da data do cursor
+    const cursorTime = cursorDate.getTime();
+    const startTime = cursorTime - 45 * 24 * 60 * 60 * 1000;
+    const endTime = cursorTime + 45 * 24 * 60 * 60 * 1000;
+
+    baseList.forEach(ev => {
+      const rep = ev.repeat || ev.repeat_rule;
+      if (!rep || rep === 'Nunca' || !ev.date) return;
+
+      const cfg = ev.repeatConfig || {};
+      const repeatDays = Array.isArray(cfg.repeatDays) ? cfg.repeatDays : [1, 2, 3, 4, 5];
+      const endType = cfg.repeatEndType || 'never';
+      const endDateStr = cfg.repeatEndDate || '';
+      const maxCount = Number(cfg.repeatCount) || 30;
+      const blackoutList = Array.isArray(cfg.blackoutDates) ? cfg.blackoutDates : [];
+
+      const evStartDate = new Date(ev.date + 'T12:00:00');
+      let occurrenceCount = 1;
+
+      // Itera por até 90 dias a partir da data de início
+      for (let dayOffset = 1; dayOffset <= 90; dayOffset++) {
+        const curDate = new Date(evStartDate.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+        if (curDate.getTime() < startTime) continue;
+        if (curDate.getTime() > endTime) break;
+
+        const curDateISO = toISODate(curDate);
+        const dayOfWeek = curDate.getDay();
+
+        // 1. Limite de Data Final
+        if (endType === 'until_date' && endDateStr && curDateISO > endDateStr) {
+          break;
+        }
+
+        // 2. Limite de Contagem de Ocorrências
+        if (endType === 'count' && occurrenceCount >= maxCount) {
+          break;
+        }
+
+        // 3. Exceção de Data (Blackout Date)
+        if (blackoutList.includes(curDateISO)) {
+          continue;
+        }
+
+        // 4. Regra de Frequência
+        let matches = false;
+        if (rep === 'Diário') {
+          matches = true;
+        } else if (rep === 'Semanal') {
+          matches = repeatDays.includes(dayOfWeek);
+        } else if (rep === 'Quinzenal') {
+          const weeksDiff = Math.floor(dayOffset / 7);
+          matches = (weeksDiff % 2 === 0) && repeatDays.includes(dayOfWeek);
+        } else if (rep === 'Mensal') {
+          matches = curDate.getDate() === evStartDate.getDate();
+        }
+
+        if (matches) {
+          occurrenceCount++;
+          expanded.push({
+            ...ev,
+            id: `${ev.id}_rec_${curDateISO}`,
+            date: curDateISO,
+            endDate: curDateISO,
+            isRecurrence: true,
+            originalEventId: ev.id
+          });
+        }
+      }
+    });
+
+    return expanded;
+  }, [events, localSeedEvents, cursorDate]);
 
   // Abrir Modal para Criar Novo Evento em uma data específica
   const handleOpenNewEventModal = (targetDateISO) => {
@@ -419,9 +487,32 @@ export function CalendarTab({
         <div style={{ fontWeight: 500, opacity: 0.85, marginTop: '2px', fontSize: compact ? '10px' : '11px' }}>
           ({ev.category || 'Geral'}) {ev.location ? `• ${ev.location}` : ''}
         </div>
-        <div style={{ fontWeight: 600, marginTop: '2px', fontSize: compact ? '10px' : '10.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div style={{ fontWeight: 600, marginTop: '2px', fontSize: compact ? '10px' : '10.5px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
           <span>{timeLabel}</span>
           {ev.completed && <Check size={11} strokeWidth={3} />}
+          {ev.repeat && ev.repeat !== 'Nunca' && (
+            <span title={`Recorrência: ${ev.repeat}`} style={{ display: 'inline-flex', opacity: 0.8 }}>
+              <Repeat size={10} />
+            </span>
+          )}
+          {ev.meetingUrl && (
+            <a 
+              href={ev.meetingUrl} 
+              target="_blank" 
+              rel="noreferrer" 
+              onClick={(e) => e.stopPropagation()} 
+              title="Entrar na chamada de vídeo"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', textDecoration: 'none', color: '#4338CA', fontWeight: 700, fontSize: '9.5px', padding: '0 3px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.6)' }}
+            >
+              <Video size={10} />
+              Meet
+            </a>
+          )}
+          {ev.bufferBefore > 0 && (
+            <span title={`Buffer de preparação: ${ev.bufferBefore}min`} style={{ fontSize: '9px', opacity: 0.75 }}>
+              +{ev.bufferBefore}m
+            </span>
+          )}
         </div>
 
         {/* MENU POPOVER LIMPO: Concluir, Editar, Remover */}
