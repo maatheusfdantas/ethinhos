@@ -2,7 +2,7 @@
 # ETHOS LANDING PAGE & WAITLIST — CLOUDFLARE PAGES + D1 CONFIGURATION
 # ============================================================================
 name = "ethos-landing"
-pages_build_output_dir = "./dist"
+pages_build_output_dir = "./public"
 compatibility_date = "2025-04-01"
 
 [[d1_databases]]
