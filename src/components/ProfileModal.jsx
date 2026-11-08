@@ -24,6 +24,7 @@ import {
   AtSign,
   Copy
 } from 'lucide-react';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) {
   // Dados Pessoais & Identidade

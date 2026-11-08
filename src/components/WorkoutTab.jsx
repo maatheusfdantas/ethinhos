@@ -23,6 +23,7 @@ import {
   Layers,
   ArrowLeft
 } from 'lucide-react';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 // =====================================================================
 // PALETA DE TEMAS ESTILO HEADSPACE (CORES VIBRANTES E ILUSTRAÇÕES)
@@ -96,12 +97,13 @@ const WORKOUT_THEMES = [
   }
 ];
 
-function getWorkoutTheme(workout, index) {
+function getWorkoutTheme(workout, index = 0) {
   if (workout?.theme) {
     const found = WORKOUT_THEMES.find(t => t.id === workout.theme);
     if (found) return found;
   }
-  return WORKOUT_THEMES[index % WORKOUT_THEMES.length];
+  const safeIdx = typeof index === 'number' && index >= 0 ? index : 0;
+  return WORKOUT_THEMES[safeIdx % WORKOUT_THEMES.length] || WORKOUT_THEMES[0];
 }
 
 // =====================================================================
@@ -229,10 +231,11 @@ function CardIllustration({ type }) {
 // =====================================================================
 // COMPONENTE PRINCIPAL: WORKOUT TAB
 // =====================================================================
-export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
+export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
+  const safeWorkouts = Array.isArray(workouts) ? workouts : [];
   // Controle de Visualização: 'list' (visão geral dos cards) ou 'session' (tela dedicada do treino)
   const [currentView, setCurrentView] = useState('list');
-  const [activeWorkoutId, setActiveWorkoutId] = useState(workouts[0]?.id || 'wo_a');
+  const [activeWorkoutId, setActiveWorkoutId] = useState(() => safeWorkouts[0]?.id || 'wo_a');
   
   // Estados dos Modais
   const [showNewExerciseModal, setShowNewExerciseModal] = useState(false);
@@ -293,8 +296,16 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
     return () => clearInterval(interval);
   }, [isResting, activeRestSeconds]);
 
-  const currentWorkout = workouts.find(w => w.id === activeWorkoutId) || workouts[0] || { id: 'wo_empty', name: 'Meu Treino', exercises: [] };
-  const currentWorkoutTheme = getWorkoutTheme(currentWorkout, workouts.findIndex(w => w.id === currentWorkout?.id));
+  const currentWorkout = safeWorkouts.find(w => w.id === activeWorkoutId) || safeWorkouts[0] || { 
+    id: 'wo_empty', 
+    name: 'Meu Treino', 
+    subtitle: 'Foco em força, hipertrofia e progressão de carga.',
+    theme: 'orange',
+    exercises: [], 
+    scheduledDays: [1] 
+  };
+  const workoutIndex = safeWorkouts.findIndex(w => w.id === currentWorkout?.id);
+  const currentWorkoutTheme = getWorkoutTheme(currentWorkout, workoutIndex >= 0 ? workoutIndex : 0);
   const isWorkoutCompleted = !!completedWorkoutsToday[currentWorkout?.id];
 
   // Iniciar ou reiniciar descanso em uma atividade específica
@@ -475,11 +486,11 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
 
   // Excluir ficha de treino inteira
   const handleDeleteWorkout = (wId) => {
-    if (workouts.length <= 1) {
+    if (safeWorkouts.length <= 1) {
       alert('Você deve manter pelo menos uma ficha de treino.');
       return;
     }
-    const remaining = workouts.filter(w => w.id !== wId);
+    const remaining = safeWorkouts.filter(w => w.id !== wId);
     setWorkouts(remaining);
     setActiveWorkoutId(remaining[0]?.id);
     if (activeWorkoutId === wId) {
@@ -663,7 +674,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
 
           {/* Troca Rápida de Ficha na barra superior */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            {workouts.map((w, idx) => {
+            {safeWorkouts.map((w, idx) => {
               const isSelected = w.id === activeWorkoutId;
               const isDone = !!completedWorkoutsToday[w.id];
               return (
@@ -1619,7 +1630,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
           {/* Calendário Semanal com Indicadores */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dName, dIdx) => {
-              const hasWorkout = workouts.some(w => (w.scheduledDays || []).includes(dIdx));
+              const hasWorkout = safeWorkouts.some(w => (w.scheduledDays || []).includes(dIdx));
               const isToday = new Date().getDay() === dIdx;
 
               return (
@@ -1653,7 +1664,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '8px', borderTop: '1px solid rgba(33, 31, 56, 0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600, color: '#56548A' }}>
               <Layers size={14} />
-              <span>{workouts.length} fichas configuradas</span>
+              <span>{safeWorkouts.length} fichas configuradas</span>
             </div>
 
             <button
@@ -1718,7 +1729,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
         </div>
 
         {/* LISTA DE CARDS ESTILO HEADSPACE (SEM EXPANDIR ABAIXO DO CARD) */}
-        {workouts.length === 0 ? (
+        {safeWorkouts.length === 0 ? (
           <div style={{
             background: 'rgba(255, 255, 255, 0.75)',
             backdropFilter: 'blur(16px)',
@@ -1779,7 +1790,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {workouts.map((w, idx) => {
+            {safeWorkouts.map((w, idx) => {
             const theme = getWorkoutTheme(w, idx);
             const isDone = !!completedWorkoutsToday[w.id];
             const exerciseCount = w.exercises?.length || 0;
@@ -1951,7 +1962,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
                     <span>Editar Ficha</span>
                   </button>
 
-                  {workouts.length > 1 && (
+                  {safeWorkouts.length > 1 && (
                     <button
                       type="button"
                       onClick={(e) => {

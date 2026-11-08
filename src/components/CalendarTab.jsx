@@ -16,6 +16,8 @@ import {
   FileText,
   Bell,
   Users,
+  Repeat,
+  Video,
   X
 } from 'lucide-react';
 import { GoogleCalendarConnect } from './GoogleCalendarConnect';

@@ -28,6 +28,7 @@ import { INITIAL_TAGS, INITIAL_WORKOUTS, INITIAL_BADGES } from './data/initialDa
 import { Lock, Shield, Plus, Search, Bell, X, Menu, Users, Flame, Play } from 'lucide-react';
 import { GlobalProgressBar } from './components/GlobalProgressBar';
 import { Toast } from './components/Toast';
+import { TabErrorBoundary } from './components/TabErrorBoundary';
 
 export function App() {
   const isReturningFromGoogleOAuth = typeof window !== 'undefined' && window.location.search.includes('google_auth=');
@@ -772,6 +773,7 @@ export function App() {
 
           {/* CONTEÚDO DA ABA ATIVA */}
           <main style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <TabErrorBoundary key={activeTab}>
             {/* TAB 1: DASHBOARD (PAINEL PRINCIPAL FIEL AO MOCKUP) */}
             {activeTab === 'dashboard' && (
               <DashboardTab
@@ -955,6 +957,7 @@ export function App() {
                 )}
               </div>
             )}
+            </TabErrorBoundary>
           </main>
         </div>
       </div>
