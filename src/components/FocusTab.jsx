@@ -88,6 +88,18 @@ export function FocusTab({
   // Timer states
   const [totalSeconds, setTotalSeconds] = useState(25 * 60);
   const [secondsLeft, setSecondsLeft] = useState(25 * 60);
+  const timerVideoRef = useRef(null);
+
+  // Garantir reprodução contínua e em looping infinito da animação do timer
+  useEffect(() => {
+    if (timerVideoRef.current) {
+      timerVideoRef.current.muted = true;
+      const playPromise = timerVideoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {});
+      }
+    }
+  }, []);
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -639,7 +651,32 @@ export function FocusTab({
 
         {/* CIRCULAR TIMER */}
         <div className="relative w-64 h-64 flex items-center justify-center mb-8">
-          <svg className="absolute inset-0 w-full h-full -rotate-90">
+          {/* ANIMAÇÃO EM LOOPING INFINITO DENTRO DO CÍRCULO */}
+          <div className="absolute inset-[18px] rounded-full overflow-hidden flex items-center justify-center pointer-events-none z-0 shadow-[inset_0_0_24px_rgba(0,0,0,0.85)]">
+            <video
+              ref={timerVideoRef}
+              src="/focus-timer-loop.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover rounded-full transform scale-110"
+              style={{
+                filter: 'brightness(0.9) contrast(1.15)',
+              }}
+            />
+            {/* Overlay sutil para garantir contraste perfeito com os dígitos numéricos */}
+            <div 
+              className="absolute inset-0 rounded-full" 
+              style={{ 
+                background: 'radial-gradient(circle, rgba(10, 15, 26, 0.45) 0%, rgba(8, 12, 22, 0.8) 100%)' 
+              }} 
+            />
+            {/* Borda interna refinada */}
+            <div className="absolute inset-0 rounded-full border border-white/10" />
+          </div>
+
+          <svg className="absolute inset-0 w-full h-full -rotate-90 z-10 pointer-events-none">
             <defs>
               <linearGradient id="pomodoroGlow" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#fcd34d" />
@@ -651,7 +688,7 @@ export function FocusTab({
               cx="128"
               cy="128"
               r="110"
-              stroke="rgba(255, 255, 255, 0.05)"
+              stroke="rgba(255, 255, 255, 0.08)"
               strokeWidth="8"
               fill="transparent"
             />
@@ -673,11 +710,11 @@ export function FocusTab({
           </svg>
 
           {/* TIMER DIGITS */}
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="text-5xl font-semibold tracking-tight text-white tabular-nums drop-shadow-[0_0_15px_rgba(251,146,60,0.35)]">
+          <div className="relative z-20 flex flex-col items-center pointer-events-none select-none">
+            <div className="text-5xl font-semibold tracking-tight text-white tabular-nums drop-shadow-[0_0_20px_rgba(251,146,60,0.5)]">
               {formatTime(secondsLeft)}
             </div>
-            <div className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-2">
+            <div className="text-xs font-semibold text-orange-200 uppercase tracking-widest mt-2 drop-shadow-[0_0_10px_rgba(0,0,0,0.95)]">
               {isPaused ? 'Em Pausa' : isActive ? 'Foco Ativo' : 'Pronto'}
             </div>
           </div>
