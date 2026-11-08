@@ -26,3 +26,4 @@ npm run export:csv
 Ou acesse diretamente via browser com a chave de visualização:
 - **Visualização JSON**: `https://ethos-landing-7j3.pages.dev/api/waitlist?key=ethos_vip_leads`
 - **Download CSV**: `https://ethos-landing-7j3.pages.dev/api/waitlist?key=ethos_vip_leads&format=csv`
+
