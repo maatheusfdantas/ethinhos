@@ -63,7 +63,7 @@ export function FocusTab({
     subclasses: []
   };
 
-  const hasSubclasses = Boolean(currentCategory.has_subclasses && Array.isArray(currentCategory.subclasses) && currentCategory.subclasses.length > 0);
+  const hasSubclasses = Boolean(Array.isArray(currentCategory.subclasses) && currentCategory.subclasses.length > 0);
 
   // Sincronização externa (ex: disparos compartilhados ou atalhos)
   useEffect(() => {
@@ -395,7 +395,7 @@ export function FocusTab({
         {/* 1. SELETOR DE CATEGORIAS DO USUÁRIO */}
         <div className="space-y-2 mb-4">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-            1. Selecione a Categoria de Foco:
+            Categoria de Foco:
           </span>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
             {tags.map((cat) => {
@@ -433,24 +433,22 @@ export function FocusTab({
           </div>
         </div>
 
-        {/* 2. SELETOR OPCIONAL DE SUB-CLASSE / MATÉRIA */}
-        <div className="pt-3 border-t border-white/[0.06]">
-          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              2. Matéria / Sub-classe (Opcional):
-            </span>
-            {hasSubclasses && (
+        {/* SELETOR DE SUB-CLASSE / MATÉRIA (Apenas exibido se houver sub-classes cadastradas) */}
+        {hasSubclasses && (
+          <div className="pt-3 border-t border-white/[0.06]">
+            <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Matéria / Sub-classe:
+              </span>
               <span className="text-[11px] text-slate-400">
                 {selectedSubclassName ? (
-                  <span className="text-emerald-400 font-semibold">✓ Sub-classe selecionada: {selectedSubclassName}</span>
+                  <span className="text-emerald-400 font-semibold">✓ Selecionada: {selectedSubclassName}</span>
                 ) : (
-                  <span className="text-slate-400">Nenhuma selecionada (estudo geral nesta categoria)</span>
+                  <span className="text-slate-400">Geral ({currentCategory.name})</span>
                 )}
               </span>
-            )}
-          </div>
+            </div>
 
-          {hasSubclasses ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Opção 1: Sem subclasse (Geral) */}
@@ -498,24 +496,8 @@ export function FocusTab({
                 })}
               </div>
             </div>
-          ) : (
-            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-slate-400 flex-wrap">
-              <span>
-                A categoria <strong>{currentCategory.name}</strong> não possui sub-classes cadastradas. O foco será contabilizado na categoria geral.
-              </span>
-              {onConfigureCategory && (
-                <button
-                  type="button"
-                  disabled={isActive}
-                  onClick={() => onConfigureCategory(currentCategory)}
-                  className="text-xs text-indigo-300 hover:text-indigo-200 underline font-medium"
-                >
-                  + Adicionar matérias a esta categoria
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ADJUSTABLE DURATION PRESETS & CUSTOM TIME (GLASS PILLS) */}
