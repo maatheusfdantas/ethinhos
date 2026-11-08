@@ -15,6 +15,7 @@ import {
   Mail
 } from 'lucide-react';
 import { IconPicker, CleanIcon } from './IconLibrary';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 const COLOR_OPTIONS = [
   { name: 'Índigo', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)' },
@@ -59,6 +60,7 @@ export function CategoryConfigModal({
 
   // Estado de erro da Restrição Antibug
   const [antiBugError, setAntiBugError] = useState('');
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState(null);
   const subclassInputRef = useRef(null);
 
   useEffect(() => {
@@ -686,7 +688,7 @@ export function CategoryConfigModal({
 
                     <button
                       type="button"
-                      onClick={() => handleRemoveSubclass(s.id)}
+                      onClick={() => setConfirmDeleteTarget({ type: 'subclass', id: s.id, name: s.name })}
                       style={{ background: 'none', border: 'none', color: '#E11D48', cursor: 'pointer', padding: '2px', display: 'flex' }}
                       title={`Remover ${s.name}`}
                     >
@@ -792,7 +794,7 @@ export function CategoryConfigModal({
 
                   <button
                     type="button"
-                    onClick={() => handleRemoveMember(m.id)}
+                    onClick={() => setConfirmDeleteTarget({ type: 'member', id: m.id, name: m.name || m.email })}
                     style={{ background: 'none', border: 'none', color: '#E11D48', cursor: 'pointer', display: 'flex' }}
                     title="Remover membro"
                   >
@@ -810,12 +812,7 @@ export function CategoryConfigModal({
             {!isNew && onDeleteCategory && (
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm(`Tem certeza que deseja excluir a categoria "${name || category.name}"?`)) {
-                    onDeleteCategory(category.id, category.name);
-                    onClose();
-                  }
-                }}
+                onClick={() => setConfirmDeleteTarget({ type: 'category', id: category.id, name: name || category.name })}
                 style={{
                   padding: '9px 16px',
                   borderRadius: '12px',
@@ -878,6 +875,39 @@ export function CategoryConfigModal({
           </div>
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={!!confirmDeleteTarget}
+        onClose={() => setConfirmDeleteTarget(null)}
+        isCategory={confirmDeleteTarget?.type === 'category'}
+        itemName={confirmDeleteTarget?.name}
+        title={
+          confirmDeleteTarget?.type === 'category'
+            ? 'Excluir Categoria Modular'
+            : confirmDeleteTarget?.type === 'subclass'
+            ? 'Remover Sub-classe'
+            : 'Remover Colaborador'
+        }
+        message={
+          confirmDeleteTarget?.type === 'category'
+            ? `Tem certeza que deseja excluir a categoria "${confirmDeleteTarget?.name}"? Esta ação removerá a categoria de todos os módulos.`
+            : confirmDeleteTarget?.type === 'subclass'
+            ? `Deseja remover a sub-classe "${confirmDeleteTarget?.name}" desta categoria?`
+            : `Deseja remover o colaborador "${confirmDeleteTarget?.name}" desta categoria compartilhada?`
+        }
+        onConfirm={() => {
+          if (!confirmDeleteTarget) return;
+          if (confirmDeleteTarget.type === 'category') {
+            onDeleteCategory(confirmDeleteTarget.id, confirmDeleteTarget.name);
+            onClose();
+          } else if (confirmDeleteTarget.type === 'subclass') {
+            handleRemoveSubclass(confirmDeleteTarget.id);
+          } else if (confirmDeleteTarget.type === 'member') {
+            handleRemoveMember(confirmDeleteTarget.id);
+          }
+          setConfirmDeleteTarget(null);
+        }}
+      />
     </div>,
     document.body
   );

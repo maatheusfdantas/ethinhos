@@ -961,7 +961,7 @@ export function DashboardTab({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button
                       type="button"
-                      onClick={handleDeleteLastWater}
+                      onClick={() => setShowWaterConfirm(true)}
                       disabled={waterGlasses <= 0}
                       style={{
                         width: '34px',
@@ -1339,10 +1339,7 @@ export function DashboardTab({
                     {onDeleteTag && (
                       <button
                         type="button"
-                        onClick={() => {
-                          onDeleteTag(t.id, t.name);
-                          showToast?.(`Categoria "${t.name}" excluída`, () => onAddTag?.(t));
-                        }}
+                        onClick={() => setTagToDelete(t)}
                         style={{
                           background: 'none',
                           border: 'none',

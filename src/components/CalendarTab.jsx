@@ -19,6 +19,7 @@ import {
   X
 } from 'lucide-react';
 import { GoogleCalendarConnect } from './GoogleCalendarConnect';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -96,6 +97,7 @@ export function CalendarTab({
 
   // REQUISITO 1: Nenhum menu de evento começa aberto sozinho
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [eventToDelete, setEventToDelete] = useState(null);
 
   // =========================================================================
   // ESTADO DO MODAL LIQUID GLASS DE ADICIONAR / EDITAR EVENTO (NOVO DESIGN)
@@ -332,12 +334,19 @@ export function CalendarTab({
 
   const handleDeleteEventItem = (ev) => {
     setOpenMenuId(null);
+    setEventToDelete(ev);
+  };
+
+  const executeDeleteEventItem = () => {
+    if (!eventToDelete) return;
+    const ev = eventToDelete;
     if (String(ev.id).startsWith('seed_')) {
       setLocalSeedEvents(prev => prev.filter(item => item.id !== ev.id));
     } else {
       onDeleteEvent?.(ev.id);
     }
     showToast?.(`Evento "${ev.title}" removido.`);
+    setEventToDelete(null);
   };
 
   // =========================================================================

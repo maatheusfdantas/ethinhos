@@ -416,7 +416,7 @@ export function SocialTab({
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleRemoveConnection(f.id)}
+                      onClick={() => setConnectionToRemove(f)}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
                       title="Desconectar"
                     >
@@ -503,7 +503,7 @@ export function SocialTab({
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleRemoveConnection(target.id)}
+                            onClick={() => setConnectionToRemove(target)}
                             className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-slate-400 text-xs hover:text-white"
                           >
                             Recusar
@@ -569,7 +569,7 @@ export function SocialTab({
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleRemoveConnection(f.id)}
+                        onClick={() => setConnectionToRemove(f)}
                         className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-400 text-xs"
                       >
                         Recusar
@@ -609,7 +609,7 @@ export function SocialTab({
                       <span className="text-xs text-slate-400 italic">Aguardando resposta</span>
                       <button
                         type="button"
-                        onClick={() => handleRemoveConnection(f.id)}
+                        onClick={() => setConnectionToRemove(f)}
                         className="text-xs text-slate-500 hover:text-rose-400"
                         title="Cancelar solicitação"
                       >

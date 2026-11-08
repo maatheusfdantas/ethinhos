@@ -1756,14 +1756,14 @@ button, input, select, textarea {
   }
 }
 
-/* Botão Hamburger para abrir o menu completo em celulares e tablets (< 1024px) */
+/* Em celulares e tablets o menu lateral não existe, apenas a barra de tarefas */
 .ethos-mobile-menu-btn {
-  display: flex !important;
+  display: none !important;
 }
 
-@media (min-width: 1024px) {
-  .ethos-mobile-menu-btn {
-    display: none !important;
+@media (max-width: 1023px) {
+  .ethos-main-content {
+    padding-bottom: 96px !important;
   }
 }
 

@@ -132,7 +132,6 @@ export function App() {
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [bootKey, setBootKey] = useState(0);
 
   // Passo B & Passo D: Configuração Avançada de Categoria & Dinâmica Colaborativa em Tempo Real
@@ -530,8 +529,6 @@ export function App() {
           onOpenProfile={() => setShowProfileModal(true)}
           onOpenAuth={() => setShowAuthModal(true)}
           onLogout={handleLogout}
-          mobileOpen={showMobileMenu}
-          onCloseMobile={() => setShowMobileMenu(false)}
         />
 
         {/* 2. ÁREA DE CONTEÚDO PRINCIPAL */}
@@ -540,27 +537,7 @@ export function App() {
           {/* TOP HEADER: Botão Menu Mobile + "Hi, Dilan!" + [+ Create] + Search + Bell + Avatar */}
           <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-              <button
-                type="button"
-                onClick={() => setShowMobileMenu(true)}
-                className="ethos-mobile-menu-btn"
-                title="Abrir Menu"
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '12px',
-                  backgroundColor: '#211F38',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(33, 31, 56, 0.22)'
-                }}
-              >
-                <Menu size={18} />
-              </button>
+              
 
               <h1 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 700, color: '#1A1B2F', letterSpacing: '-0.02em', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {activeTab === 'workouts' ? 'Workout & Fitness' : `Hi, ${firstName}!`}

@@ -967,7 +967,7 @@ export function HabitsTab({
                   {/* Botão de Excluir Hábito */}
                   <button
                     type="button"
-                    onClick={() => handleDeleteHabit(habit.id)}
+                    onClick={() => setHabitToDelete(habit)}
                     style={{
                       width: '34px',
                       height: '34px',

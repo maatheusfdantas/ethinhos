@@ -179,6 +179,7 @@ export function BadHabitsTab({ user, showToast }) {
   // Modais
   const [showAddModal, setShowAddModal] = useState(false);
   const [relapseModalHabit, setRelapseModalHabit] = useState(null);
+  const [badHabitToDelete, setBadHabitToDelete] = useState(null);
   const [selectedTrigger, setSelectedTrigger] = useState('Estresse / Sobrecarga');
   const [relapseLesson, setRelapseLesson] = useState('');
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -428,10 +429,15 @@ export function BadHabitsTab({ user, showToast }) {
 
   // Excluir vício
   const handleDeleteHabit = (id, title) => {
-    if (confirm(`Deseja remover o acompanhamento de "${title}"?`)) {
-      setBadHabits(prev => prev.filter(h => h.id !== id));
-      showToast?.(`Acompanhamento de "${title}" removido.`);
-    }
+    setBadHabitToDelete({ id, title });
+  };
+
+  const executeDeleteBadHabit = () => {
+    if (!badHabitToDelete) return;
+    const { id, title } = badHabitToDelete;
+    setBadHabits(prev => prev.filter(h => h.id !== id));
+    showToast?.(`Acompanhamento de "${title}" removido.`);
+    setBadHabitToDelete(null);
   };
 
   // Confirmar Recaída (Reset com Acolhimento)

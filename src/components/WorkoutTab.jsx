@@ -242,6 +242,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
   const [showFinishConfirmModal, setShowFinishConfirmModal] = useState(false);
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
   const [showDeleteExerciseConfirm, setShowDeleteExerciseConfirm] = useState(null);
+  const [workoutToDelete, setWorkoutToDelete] = useState(null);
 
   // Estados de Criação de Ficha
   const [newWorkoutName, setNewWorkoutName] = useState('');
@@ -1955,7 +1956,7 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteWorkout(w.id);
+                        setWorkoutToDelete(w);
                       }}
                       title="Excluir ficha de treino"
                       style={{
@@ -1986,6 +1987,21 @@ export function WorkoutTab({ workouts, setWorkouts, onCompleteWorkout }) {
       {/* =====================================================================
           MODAIS FUNCIONAIS
          ===================================================================== */}
+
+      {/* MODAL DE CONFIRMAÇÃO PARA EXCLUIR FICHA DE TREINO */}
+      <ConfirmDeleteModal
+        isOpen={!!workoutToDelete}
+        onClose={() => setWorkoutToDelete(null)}
+        isCategory={false}
+        itemName={workoutToDelete?.name}
+        title="Excluir Ficha de Treino"
+        message={`Tem certeza que deseja apagar a ficha de treino "${workoutToDelete?.name}"? Todos os exercícios e configurações associados serão removidos.`}
+        onConfirm={() => {
+          if (!workoutToDelete) return;
+          handleDeleteWorkout(workoutToDelete.id);
+          setWorkoutToDelete(null);
+        }}
+      />
 
       {/* MODAL: EDITAR FICHA DE TREINO */}
       {showEditWorkoutModal && (

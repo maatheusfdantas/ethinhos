@@ -305,59 +305,22 @@ export function DesktopSidebar({
   );
 
   return (
-    <>
-      {/* SIDEBAR DESKTOP (VISÍVEL APENAS EM >= 1024px) */}
-      <aside 
-        style={{
-          backgroundColor: '#211F38',
-          borderRadius: '26px',
-          padding: '28px 18px',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          color: '#E2E4F0',
-          boxShadow: '0 20px 45px rgba(20, 18, 40, 0.25)',
-          userSelect: 'none'
-        }}
-        className="ethos-desktop-sidebar"
-      >
-        {renderSidebarContent(false)}
-      </aside>
-
-      {/* DRAWER LATERAL MOBILE / TABLET (QUANDO ABERTO PELO BOTÃO HAMBURGER) */}
-      {mobileOpen && (
-        <div
-          onClick={onCloseMobile}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9990,
-            backgroundColor: 'rgba(15, 14, 30, 0.55)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            display: 'flex'
-          }}
-        >
-          <aside
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '268px',
-              maxWidth: '82vw',
-              height: '100%',
-              backgroundColor: '#211F38',
-              padding: '24px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              color: '#E2E4F0',
-              boxShadow: '16px 0 45px rgba(10, 8, 24, 0.45)',
-              overflowY: 'auto'
-            }}
-          >
-            {renderSidebarContent(true)}
-          </aside>
-        </div>
-      )}
-    </>
+    /* SIDEBAR DESKTOP (VISÍVEL APENAS EM >= 1024px; EM TABLETS E CELULARES NÃO EXISTE MENU LATERAL, APENAS A BARRA DE TAREFAS) */
+    <aside 
+      style={{
+        backgroundColor: '#211F38',
+        borderRadius: '26px',
+        padding: '28px 18px',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        color: '#E2E4F0',
+        boxShadow: '0 20px 45px rgba(20, 18, 40, 0.25)',
+        userSelect: 'none'
+      }}
+      className="ethos-desktop-sidebar"
+    >
+      {renderSidebarContent(false)}
+    </aside>
   );
 }
 

@@ -1,17 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  X, 
-  User, 
-  ChevronDown, 
-  ChevronUp, 
-  Check, 
-  AlertTriangle, 
-  Download, 
-  LogOut, 
-  Trash2, 
-  Camera, 
-  ShieldCheck, 
+import {
+  X,
+  User,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  AlertTriangle,
+  Download,
+  LogOut,
+  Trash2,
+  Camera,
+  ShieldCheck,
   Sliders,
   Lock,
   LayoutGrid,
@@ -49,6 +49,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordFeedback, setPasswordFeedback] = useState({ type: '', text: '' });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showEraseModal, setShowEraseModal] = useState(false);
 
   // Preferências de Páginas da Interface
   const defaultPagePreferences = {
@@ -66,7 +67,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
     try {
       const saved = localStorage.getItem(`ethos_pages_${user?.id || 'default'}`);
       if (saved) return { ...defaultPagePreferences, ...JSON.parse(saved) };
-    } catch (e) {}
+    } catch (e) { }
     return { ...defaultPagePreferences, ...(user?.pagePreferences || {}) };
   });
 
@@ -786,7 +787,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                       <input
                         type="checkbox"
                         checked={isEnabled}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         style={{ cursor: 'pointer', accentColor: '#6366F1' }}
                       />
                     )}
@@ -855,9 +856,9 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
 
             <button
               type="button"
-              onClick={handleEraseAccount}
+              onClick={() => setShowEraseModal(true)}
               style={{
-                background: confirmDelete 
+                background: confirmDelete
                   ? 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)'
                   : 'rgba(239, 68, 68, 0.12)',
                 border: '1px solid rgba(239, 68, 68, 0.35)',
@@ -877,6 +878,27 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
         </div>
 
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={showEraseModal}
+        onClose={() => setShowEraseModal(false)}
+        isCategory={false}
+        itemName={user?.email || user?.name || 'sua conta'}
+        title="Excluir Conta Permanentemente"
+        message="Atenção: Todos os seus registros, hábitos, agenda, telemetria e credenciais serão permanentemente apagados dos nossos servidores de forma irreversível (LGPD)."
+        onConfirm={async () => {
+          try {
+            if (user?.id && user.role !== 'admin') {
+              await fetch(`/api/user/${user.id}/privacy/erase`, { method: 'DELETE' });
+            }
+            setShowEraseModal(false);
+            onLogout?.();
+            onClose();
+          } catch (_err) {
+            alert('Falha ao excluir a conta.');
+          }
+        }}
+      />
     </div>,
     document.body
   );

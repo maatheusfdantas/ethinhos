@@ -11,6 +11,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { RefreshCw, ExternalLink, X, AlertCircle, KeyRound, Play } from 'lucide-react';
 
 const GOOGLE_OAUTH_START_URL = '/api/auth/google';
@@ -31,6 +32,7 @@ export function GoogleCalendarConnect({ userId = TEST_USER_ID }) {
   });
 
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [clientIdInput, setClientIdInput] = useState('');
   const [clientSecretInput, setClientSecretInput] = useState('');
@@ -677,7 +679,7 @@ export function GoogleCalendarConnect({ userId = TEST_USER_ID }) {
                 {status.connected && (
                   <button
                     type="button"
-                    onClick={handleDisconnect}
+                    onClick={() => setShowDisconnectConfirm(true)}
                     style={{
                       padding: '8px 14px',
                       borderRadius: '10px',
@@ -722,6 +724,18 @@ export function GoogleCalendarConnect({ userId = TEST_USER_ID }) {
           </div>,
           document.body
         )}
+      <ConfirmDeleteModal
+        isOpen={showDisconnectConfirm}
+        onClose={() => setShowDisconnectConfirm(false)}
+        isCategory={false}
+        itemName="Google Agenda"
+        title="Desconectar Google Agenda"
+        message="Deseja desconectar sua conta do Google Agenda deste dispositivo? A sincronização de eventos será interrompida."
+        onConfirm={async () => {
+          await handleDisconnect();
+          setShowDisconnectConfirm(false);
+        }}
+      />
     </>
   );
 }
