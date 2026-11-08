@@ -153,48 +153,6 @@ export function DesktopSidebar({
           })}
         </nav>
 
-        {/* 3. AÇÃO RÁPIDA */}
-        <div style={{ marginTop: '24px', padding: '0 10px' }}>
-          <button
-            type="button"
-            onClick={() => {
-              onCloseMobile?.();
-              onOpenAdd?.();
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px dashed rgba(169, 171, 198, 0.35)',
-              borderRadius: '12px',
-              padding: '9px 12px',
-              width: '100%',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#D8DAE8'
-            }}
-          >
-            <span 
-              style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                backgroundColor: '#56548A',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#FFFFFF',
-                flexShrink: 0
-              }}
-            >
-              <Plus size={12} />
-            </span>
-            <span>Novo Hábito / Evento</span>
-          </button>
-        </div>
-
         {/* 4. ÁREAS DE FOCO / CATEGORIAS MODULARES (PASSO B) */}
         <div style={{ marginTop: '24px', padding: '0 10px' }}>
           <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>
