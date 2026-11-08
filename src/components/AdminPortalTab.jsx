@@ -41,38 +41,7 @@ import {
   X
 } from 'lucide-react';
 
-const DEFAULT_WAITLIST_SEED = [
-  {
-    id: 'wl_1',
-    name: 'Mariana Albuquerque',
-    email: 'mariana.albuquerque@gmail.com',
-    phone: '(11) 99812-4410',
-    interest: 'Foco profundo e rotina de estudos acadêmicos',
-    source: 'https://ethos-landing-7j3.pages.dev',
-    status: 'pendente',
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString()
-  },
-  {
-    id: 'wl_2',
-    name: 'Rafael Vasconcelos',
-    email: 'rafael.vasc@outlook.com',
-    phone: '(21) 98734-1920',
-    interest: 'Consistência na academia e controle de hábitos matinais',
-    source: 'https://ethos-landing-7j3.pages.dev',
-    status: 'aprovado',
-    created_at: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    id: 'wl_3',
-    name: 'Camila Nogueira',
-    email: 'camila.nogueira@usp.br',
-    phone: '(19) 99241-8803',
-    interest: 'Superar procrastinação e organizar matérias da faculdade',
-    source: 'https://ethos-landing-7j3.pages.dev',
-    status: 'pendente',
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString()
-  }
-];
+const DEFAULT_WAITLIST_SEED = [];
 
 export function AdminPortalTab({ onSystemReset }) {
   const [activeAdminSection, setActiveAdminSection] = useState('users'); // 'users' | 'waitlist' | 'support' | 'logs' | 'security' | 'settings'
@@ -90,7 +59,7 @@ export function AdminPortalTab({ onSystemReset }) {
   const [manualPasswordInput, setManualPasswordInput] = useState('');
 
   // 2. LISTA DE ESPERA (WAITLIST DA LANDING PAGE)
-  const [waitlist, setWaitlist] = useState(DEFAULT_WAITLIST_SEED);
+  const [waitlist, setWaitlist] = useState([]);
   const [waitlistSearch, setWaitlistSearch] = useState('');
 
   // 3. MONITORAMENTO E LOGS (OBSERVABILIDADE)
@@ -101,87 +70,36 @@ export function AdminPortalTab({ onSystemReset }) {
 
   // 4. SEGURANÇA E CONTROLE DE ACESSO
   const [requireAdmin2FA, setRequireAdmin2FA] = useState(true);
-  const [activeAdminSessions, setActiveAdminSessions] = useState([
-    {
-      id: 'sess_adm_1',
-      adminName: 'Administrador Ethos',
-      email: 'admin@ethos.dev',
-      ip: '189.44.120.18',
-      device: 'Windows 11 • Chrome 131 (Sessão Atual)',
-      startedAt: new Date(Date.now() - 1800000).toISOString(),
-      twoFactorVerified: true,
-      current: true
-    },
-    {
-      id: 'sess_adm_2',
-      adminName: 'Matheus Dantas (Admin)',
-      email: 'matheus@ethos.dev',
-      ip: '177.92.41.209',
-      device: 'iOS 18 • Safari Mobile',
-      startedAt: new Date(Date.now() - 7200000).toISOString(),
-      twoFactorVerified: true,
-      current: false
-    }
-  ]);
-  const [rateLimitEvents, setRateLimitEvents] = useState([
-    {
-      id: 'rl_1',
-      ip: '45.148.10.92',
-      endpoint: 'POST /api/auth/login',
-      target: 'admin@ethos.dev',
-      attempts: 7,
-      status: 'bloqueado',
-      timestamp: new Date(Date.now() - 900000).toISOString()
-    },
-    {
-      id: 'rl_2',
-      ip: '191.212.44.11',
-      endpoint: 'POST /api/auth/forgot-password',
-      target: 'lucas@ethos.dev',
-      attempts: 5,
-      status: 'monitorado',
-      timestamp: new Date(Date.now() - 5400000).toISOString()
-    }
-  ]);
+  const [activeAdminSessions, setActiveAdminSessions] = useState([]);
+  const [rateLimitEvents, setRateLimitEvents] = useState([]);
 
   // 5. CONFIGURAÇÕES E FEATURE FLAGS
-  const [systemSettings, setSystemSettings] = useState({
-    maintenanceMode: false,
-    maintenanceMessage: 'O Ethos está em manutenção programada para atualização de infraestrutura. Voltamos em instantes.',
-    maxUploadMb: 10,
-    sessionTimeoutMinutes: 60,
-    maxLoginAttempts: 5,
-    featureFlags: {
-      xpGamification: true,
-      stickyNotesProfile: true,
-      workoutStopwatchLock: true,
-      socialPlaylistsFeed: true,
-      googleCalendarSync: true,
-      aiHabitSuggestions: false
-    }
+  const [systemSettings, setSystemSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ethos_admin_system_settings');
+      if (saved) return JSON.parse(saved);
+    } catch (_e) {}
+    return {
+      maintenanceMode: false,
+      maintenanceMessage: 'O Ethos está em manutenção programada para atualização de infraestrutura. Voltamos em instantes.',
+      maxUploadMb: 10,
+      sessionTimeoutMinutes: 60,
+      maxLoginAttempts: 5,
+      featureFlags: {
+        xpGamification: true,
+        stickyNotesProfile: true,
+        workoutStopwatchLock: true,
+        socialPlaylistsFeed: true,
+        googleCalendarSync: true,
+        aiHabitSuggestions: false
+      }
+    };
   });
 
   // 6. CENTRAL DE SUPORTE E MODERAÇÃO
   const [tickets, setTickets] = useState([]);
   const [replyTextMap, setReplyTextMap] = useState({});
-  const [moderatedPosts, setModeratedPosts] = useState([
-    {
-      id: 'mod_1',
-      author: 'Bruno (@bruno.preguica)',
-      content: 'Link externo suspeito divulgado nos comentários da comunidade.',
-      reportedReason: 'Spam / Link Externo',
-      hidden: false,
-      createdAt: 'Há 2 horas'
-    },
-    {
-      id: 'mod_2',
-      author: 'Lucas (@lucas)',
-      content: 'Completei 14 dias seguidos de treino A/B/C com 100% de consistência!',
-      reportedReason: 'Verificado / Sem violação',
-      hidden: false,
-      createdAt: 'Há 4 horas'
-    }
-  ]);
+  const [moderatedPosts, setModeratedPosts] = useState([]);
 
   const showToast = (msg) => {
     setNotification(msg);
@@ -233,11 +151,7 @@ export function AdminPortalTab({ onSystemReset }) {
       const tRes = await fetch('/api/admin/tickets');
       if (tRes.ok) {
         const tData = await tRes.json();
-        const merged = new Map();
-        for (const t of [...(tData.tickets || []), ...localTickets]) {
-          if (!merged.has(t.id)) merged.set(t.id, t);
-        }
-        setTickets(Array.from(merged.values()));
+        setTickets(tData.tickets || []);
       } else {
         setTickets(localTickets);
       }
@@ -1834,8 +1748,11 @@ export function AdminPortalTab({ onSystemReset }) {
                 type="button"
                 className="btn-primary"
                 onClick={() => {
+                  try {
+                    localStorage.setItem('ethos_admin_system_settings', JSON.stringify(systemSettings));
+                  } catch (_e) {}
                   recordAdminAudit('GLOBAL_PARAMETERS_SAVED', JSON.stringify(systemSettings));
-                  showToast('Parâmetros globais salvos e aplicados em tempo real!');
+                  showToast('Parâmetros globais salvos e aplicados com sucesso!');
                 }}
               >
                 Salvar Parâmetros Globais

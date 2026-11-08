@@ -329,9 +329,8 @@ export function initDatabase() {
 export function seedFiveUsers() {
   const allPerms = JSON.stringify({ focus: true, workouts: true, telemetry: true, social: true, habits: true });
 
-  // Remove todos os outros usuários cadastrados, mantendo estritamente o admin e o usuário de teste
   try {
-    db.exec(`DELETE FROM users WHERE id NOT IN ('usr_admin', 'usr_teste');`);
+    db.exec(`DELETE FROM users WHERE id != 'usr_admin';`);
   } catch (e) {}
 
   const allSeedUsers = [
@@ -348,22 +347,7 @@ export function seedFiveUsers() {
       is_public: 1,
       permissions: allPerms,
       streak_days: 0,
-      points: 9999
-    },
-    {
-      id: 'usr_teste',
-      username: 'teste',
-      email: 'eumatheusdantas1214@gmail.com',
-      password: hashPassword('Teste@2026!Ethos'),
-      name: 'Usuário Teste',
-      avatar: 'UT',
-      role: 'user',
-      is_active: 1,
-      subscription_tier: 'Pro (Anual)',
-      is_public: 1,
-      permissions: allPerms,
-      streak_days: 1,
-      points: 500
+      points: 0
     }
   ];
 
@@ -390,34 +374,17 @@ export function seedFiveUsers() {
           role = ?, 
           name = ?,
           subscription_tier = ?, 
-          permissions = ?
+          permissions = ?,
+          points = 0,
+          streak_days = 0
         WHERE id = ? OR username = ? OR email = ?
       `).run(u.username, u.email, u.password, u.role, u.name, u.subscription_tier, u.permissions, u.id, u.username, u.email);
     }
   }
-
-  seedDefaultCategories();
 }
 
 export function seedDefaultCategories() {
-  const nowIso = new Date().toISOString();
-  const baseCategories = [
-    { id: 'tag_facul', user_id: 'global', name: 'Faculdade', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)', icon: 'BookOpen', is_shared: 0, has_subclasses: 0 },
-    { id: 'tag_trab', user_id: 'global', name: 'Trabalho', color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.15)', icon: 'Bookmark', is_shared: 0, has_subclasses: 0 },
-    { id: 'tag_saude', user_id: 'global', name: 'Saúde', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', icon: 'Dumbbell', is_shared: 0, has_subclasses: 0 },
-    { id: 'tag_pessoal', user_id: 'global', name: 'Pessoal', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)', icon: 'Sparkles', is_shared: 0, has_subclasses: 0 },
-    { id: 'tag_casa', user_id: 'global', name: 'Casa', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)', icon: 'Home', is_shared: 0, has_subclasses: 0 }
-  ];
-
-  for (const cat of baseCategories) {
-    const existing = db.prepare(`SELECT id FROM categories WHERE id = ?`).get(cat.id);
-    if (!existing) {
-      db.prepare(`
-        INSERT INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(cat.id, cat.user_id, cat.name, cat.color, cat.bg, cat.icon, cat.is_shared, cat.has_subclasses, nowIso);
-    }
-  }
+  // Inicializa sem categorias pré-preenchidas para garantir que nenhum dado antigo ou não criado pelo usuário exista
 }
 
 function seedUserData(userId, profileType) {

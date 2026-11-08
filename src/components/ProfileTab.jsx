@@ -225,33 +225,6 @@ export function ProfileTab({
   // -------------------------------------------------------------------------
   // 4. FEED DE PLAYLISTS DO USUÁRIO
   // -------------------------------------------------------------------------
-  const defaultPlaylists = [
-    {
-      id: 'pl_1',
-      title: 'Foco Profundo & Código',
-      platform: 'spotify',
-      url: 'https://open.spotify.com/playlist/37i9dQZF1DXdLEN7aqioXM',
-      description: 'Lofi beats, ambient e synthwave para sessões de trabalho intenso',
-      accentColor: '#1DB954'
-    },
-    {
-      id: 'pl_2',
-      title: 'Treino Hipertrofia Pesado',
-      platform: 'spotify',
-      url: 'https://open.spotify.com/playlist/37i9dQZF1DX76t638V64Cr',
-      description: 'Phonk, hip-hop e rock energético para os dias de musculação',
-      accentColor: '#F43F5E'
-    },
-    {
-      id: 'pl_3',
-      title: 'Vibes Noturnas & Relax',
-      platform: 'youtube',
-      url: 'https://music.youtube.com',
-      description: 'Trilha sonora calmante para desacelerar a mente após a rotina',
-      accentColor: '#FF0000'
-    }
-  ];
-
   const [playlists, setPlaylists] = useState(() => {
     try {
       if (Array.isArray(user?.playlists) && user.playlists.length > 0) {
@@ -260,7 +233,7 @@ export function ProfileTab({
       const saved = localStorage.getItem(`ethos_playlists_${user?.id || 'default'}`);
       if (saved) return JSON.parse(saved);
     } catch (_e) {}
-    return defaultPlaylists;
+    return [];
   });
 
   const [showAddPlaylistModal, setShowAddPlaylistModal] = useState(false);
@@ -331,31 +304,12 @@ export function ProfileTab({
   // -------------------------------------------------------------------------
   // 5. NOTAS EM POST-IT NO PERFIL DO USUÁRIO
   // -------------------------------------------------------------------------
-  const defaultPostIts = [
-    {
-      id: 'pi_1',
-      title: 'Meta Principal do Mês',
-      content: 'Manter 100% de constância nos estudos e treinar pelo menos 4x na semana sem furar!',
-      colorId: 'yellow',
-      pinned: true,
-      createdAt: 'Hoje'
-    },
-    {
-      id: 'pi_2',
-      title: 'Lembrete Mental',
-      content: 'Pequenos hábitos diários constroem resultados extraordinários no longo prazo.',
-      colorId: 'blue',
-      pinned: false,
-      createdAt: 'Ontem'
-    }
-  ];
-
   const [postIts, setPostIts] = useState(() => {
     try {
       const saved = localStorage.getItem(`ethos_postits_${user?.id || 'default'}`);
       if (saved) return JSON.parse(saved);
     } catch (_e) {}
-    return defaultPostIts;
+    return [];
   });
 
   const [showPostItModal, setShowPostItModal] = useState(false);

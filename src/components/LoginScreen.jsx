@@ -1077,41 +1077,6 @@ export function LoginScreen({ onLoginSuccess }) {
           <a href="#privacidade" onClick={(e) => e.preventDefault()} style={{ color: '#64748b', textDecoration: 'none' }}>Política de Privacidade</a>
           <span>© 2024 Ethos</span>
         </div>
-
-        {/* Atalho discreto para contas de demonstração */}
-        <div 
-          style={{
-            marginTop: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            opacity: 0.45,
-            transition: 'opacity 0.2s'
-          }}
-          onMouseOver={(e) => (e.currentTarget.style.opacity = '1')}
-          onMouseOut={(e) => (e.currentTarget.style.opacity = '0.45')}
-        >
-          <span style={{ fontSize: '10px', color: '#64748b' }}>Acesso Rápido:</span>
-          {FIVE_SEEDED_USERS.map((u) => (
-            <button
-              key={u.id}
-              type="button"
-              onClick={() => handleQuickLogin(u)}
-              style={{
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontSize: '10px',
-                backgroundColor: 'rgba(203, 213, 225, 0.6)',
-                color: '#334155',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              {u.name.split(' ')[0]} ({u.role === 'admin' ? 'Admin' : 'Teste'})
-            </button>
-          ))}
-        </div>
       </div>
 
     </div>

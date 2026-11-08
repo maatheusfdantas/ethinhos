@@ -72,11 +72,10 @@ export function App() {
   });
   const [workouts, setWorkouts] = useState(() => {
     try {
-      const activeId = localStorage.getItem('ethos_user_id') || 'usr_teste';
-      const saved = localStorage.getItem(`ethos_workouts_${activeId}`);
-      if (saved) return JSON.parse(saved);
-      if (activeId === 'usr_teste' || activeId === 'usr_admin') {
-        return INITIAL_WORKOUTS;
+      const activeId = localStorage.getItem('ethos_user_id') || user?.id;
+      if (activeId) {
+        const saved = localStorage.getItem(`ethos_workouts_${activeId}`);
+        if (saved) return JSON.parse(saved);
       }
       return [];
     } catch (e) {
@@ -142,10 +141,10 @@ export function App() {
   const [configCategory, setConfigCategory] = useState(null);
   const [syncedFocusRequest, setSyncedFocusRequest] = useState(null);
   const [sharedPomodoroAlert, setSharedPomodoroAlert] = useState({
-    active: true,
-    memberName: 'Sebastian',
-    categoryName: 'Faculdade',
-    subclassName: 'Redes de Computadores'
+    active: false,
+    memberName: '',
+    categoryName: '',
+    subclassName: ''
   });
 
   // Discreet Toast Notification (with Undo / Ctrl+Z support)
@@ -167,35 +166,9 @@ export function App() {
         if (data.events) setEvents(data.events);
         if (data.health) setHealth(data.health);
         if (data.tags && data.tags.length > 0) {
-          const mergedTags = INITIAL_TAGS.map((initTag) => {
-            const backendMatch = data.tags.find((bt) => bt.id === initTag.id || bt.name === initTag.name);
-            if (!backendMatch) return initTag;
-            return {
-              ...initTag,
-              ...backendMatch,
-              is_shared: backendMatch.is_shared !== undefined ? Boolean(backendMatch.is_shared) : initTag.is_shared,
-              has_subclasses:
-                backendMatch.has_subclasses !== undefined ? Boolean(backendMatch.has_subclasses) : initTag.has_subclasses,
-              subclasses:
-                Array.isArray(backendMatch.subclasses) && backendMatch.subclasses.length > 0
-                  ? backendMatch.subclasses
-                  : initTag.subclasses || [],
-              members:
-                Array.isArray(backendMatch.members) && backendMatch.members.length > 0
-                  ? backendMatch.members
-                  : initTag.members || []
-            };
-          });
-          const extraTags = data.tags
-            .filter((t) => !INITIAL_TAGS.find((it) => it.id === t.id || it.name === t.name))
-            .map((t) => ({
-              ...t,
-              is_shared: Boolean(t.is_shared),
-              has_subclasses: Boolean(t.has_subclasses),
-              subclasses: Array.isArray(t.subclasses) ? t.subclasses : [],
-              members: Array.isArray(t.members) ? t.members : []
-            }));
-          setTags([...mergedTags, ...extraTags]);
+          setTags(data.tags);
+        } else {
+          setTags([]);
         }
         if (data.user) {
           setUser(prev => ({ ...prev, ...data.user }));
