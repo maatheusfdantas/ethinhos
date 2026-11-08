@@ -509,11 +509,9 @@ export function checkLoginBruteForce(identifier) {
   if (!record) return { allowed: true };
 
   if (record.lockUntil && record.lockUntil > Date.now()) {
-    const waitSeconds = Math.ceil((record.lockUntil - Date.now()) / 1000);
     return {
       allowed: false,
-      waitSeconds,
-      message: `Muitas tentativas falhas de login. Conta temporariamente protegida por ${waitSeconds}s.`
+      message: 'Muitas tentativas de login. Tente novamente mais tarde.'
     };
   }
   return { allowed: true };

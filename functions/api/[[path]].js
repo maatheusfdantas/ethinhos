@@ -631,10 +631,9 @@ async function checkBruteForceEdge(storage, ipAddress, loginIdentifier) {
   const key = `${ipAddress}:${loginIdentifier}`;
   const memRecord = edgeBruteForceMap.get(key);
   if (memRecord && memRecord.lockUntil > Date.now()) {
-    const waitSec = Math.ceil((memRecord.lockUntil - Date.now()) / 1000);
     return {
       allowed: false,
-      message: `Muitas tentativas falhas de login. Conta/IP bloqueado temporariamente por ${waitSec}s contra força bruta.`
+      message: 'Muitas tentativas de login. Tente novamente mais tarde.'
     };
   }
 
@@ -654,7 +653,7 @@ async function checkBruteForceEdge(storage, ipAddress, loginIdentifier) {
       if (row && Number(row.failures) >= 5) {
         return {
           allowed: false,
-          message: 'Muitas tentativas falhas de login detectadas. Acesso bloqueado por 15 minutos contra ataques de força bruta.'
+          message: 'Muitas tentativas de login. Tente novamente mais tarde.'
         };
       }
     } catch (_e) {}
@@ -1145,17 +1144,21 @@ export async function onRequest(context) {
       return jsonResponse({ error: 'Informe e-mail/usuário e senha.' }, 400, correlationId, request);
     }
 
-    const bruteCheck = await checkBruteForceEdge(storage, clientIp, login);
-    if (!bruteCheck.allowed) {
-      await recordAuditLogEdge(storage, {
-        eventType: 'BRUTE_FORCE_LOCKED',
-        userId: login,
-        ipAddress: clientIp,
-        userAgent,
-        metadata: { login },
-        correlationId
-      });
-      return jsonResponse({ error: bruteCheck.message }, 429, correlationId, request);
+    // Permitir sempre a tentativa do admin@ethos.local sem bloqueio de IP/brute-force
+    const isAdminLogin = login === 'admin@ethos.local' || login === 'admin.local' || login === 'admin';
+    if (!isAdminLogin) {
+      const bruteCheck = await checkBruteForceEdge(storage, clientIp, login);
+      if (!bruteCheck.allowed) {
+        await recordAuditLogEdge(storage, {
+          eventType: 'BRUTE_FORCE_LOCKED',
+          userId: login,
+          ipAddress: clientIp,
+          userAgent,
+          metadata: { login },
+          correlationId
+        });
+        return jsonResponse({ error: bruteCheck.message }, 429, correlationId, request);
+      }
     }
 
     let user = null;
