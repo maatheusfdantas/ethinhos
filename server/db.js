@@ -268,6 +268,12 @@ export function initDatabase() {
   try {
     db.exec(`ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '';`);
   } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN playlists TEXT DEFAULT '[]';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN shared_metrics TEXT DEFAULT '{}';`);
+  } catch (e) {}
 
   // 9. Tabela de Checkins de Hábitos (Engine Analítica)
   db.exec(`

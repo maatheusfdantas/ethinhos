@@ -651,7 +651,7 @@ export function App() {
               {/* Avatar Circular do Usuário */}
               <button
                 type="button"
-                onClick={() => setShowProfileModal(true)}
+                onClick={() => setActiveTab('profile')}
                 style={{
                   width: '42px',
                   height: '42px',
@@ -935,6 +935,19 @@ export function App() {
                 )}
 
                 {/* TAB 7: PORTAL ADMIN */}
+                {activeTab === 'profile' && (
+                  <ProfileTab
+                    user={user}
+                    setUser={setUser}
+                    habits={habits}
+                    workouts={workouts}
+                    badges={badges}
+                    friends={friends}
+                    showToast={showToast}
+                    onOpenSettings={() => setShowProfileModal(true)}
+                  />
+                )}
+
                 {activeTab === 'admin' && (
                   <AdminPortalTab
                     onSystemReset={handleSystemReset}

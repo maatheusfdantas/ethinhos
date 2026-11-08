@@ -543,11 +543,15 @@ try {
 
 app.put('/api/user/:id/profile', (req, res) => {
   const { id } = req.params;
-  const { name, is_public, weight, height, pagePreferences } = req.body;
+  const { name, bio, avatar, playlists, sharedMetrics, is_public, weight, height, pagePreferences } = req.body;
 
   db.prepare(`
     UPDATE users SET
       name = COALESCE(?, name),
+      bio = CASE WHEN ? IS NOT NULL THEN ? ELSE bio END,
+      avatar = CASE WHEN ? IS NOT NULL THEN ? ELSE avatar END,
+      playlists = CASE WHEN ? IS NOT NULL THEN ? ELSE playlists END,
+      shared_metrics = CASE WHEN ? IS NOT NULL THEN ? ELSE shared_metrics END,
       is_public = CASE WHEN ? IS NOT NULL THEN ? ELSE is_public END,
       weight = CASE WHEN ? IS NOT NULL THEN ? ELSE weight END,
       height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END,
@@ -555,6 +559,14 @@ app.put('/api/user/:id/profile', (req, res) => {
     WHERE id = ?
   `).run(
     name || null,
+    bio !== undefined ? bio : null,
+    bio !== undefined ? bio : null,
+    avatar !== undefined ? avatar : null,
+    avatar !== undefined ? avatar : null,
+    playlists !== undefined ? JSON.stringify(playlists) : null,
+    playlists !== undefined ? JSON.stringify(playlists) : null,
+    sharedMetrics !== undefined ? JSON.stringify(sharedMetrics) : null,
+    sharedMetrics !== undefined ? JSON.stringify(sharedMetrics) : null,
     is_public !== undefined ? (is_public ? 1 : 0) : null,
     is_public !== undefined ? (is_public ? 1 : 0) : null,
     weight !== undefined && weight !== null ? Number(weight) : null,
@@ -767,16 +779,37 @@ app.get('/api/user/:id/data', (req, res) => {
 
   const user = db
     .prepare(
-      `SELECT id, username, email, name, avatar, role, is_active, subscription_tier, is_public, streak_days, points, weight, height, page_preferences FROM users WHERE id = ?`
+      `SELECT id, username, email, name, avatar, bio, playlists, shared_metrics, role, is_active, subscription_tier, is_public, streak_days, points, weight, height, page_preferences FROM users WHERE id = ?`
     )
     .get(id);
 
   let pagePreferences = null;
+  let parsedPlaylists = [];
+  let parsedSharedMetrics = {};
   if (user?.page_preferences) {
     try { pagePreferences = JSON.parse(user.page_preferences); } catch (e) {}
   }
+  if (user?.playlists) {
+    try { parsedPlaylists = JSON.parse(user.playlists); } catch (e) {}
+  }
+  if (user?.shared_metrics) {
+    try { parsedSharedMetrics = JSON.parse(user.shared_metrics); } catch (e) {}
+  }
 
-  res.json({ habits, badHabits, events, health, tags, categories: tags, user: user ? { ...user, pagePreferences } : null });
+  res.json({ 
+    habits, 
+    badHabits, 
+    events, 
+    health, 
+    tags, 
+    categories: tags, 
+    user: user ? { 
+      ...user, 
+      pagePreferences,
+      playlists: parsedPlaylists,
+      sharedMetrics: parsedSharedMetrics
+    } : null 
+  });
 });
 
 // ==========================================
