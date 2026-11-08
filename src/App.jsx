@@ -23,9 +23,10 @@ import { AdminPortalTab } from './components/AdminPortalTab';
 import { LoginScreen } from './components/LoginScreen';
 import { WelcomeIntro } from './components/WelcomeIntro';
 import { CategoryConfigModal } from './components/CategoryConfigModal';
+import { SupportModal } from './components/SupportModal';
 
 import { INITIAL_TAGS, INITIAL_WORKOUTS, INITIAL_BADGES } from './data/initialData';
-import { Lock, Shield, Plus, Search, Bell, X, Menu, Users, Flame, Play } from 'lucide-react';
+import { Lock, Shield, Plus, Search, Bell, X, Menu, Users, Flame, Play, LifeBuoy } from 'lucide-react';
 import { GlobalProgressBar } from './components/GlobalProgressBar';
 import { Toast } from './components/Toast';
 import { TabErrorBoundary } from './components/TabErrorBoundary';
@@ -131,6 +132,7 @@ export function App() {
   };
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
@@ -522,14 +524,13 @@ export function App() {
           onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
           isAdmin={isAdmin}
           userPermissions={permissions}
-        user={user}
           user={user}
           tags={tags}
           onConfigureCategory={(cat) => setConfigCategory(cat)}
-                      onCreateCategory={handleOpenCreateCategory}
           onCreateCategory={handleOpenCreateCategory}
           onOpenProfile={() => setShowProfileModal(true)}
           onOpenAuth={() => setShowAuthModal(true)}
+          onOpenSupport={() => setShowSupportModal(true)}
           onLogout={handleLogout}
         />
 
@@ -612,6 +613,28 @@ export function App() {
                 title="Pesquisar"
               >
                 <Search size={17} strokeWidth={2} />
+              </button>
+
+              {/* Botão Suporte / Abrir Ticket Circular Branco */}
+              <button
+                type="button"
+                onClick={() => setShowSupportModal(true)}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#F8F8FA',
+                  color: '#56548A',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                }}
+                title="Central de Suporte / Abrir Ticket de Ajuda"
+              >
+                <LifeBuoy size={17} strokeWidth={2} />
               </button>
 
               {/* Botão Notificações Circular Branco com Ponto Vermelho */}
@@ -858,6 +881,20 @@ export function App() {
               )
             )}
 
+            {/* TAB: PERFIL DO USUÁRIO (XP, POST-ITS, MÚSICA, PLAYLISTS, STREAKS E BIO) */}
+            {activeTab === 'profile' && (
+              <ProfileTab
+                user={user}
+                setUser={setUser}
+                habits={habits}
+                workouts={workouts}
+                badges={badges}
+                friends={friends}
+                showToast={showToast}
+                onOpenSettings={() => setShowProfileModal(true)}
+              />
+            )}
+
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
             {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && (
               <div 
@@ -937,22 +974,10 @@ export function App() {
                 )}
 
                 {/* TAB 7: PORTAL ADMIN */}
-                {activeTab === 'profile' && (
-                  <ProfileTab
-                    user={user}
-                    setUser={setUser}
-                    habits={habits}
-                    workouts={workouts}
-                    badges={badges}
-                    friends={friends}
-                    showToast={showToast}
-                    onOpenSettings={() => setShowProfileModal(true)}
-                  />
-                )}
-
                 {activeTab === 'admin' && (
                   <AdminPortalTab
                     onSystemReset={handleSystemReset}
+                    showToast={showToast}
                   />
                 )}
               </div>
@@ -1018,6 +1043,13 @@ export function App() {
           } catch (e) {}
         }}
         onLogout={handleLogout}
+      />
+
+      <SupportModal
+        isOpen={showSupportModal}
+        onClose={() => setShowSupportModal(false)}
+        user={user}
+        showToast={showToast}
       />
     </div>
   );

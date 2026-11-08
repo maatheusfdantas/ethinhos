@@ -52,7 +52,7 @@ const PORT = process.env.PORT || 3001;
 app.use(securityHeadersMiddleware);
 
 const ALLOWED_ORIGINS = (
-  process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3001'
+  process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3001,https://ethos-3hs.pages.dev,https://ethos-landing-7j3.pages.dev'
 )
   .split(',')
   .map((o) => o.trim());
@@ -88,7 +88,103 @@ const authRateLimiter = createRateLimiter({ windowMs: 60_000, maxRequests: 15, b
 
 // Inicializar banco de dados SQLite, tabelas de segurança e 5 usuários seedados
 initDatabase();
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS waitlist (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      interest TEXT DEFAULT 'Acesso Antecipado Ethos',
+      source TEXT DEFAULT 'https://ethos-landing-7j3.pages.dev',
+      status TEXT DEFAULT 'pendente',
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      user_name TEXT NOT NULL,
+      user_email TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'Dúvida / Uso do Sistema',
+      priority TEXT NOT NULL DEFAULT 'Média',
+      subject TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'aberto',
+      admin_reply TEXT DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+} catch (e) {}
 registerGoogleCalendarAuthRoutes(app);
+
+// Rota pública para Lista de Espera da Landing Page (https://ethos-landing-7j3.pages.dev)
+app.post('/api/waitlist', (req, res) => {
+  const { name, email, phone, interest, source } = req.body || {};
+  if (!name || !email || !phone) {
+    return res.status(400).json({ error: 'Informe nome, e-mail e número de telefone.' });
+  }
+  const id = `wl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const nowIso = new Date().toISOString();
+  const entry = {
+    id,
+    name: String(name).trim(),
+    email: String(email).trim().toLowerCase(),
+    phone: String(phone).trim(),
+    interest: String(interest || 'Acesso Antecipado Ethos').trim(),
+    source: String(source || 'https://ethos-landing-7j3.pages.dev').trim(),
+    status: 'pendente',
+    created_at: nowIso
+  };
+  try {
+    db.prepare(`INSERT INTO waitlist (id, name, email, phone, interest, source, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pendente', ?)`).run(
+      entry.id, entry.name, entry.email, entry.phone, entry.interest, entry.source, entry.created_at
+    );
+  } catch (e) {}
+  res.status(201).json({ success: true, entry });
+});
+
+// Rotas de Suporte para Usuários
+app.get('/api/support/tickets', (req, res) => {
+  const userId = req.query.userId || '';
+  try {
+    const tickets = userId
+      ? db.prepare(`SELECT * FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC`).all(userId)
+      : db.prepare(`SELECT * FROM support_tickets ORDER BY created_at DESC`).all();
+    return res.json({ tickets });
+  } catch (e) {
+    return res.json({ tickets: [] });
+  }
+});
+
+app.post('/api/support/tickets', (req, res) => {
+  const body = req.body || {};
+  const nowIso = new Date().toISOString();
+  const ticket = {
+    id: body.id || `TCK-${Math.floor(1000 + Math.random() * 9000)}`,
+    user_id: String(body.user_id || 'usr_anon'),
+    user_name: String(body.user_name || 'Usuário Ethos'),
+    user_email: String(body.user_email || 'usuario@ethos.dev'),
+    category: String(body.category || 'Dúvida / Uso do Sistema'),
+    priority: String(body.priority || 'Média'),
+    subject: String(body.subject || 'Solicitação de Suporte'),
+    message: String(body.message || ''),
+    status: 'aberto',
+    admin_reply: '',
+    created_at: nowIso,
+    updated_at: nowIso
+  };
+  if (!ticket.subject || !ticket.message) {
+    return res.status(400).json({ error: 'Preencha o assunto e a mensagem.' });
+  }
+  try {
+    db.prepare(`
+      INSERT INTO support_tickets (id, user_id, user_name, user_email, category, priority, subject, message, status, admin_reply, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'aberto', '', ?, ?)
+    `).run(ticket.id, ticket.user_id, ticket.user_name, ticket.user_email, ticket.category, ticket.priority, ticket.subject, ticket.message, nowIso, nowIso);
+  } catch (e) {}
+  res.status(201).json({ success: true, ticket });
+});
 
 // ==========================================
 // 1. ENDPOINTS DE AUTENTICAÇÃO SEGURA (SCRYPT + JWT + REFRESH ROTATION)
@@ -624,6 +720,71 @@ app.post('/api/admin/user/:id/permissions', (req, res) => {
   const { permissions } = req.body;
   db.prepare(`UPDATE users SET permissions = ? WHERE id = ?`).run(JSON.stringify(permissions), id);
   res.json({ success: true, permissions });
+});
+
+app.post('/api/admin/user/:id/role', (req, res) => {
+  const { id } = req.params;
+  const nextRole = ['user', 'moderator', 'admin'].includes(req.body.role) ? req.body.role : 'user';
+  db.prepare(`UPDATE users SET role = ? WHERE id = ?`).run(nextRole, id);
+  res.json({ success: true, role: nextRole });
+});
+
+app.post('/api/admin/user/:id/reset-password', (req, res) => {
+  const { id } = req.params;
+  const newPassword = String(req.body.newPassword || '');
+  if (newPassword.length < 6) return res.status(400).json({ error: 'A senha deve ter no mínimo 6 caracteres.' });
+  db.prepare(`UPDATE users SET password = ? WHERE id = ?`).run(hashPassword(newPassword), id);
+  res.json({ success: true });
+});
+
+app.delete('/api/admin/user/:id', (req, res) => {
+  const { id } = req.params;
+  if (id === 'usr_admin') return res.status(403).json({ error: 'Conta administrativa principal protegida.' });
+  db.prepare(`DELETE FROM habits WHERE user_id = ?`).run(id);
+  db.prepare(`DELETE FROM events WHERE user_id = ?`).run(id);
+  db.prepare(`DELETE FROM health WHERE user_id = ?`).run(id);
+  db.prepare(`DELETE FROM users WHERE id = ?`).run(id);
+  res.json({ success: true });
+});
+
+app.get('/api/admin/waitlist', (_req, res) => {
+  const waitlist = db.prepare(`SELECT * FROM waitlist ORDER BY created_at DESC`).all();
+  res.json({ waitlist });
+});
+
+app.delete('/api/admin/waitlist/:id', (req, res) => {
+  db.prepare(`DELETE FROM waitlist WHERE id = ?`).run(req.params.id);
+  res.json({ success: true });
+});
+
+app.get('/api/admin/tickets', (_req, res) => {
+  const tickets = db.prepare(`SELECT * FROM support_tickets ORDER BY created_at DESC`).all();
+  res.json({ tickets });
+});
+
+app.put('/api/admin/tickets/:id', (req, res) => {
+  const { id } = req.params;
+  const { status, admin_reply } = req.body;
+  db.prepare(`
+    UPDATE support_tickets SET
+      status = COALESCE(?, status),
+      admin_reply = COALESCE(?, admin_reply),
+      updated_at = ?
+    WHERE id = ?
+  `).run(status || null, admin_reply !== undefined ? admin_reply : null, new Date().toISOString(), id);
+  res.json({ success: true });
+});
+
+app.get('/api/admin/logs', (_req, res) => {
+  const auditLogs = db.prepare(`SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 50`).all().map((l) => ({
+    id: l.id,
+    event_type: l.event_type,
+    actor: l.actor_user_id || 'Sistema',
+    target: l.metadata_json || '',
+    ip: l.ip_address || '127.0.0.1',
+    created_at: l.created_at
+  }));
+  res.json({ auditLogs });
 });
 
 app.post('/api/system/reset', (_req, res) => {

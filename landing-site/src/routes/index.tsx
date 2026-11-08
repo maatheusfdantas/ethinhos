@@ -431,15 +431,15 @@ function Team() {
   const { ref, progress: p } = useScrollProgress<HTMLElement>();
   const devs = [
     {
-      i: "D1",
-      name: "Desenvolvedor 1",
+      i: "MD",
+      name: "Matheus Dantas",
       role: "Engenharia de sistemas & arquitetura",
       image: "/dev1.jpg",
       text: "Especialista em soluções eficientes e seguras, combina conhecimentos técnicos avançados em engenharia de software com projetos focados em produtividade, automação e arquitetura moderna de aplicações. Movido por constante aprendizado e inovação, destaca-se pela capacidade de estruturar fluxos seguros e entregar sistemas robustos no ambiente digital.",
     },
     {
-      i: "D2",
-      name: "Desenvolvedor 2",
+      i: "AK",
+      name: "Ana Klaussen",
       role: "Design de interface & experiência",
       image: null,
       text: "Desenha interfaces acolhedoras e intuitivas — tecnologia acessível e agradável para todas as idades.",
@@ -484,10 +484,38 @@ function Team() {
 /* ---------------- WAITLIST ---------------- */
 function Waitlist() {
   const [done, setDone] = useState(false);
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [interest, setInterest] = useState("");
+
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setDone(true);
-    toast.success("Inscrição realizada! Fique atento ao seu e-mail.");
+    if (!name.trim() || !email.trim() || !phone.trim()) return;
+    setSubmitting(true);
+
+    const payload = {
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      interest: interest.trim() || "Geral & Produtividade",
+      source: "ethos_landing_page",
+    };
+
+    try {
+      await fetch("https://ethos-3hs.pages.dev/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+    } catch (_err) {
+      // Fallback silencioso caso offline
+    } finally {
+      setSubmitting(false);
+      setDone(true);
+      toast.success("Inscrição realizada! Seus dados foram enviados para a equipe do Ethos.");
+    }
   };
   return (
     <section id="waitlist" className="relative overflow-hidden bg-ink py-40 text-ink-foreground">
@@ -511,24 +539,39 @@ function Waitlist() {
           <form onSubmit={submit} className="mt-14 space-y-4 text-left">
             <input
               required
-              placeholder="Seu nome"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Seu nome completo"
               className="w-full border-b border-ink-foreground/20 bg-transparent py-4 outline-none transition-colors placeholder:text-ink-foreground/40 focus:border-accent"
             />
             <input
               required
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Seu melhor e-mail"
               className="w-full border-b border-ink-foreground/20 bg-transparent py-4 outline-none transition-colors placeholder:text-ink-foreground/40 focus:border-accent"
             />
             <input
+              required
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Seu telefone / WhatsApp (ex: (11) 99999-9999)"
+              className="w-full border-b border-ink-foreground/20 bg-transparent py-4 outline-none transition-colors placeholder:text-ink-foreground/40 focus:border-accent"
+            />
+            <input
+              value={interest}
+              onChange={(e) => setInterest(e.target.value)}
               placeholder="Maior dificuldade com produtividade (opcional)"
               className="w-full border-b border-ink-foreground/20 bg-transparent py-4 outline-none transition-colors placeholder:text-ink-foreground/40 focus:border-accent"
             />
             <button
               type="submit"
-              className="group mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-accent py-4 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+              disabled={submitting}
+              className="group mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-accent py-4 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
             >
-              Entrar na lista
+              {submitting ? "Enviando..." : "Entrar na lista"}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
           </form>

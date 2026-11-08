@@ -14,6 +14,7 @@ import {
   Users,
   CheckCircle2,
   ShieldOff,
+  LifeBuoy,
   X
 } from 'lucide-react';
 
@@ -29,6 +30,7 @@ export function DesktopSidebar({
   onCreateCategory,
   onOpenProfile,
   onOpenAuth,
+  onOpenSupport,
   onLogout,
   mobileOpen = false,
   onCloseMobile
@@ -258,50 +260,79 @@ export function DesktopSidebar({
         </div>
       </div>
 
-      {/* 5. RODAPÉ DA SIDEBAR: CONFIGURAÇÕES & SAIR */}
-      <div style={{ padding: '16px 10px 0 10px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <button
-          type="button"
-          onClick={() => {
-            onCloseMobile?.();
-            onOpenAuth?.();
-          }}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            color: '#C5C7DE',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <Settings size={15} />
-          <span>Configurações</span>
-        </button>
+      {/* 5. RODAPÉ DA SIDEBAR: SUPORTE, CONFIGURAÇÕES & SAIR */}
+      <div style={{ padding: '14px 10px 0 10px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {onOpenSupport && (
+          <button
+            type="button"
+            onClick={() => {
+              onCloseMobile?.();
+              onOpenSupport?.();
+            }}
+            style={{
+              background: 'rgba(124, 111, 239, 0.14)',
+              border: '1px solid rgba(124, 111, 239, 0.28)',
+              borderRadius: '11px',
+              padding: '8px 11px',
+              color: '#DDD6FE',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              width: '100%'
+            }}
+          >
+            <LifeBuoy size={15} color="#A78BFA" />
+            <span>Suporte & Tickets</span>
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={() => {
-            onCloseMobile?.();
-            onLogout?.();
-          }}
-          title="Sair da Conta"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '4px',
-            color: '#8E90B0',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          <LogOut size={15} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button
+            type="button"
+            onClick={() => {
+              onCloseMobile?.();
+              onOpenAuth?.();
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              color: '#C5C7DE',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Settings size={15} />
+            <span>Configurações</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              onCloseMobile?.();
+              onLogout?.();
+            }}
+            title="Sair da Conta"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '4px',
+              color: '#8E90B0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <LogOut size={15} />
+          </button>
+        </div>
       </div>
     </>
   );

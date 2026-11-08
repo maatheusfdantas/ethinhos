@@ -26,6 +26,10 @@ function getAllowedOrigin(request) {
   if (
     origin === 'https://ethos-3hs.pages.dev' ||
     origin.endsWith('.ethos-3hs.pages.dev') ||
+    origin === 'https://ethos-landing-7j3.pages.dev' ||
+    origin.endsWith('.ethos-landing-7j3.pages.dev') ||
+    origin === 'https://ethos-landing.pages.dev' ||
+    origin.endsWith('.ethos-landing.pages.dev') ||
     origin === 'http://localhost:5173' ||
     origin === 'http://127.0.0.1:5173' ||
     origin === 'http://localhost:3001'
@@ -704,6 +708,8 @@ const edgeFallbackMemory = {
   events: new Map(),
   health: new Map(),
   tags: new Map(),
+  waitlist: [],
+  supportTickets: [],
   googleTokens: new Map(),
   googleCreds: { clientId: '', clientSecret: '' }
 };
@@ -914,7 +920,9 @@ async function ensureDatabaseReady(env) {
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, color TEXT NOT NULL, bg TEXT NOT NULL DEFAULT 'rgba(129, 140, 248, 0.15)', icon TEXT NOT NULL DEFAULT 'Bookmark', is_shared INTEGER NOT NULL DEFAULT 0, has_subclasses INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS subclasses (id TEXT PRIMARY KEY, category_id TEXT NOT NULL, name TEXT NOT NULL, priority TEXT NOT NULL DEFAULT 'Média', metadata TEXT NOT NULL DEFAULT '{"hours":0}', created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS category_members (id TEXT PRIMARY KEY, category_id TEXT NOT NULL, user_id TEXT NOT NULL, member_email TEXT, member_name TEXT, role TEXT NOT NULL DEFAULT 'collaborator', created_at TEXT NOT NULL)`),
-      env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_audit_logs (id TEXT PRIMARY KEY, user_id TEXT, event_type TEXT NOT NULL, ip_address TEXT, user_agent TEXT, metadata TEXT, correlation_id TEXT, created_at TEXT NOT NULL)`)
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_audit_logs (id TEXT PRIMARY KEY, user_id TEXT, event_type TEXT NOT NULL, ip_address TEXT, user_agent TEXT, metadata TEXT, correlation_id TEXT, created_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS waitlist (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, interest TEXT DEFAULT 'Acesso Antecipado Ethos', source TEXT DEFAULT 'https://ethos-landing-7j3.pages.dev', status TEXT DEFAULT 'pendente', created_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS support_tickets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'Dúvida / Uso do Sistema', priority TEXT NOT NULL DEFAULT 'Média', subject TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'aberto', admin_reply TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`)
     ]);
 
     const countRow = await env.DB.prepare(`SELECT COUNT(*) as c FROM users`).first();
@@ -1721,6 +1729,124 @@ export async function onRequest(context) {
     return jsonResponse({ success: true, disconnected: true }, 200, correlationId, request);
   }
 
+  // --------------------------------------------------------------------------
+  // ROTA PÚBLICA DE LISTA DE ESPERA DA LANDING PAGE (`/api/waitlist`)
+  // Recebe cadastros de https://ethos-landing-7j3.pages.dev/ com nome, e-mail e telefone
+  // --------------------------------------------------------------------------
+  if (pathname === '/api/waitlist' && method === 'POST') {
+    const name = sanitizeStringEdge(body.name || '', 120);
+    const email = sanitizeStringEdge(body.email || '', 150).toLowerCase();
+    const phone = sanitizeStringEdge(body.phone || '', 40);
+    const interest = sanitizeStringEdge(body.interest || 'Acesso Antecipado Ethos', 120);
+    const source = sanitizeStringEdge(body.source || 'https://ethos-landing-7j3.pages.dev', 150);
+
+    if (!name || !email || !phone) {
+      return jsonResponse({ error: 'Informe nome, e-mail e número de telefone para entrar na lista de espera.' }, 400, correlationId, request);
+    }
+
+    const entryId = `wl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const nowIso = new Date().toISOString();
+    const entry = {
+      id: entryId,
+      name,
+      email,
+      phone,
+      interest,
+      source,
+      status: 'pendente',
+      created_at: nowIso
+    };
+
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db
+          .prepare(`CREATE TABLE IF NOT EXISTS waitlist (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, interest TEXT DEFAULT 'Acesso Antecipado Ethos', source TEXT DEFAULT 'https://ethos-landing-7j3.pages.dev', status TEXT DEFAULT 'pendente', created_at TEXT NOT NULL)`)
+          .run();
+        await storage.db
+          .prepare(`INSERT INTO waitlist (id, name, email, phone, interest, source, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pendente', ?)`)
+          .bind(entryId, name, email, phone, interest, source, nowIso)
+          .run();
+      } catch (e) {
+        edgeFallbackMemory.waitlist.unshift(entry);
+      }
+    } else {
+      edgeFallbackMemory.waitlist.unshift(entry);
+    }
+
+    await recordAuditLogEdge(storage, {
+      eventType: 'WAITLIST_SIGNUP',
+      userId: email,
+      ipAddress: clientIp,
+      userAgent,
+      metadata: { name, email, phone, source },
+      correlationId
+    });
+
+    return jsonResponse({ success: true, entry }, 201, correlationId, request);
+  }
+
+  // --------------------------------------------------------------------------
+  // ROTAS DE SUPORTE / HELP DESK PARA USUÁRIOS (`/api/support/tickets`)
+  // --------------------------------------------------------------------------
+  if (pathname === '/api/support/tickets' && method === 'GET') {
+    const userId = url.searchParams.get('userId') || '';
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db
+          .prepare(`CREATE TABLE IF NOT EXISTS support_tickets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'Dúvida / Uso do Sistema', priority TEXT NOT NULL DEFAULT 'Média', subject TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'aberto', admin_reply TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`)
+          .run();
+        const res = userId
+          ? await storage.db.prepare(`SELECT * FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC`).bind(userId).all()
+          : await storage.db.prepare(`SELECT * FROM support_tickets ORDER BY created_at DESC`).all();
+        return jsonResponse({ tickets: res.results || [] }, 200, correlationId, request);
+      } catch (_e) {}
+    }
+    const list = userId
+      ? edgeFallbackMemory.supportTickets.filter((t) => t.user_id === userId)
+      : edgeFallbackMemory.supportTickets;
+    return jsonResponse({ tickets: list }, 200, correlationId, request);
+  }
+
+  if (pathname === '/api/support/tickets' && method === 'POST') {
+    const nowIso = new Date().toISOString();
+    const ticket = {
+      id: body.id || `TCK-${Math.floor(1000 + Math.random() * 9000)}`,
+      user_id: sanitizeStringEdge(body.user_id || 'usr_anon', 64),
+      user_name: sanitizeStringEdge(body.user_name || 'Usuário Ethos', 100),
+      user_email: sanitizeStringEdge(body.user_email || 'usuario@ethos.dev', 120),
+      category: sanitizeStringEdge(body.category || 'Dúvida / Uso do Sistema', 80),
+      priority: sanitizeStringEdge(body.priority || 'Média', 30),
+      subject: sanitizeStringEdge(body.subject || 'Solicitação de Suporte', 120),
+      message: sanitizeStringEdge(body.message || '', 1200),
+      status: 'aberto',
+      admin_reply: '',
+      created_at: nowIso,
+      updated_at: nowIso
+    };
+
+    if (!ticket.subject || !ticket.message) {
+      return jsonResponse({ error: 'Preencha o assunto e a descrição do chamado.' }, 400, correlationId, request);
+    }
+
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db
+          .prepare(`CREATE TABLE IF NOT EXISTS support_tickets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'Dúvida / Uso do Sistema', priority TEXT NOT NULL DEFAULT 'Média', subject TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'aberto', admin_reply TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`)
+          .run();
+        await storage.db
+          .prepare(`INSERT INTO support_tickets (id, user_id, user_name, user_email, category, priority, subject, message, status, admin_reply, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'aberto', '', ?, ?)`)
+          .bind(ticket.id, ticket.user_id, ticket.user_name, ticket.user_email, ticket.category, ticket.priority, ticket.subject, ticket.message, nowIso, nowIso)
+          .run();
+      } catch (_e) {
+        edgeFallbackMemory.supportTickets.unshift(ticket);
+      }
+    } else {
+      edgeFallbackMemory.supportTickets.unshift(ticket);
+    }
+
+    return jsonResponse({ success: true, ticket }, 201, correlationId, request);
+  }
+
   // ==========================================================================
   // CAMADA DE AUTORIZAÇÃO OBRIGATÓRIA (JWT + ANTI-IDOR + RBAC)
   // ==========================================================================
@@ -2275,6 +2401,148 @@ export async function onRequest(context) {
       await storage.db.prepare(`UPDATE users SET permissions = ? WHERE id = ?`).bind(JSON.stringify(body.permissions), targetId).run();
     }
     return jsonResponse({ success: true, permissions: body.permissions }, 200, correlationId, request);
+  }
+
+  const adminRoleMatch = pathname.match(/^\/api\/admin\/user\/([^/]+)\/role$/);
+  if (adminRoleMatch && method === 'POST') {
+    const targetId = adminRoleMatch[1];
+    const nextRole = ['user', 'moderator', 'admin'].includes(body.role) ? body.role : 'user';
+    if (storage.mode === 'd1') {
+      await storage.db.prepare(`UPDATE users SET role = ? WHERE id = ?`).bind(nextRole, targetId).run();
+    }
+    await recordAuditLogEdge(storage, {
+      eventType: 'ADMIN_ROLE_UPDATED',
+      userId: authClaims?.sub || 'usr_admin',
+      ipAddress: clientIp,
+      userAgent,
+      metadata: { targetId, role: nextRole },
+      correlationId
+    });
+    return jsonResponse({ success: true, role: nextRole }, 200, correlationId, request);
+  }
+
+  const adminResetPwdMatch = pathname.match(/^\/api\/admin\/user\/([^/]+)\/reset-password$/);
+  if (adminResetPwdMatch && method === 'POST') {
+    const targetId = adminResetPwdMatch[1];
+    const newPassword = String(body.newPassword || '');
+    if (newPassword.length < 6) {
+      return jsonResponse({ error: 'A nova senha deve ter no mínimo 6 caracteres.' }, 400, correlationId, request);
+    }
+    const hashed = await hashPasswordEdge(newPassword);
+    if (storage.mode === 'd1') {
+      await storage.db.prepare(`UPDATE users SET password = ? WHERE id = ?`).bind(hashed, targetId).run();
+    }
+    await recordAuditLogEdge(storage, {
+      eventType: 'ADMIN_MANUAL_PASSWORD_RESET',
+      userId: authClaims?.sub || 'usr_admin',
+      ipAddress: clientIp,
+      userAgent,
+      metadata: { targetId },
+      correlationId
+    });
+    return jsonResponse({ success: true, message: 'Senha redefinida manualmente pelo Administrador.' }, 200, correlationId, request);
+  }
+
+  const adminDeleteUserMatch = pathname.match(/^\/api\/admin\/user\/([^/]+)$/);
+  if (adminDeleteUserMatch && method === 'DELETE') {
+    const targetId = adminDeleteUserMatch[1];
+    if (targetId === 'usr_admin') {
+      return jsonResponse({ error: 'A conta administrativa principal não pode ser excluída.' }, 403, correlationId, request);
+    }
+    if (storage.mode === 'd1') {
+      await storage.db.prepare(`DELETE FROM habits WHERE user_id = ?`).bind(targetId).run();
+      await storage.db.prepare(`DELETE FROM events WHERE user_id = ?`).bind(targetId).run();
+      await storage.db.prepare(`DELETE FROM health WHERE user_id = ?`).bind(targetId).run();
+      await storage.db.prepare(`DELETE FROM users WHERE id = ?`).bind(targetId).run();
+    } else {
+      storage.store.users.delete(targetId);
+    }
+    await recordAuditLogEdge(storage, {
+      eventType: 'ADMIN_USER_ERASURE_LGPD',
+      userId: authClaims?.sub || 'usr_admin',
+      ipAddress: clientIp,
+      userAgent,
+      metadata: { targetId },
+      correlationId
+    });
+    return jsonResponse({ success: true }, 200, correlationId, request);
+  }
+
+  // Admin: Listar e gerenciar Lista de Espera (Waitlist)
+  if (pathname === '/api/admin/waitlist' && method === 'GET') {
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db
+          .prepare(`CREATE TABLE IF NOT EXISTS waitlist (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, interest TEXT DEFAULT 'Acesso Antecipado Ethos', source TEXT DEFAULT 'https://ethos-landing-7j3.pages.dev', status TEXT DEFAULT 'pendente', created_at TEXT NOT NULL)`)
+          .run();
+        const res = await storage.db.prepare(`SELECT * FROM waitlist ORDER BY created_at DESC`).all();
+        return jsonResponse({ waitlist: res.results || [] }, 200, correlationId, request);
+      } catch (_e) {}
+    }
+    return jsonResponse({ waitlist: edgeFallbackMemory.waitlist }, 200, correlationId, request);
+  }
+
+  const adminDeleteWaitlistMatch = pathname.match(/^\/api\/admin\/waitlist\/([^/]+)$/);
+  if (adminDeleteWaitlistMatch && method === 'DELETE') {
+    const wlId = adminDeleteWaitlistMatch[1];
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db.prepare(`DELETE FROM waitlist WHERE id = ?`).bind(wlId).run();
+      } catch (_e) {}
+    }
+    edgeFallbackMemory.waitlist = edgeFallbackMemory.waitlist.filter((w) => w.id !== wlId);
+    return jsonResponse({ success: true }, 200, correlationId, request);
+  }
+
+  // Admin: Listar e responder Tickets de Suporte
+  if (pathname === '/api/admin/tickets' && method === 'GET') {
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db
+          .prepare(`CREATE TABLE IF NOT EXISTS support_tickets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'Dúvida / Uso do Sistema', priority TEXT NOT NULL DEFAULT 'Média', subject TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'aberto', admin_reply TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`)
+          .run();
+        const res = await storage.db.prepare(`SELECT * FROM support_tickets ORDER BY created_at DESC`).all();
+        return jsonResponse({ tickets: res.results || [] }, 200, correlationId, request);
+      } catch (_e) {}
+    }
+    return jsonResponse({ tickets: edgeFallbackMemory.supportTickets }, 200, correlationId, request);
+  }
+
+  const adminUpdateTicketMatch = pathname.match(/^\/api\/admin\/tickets\/([^/]+)$/);
+  if (adminUpdateTicketMatch && method === 'PUT') {
+    const ticketId = adminUpdateTicketMatch[1];
+    const nowIso = new Date().toISOString();
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db
+          .prepare(`UPDATE support_tickets SET status = COALESCE(?, status), admin_reply = COALESCE(?, admin_reply), updated_at = ? WHERE id = ?`)
+          .bind(body.status || null, body.admin_reply !== undefined ? body.admin_reply : null, nowIso, ticketId)
+          .run();
+      } catch (_e) {}
+    }
+    edgeFallbackMemory.supportTickets = edgeFallbackMemory.supportTickets.map((t) =>
+      t.id === ticketId ? { ...t, status: body.status || t.status, admin_reply: body.admin_reply ?? t.admin_reply, updated_at: nowIso } : t
+    );
+    return jsonResponse({ success: true }, 200, correlationId, request);
+  }
+
+  // Admin: Logs de Auditoria, E-mail e Sistema
+  if (pathname === '/api/admin/logs' && method === 'GET') {
+    let auditLogs = [];
+    if (storage.mode === 'd1') {
+      try {
+        const res = await storage.db.prepare(`SELECT * FROM auth_audit_logs ORDER BY created_at DESC LIMIT 60`).all();
+        auditLogs = (res.results || []).map((r) => ({
+          id: r.id,
+          event_type: r.event_type,
+          actor: r.user_id || 'Sistema',
+          target: r.metadata || '',
+          ip: r.ip_address || '0.0.0.0',
+          created_at: r.created_at
+        }));
+      } catch (_e) {}
+    }
+    return jsonResponse({ auditLogs }, 200, correlationId, request);
   }
 
   return jsonResponse({ error: 'Rota não encontrada.' }, 404, correlationId, request);

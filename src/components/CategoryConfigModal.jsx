@@ -14,19 +14,10 @@ import {
   Radio,
   Mail
 } from 'lucide-react';
-import { IconPicker, CleanIcon } from './IconLibrary';
+import { IconPicker, CleanIcon, CATEGORY_COLOR_PALETTE } from './IconLibrary';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
-const COLOR_OPTIONS = [
-  { name: 'Índigo', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)' },
-  { name: 'Ciano', color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.15)' },
-  { name: 'Rosa', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)' },
-  { name: 'Esmeralda', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)' },
-  { name: 'Âmbar', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
-  { name: 'Violeta', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)' },
-  { name: 'Azul', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
-  { name: 'Laranja', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' }
-];
+const COLOR_OPTIONS = CATEGORY_COLOR_PALETTE;
 
 export function CategoryConfigModal({
   isOpen,
@@ -346,10 +337,40 @@ export function CategoryConfigModal({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#3A3C58', marginBottom: '6px' }}>
-                Cor do Rótulo
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#3A3C58' }}>
+                  Cor da Categoria ({COLOR_OPTIONS.length} cores + Personalizada)
+                </label>
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#4F46E5',
+                    cursor: 'pointer',
+                    backgroundColor: '#F1F5F9',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    border: '1px solid #CBD5E1'
+                  }}
+                  title="Escolher qualquer cor personalizada"
+                >
+                  <input
+                    type="color"
+                    value={color && color.startsWith('#') && color.length === 7 ? color : '#6366f1'}
+                    onChange={(e) => {
+                      const hex = e.target.value;
+                      setColor(hex);
+                      setBg(`${hex}26`);
+                    }}
+                    style={{ width: '16px', height: '16px', border: 'none', padding: 0, background: 'none', cursor: 'pointer' }}
+                  />
+                  <span>Cor Livre ({color})</span>
+                </label>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 {COLOR_OPTIONS.map((pal) => (
                   <button
                     key={pal.color}
@@ -359,15 +380,17 @@ export function CategoryConfigModal({
                       setBg(pal.bg);
                     }}
                     style={{
-                      width: '26px',
-                      height: '26px',
+                      width: '24px',
+                      height: '24px',
                       borderRadius: '50%',
                       backgroundColor: pal.color,
-                      border: color === pal.color ? '2.5px solid #1A1B2F' : '2px solid transparent',
+                      border: color === pal.color ? '2.5px solid #1A1B2F' : '2px solid rgba(255,255,255,0.8)',
                       cursor: 'pointer',
-                      boxShadow: color === pal.color ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
+                      boxShadow: color === pal.color ? '0 2px 8px rgba(0,0,0,0.28)' : '0 1px 3px rgba(0,0,0,0.1)',
+                      transform: color === pal.color ? 'scale(1.12)' : 'scale(1)',
+                      transition: 'all 0.12s ease'
                     }}
-                    title={pal.name}
+                    title={`${pal.name} (${pal.family})`}
                   />
                 ))}
               </div>
@@ -377,13 +400,13 @@ export function CategoryConfigModal({
           {/* BIBLIOTECA DE ÍCONES (DIRETRIZES DE ESTILO CLEAN) */}
           <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #ECEEF4' }}>
             <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#3A3C58', marginBottom: '8px' }}>
-              Biblioteca de Ícones (Linhas Minimalistas / Outlines)
+              Biblioteca de Ícones Separados por Tema (112 Ícones Disponíveis)
             </label>
             <IconPicker
               selectedIcon={icon}
               onSelectIcon={setIcon}
               activeColor={color}
-              maxHeight="210px"
+              maxHeight="280px"
             />
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { CleanIcon } from './IconLibrary';
+import { CleanIcon, CATEGORY_COLOR_PALETTE, CLEAN_ICONS_COLLECTION } from './IconLibrary';
 import React, { useState, useEffect } from 'react';
 import { 
   Check, 
@@ -43,23 +43,13 @@ const CATEGORY_ICONS = {
   Tag
 };
 
-const QUICK_ICON_OPTIONS = [
-  { id: 'BookOpen', label: 'Estudo', Icon: BookOpen },
-  { id: 'Bookmark', label: 'Trabalho', Icon: Bookmark },
-  { id: 'Dumbbell', label: 'Saúde', Icon: Dumbbell },
-  { id: 'Sparkles', label: 'Lazer/Pessoal', Icon: Sparkles },
-  { id: 'Home', label: 'Casa', Icon: Home },
-  { id: 'Tag', label: 'Geral', Icon: Tag }
-];
+const QUICK_ICON_OPTIONS = CLEAN_ICONS_COLLECTION.slice(0, 24).map((item) => ({
+  id: item.id,
+  label: item.name,
+  Icon: item.Icon
+}));
 
-const DEFAULT_PALETTES = [
-  { name: 'Roxo', color: '#6A67CE', bg: 'rgba(106, 103, 206, 0.14)' },
-  { name: 'Esmeralda', color: '#10B981', bg: 'rgba(16, 185, 129, 0.14)' },
-  { name: 'Rosa', color: '#F43F5E', bg: 'rgba(244, 63, 94, 0.14)' },
-  { name: 'Âmbar', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.14)' },
-  { name: 'Azul', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.14)' },
-  { name: 'Violeta', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.14)' }
-];
+const DEFAULT_PALETTES = CATEGORY_COLOR_PALETTE;
 
 export function DashboardTab({
   habits = [],
