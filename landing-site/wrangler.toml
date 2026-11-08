@@ -1,0 +1,8 @@
+name = "ethos-landing"
+pages_build_output_dir = "./dist"
+compatibility_date = "2025-04-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ethos-waitlist-db"
+database_id = "a8c3309c-9588-4251-acd8-49b36ea94781"

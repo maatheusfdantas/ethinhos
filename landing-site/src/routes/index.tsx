@@ -434,12 +434,14 @@ function Team() {
       i: "D1",
       name: "Desenvolvedor 1",
       role: "Engenharia de sistemas & arquitetura",
-      text: "Cria estruturas robustas e seguras, cuidando da estabilidade e da performance da sua experiência.",
+      image: "/dev1.jpg",
+      text: "Especialista em soluções eficientes e seguras, combina conhecimentos técnicos avançados em engenharia de software com projetos focados em produtividade, automação e arquitetura moderna de aplicações. Movido por constante aprendizado e inovação, destaca-se pela capacidade de estruturar fluxos seguros e entregar sistemas robustos no ambiente digital.",
     },
     {
       i: "D2",
       name: "Desenvolvedor 2",
       role: "Design de interface & experiência",
+      image: null,
       text: "Desenha interfaces acolhedoras e intuitivas — tecnologia acessível e agradável para todas as idades.",
     },
   ];
@@ -456,9 +458,17 @@ function Team() {
           {devs.map((d, k) => (
             <div key={d.i} style={{ transform: `translateY(${(k === 0 ? 1 : -1) * (p - 0.5) * 120}px)` }}>
               <article className="clip-reveal glass glow-card rounded-3xl p-10">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-ink font-display text-xl text-ink-foreground">
-                  {d.i}
-                </div>
+                {d.image ? (
+                  <img
+                    src={d.image}
+                    alt={d.name}
+                    className="h-14 w-14 rounded-full object-cover border border-border/50 shadow-sm"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-ink font-display text-xl text-ink-foreground">
+                    {d.i}
+                  </div>
+                )}
                 <h3 className="mt-8 text-xl font-medium">{d.name}</h3>
                 <p className="mt-1 text-sm text-accent">{d.role}</p>
                 <p className="mt-5 leading-relaxed text-muted-foreground">{d.text}</p>
