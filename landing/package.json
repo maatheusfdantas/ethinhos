@@ -1,0 +1,21 @@
+{
+  "name": "ethos-landing",
+  "version": "1.0.0",
+  "description": "Página oficial independente de divulgação e coleta de acessos VIP do Ethos",
+  "main": "dist/index.html",
+  "scripts": {
+    "deploy": "wrangler pages deploy dist --project-name=ethos-landing",
+    "db:list": "wrangler d1 execute ethos-waitlist-db --remote --command \"SELECT * FROM waitlist ORDER BY id DESC;\"",
+    "db:count": "wrangler d1 execute ethos-waitlist-db --remote --command \"SELECT count(*) as total FROM waitlist;\"",
+    "export:csv": "curl -o waitlist_leads.csv \"https://ethos-landing-7j3.pages.dev/api/waitlist?key=ethos_vip_leads&format=csv\""
+  },
+  "keywords": [
+    "ethos",
+    "landing",
+    "waitlist",
+    "cloudflare-pages",
+    "d1"
+  ],
+  "author": "Ethos Team",
+  "license": "UNLICENSED"
+}
