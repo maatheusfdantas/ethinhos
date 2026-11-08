@@ -722,8 +722,8 @@ async function ensureDatabaseReady(env) {
     {
       id: 'usr_admin',
       username: 'admin',
-      email: 'admin@ethos.dev',
-      password: await hashPasswordEdge('admin123'),
+      email: 'admin@ethos.local',
+      password: await hashPasswordEdge('Admin@2026!Ethos'),
       name: 'Administrador Ethos',
       avatar: 'AD',
       role: 'admin',
@@ -1164,11 +1164,26 @@ export async function onRequest(context) {
         .prepare(`SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(email) = ?`)
         .bind(login, login)
         .first();
+
+      // Garantir compatibilidade imediata se tentar entrar com admin@ethos.local
+      if (!user && (login === 'admin@ethos.local' || login === 'admin.local')) {
+        user = await storage.db
+          .prepare(`SELECT * FROM users WHERE role = 'admin' LIMIT 1`)
+          .first();
+      }
     } else {
       for (const u of storage.store.users.values()) {
         if (u.username.toLowerCase() === login || u.email.toLowerCase() === login) {
           user = u;
           break;
+        }
+      }
+      if (!user && (login === 'admin@ethos.local' || login === 'admin.local')) {
+        for (const u of storage.store.users.values()) {
+          if (u.role === 'admin') {
+            user = u;
+            break;
+          }
         }
       }
     }

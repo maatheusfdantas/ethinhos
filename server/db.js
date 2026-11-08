@@ -338,7 +338,7 @@ export function seedFiveUsers() {
     {
       id: 'usr_admin',
       username: 'admin',
-      email: 'admin@ethos.dev',
+      email: 'admin@ethos.local',
       password: hashPassword('Admin@2026!Ethos'),
       name: 'Administrador Ethos',
       avatar: 'AD',
