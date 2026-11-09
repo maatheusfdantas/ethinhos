@@ -975,8 +975,13 @@ async function ensureDatabaseReady(env) {
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS category_members (id TEXT PRIMARY KEY, category_id TEXT NOT NULL, user_id TEXT NOT NULL, member_email TEXT, member_name TEXT, role TEXT NOT NULL DEFAULT 'collaborator', created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_audit_logs (id TEXT PRIMARY KEY, user_id TEXT, event_type TEXT NOT NULL, ip_address TEXT, user_agent TEXT, metadata TEXT, correlation_id TEXT, created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS waitlist (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, interest TEXT DEFAULT 'Acesso Antecipado Ethos', source TEXT DEFAULT 'https://ethos-landing-7j3.pages.dev', status TEXT DEFAULT 'pendente', created_at TEXT NOT NULL)`),
-      env.DB.prepare(`CREATE TABLE IF NOT EXISTS support_tickets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'Dúvida / Uso do Sistema', priority TEXT NOT NULL DEFAULT 'Média', subject TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'aberto', admin_reply TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`)
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS support_tickets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'Dúvida / Uso do Sistema', priority TEXT NOT NULL DEFAULT 'Média', subject TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'aberto', admin_reply TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_tokens (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token_hash TEXT NOT NULL, type TEXT NOT NULL, expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`)
     ]);
+
+    try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`).run(); } catch (_e) {}
+    try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN validation_token_preview TEXT`).run(); } catch (_e) {}
+    try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN validation_token_expires_at TEXT`).run(); } catch (_e) {}
 
     const countRow = await env.DB.prepare(`SELECT COUNT(*) as c FROM users`).first();
     if (!countRow || countRow.c === 0) {
@@ -1251,6 +1256,23 @@ export async function onRequest(context) {
       return jsonResponse({ error: 'Conta desativada pelo Administrador.' }, 403, correlationId, request);
     }
 
+    if (user.role !== 'admin' && user.email_verified === 0) {
+      return jsonResponse(
+        {
+          requireVerification: true,
+          userId: user.id,
+          username: user.username,
+          email: user.email,
+          maskedEmail: maskEmailEdge(user.email),
+          name: user.name,
+          message: 'Sua conta aguarda validação. Insira o código recebido por e-mail ou o token de 48h gerado pelo Administrador.'
+        },
+        200,
+        correlationId,
+        request
+      );
+    }
+
     await recordAuditLogEdge(storage, {
       eventType: 'LOGIN_SUCCESS',
       userId: user.id,
@@ -1326,13 +1348,48 @@ export async function onRequest(context) {
     const cleanEmail = String(email).trim().toLowerCase();
     const cleanUsername = String(username || cleanEmail.split('@')[0]).trim();
 
-    // 2. Verifica duplicidade no banco D1
+    // 2. Verifica duplicidade no banco D1 (se ainda não verificado, reenvia token sem bloquear)
     if (storage.mode === 'd1') {
       const existing = await storage.db
-        .prepare(`SELECT id FROM users WHERE LOWER(email) = ? OR LOWER(username) = LOWER(?)`)
+        .prepare(`SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = LOWER(?)`)
         .bind(cleanEmail, cleanUsername)
         .first();
       if (existing) {
+        if (existing.email_verified === 0) {
+          const hashed = await hashPasswordEdge(password);
+          const nowIso = new Date().toISOString();
+          await storage.db.prepare(`UPDATE users SET password = ?, name = ? WHERE id = ?`).bind(hashed, name.trim(), existing.id).run();
+          const rawToken = String(Math.floor(100000 + Math.random() * 900000));
+          const tokenHash = await sha256Hex(rawToken);
+          const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+          await storage.db.prepare(
+            'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "email_verification", ?, 0, ?)'
+          ).bind(`tok_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, existing.id, tokenHash, expiresAt, nowIso).run();
+          await sendVerificationEmailEdge(env, {
+            email: existing.email,
+            name: name.trim(),
+            token: rawToken,
+            expiresInMinutes: 1440
+          });
+          return jsonResponse(
+            {
+              success: true,
+              requireVerification: true,
+              userId: existing.id,
+              username: existing.username,
+              email: existing.email,
+              maskedEmail: maskEmailEdge(existing.email),
+              name: name.trim(),
+              avatar: existing.avatar,
+              role: existing.role,
+              expiresInMinutes: 1440,
+              message: `Sua conta aguarda validação. Enviamos um novo código para ${maskEmailEdge(existing.email)} (ou utilize o token de 48h gerado pelo Administrador).`
+            },
+            200,
+            correlationId,
+            request
+          );
+        }
         return jsonResponse({ error: 'Este e-mail ou nome de usuário já está cadastrado.' }, 409, correlationId, request);
       }
     }
@@ -1420,8 +1477,9 @@ export async function onRequest(context) {
   // VALIDAÇÃO DE TOKEN DE CONFIRMAÇÃO DE E-MAIL (`/api/auth/verify-email-token`)
   // --------------------------------------------------------------------------
   if (pathname === '/api/auth/verify-email-token' && method === 'POST') {
-    const email = String(body.email || '').trim().toLowerCase();
-    const token = String(body.token || '').trim();
+    const email = String(body.email || body.login || '').trim().toLowerCase();
+    const rawInputToken = String(body.token || '').trim();
+    const token = rawInputToken.replace(/\D/g, '') || rawInputToken;
 
     if (!email || !token) {
       return jsonResponse({ error: 'Informe o e-mail e o código de verificação recebido.' }, 400, correlationId, request);
@@ -1429,10 +1487,10 @@ export async function onRequest(context) {
 
     let user = null;
     if (storage.mode === 'd1') {
-      user = await storage.db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').bind(email).first();
+      user = await storage.db.prepare('SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?').bind(email, email).first();
     } else {
       for (const u of storage.store.users.values()) {
-        if (u.email.toLowerCase() === email) { user = u; break; }
+        if (u.email.toLowerCase() === email || u.username.toLowerCase() === email) { user = u; break; }
       }
     }
 
@@ -1475,8 +1533,24 @@ export async function onRequest(context) {
           return jsonResponse({ error: 'Código de verificação expirado. Solicite um novo código.' }, 400, correlationId, request);
         }
         validToken = true;
-        await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE id = ?').bind(record.id).run();
-        await storage.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').bind(user.id).run();
+        await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = "email_verification"').bind(user.id).run();
+        try {
+          await storage.db.prepare('UPDATE users SET email_verified = 1, validation_token_preview = NULL, validation_token_expires_at = NULL WHERE id = ?').bind(user.id).run();
+        } catch (_e) {
+          await storage.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').bind(user.id).run();
+        }
+      } else if (user.validation_token_preview && String(user.validation_token_preview).replace(/\D/g, '') === token) {
+        if (!user.validation_token_expires_at || user.validation_token_expires_at > nowIso) {
+          validToken = true;
+          try {
+            await storage.db.prepare('UPDATE users SET email_verified = 1, validation_token_preview = NULL, validation_token_expires_at = NULL WHERE id = ?').bind(user.id).run();
+          } catch (_e) {
+            await storage.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').bind(user.id).run();
+          }
+          try {
+            await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = "email_verification"').bind(user.id).run();
+          } catch (_e) {}
+        }
       }
     } else {
       validToken = true;
@@ -1519,17 +1593,17 @@ export async function onRequest(context) {
   // REENVIO DE CÓDIGO DE CONFIRMAÇÃO DE E-MAIL (`/api/auth/resend-verification`)
   // --------------------------------------------------------------------------
   if (pathname === '/api/auth/resend-verification' && method === 'POST') {
-    const email = String(body.email || '').trim().toLowerCase();
+    const email = String(body.email || body.login || '').trim().toLowerCase();
     if (!email) {
       return jsonResponse({ error: 'Informe o e-mail cadastrado.' }, 400, correlationId, request);
     }
 
     let user = null;
     if (storage.mode === 'd1') {
-      user = await storage.db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').bind(email).first();
+      user = await storage.db.prepare('SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?').bind(email, email).first();
     } else {
       for (const u of storage.store.users.values()) {
-        if (u.email.toLowerCase() === email) { user = u; break; }
+        if (u.email.toLowerCase() === email || u.username.toLowerCase() === email) { user = u; break; }
       }
     }
 
@@ -1543,11 +1617,11 @@ export async function onRequest(context) {
 
     const rawToken = String(Math.floor(100000 + Math.random() * 900000));
     const tokenHash = await sha256Hex(rawToken);
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const nowIso = new Date().toISOString();
 
     if (storage.mode === 'd1') {
-      await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = "email_verification" AND used = 0').bind(user.id).run();
+      // Preserva tokens anteriores (ex: Token de 48h gerado no Portal Admin)
       await storage.db.prepare(
         'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "email_verification", ?, 0, ?)'
       ).bind(`tok_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, user.id, tokenHash, expiresAt, nowIso).run();
@@ -1557,14 +1631,14 @@ export async function onRequest(context) {
       email: user.email,
       name: user.name,
       token: rawToken,
-      expiresInMinutes: 1440
+      expiresInMinutes: 2880
     });
 
     const masked = maskEmailEdge(user.email);
     return jsonResponse({
       success: true,
       maskedEmail: masked,
-      expiresInMinutes: 1440,
+      expiresInMinutes: 2880,
       message: `Novo código de verificação enviado com sucesso para ${masked}.`
     }, 200, correlationId, request);
   }
@@ -1659,7 +1733,8 @@ export async function onRequest(context) {
   // --------------------------------------------------------------------------
   if (pathname === '/api/auth/reset-password' && method === 'POST') {
     const inputIdentifier = String(body.email || body.login || '').trim().toLowerCase();
-    const token = String(body.token || '').trim();
+    const rawResetToken = String(body.token || '').trim();
+    const token = rawResetToken.replace(/\D/g, '') || rawResetToken;
     const newPassword = String(body.newPassword || '');
 
     if (!inputIdentifier || !token || !newPassword) {
@@ -2420,11 +2495,12 @@ export async function onRequest(context) {
   // --------------------------------------------------------------------------
   if (pathname === '/api/admin/users' && method === 'GET') {
     if (storage.mode === 'd1') {
-      const res = await storage.db.prepare(`SELECT id, username, email, name, avatar, role, is_active, subscription_tier, is_public, permissions, streak_days, points FROM users`).all();
+      const res = await storage.db.prepare(`SELECT id, username, email, name, avatar, role, is_active, subscription_tier, is_public, permissions, streak_days, points, email_verified, validation_token_preview, validation_token_expires_at, created_at FROM users ORDER BY created_at DESC`).all();
       const users = (res.results || []).map((u) => ({
         ...u,
         is_active: u.is_active === 1,
         is_public: u.is_public === 1,
+        email_verified: u.email_verified === 1 || u.role === 'admin',
         permissions: JSON.parse(u.permissions || ALL_PERMS)
       }));
       return jsonResponse({ users }, 200, correlationId, request);
@@ -2433,9 +2509,161 @@ export async function onRequest(context) {
       ...u,
       is_active: u.is_active === 1,
       is_public: u.is_public === 1,
+      email_verified: u.email_verified === 1 || u.role === 'admin',
       permissions: JSON.parse(u.permissions || ALL_PERMS)
     }));
     return jsonResponse({ users }, 200, correlationId, request);
+  }
+
+  // Gerar Token de Validação válido por 48h pelo Administrador + enviar por e-mail
+  const adminGenToken48hMatch = pathname.match(/^\/api\/admin\/user\/([^/]+)\/generate-token-48h$/);
+  if (adminGenToken48hMatch && method === 'POST') {
+    const targetId = adminGenToken48hMatch[1];
+    let user = null;
+    if (storage.mode === 'd1') {
+      user = await storage.db.prepare('SELECT * FROM users WHERE id = ?').bind(targetId).first();
+    } else {
+      user = storage.store.users.get(targetId);
+    }
+
+    if (!user) {
+      return jsonResponse({ error: 'Usuário não encontrado.' }, 404, correlationId, request);
+    }
+
+    const rawToken = String(Math.floor(100000 + Math.random() * 900000));
+    const tokenHash = await sha256Hex(rawToken);
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const nowIso = new Date().toISOString();
+
+    if (storage.mode === 'd1') {
+      await storage.db.prepare(
+        'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "email_verification", ?, 0, ?)'
+      ).bind(`tok_48h_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, user.id, tokenHash, expiresAt, nowIso).run();
+
+      try {
+        await storage.db.prepare(
+          'UPDATE users SET validation_token_preview = ?, validation_token_expires_at = ?, email_verified = 0 WHERE id = ?'
+        ).bind(rawToken, expiresAt, user.id).run();
+      } catch (_e) {}
+    }
+
+    const emailResult = await sendVerificationEmailEdge(env, {
+      email: user.email,
+      name: user.name,
+      token: rawToken,
+      expiresInMinutes: 2880
+    });
+
+    await recordAuditLogEdge(storage, {
+      eventType: 'ADMIN_GENERATED_48H_VALIDATION_TOKEN',
+      userId: authClaims?.sub || 'usr_admin',
+      ipAddress: clientIp,
+      userAgent,
+      metadata: { targetId: user.id, email: user.email, expiresAt },
+      correlationId
+    });
+
+    return jsonResponse({
+      success: true,
+      token: rawToken,
+      formattedToken: formatTokenDisplayEdge(rawToken),
+      expiresAt,
+      expiresInHours: 48,
+      emailSent: Boolean(emailResult?.success),
+      sandboxRedirected: Boolean(emailResult?.sandboxRedirected),
+      deliveredTo: emailResult?.targetEmail || user.email,
+      message: `Token de 48h (${formatTokenDisplayEdge(rawToken)}) gerado e enviado para ${user.email}.`
+    }, 200, correlationId, request);
+  }
+
+  // Validar conta manualmente pelo Administrador
+  const adminVerifyAccMatch = pathname.match(/^\/api\/admin\/user\/([^/]+)\/verify-account$/);
+  if (adminVerifyAccMatch && method === 'POST') {
+    const targetId = adminVerifyAccMatch[1];
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db.prepare('UPDATE users SET email_verified = 1, validation_token_preview = NULL, validation_token_expires_at = NULL WHERE id = ?').bind(targetId).run();
+      } catch (_e) {
+        await storage.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').bind(targetId).run();
+      }
+      try {
+        await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = "email_verification"').bind(targetId).run();
+      } catch (_e) {}
+    }
+    await recordAuditLogEdge(storage, {
+      eventType: 'ADMIN_MANUAL_ACCOUNT_VERIFIED',
+      userId: authClaims?.sub || 'usr_admin',
+      ipAddress: clientIp,
+      userAgent,
+      metadata: { targetId },
+      correlationId
+    });
+    return jsonResponse({ success: true, email_verified: true }, 200, correlationId, request);
+  }
+
+  // Disparo em lote de tokens de 48h para todos os usuários cadastrados (não-admin)
+  if (pathname === '/api/admin/send-tokens-all' && method === 'POST') {
+    let targetUsers = [];
+    if (storage.mode === 'd1') {
+      const res = await storage.db.prepare(`SELECT * FROM users WHERE role != 'admin' ORDER BY created_at DESC`).all();
+      targetUsers = res.results || [];
+    } else {
+      targetUsers = Array.from(storage.store.users.values()).filter((u) => u.role !== 'admin');
+    }
+
+    const dispatched = [];
+    for (const u of targetUsers) {
+      const rawToken = String(Math.floor(100000 + Math.random() * 900000));
+      const tokenHash = await sha256Hex(rawToken);
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      const nowIso = new Date().toISOString();
+
+      if (storage.mode === 'd1') {
+        await storage.db.prepare(
+          'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "email_verification", ?, 0, ?)'
+        ).bind(`tok_batch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, u.id, tokenHash, expiresAt, nowIso).run();
+
+        try {
+          await storage.db.prepare(
+            'UPDATE users SET validation_token_preview = ?, validation_token_expires_at = ? WHERE id = ?'
+          ).bind(rawToken, expiresAt, u.id).run();
+        } catch (_e) {}
+      }
+
+      const emailResult = await sendVerificationEmailEdge(env, {
+        email: u.email,
+        name: u.name,
+        token: rawToken,
+        expiresInMinutes: 2880
+      });
+
+      dispatched.push({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        token: rawToken,
+        formattedToken: formatTokenDisplayEdge(rawToken),
+        expiresAt,
+        emailSent: Boolean(emailResult?.success),
+        deliveredTo: emailResult?.targetEmail || u.email
+      });
+    }
+
+    await recordAuditLogEdge(storage, {
+      eventType: 'ADMIN_BATCH_TOKENS_DISPATCHED',
+      userId: authClaims?.sub || 'usr_admin',
+      ipAddress: clientIp,
+      userAgent,
+      metadata: { count: dispatched.length },
+      correlationId
+    });
+
+    return jsonResponse({
+      success: true,
+      count: dispatched.length,
+      dispatched,
+      message: `Tokens de 48h gerados e enviados para ${dispatched.length} usuário(s) cadastrado(s).`
+    }, 200, correlationId, request);
   }
 
   const adminToggleMatch = pathname.match(/^\/api\/admin\/user\/([^/]+)\/toggle-active$/);

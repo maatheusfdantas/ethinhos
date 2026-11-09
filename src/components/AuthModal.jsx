@@ -134,13 +134,16 @@ export function AuthModal({
     setErrorMessage('');
     setLoading(true);
 
+    const targetEmail = (email || loginInput).trim();
+    const cleanToken = tokenInput.replace(/\D/g, '') || tokenInput.trim();
+
     try {
       const res = await fetch('/api/auth/verify-email-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: email.trim(),
-          token: tokenInput.trim()
+          email: targetEmail,
+          token: cleanToken
         })
       });
 
@@ -169,13 +172,18 @@ export function AuthModal({
   };
 
   const handleResendRegisterCode = async () => {
+    const targetEmail = (email || loginInput).trim();
+    if (!targetEmail) {
+      setErrorMessage('Informe seu e-mail ou usuário para receber o código.');
+      return;
+    }
     setErrorMessage('');
     setLoading(true);
     try {
       const res = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() })
+        body: JSON.stringify({ email: targetEmail })
       });
       const data = await res.json();
       if (data.success) {
@@ -479,20 +487,32 @@ export function AuthModal({
           </form>
         )}
 
-        {/* 2.1. CONFIRMAR E-MAIL (NOVA CONTA) */}
+        {/* 2.1. CONFIRMAR E-MAIL (NOVA CONTA / TOKEN 48H) */}
         {mode === 'register_verify' && (
           <form onSubmit={handleVerifyRegisterToken}>
             <div style={{ padding: '12px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid var(--accent-cyan)', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem' }}>
-              Enviamos um código de verificação para <strong>{maskedEmail || email}</strong>. Digite o código de 6 dígitos abaixo para ativar sua conta.
+              Informe seu e-mail (ou usuário) e o código de 6 dígitos recebido por e-mail ou gerado pelo Administrador (válido por 48h).
             </div>
 
             <div className="form-group">
-              <label className="form-label">Código de 6 dígitos</label>
+              <label className="form-label">E-mail ou Usuário da Conta</label>
+              <input
+                type="text"
+                className="input-dark"
+                placeholder="seuemail@exemplo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Código / Token de 6 dígitos</label>
               <input 
                 type="text" 
                 className="input-dark" 
-                placeholder="000000"
-                maxLength={6}
+                placeholder="000 • 000"
+                maxLength={12}
                 value={tokenInput}
                 onChange={(e) => setTokenInput(e.target.value)}
                 required

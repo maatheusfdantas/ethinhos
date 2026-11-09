@@ -297,28 +297,157 @@ export function AdminPortalTab({ onSystemReset }) {
     showToast(`Senha de ${userObj.name} redefinida e token enviado para ${userObj.email}!`);
   };
 
-  const handleResendVerificationToken = async (userObj) => {
-    try {
-      await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userObj.email })
-      });
-    } catch (_e) {}
+  const formatCyberToken = (raw) => {
+    const clean = String(raw || '').replace(/\D/g, '');
+    if (clean.length === 6) return `${clean.slice(0, 3)} • ${clean.slice(3, 6)}`;
+    return String(raw || '');
+  };
 
-    recordAdminAudit('ADMIN_RESENT_AUTH_TOKEN', `Reenvio de token de verificação/recuperação para ${userObj.email}`);
-    setEmailLogs((prev) => [
-      {
-        id: `em_${Date.now()}`,
-        recipient: userObj.email,
-        type: 'Token OTP de Verificação/Recuperação',
-        provider: 'Resend API',
-        status: 'entregue',
-        created_at: new Date().toISOString()
-      },
-      ...prev
-    ]);
-    showToast(`Token de verificação/recuperação reenviado para ${userObj.email}!`);
+  const handleGenerate48hToken = async (userObj) => {
+    try {
+      const res = await fetch(`/api/admin/user/${userObj.id}/generate-token-48h`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userObj.id
+              ? {
+                  ...u,
+                  email_verified: false,
+                  validation_token_preview: data.token,
+                  validation_token_expires_at: data.expiresAt
+                }
+              : u
+          )
+        );
+        if (selectedUserDetail?.id === userObj.id) {
+          setSelectedUserDetail((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  email_verified: false,
+                  validation_token_preview: data.token,
+                  validation_token_expires_at: data.expiresAt
+                }
+              : null
+          );
+        }
+        recordAdminAudit(
+          'ADMIN_GENERATED_48H_TOKEN',
+          `Token 48h (${data.formattedToken || data.token}) gerado e enviado para ${userObj.email}.`
+        );
+        setEmailLogs((prev) => [
+          {
+            id: `em_48h_${Date.now()}`,
+            recipient: userObj.email,
+            type: `Token de Validação 48h (${data.formattedToken || data.token})`,
+            provider: 'Resend API (Dark Cyber Engine)',
+            status: 'entregue',
+            created_at: new Date().toISOString()
+          },
+          ...prev
+        ]);
+        showToast(
+          `Token 48h [${data.formattedToken || data.token}] gerado para ${userObj.name} e enviado por e-mail!`
+        );
+        return;
+      }
+      showToast(data.error || 'Erro ao gerar token de 48h.');
+    } catch (_e) {
+      showToast('Erro de comunicação ao gerar token de 48h.');
+    }
+  };
+
+  const handleVerifyAccountManually = async (userObj) => {
+    try {
+      const res = await fetch(`/api/admin/user/${userObj.id}/verify-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userObj.id
+              ? {
+                  ...u,
+                  email_verified: true,
+                  validation_token_preview: null,
+                  validation_token_expires_at: null
+                }
+              : u
+          )
+        );
+        if (selectedUserDetail?.id === userObj.id) {
+          setSelectedUserDetail((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  email_verified: true,
+                  validation_token_preview: null,
+                  validation_token_expires_at: null
+                }
+              : null
+          );
+        }
+        recordAdminAudit(
+          'ADMIN_MANUAL_ACCOUNT_VERIFIED',
+          `Conta de ${userObj.email} (${userObj.id}) marcada como validada pelo Administrador.`
+        );
+        showToast(`Conta de ${userObj.name} validada manualmente com sucesso!`);
+      }
+    } catch (_e) {
+      showToast('Erro ao validar conta manualmente.');
+    }
+  };
+
+  const handleSendTokensToAllUsers = async () => {
+    try {
+      showToast('Gerando e enviando tokens de 48h para os usuários cadastrados...');
+      const res = await fetch('/api/admin/send-tokens-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.dispatched)) {
+        const tokenMap = new Map(data.dispatched.map((d) => [d.id, d]));
+        setUsers((prev) =>
+          prev.map((u) => {
+            const d = tokenMap.get(u.id);
+            if (!d) return u;
+            return {
+              ...u,
+              validation_token_preview: d.token,
+              validation_token_expires_at: d.expiresAt
+            };
+          })
+        );
+        const newLogs = data.dispatched.map((d, idx) => ({
+          id: `em_batch_${Date.now()}_${idx}`,
+          recipient: d.email,
+          type: `Token de Validação 48h (${d.formattedToken || d.token})`,
+          provider: 'Resend API (Dark Cyber Engine)',
+          status: 'entregue',
+          created_at: new Date().toISOString()
+        }));
+        setEmailLogs((prev) => [...newLogs, ...prev]);
+        recordAdminAudit(
+          'ADMIN_BATCH_TOKENS_SENT',
+          `Disparo em lote de tokens 48h para ${data.count} usuário(s) cadastrado(s).`
+        );
+        showToast(data.message || `Tokens de 48h enviados para ${data.count} usuário(s)!`);
+      } else {
+        showToast(data.error || 'Não foi possível disparar os tokens em lote.');
+      }
+    } catch (_e) {
+      showToast('Erro ao disparar tokens em lote.');
+    }
+  };
+
+  const handleResendVerificationToken = async (userObj) => {
+    await handleGenerate48hToken(userObj);
   };
 
   const handleUpdateSubscription = async (userId, newTier) => {
@@ -776,6 +905,46 @@ export function AdminPortalTab({ onSystemReset }) {
               </div>
             </div>
 
+            {/* BARRA DE DISPARO DE TOKENS 48H EM LOTE */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                padding: '12px 16px',
+                marginBottom: '18px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.1) 0%, rgba(15, 23, 42, 0.65) 100%)',
+                border: '1px solid rgba(0, 242, 254, 0.35)'
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <KeyRound size={15} /> Central de Tokens de Validação (Validade de 48 Horas)
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Gere um token individual válido por 48h em qualquer usuário abaixo ou envie tokens por e-mail para todos os usuários cadastrados.
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{
+                  padding: '8px 14px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  gap: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center'
+                }}
+                onClick={handleSendTokensToAllUsers}
+              >
+                <Send size={14} /> Enviar Tokens (48h) para Usuários Cadastrados
+              </button>
+            </div>
+
             {/* LISTAGEM DE USUÁRIOS */}
             {loading ? (
               <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>
@@ -881,6 +1050,35 @@ export function AdminPortalTab({ onSystemReset }) {
                                   ATIVO
                                 </span>
                               )}
+                              {u.email_verified || isAdmin ? (
+                                <span
+                                  style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 800,
+                                    color: '#38BDF8',
+                                    background: 'rgba(56, 189, 248, 0.14)',
+                                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                                    padding: '2px 8px',
+                                    borderRadius: '999px'
+                                  }}
+                                >
+                                  ✓ CONTA VALIDADA
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 800,
+                                    color: '#FBBF24',
+                                    background: 'rgba(245, 158, 11, 0.15)',
+                                    border: '1px solid rgba(245, 158, 11, 0.4)',
+                                    padding: '2px 8px',
+                                    borderRadius: '999px'
+                                  }}
+                                >
+                                  ⏳ AGUARDANDO VALIDAÇÃO
+                                </span>
+                              )}
                             </div>
                             <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                               @{u.username} • <strong>{u.email}</strong> • Cadastro:{' '}
@@ -889,8 +1087,47 @@ export function AdminPortalTab({ onSystemReset }) {
                           </div>
                         </div>
 
-                        {/* CONTROLES ADMINISTRATIVOS: DETALHES, RBAC, ASSINATURA, SUSPENSÃO, BANIMENTO, LGPD */}
+                        {/* CONTROLES ADMINISTRATIVOS: TOKEN 48H, DETALHES, RBAC, ASSINATURA, SUSPENSÃO, BANIMENTO */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          {!isAdmin && (
+                            <>
+                              <button
+                                type="button"
+                                className="btn-primary"
+                                style={{
+                                  padding: '6px 11px',
+                                  fontSize: '0.75rem',
+                                  gap: '5px',
+                                  background: 'rgba(0, 242, 254, 0.18)',
+                                  color: 'var(--accent-cyan)',
+                                  border: '1px solid var(--accent-cyan)'
+                                }}
+                                onClick={() => handleGenerate48hToken(u)}
+                                title="Gerar token válido por 48h para o usuário validar a conta e enviar por e-mail"
+                              >
+                                <KeyRound size={13} /> Gerar Token 48h
+                              </button>
+
+                              {!u.email_verified && (
+                                <button
+                                  type="button"
+                                  className="btn-secondary"
+                                  style={{
+                                    padding: '6px 10px',
+                                    fontSize: '0.75rem',
+                                    gap: '4px',
+                                    borderColor: 'rgba(16, 185, 129, 0.45)',
+                                    color: '#34D399'
+                                  }}
+                                  onClick={() => handleVerifyAccountManually(u)}
+                                  title="Validar e ativar a conta deste usuário imediatamente"
+                                >
+                                  <UserCheck size={13} /> Validar Conta
+                                </button>
+                              )}
+                            </>
+                          )}
+
                           <button
                             type="button"
                             className="btn-secondary"
@@ -963,6 +1200,66 @@ export function AdminPortalTab({ onSystemReset }) {
                           )}
                         </div>
                       </div>
+
+                      {/* EXIBIÇÃO DO TOKEN 48H ATIVO PARA O USUÁRIO */}
+                      {u.validation_token_preview && (
+                        <div
+                          style={{
+                            marginBottom: '12px',
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            background: '#0b0c10',
+                            border: '1px solid rgba(0, 242, 254, 0.45)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '10px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#8e929f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              🔑 Token 48h Ativo:
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: "'Courier New', Courier, monospace",
+                                fontSize: '1.1rem',
+                                fontWeight: 800,
+                                letterSpacing: '4px',
+                                color: '#00f2fe',
+                                background: '#1a1b26',
+                                padding: '4px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid #292e42'
+                              }}
+                            >
+                              {formatCyberToken(u.validation_token_preview)}
+                            </span>
+                            {u.validation_token_expires_at && (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                                Válido até: <strong>{new Date(u.validation_token_expires_at).toLocaleString('pt-BR')}</strong>
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{
+                              padding: '5px 12px',
+                              fontSize: '0.74rem',
+                              borderColor: '#00f2fe',
+                              color: '#00f2fe'
+                            }}
+                            onClick={() => {
+                              navigator.clipboard?.writeText(String(u.validation_token_preview));
+                              showToast(`Token ${u.validation_token_preview} copiado para a área de transferência!`);
+                            }}
+                          >
+                            Copiar Token ({u.validation_token_preview})
+                          </button>
+                        </div>
+                      )}
 
                       {/* CONTROLE MODULAR DE PERMISSÕES */}
                       <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
@@ -1809,12 +2106,94 @@ export function AdminPortalTab({ onSystemReset }) {
               </div>
             </div>
 
-            {/* REDEFINIÇÃO MANUAL DE SENHA OU REENVIO DE TOKENS */}
+            {/* TOKEN DE VALIDAÇÃO DE CONTA 48H + REDEFINIÇÃO DE SENHA */}
             <div className="card-native" style={{ background: 'var(--surface-elevated)', padding: '14px', marginBottom: '14px' }}>
-              <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px 0' }}>
-                🔑 Redefinição Manual de Senha & Tokens de Verificação
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  🛡️ Token de Validação de Conta (Validade de 48h)
+                </h4>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '2px 9px',
+                    borderRadius: '999px',
+                    background: selectedUserDetail.email_verified ? 'rgba(16, 185, 129, 0.16)' : 'rgba(245, 158, 11, 0.18)',
+                    color: selectedUserDetail.email_verified ? '#34D399' : '#FBBF24'
+                  }}
+                >
+                  {selectedUserDetail.email_verified ? '✓ CONTA VALIDADA' : '⏳ AGUARDANDO VALIDAÇÃO'}
+                </span>
+              </div>
+
+              {selectedUserDetail.validation_token_preview && (
+                <div
+                  style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    background: '#0b0c10',
+                    border: '1px solid #00f2fe',
+                    marginBottom: '12px',
+                    textAlign: 'center'
+                  }}
+                >
+                  <div style={{ fontSize: '0.7rem', color: '#8e929f', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '6px' }}>
+                    Código de Validação 48 Horas
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'Courier New', Courier, monospace",
+                      fontSize: '1.55rem',
+                      fontWeight: 800,
+                      letterSpacing: '6px',
+                      color: '#ffffff',
+                      marginBottom: '6px'
+                    }}
+                  >
+                    {formatCyberToken(selectedUserDetail.validation_token_preview)}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#00f2fe', marginBottom: '8px' }}>
+                    Expira em: {selectedUserDetail.validation_token_expires_at ? new Date(selectedUserDetail.validation_token_expires_at).toLocaleString('pt-BR') : '48 horas'}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '0.75rem', padding: '5px 14px', borderColor: '#00f2fe', color: '#00f2fe' }}
+                    onClick={() => {
+                      navigator.clipboard?.writeText(String(selectedUserDetail.validation_token_preview));
+                      showToast(`Token ${selectedUserDetail.validation_token_preview} copiado!`);
+                    }}
+                  >
+                    Copiar Código ({selectedUserDetail.validation_token_preview})
+                  </button>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ flex: 1, fontSize: '0.78rem', padding: '8px 12px', justifyContent: 'center', gap: '6px' }}
+                  onClick={() => handleGenerate48hToken(selectedUserDetail)}
+                >
+                  <KeyRound size={14} /> Gerar Token Válido por 48h & Enviar E-mail
+                </button>
+                {!selectedUserDetail.email_verified && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '0.78rem', padding: '8px 12px', borderColor: '#34D399', color: '#34D399', gap: '6px' }}
+                    onClick={() => handleVerifyAccountManually(selectedUserDetail)}
+                  >
+                    <UserCheck size={14} /> Validar Conta Manualmente
+                  </button>
+                )}
+              </div>
+
+              <h4 style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)', margin: '8px 0 6px 0' }}>
+                🔑 Redefinição Manual de Senha
               </h4>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="text"
                   className="input-dark"
@@ -1825,21 +2204,13 @@ export function AdminPortalTab({ onSystemReset }) {
                 />
                 <button
                   type="button"
-                  className="btn-primary"
+                  className="btn-secondary"
                   style={{ fontSize: '0.78rem', padding: '7px 14px' }}
                   onClick={() => handleManualPasswordReset(selectedUserDetail)}
                 >
                   Redefinir Senha
                 </button>
               </div>
-              <button
-                type="button"
-                className="btn-secondary"
-                style={{ width: '100%', fontSize: '0.78rem', padding: '7px 12px', justifyContent: 'center', gap: '6px' }}
-                onClick={() => handleResendVerificationToken(selectedUserDetail)}
-              >
-                <Mail size={14} /> Reenviar Token de Verificação / Recuperação por E-mail
-              </button>
             </div>
 
             {/* HISTÓRICO DE ATIVIDADES & SESSÕES ATIVAS DO USUÁRIO */}

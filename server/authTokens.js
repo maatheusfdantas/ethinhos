@@ -19,8 +19,9 @@ import crypto from 'node:crypto';
 
 // Constantes de expiração
 export const TOKEN_EXPIRATION = {
-  EMAIL_VERIFICATION_MS: 24 * 60 * 60 * 1000, // 24 horas (ou 1440 min)
-  PASSWORD_RESET_MS: 15 * 60 * 1000            // 15 minutos
+  EMAIL_VERIFICATION_MS: 24 * 60 * 60 * 1000,    // 24 horas (ou 1440 min)
+  ADMIN_VALIDATION_48H_MS: 48 * 60 * 60 * 1000,  // 48 horas (ou 2880 min)
+  PASSWORD_RESET_MS: 15 * 60 * 1000              // 15 minutos
 };
 
 /**
@@ -62,9 +63,11 @@ export function hashToken(rawToken) {
   if (!rawToken) {
     throw new Error('Token obrigatório para cálculo de hash.');
   }
+  const cleanDigits = String(rawToken).replace(/\D/g, '');
+  const normalized = cleanDigits.length === 6 ? cleanDigits : String(rawToken).trim();
   return crypto
     .createHash('sha256')
-    .update(String(rawToken).trim())
+    .update(normalized)
     .digest('hex');
 }
 
@@ -88,22 +91,27 @@ export function ensureAuthTokensTable(db) {
 
   try {
     db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0;`);
-  } catch (e) {
-    // Coluna já existe
-  }
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN validation_token_preview TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN validation_token_expires_at TEXT;`);
+  } catch (e) {}
 }
 
 /**
- * Cria e persiste um novo token seguro para o usuário, invalidando anteriores
+ * Cria e persiste um novo token seguro para o usuário
  *
  * @param {object} db - Instância do BetterSQLite3
  * @param {object} options
  * @param {string} options.userId - ID do usuário
  * @param {string} options.type - 'email_verification' | 'password_reset'
  * @param {number} [options.durationMs] - Duração em milissegundos
+ * @param {boolean} [options.preserveExisting] - Se true, mantém outros tokens ativos (ex: token 48h do admin)
  * @returns {{ rawToken: string, tokenHash: string, expiresAt: string, expiresInMinutes: number }}
  */
-export function createAuthToken(db, { userId, type, durationMs }) {
+export function createAuthToken(db, { userId, type, durationMs, preserveExisting = false }) {
   if (!userId || !type) {
     throw new Error('userId e type são obrigatórios para emitir token.');
   }
@@ -121,12 +129,14 @@ export function createAuthToken(db, { userId, type, durationMs }) {
   const createdAt = now.toISOString();
   const tokenId = `tok_${crypto.randomUUID()}`;
 
-  // 1. Invalida tokens pendentes anteriores deste mesmo tipo para o usuário
-  db.prepare(`
-    UPDATE auth_tokens
-    SET used = 1
-    WHERE user_id = ? AND type = ? AND used = 0
-  `).run(userId, type);
+  // 1. Invalida tokens pendentes anteriores deste mesmo tipo caso não preserve
+  if (!preserveExisting && type === 'password_reset') {
+    db.prepare(`
+      UPDATE auth_tokens
+      SET used = 1
+      WHERE user_id = ? AND type = ? AND used = 0
+    `).run(userId, type);
+  }
 
   // 2. Insere o novo token seguro na tabela centralizada
   db.prepare(`
@@ -183,6 +193,21 @@ export function validateAndConsumeToken(db, { userId, type, rawToken }) {
   `).get(userId, type, candidateHash);
 
   if (!record) {
+    if (type === 'email_verification') {
+      try {
+        const cleanDigits = String(rawToken).replace(/\D/g, '') || String(rawToken).trim();
+        const userRow = db.prepare(`SELECT validation_token_preview, validation_token_expires_at FROM users WHERE id = ?`).get(userId);
+        if (userRow && userRow.validation_token_preview && userRow.validation_token_preview === cleanDigits) {
+          if (userRow.validation_token_expires_at && userRow.validation_token_expires_at < nowIso) {
+            return { valid: false, error: 'Código de 48h expirado. Solicite um novo código ao administrador.' };
+          }
+          db.prepare(`UPDATE users SET validation_token_preview = NULL, validation_token_expires_at = NULL WHERE id = ?`).run(userId);
+          db.prepare(`UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = 'email_verification'`).run(userId);
+          return { valid: true, tokenRecord: { id: 'admin_48h', user_id: userId, type } };
+        }
+      } catch (_e) {}
+    }
+
     // Fallback de retrocompatibilidade para password_reset_tokens
     if (type === 'password_reset') {
       const fallbackRecord = db.prepare(`
@@ -212,7 +237,12 @@ export function validateAndConsumeToken(db, { userId, type, rawToken }) {
   }
 
   // Marca como usado imediatamente (Single-Use garantido)
-  db.prepare(`UPDATE auth_tokens SET used = 1 WHERE id = ?`).run(record.id);
+  db.prepare(`UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = ?`).run(userId, type);
+  if (type === 'email_verification') {
+    try {
+      db.prepare(`UPDATE users SET validation_token_preview = NULL, validation_token_expires_at = NULL WHERE id = ?`).run(userId);
+    } catch (_e) {}
+  }
 
   if (type === 'password_reset') {
     try {

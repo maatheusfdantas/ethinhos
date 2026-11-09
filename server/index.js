@@ -31,7 +31,7 @@ import {
   enforceOwnership,
   requireAdmin
 } from './security.js';
-import { sendVerificationEmail, sendPasswordResetEmail } from './emailService.js';
+import { sendVerificationEmail, sendPasswordResetEmail, formatTokenDisplay } from './emailService.js';
 import {
   createAuthToken,
   validateAndConsumeToken,
@@ -250,6 +250,20 @@ app.post('/api/auth/login', authRateLimiter, (req, res) => {
   }
 
   clearLoginFailures(`${req.ip}:${normalizedLogin}`);
+
+  // Se o usuário ainda não validou a conta (e não é admin), redireciona para a tela de validação de token
+  if (user.role !== 'admin' && user.email_verified === 0) {
+    return res.json({
+      requireVerification: true,
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+      maskedEmail: maskEmail(user.email),
+      name: user.name,
+      message: 'Sua conta aguarda validação. Insira o código recebido por e-mail ou o token de 48h gerado pelo Administrador.'
+    });
+  }
+
   const tokens = issueSessionTokens(db, user, req);
 
   logSecurityEvent(db, {
@@ -315,10 +329,42 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   const cleanUsername = username?.trim() || email.split('@')[0];
 
   const checkStmt = db.prepare(`
-    SELECT id FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)
+    SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)
   `);
   const existing = checkStmt.get(email, cleanUsername);
   if (existing) {
+    if (existing.email_verified === 0) {
+      db.prepare(`UPDATE users SET password = ?, name = ? WHERE id = ?`).run(
+        hashPassword(String(password)),
+        name.trim(),
+        existing.id
+      );
+      const tokenData = createAuthToken(db, {
+        userId: existing.id,
+        type: 'email_verification',
+        durationMs: TOKEN_EXPIRATION.EMAIL_VERIFICATION_MS,
+        preserveExisting: true
+      });
+      await sendVerificationEmail({
+        email: existing.email,
+        name: name.trim(),
+        token: tokenData.rawToken,
+        expiresInMinutes: tokenData.expiresInMinutes
+      });
+      return res.status(200).json({
+        success: true,
+        requireVerification: true,
+        userId: existing.id,
+        username: existing.username,
+        email: existing.email,
+        maskedEmail: maskEmail(existing.email),
+        name: name.trim(),
+        avatar: existing.avatar,
+        role: existing.role,
+        expiresInMinutes: tokenData.expiresInMinutes,
+        message: `Conta pendente de validação. Enviamos um novo código para ${maskEmail(existing.email)} (ou utilize o token de 48h gerado pelo Administrador).`
+      });
+    }
     return res.status(409).json({ error: 'E-mail ou nome de usuário já cadastrado.' });
   }
 
@@ -400,12 +446,17 @@ app.post('/api/auth/verify-email-token', authRateLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Informe o e-mail e o código de verificação recebido.' });
   }
 
-  const user = db.prepare(`SELECT * FROM users WHERE LOWER(email) = LOWER(?)`).get(email);
+  const user = db.prepare(`SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)`).get(String(email).trim(), String(email).trim());
   if (!user) {
     return res.status(404).json({ error: 'Usuário não encontrado.' });
   }
 
+  const cleanToken = String(token).replace(/\D/g, '') || String(token).trim();
+
   if (user.email_verified === 1) {
+    try {
+      db.prepare(`UPDATE users SET validation_token_preview = NULL, validation_token_expires_at = NULL WHERE id = ?`).run(user.id);
+    } catch (_e) {}
     const tokens = issueSessionTokens(db, user, req);
     return res.json({
       success: true,
@@ -427,15 +478,19 @@ app.post('/api/auth/verify-email-token', authRateLimiter, async (req, res) => {
   const validation = validateAndConsumeToken(db, {
     userId: user.id,
     type: 'email_verification',
-    rawToken: String(token).trim()
+    rawToken: cleanToken
   });
 
   if (!validation.valid) {
     return res.status(400).json({ error: validation.error || 'Código inválido ou expirado.' });
   }
 
-  // Marca o e-mail do usuário como verificado
-  db.prepare(`UPDATE users SET email_verified = 1 WHERE id = ?`).run(user.id);
+  // Marca o e-mail do usuário como verificado e limpa token pendente
+  try {
+    db.prepare(`UPDATE users SET email_verified = 1, validation_token_preview = NULL, validation_token_expires_at = NULL WHERE id = ?`).run(user.id);
+  } catch (_e) {
+    db.prepare(`UPDATE users SET email_verified = 1 WHERE id = ?`).run(user.id);
+  }
 
   logSecurityEvent(db, {
     correlationId: req.correlationId,
@@ -688,7 +743,8 @@ app.get('/api/admin/users', (_req, res) => {
   const users = db
     .prepare(`
       SELECT id, username, email, name, avatar, role, is_active, subscription_tier,
-             is_public, permissions, streak_days, points, created_at
+             is_public, permissions, streak_days, points, email_verified,
+             validation_token_preview, validation_token_expires_at, created_at
       FROM users ORDER BY created_at DESC
     `)
     .all()
@@ -696,9 +752,121 @@ app.get('/api/admin/users', (_req, res) => {
       ...u,
       is_active: u.is_active === 1,
       is_public: u.is_public === 1,
+      email_verified: u.email_verified === 1 || u.role === 'admin',
       permissions: JSON.parse(u.permissions || '{}')
     }));
   res.json({ users });
+});
+
+app.post('/api/admin/user/:id/generate-token-48h', async (req, res) => {
+  const { id } = req.params;
+  const user = db.prepare(`SELECT * FROM users WHERE id = ?`).get(id);
+  if (!user) {
+    return res.status(404).json({ error: 'Usuário não encontrado.' });
+  }
+
+  const tokenData = createAuthToken(db, {
+    userId: user.id,
+    type: 'email_verification',
+    durationMs: TOKEN_EXPIRATION.ADMIN_VALIDATION_48H_MS,
+    preserveExisting: true
+  });
+
+  try {
+    db.prepare(`
+      UPDATE users
+      SET validation_token_preview = ?, validation_token_expires_at = ?, email_verified = 0
+      WHERE id = ?
+    `).run(tokenData.rawToken, tokenData.expiresAt, user.id);
+  } catch (_e) {}
+
+  const emailResult = await sendVerificationEmail({
+    email: user.email,
+    name: user.name,
+    token: tokenData.rawToken,
+    expiresInMinutes: 2880
+  });
+
+  logSecurityEvent(db, {
+    correlationId: req.correlationId,
+    eventType: 'ADMIN_GENERATED_48H_TOKEN',
+    actorUserId: req.auth?.sub || 'usr_admin',
+    ipAddress: req.ip,
+    metadata: { targetUserId: user.id, email: user.email, expiresAt: tokenData.expiresAt }
+  });
+
+  res.json({
+    success: true,
+    token: tokenData.rawToken,
+    formattedToken: formatTokenDisplay(tokenData.rawToken),
+    expiresAt: tokenData.expiresAt,
+    expiresInHours: 48,
+    emailSent: Boolean(emailResult?.success),
+    sandboxRedirected: Boolean(emailResult?.sandboxRedirected),
+    deliveredTo: emailResult?.targetEmail || user.email,
+    message: `Token 48h (${formatTokenDisplay(tokenData.rawToken)}) gerado e enviado para ${user.email}!`
+  });
+});
+
+app.post('/api/admin/user/:id/verify-account', (req, res) => {
+  const { id } = req.params;
+  try {
+    db.prepare(`
+      UPDATE users
+      SET email_verified = 1, validation_token_preview = NULL, validation_token_expires_at = NULL
+      WHERE id = ?
+    `).run(id);
+    db.prepare(`UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = 'email_verification'`).run(id);
+  } catch (_e) {
+    db.prepare(`UPDATE users SET email_verified = 1 WHERE id = ?`).run(id);
+  }
+  res.json({ success: true, email_verified: true });
+});
+
+app.post('/api/admin/send-tokens-all', async (req, res) => {
+  const allUsers = db.prepare(`SELECT * FROM users WHERE role != 'admin' ORDER BY created_at DESC`).all();
+  const dispatched = [];
+
+  for (const user of allUsers) {
+    const tokenData = createAuthToken(db, {
+      userId: user.id,
+      type: 'email_verification',
+      durationMs: TOKEN_EXPIRATION.ADMIN_VALIDATION_48H_MS,
+      preserveExisting: true
+    });
+
+    try {
+      db.prepare(`
+        UPDATE users
+        SET validation_token_preview = ?, validation_token_expires_at = ?
+        WHERE id = ?
+      `).run(tokenData.rawToken, tokenData.expiresAt, user.id);
+    } catch (_e) {}
+
+    const emailResult = await sendVerificationEmail({
+      email: user.email,
+      name: user.name,
+      token: tokenData.rawToken,
+      expiresInMinutes: 2880
+    });
+
+    dispatched.push({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      token: tokenData.rawToken,
+      formattedToken: formatTokenDisplay(tokenData.rawToken),
+      expiresAt: tokenData.expiresAt,
+      emailSent: Boolean(emailResult?.success),
+      deliveredTo: emailResult?.targetEmail || user.email
+    });
+  }
+
+  res.json({
+    success: true,
+    count: dispatched.length,
+    dispatched
+  });
 });
 
 app.post('/api/admin/user/:id/subscription', (req, res) => {

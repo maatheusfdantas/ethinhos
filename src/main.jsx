@@ -15,7 +15,9 @@ if (typeof window !== 'undefined' && !window.__ETHOS_FETCH_SECURED__) {
     const isApiCall = urlStr.startsWith('/api/') || urlStr.includes('/api/');
 
     if (isApiCall) {
-      const accessToken = sessionStorage.getItem('ethos_access_token');
+      const accessToken =
+        sessionStorage.getItem('ethos_access_token') ||
+        localStorage.getItem('ethos_access_token');
       const headers = new Headers(init.headers || {});
       if (accessToken && !headers.has('Authorization')) {
         headers.set('Authorization', `Bearer ${accessToken}`);

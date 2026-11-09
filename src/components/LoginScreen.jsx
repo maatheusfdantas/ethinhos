@@ -92,7 +92,25 @@ export function LoginScreen({ onLoginSuccess }) {
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.requireVerification) {
+          setRegEmail(data.email || loginInput.trim());
+          setMaskedEmail(data.maskedEmail || data.email || loginInput.trim());
+          setTokenInput('');
+          setErrorMessage(data.error || 'Valide sua conta com o código enviado por e-mail ou com um token de 48h.');
+          setMode('register_verify');
+          setLoading(false);
+          return;
+        }
         setErrorMessage(data.error || 'Erro ao efetuar login.');
+        setLoading(false);
+        return;
+      }
+
+      if (data.requireVerification) {
+        setRegEmail(data.email || loginInput.trim());
+        setMaskedEmail(data.maskedEmail || data.email || loginInput.trim());
+        setTokenInput('');
+        setMode('register_verify');
         setLoading(false);
         return;
       }
@@ -169,19 +187,22 @@ export function LoginScreen({ onLoginSuccess }) {
     }
   };
 
-  // Validar código de confirmação de e-mail no cadastro
+  // Validar código de confirmação de e-mail no cadastro / token de 48h
   const handleVerifyRegisterToken = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setLoading(true);
+
+    const targetEmail = (regEmail || loginInput).trim();
+    const cleanToken = tokenInput.replace(/\D/g, '') || tokenInput.trim();
 
     try {
       const res = await fetch('/api/auth/verify-email-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: regEmail.trim(),
-          token: tokenInput.trim()
+          email: targetEmail,
+          token: cleanToken
         })
       });
 
@@ -210,13 +231,18 @@ export function LoginScreen({ onLoginSuccess }) {
 
   // Reenviar código de confirmação de e-mail
   const handleResendRegisterCode = async () => {
+    const targetEmail = (regEmail || loginInput).trim();
+    if (!targetEmail) {
+      setErrorMessage('Informe seu e-mail ou nome de usuário acima para receber o código.');
+      return;
+    }
     setErrorMessage('');
     setLoading(true);
     try {
       const res = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: regEmail.trim() })
+        body: JSON.stringify({ email: targetEmail })
       });
       const data = await res.json();
       if (data.success) {
@@ -622,6 +648,32 @@ export function LoginScreen({ onLoginSuccess }) {
                 </button>
               </div>
 
+              {/* Atalho direto para validar conta com Token de 48h */}
+              <div style={{ marginTop: '12px', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorMessage('');
+                    if (loginInput.trim()) setRegEmail(loginInput.trim());
+                    setTokenInput('');
+                    setMode('register_verify');
+                  }}
+                  style={{
+                    fontSize: '11.5px',
+                    color: '#0f766e',
+                    backgroundColor: '#f0fdfa',
+                    border: '1px solid #99f6e4',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    width: '100%'
+                  }}
+                >
+                  🔑 Já tenho um Token / Validar Conta (48h)
+                </button>
+              </div>
+
             </form>
           )}
 
@@ -822,7 +874,7 @@ export function LoginScreen({ onLoginSuccess }) {
           )}
 
           {/* ========================================================== */}
-          {/* 2.1. CONFIRMAÇÃO DE E-MAIL (CADASTRO / RESEND)             */}
+          {/* 2.1. CONFIRMAÇÃO DE E-MAIL (CADASTRO / TOKEN 48H)          */}
           {/* ========================================================== */}
           {mode === 'register_verify' && (
             <form onSubmit={handleVerifyRegisterToken} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -830,24 +882,48 @@ export function LoginScreen({ onLoginSuccess }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <Mail size={15} color="#16a34a" />
                   <span style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#15803d' }}>
-                    Validação de Segurança
+                    Validação de Conta (E-mail ou Token 48h)
                   </span>
                 </div>
                 <p style={{ fontSize: '12px', color: '#1f2937', margin: 0, lineHeight: 1.45 }}>
-                  Enviamos um código de ativação de 6 dígitos para <strong>{maskedEmail || regEmail}</strong>. Digite o código para validar sua conta.
+                  Informe seu e-mail (ou usuário) e o código de 6 dígitos recebido no e-mail ou gerado pelo Administrador (válido por 48h).
                 </p>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  Código de 6 dígitos
+                  E-mail ou Usuário da Conta
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
+                  <Mail size={16} color="#1e293b" strokeWidth={1.75} />
+                  <input
+                    type="text"
+                    placeholder="Digite seu e-mail ou usuário"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      fontSize: '13.5px',
+                      color: '#1e293b',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
+                  Código / Token de 6 dígitos
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
                   <KeyRound size={16} color="#1e293b" strokeWidth={1.75} />
                   <input 
                     type="text" 
-                    placeholder="000000"
-                    maxLength={6}
+                    placeholder="000 • 000"
+                    maxLength={12}
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value)}
                     required
