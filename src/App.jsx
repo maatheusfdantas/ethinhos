@@ -158,12 +158,20 @@ export function App() {
   const loadUserData = async (activeUser) => {
     if (!activeUser) return;
 
+    // Sincroniza treinos específicos desta conta
+    try {
+      const savedWorkouts = localStorage.getItem(`ethos_workouts_${activeUser.id}`);
+      setWorkouts(savedWorkouts ? JSON.parse(savedWorkouts) : []);
+    } catch (_e) {
+      setWorkouts([]);
+    }
+
     try {
       const res = await fetch(`/api/user/${activeUser.id}/data`);
       if (res.ok) {
         const data = await res.json();
-        if (data.habits) setHabits(data.habits);
-        if (data.events) setEvents(data.events);
+        setHabits(data.habits || []);
+        setEvents(data.events || []);
         if (data.health) setHealth(data.health);
         if (data.tags && data.tags.length > 0) {
           setTags(data.tags);
@@ -184,6 +192,15 @@ export function App() {
       loadUserData(user);
     }
   }, [user?.id]);
+
+  // Persiste treinos no localStorage por usuário
+  useEffect(() => {
+    if (user?.id) {
+      try {
+        localStorage.setItem(`ethos_workouts_${user.id}`, JSON.stringify(workouts));
+      } catch (e) {}
+    }
+  }, [workouts, user?.id]);
 
   // Handler: Add new Habit (US01, US19, US20, US39)
   const handleAddHabit = async (newHabit) => {
@@ -427,6 +444,9 @@ export function App() {
     try {
       localStorage.setItem('ethos_current_user', JSON.stringify(authenticatedUser));
       sessionStorage.setItem('ethos_current_user', JSON.stringify(authenticatedUser));
+      localStorage.setItem('ethos_user_id', authenticatedUser.id);
+      const savedWorkouts = localStorage.getItem(`ethos_workouts_${authenticatedUser.id}`);
+      setWorkouts(savedWorkouts ? JSON.parse(savedWorkouts) : []);
     } catch (e) {}
     setUser(authenticatedUser);
     setShowWelcomeIntro(true);
@@ -449,6 +469,17 @@ export function App() {
     localStorage.removeItem('ethos_access_token');
     localStorage.removeItem('ethos_refresh_token');
     localStorage.removeItem('ethos_active_tab');
+    localStorage.removeItem('ethos_user_id');
+    setWorkouts([]);
+    setHabits([]);
+    setEvents([]);
+    setTags([]);
+    setHealth({
+      waterGlasses: 0,
+      waterTarget: 10,
+      waterHistory: [],
+      sleep: { bedTime: '23:30', wakeTime: '07:00', targetHours: 8, logged: false }
+    });
     setShowAuthModal(false);
     setShowProfileModal(false);
     setShowAddModal(false);

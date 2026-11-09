@@ -126,42 +126,8 @@ export function BadHabitsTab({ user, showToast }) {
       if (saved) return JSON.parse(saved);
     } catch (e) {}
 
-    // Dados iniciais de demonstração empáticos
-    const now = Date.now();
-    return [
-      {
-        id: 'bh_1',
-        title: 'Cigarro / Nicotina',
-        category: 'Saúde Física & Pulmonar',
-        icon_name: 'Cigarette',
-        started_at: new Date(now - 14 * 24 * 60 * 60 * 1000 - 6 * 60 * 60 * 1000).toISOString(), // 14 dias atrás
-        cost_per_day: 15,
-        motivational_reason: 'Quero correr sem perder o fôlego e ter mais disposição para trabalhar.',
-        impact_description: 'Capacidade pulmonar restabelecida e redução da frequência cardíaca de repouso.',
-        best_streak_days: 14,
-        relapse_count: 0,
-        relapses: []
-      },
-      {
-        id: 'bh_2',
-        title: 'Bebida Alcoólica',
-        category: 'Saúde Mental & Fígado',
-        icon_name: 'Wine',
-        started_at: new Date(now - 22 * 24 * 60 * 60 * 1000).toISOString(), // 22 dias atrás
-        cost_per_day: 30,
-        motivational_reason: 'Acordar aos sábados com disposição e energia para treinar pesado.',
-        impact_description: 'Sono REM sem fragmentação e foco renovado durante a semana.',
-        best_streak_days: 22,
-        relapse_count: 1,
-        relapses: [
-          {
-            date: new Date(now - 22 * 24 * 60 * 60 * 1000).toISOString(),
-            trigger: 'Evento social com amigos',
-            lesson: 'Beber água com gás e limão em festas para manter o copo cheio sem álcool.'
-          }
-        ]
-      }
-    ];
+    // Inicia 100% zerado para que contas novas comecem sem registros artificiais
+    return [];
   });
 
   // Ticker de tempo em tempo real (atualiza a cada 10s)

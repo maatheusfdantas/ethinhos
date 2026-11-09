@@ -169,21 +169,21 @@ export function ProfileTab({
   const [editTrackArtist, setEditTrackArtist] = useState('');
   const [editTrackAlbum, setEditTrackAlbum] = useState('');
 
-  const activeTrack = customTrack || PRESET_TRACKS[trackIndex % PRESET_TRACKS.length];
-  const [isPlayingMusic, setIsPlayingMusic] = useState(true);
-  const [isLikedSong, setIsLikedSong] = useState(true);
-  const [musicProgress, setMusicProgress] = useState(134);
-  const musicDuration = activeTrack.duration || 230;
+  const activeTrack = customTrack || null;
+  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
+  const [isLikedSong, setIsLikedSong] = useState(false);
+  const [musicProgress, setMusicProgress] = useState(0);
+  const musicDuration = activeTrack?.duration || 215;
 
   useEffect(() => {
     let timer;
-    if (isPlayingMusic) {
+    if (isPlayingMusic && activeTrack) {
       timer = setInterval(() => {
         setMusicProgress(prev => (prev >= musicDuration ? 0 : prev + 1));
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [isPlayingMusic, musicDuration]);
+  }, [isPlayingMusic, musicDuration, activeTrack]);
 
   const formatSeconds = (sec) => {
     const m = Math.floor(sec / 60);
@@ -192,14 +192,16 @@ export function ProfileTab({
   };
 
   const handleNextTrack = () => {
-    setCustomTrack(null);
-    setTrackIndex((prev) => (prev + 1) % PRESET_TRACKS.length);
+    const nextIdx = (trackIndex + 1) % PRESET_TRACKS.length;
+    setTrackIndex(nextIdx);
+    setCustomTrack(PRESET_TRACKS[nextIdx]);
     setMusicProgress(0);
   };
 
   const handlePrevTrack = () => {
-    setCustomTrack(null);
-    setTrackIndex((prev) => (prev - 1 + PRESET_TRACKS.length) % PRESET_TRACKS.length);
+    const prevIdx = (trackIndex - 1 + PRESET_TRACKS.length) % PRESET_TRACKS.length;
+    setTrackIndex(prevIdx);
+    setCustomTrack(PRESET_TRACKS[prevIdx]);
     setMusicProgress(0);
   };
 
@@ -410,7 +412,7 @@ export function ProfileTab({
   });
 
   const completedHabitsCount = habits.filter(h => h.completed).length;
-  const habitCompletionRate = habits.length > 0 ? Math.round((completedHabitsCount / habits.length) * 100) : 85;
+  const habitCompletionRate = habits.length > 0 ? Math.round((completedHabitsCount / habits.length) * 100) : 0;
   const userStreak = user?.streak_days || 0;
 
   // Cálculo transparente e acumulativo de XP
@@ -453,11 +455,11 @@ export function ProfileTab({
       if (saved) return JSON.parse(saved);
     } catch (_e) {}
     return {
-      shareStreaks: true,
-      shareWorkoutStreak: true,
-      shareFocusHours: true,
-      shareSobrietyDays: true,
-      selectedHabitIds: habits.slice(0, 3).map(h => h.id)
+      shareStreaks: false,
+      shareWorkoutStreak: false,
+      shareFocusHours: false,
+      shareSobrietyDays: false,
+      selectedHabitIds: []
     };
   });
 
@@ -1118,43 +1120,45 @@ export function ProfileTab({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div
-                  onClick={() => setIsPlayingMusic((prev) => !prev)}
+                  onClick={() => { if (activeTrack) setIsPlayingMusic((prev) => !prev); }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
                     padding: '3px 8px',
                     borderRadius: '999px',
-                    backgroundColor: 'rgba(29, 185, 84, 0.15)',
-                    border: '1px solid rgba(29, 185, 84, 0.35)',
-                    color: '#1DB954',
+                    backgroundColor: activeTrack ? 'rgba(29, 185, 84, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                    border: activeTrack ? '1px solid rgba(29, 185, 84, 0.35)' : '1px solid rgba(255, 255, 255, 0.12)',
+                    color: activeTrack ? '#1DB954' : '#94A3B8',
                     fontSize: '10px',
                     fontWeight: 800,
                     letterSpacing: '0.06em',
                     textTransform: 'uppercase',
-                    cursor: 'pointer'
+                    cursor: activeTrack ? 'pointer' : 'default'
                   }}
-                  title="Clique para alternar entre Ouvindo Agora e Última Escutada"
+                  title={activeTrack ? "Clique para alternar reprodução" : "Nenhuma música configurada"}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', height: '10px' }}>
-                    <span style={{ width: '2.5px', height: isPlayingMusic ? '10px' : '4px', backgroundColor: '#1DB954', borderRadius: '1px', transition: 'height 0.2s ease' }} />
-                    <span style={{ width: '2.5px', height: isPlayingMusic ? '6px' : '3px', backgroundColor: '#1DB954', borderRadius: '1px', transition: 'height 0.2s ease' }} />
-                    <span style={{ width: '2.5px', height: isPlayingMusic ? '9px' : '5px', backgroundColor: '#1DB954', borderRadius: '1px', transition: 'height 0.2s ease' }} />
-                  </span>
-                  <span>{isPlayingMusic ? 'Ouvindo Agora' : 'Última Escutada'}</span>
+                  {activeTrack && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', height: '10px' }}>
+                      <span style={{ width: '2.5px', height: isPlayingMusic ? '10px' : '4px', backgroundColor: '#1DB954', borderRadius: '1px', transition: 'height 0.2s ease' }} />
+                      <span style={{ width: '2.5px', height: isPlayingMusic ? '6px' : '3px', backgroundColor: '#1DB954', borderRadius: '1px', transition: 'height 0.2s ease' }} />
+                      <span style={{ width: '2.5px', height: isPlayingMusic ? '9px' : '5px', backgroundColor: '#1DB954', borderRadius: '1px', transition: 'height 0.2s ease' }} />
+                    </span>
+                  )}
+                  <span>{activeTrack ? (isPlayingMusic ? 'Ouvindo Agora' : 'Última Escutada') : 'Música'}</span>
                 </div>
 
                 <span style={{ fontSize: '11px', color: '#94A3B8' }}>
-                  via Spotify
+                  Spotify / Streaming
                 </span>
               </div>
 
               <button
                 type="button"
                 onClick={() => {
-                  setEditTrackTitle(activeTrack.title);
-                  setEditTrackArtist(activeTrack.artist);
-                  setEditTrackAlbum(activeTrack.album || '');
+                  setEditTrackTitle(activeTrack?.title || '');
+                  setEditTrackArtist(activeTrack?.artist || '');
+                  setEditTrackAlbum(activeTrack?.album || '');
                   setShowEditTrackModal(true);
                 }}
                 style={{
@@ -1172,114 +1176,144 @@ export function ProfileTab({
                 }}
               >
                 <Edit3 size={11} />
-                <span>Alterar Música</span>
+                <span>{activeTrack ? 'Alterar Música' : 'Definir Música'}</span>
               </button>
             </div>
 
-            {/* Corpo do Player */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div
-                style={{
-                  width: '68px',
-                  height: '68px',
-                  borderRadius: '16px',
-                  background: activeTrack.gradient || 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 50%, #3B82F6 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 8px 24px rgba(139, 92, 246, 0.35)',
-                  position: 'relative',
-                  flexShrink: 0
-                }}
-              >
-                <Disc size={34} color="#FFFFFF" style={{ opacity: 0.9 }} />
-                <span
-                  style={{
-                    position: 'absolute',
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '50%',
-                    backgroundColor: '#0D111E',
-                    border: '2px solid #FFFFFF'
-                  }}
-                />
-              </div>
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                  <h4 style={{ margin: '0 0 2px 0', fontSize: '15px', fontWeight: 800, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {activeTrack.title}
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setIsLikedSong(prev => !prev)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                  >
-                    <Heart size={15} fill={isLikedSong ? '#EF4444' : 'transparent'} color={isLikedSong ? '#EF4444' : '#64748B'} />
-                  </button>
-                </div>
-                <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {activeTrack.artist} • {activeTrack.album}
-                </p>
-
-                <div style={{ width: '100%', height: '4px', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: '999px', overflow: 'hidden', marginBottom: '4px' }}>
+            {/* Corpo do Player ou Estado Limpo */}
+            {activeTrack ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div
                     style={{
-                      height: '100%',
-                      width: `${(musicProgress / musicDuration) * 100}%`,
-                      backgroundColor: '#1DB954',
-                      borderRadius: '999px',
-                      transition: 'width 1s linear'
+                      width: '68px',
+                      height: '68px',
+                      borderRadius: '16px',
+                      background: activeTrack.gradient || 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 50%, #3B82F6 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 8px 24px rgba(139, 92, 246, 0.35)',
+                      position: 'relative',
+                      flexShrink: 0
                     }}
-                  />
+                  >
+                    <Disc size={34} color="#FFFFFF" style={{ opacity: 0.9 }} />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%',
+                        backgroundColor: '#0D111E',
+                        border: '2px solid #FFFFFF'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <h4 style={{ margin: '0 0 2px 0', fontSize: '15px', fontWeight: 800, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {activeTrack.title}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setIsLikedSong(prev => !prev)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        <Heart size={15} fill={isLikedSong ? '#EF4444' : 'transparent'} color={isLikedSong ? '#EF4444' : '#64748B'} />
+                      </button>
+                    </div>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {activeTrack.artist} • {activeTrack.album}
+                    </p>
+
+                    <div style={{ width: '100%', height: '4px', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: '999px', overflow: 'hidden', marginBottom: '4px' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${(musicProgress / musicDuration) * 100}%`,
+                          backgroundColor: '#1DB954',
+                          borderRadius: '999px',
+                          transition: 'width 1s linear'
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748B' }}>
+                      <span>{formatSeconds(musicProgress)}</span>
+                      <span>{formatSeconds(musicDuration)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748B' }}>
-                  <span>{formatSeconds(musicProgress)}</span>
-                  <span>{formatSeconds(musicDuration)}</span>
+
+                {/* Controles do Player */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '18px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <button
+                    type="button"
+                    onClick={handlePrevTrack}
+                    title="Música Anterior"
+                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
+                  >
+                    <SkipBack size={16} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsPlayingMusic(prev => !prev)}
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: '#FFFFFF',
+                      color: '#0D111E',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(255,255,255,0.25)'
+                    }}
+                  >
+                    {isPlayingMusic ? <Pause size={16} fill="#0D111E" /> : <Play size={16} fill="#0D111E" style={{ marginLeft: '2px' }} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleNextTrack}
+                    title="Próxima Música"
+                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
+                  >
+                    <SkipForward size={16} />
+                  </button>
                 </div>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '16px 8px', color: '#94A3B8' }}>
+                <p style={{ margin: '0 0 10px 0', fontSize: '12.5px' }}>
+                  Nenhuma música configurada para exibir no perfil.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowEditTrackModal(true)}
+                  style={{
+                    padding: '7px 16px',
+                    borderRadius: '999px',
+                    backgroundColor: '#1DB954',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Music size={13} />
+                  <span>Definir Música do Perfil</span>
+                </button>
               </div>
-            </div>
-
-            {/* Controles do Player */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '18px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <button
-                type="button"
-                onClick={handlePrevTrack}
-                title="Música Anterior"
-                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
-              >
-                <SkipBack size={16} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsPlayingMusic(prev => !prev)}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0D111E',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(255,255,255,0.25)'
-                }}
-              >
-                {isPlayingMusic ? <Pause size={16} fill="#0D111E" /> : <Play size={16} fill="#0D111E" style={{ marginLeft: '2px' }} />}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleNextTrack}
-                title="Próxima Música"
-                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
-              >
-                <SkipForward size={16} />
-              </button>
-            </div>
+            )}
           </div>
 
           {/* ITEM 2: FEED COM O LINK DAS PLAYLISTS DO USUÁRIO */}

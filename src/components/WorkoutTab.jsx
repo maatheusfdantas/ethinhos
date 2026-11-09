@@ -315,7 +315,7 @@ export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
   const safeWorkouts = Array.isArray(workouts) ? workouts : [];
   // Controle de Visualização: 'list' (visão geral dos cards) ou 'session' (tela dedicada do treino)
   const [currentView, setCurrentView] = useState('list');
-  const [activeWorkoutId, setActiveWorkoutId] = useState(() => safeWorkouts[0]?.id || 'wo_a');
+  const [activeWorkoutId, setActiveWorkoutId] = useState(() => safeWorkouts[0]?.id || null);
   
   // Estados dos Modais
   const [showNewExerciseModal, setShowNewExerciseModal] = useState(false);
@@ -399,17 +399,11 @@ export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
     return () => clearInterval(interval);
   }, [isResting, activeRestSeconds]);
 
-  const currentWorkout = safeWorkouts.find(w => w.id === activeWorkoutId) || safeWorkouts[0] || { 
-    id: 'wo_empty', 
-    name: 'Meu Treino', 
-    subtitle: 'Foco em força, hipertrofia e progressão de carga.',
-    theme: 'orange',
-    exercises: [], 
-    scheduledDays: [1] 
-  };
-  const workoutIndex = safeWorkouts.findIndex(w => w.id === currentWorkout?.id);
-  const currentWorkoutTheme = getWorkoutTheme(currentWorkout, workoutIndex >= 0 ? workoutIndex : 0);
-  const isWorkoutCompleted = !!completedWorkoutsToday[currentWorkout?.id];
+  const currentWorkout = safeWorkouts.find(w => w.id === activeWorkoutId) || safeWorkouts[0] || null;
+  const currentExercises = currentWorkout && Array.isArray(currentWorkout.exercises) ? currentWorkout.exercises : [];
+  const workoutIndex = currentWorkout ? safeWorkouts.findIndex(w => w.id === currentWorkout.id) : -1;
+  const currentWorkoutTheme = getWorkoutTheme(currentWorkout || { theme: 'orange' }, workoutIndex >= 0 ? workoutIndex : 0);
+  const isWorkoutCompleted = currentWorkout ? !!completedWorkoutsToday[currentWorkout.id] : false;
 
   // Iniciar ou reiniciar descanso em uma atividade específica
   const handleStartExerciseRest = (exId, seconds) => {
@@ -786,7 +780,6 @@ export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
   };
 
   // Métricas gerais da sessão atual baseadas nas séries feitas
-  const currentExercises = currentWorkout?.exercises || [];
   const totalTargetSets = currentExercises.reduce((acc, ex) => acc + Math.max(1, Number(ex.sets) || 1), 0);
   const totalDoneSets = currentExercises.reduce((acc, ex) => {
     const maxS = Math.max(1, Number(ex.sets) || 1);
@@ -817,7 +810,7 @@ export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-      {currentView === 'session' ? (
+      {currentView === 'session' && currentWorkout ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* BARRA SUPERIOR DE NAVEGAÇÃO E RETORNO */}

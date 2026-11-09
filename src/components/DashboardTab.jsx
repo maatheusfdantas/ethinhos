@@ -145,17 +145,18 @@ export function DashboardTab({
     }
   };
 
+  const isSleepLogged = Boolean(health?.sleep?.logged);
   const currentBedTime = health?.sleep?.bedTime || bedTimeInput || '23:30';
   const currentWakeTime = health?.sleep?.wakeTime || wakeTimeInput || '07:00';
-  const sleepHours = calculateSleepHours(currentBedTime, currentWakeTime);
-  const sleepPercent = Math.min(100, Math.round((sleepHours / (health?.sleep?.targetHours || 8)) * 100));
+  const sleepHours = isSleepLogged ? calculateSleepHours(currentBedTime, currentWakeTime) : 0;
+  const sleepPercent = isSleepLogged ? Math.min(100, Math.round((sleepHours / (health?.sleep?.targetHours || 8)) * 100)) : 0;
 
   // Índice Geral de Vitalidade Diária (40% Tarefas + 30% Água + 30% Sono)
-  const vitalityScore = Math.round(
-    (taskProgressPercent * 0.4) + 
-    (waterPercent * 0.3) + 
-    (sleepPercent * 0.3)
-  );
+  // Contas zeradas sem nenhuma atividade iniciam rigorosamente em 0% ('Iniciando')
+  const hasAnyActivity = completedTasks > 0 || waterGlasses > 0 || isSleepLogged;
+  const vitalityScore = hasAnyActivity
+    ? Math.round((taskProgressPercent * 0.4) + (waterPercent * 0.3) + (sleepPercent * 0.3))
+    : 0;
 
   let vitalityStatus = 'Iniciando';
   let statusBadgeStyle = { bg: 'rgba(255,255,255,0.12)', color: '#E2E4F0' };
@@ -596,7 +597,10 @@ export function DashboardTab({
                 <Moon size={14} color="#FDE68A" />
               </div>
               <div style={{ fontSize: '19px', fontWeight: 700, color: '#FFFFFF' }}>
-                {sleepHours}h <span style={{ fontSize: '11px', fontWeight: 400, color: '#C5C7DE' }}>({currentBedTime}-{currentWakeTime})</span>
+                {isSleepLogged ? `${sleepHours}h` : '--h'}{' '}
+                <span style={{ fontSize: '11px', fontWeight: 400, color: '#C5C7DE' }}>
+                  {isSleepLogged ? `(${currentBedTime}-${currentWakeTime})` : '(Não registrado)'}
+                </span>
               </div>
             </div>
           </div>
@@ -1107,11 +1111,16 @@ export function DashboardTab({
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px' }}>
                 <div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#1A1B2F' }}>
-                    {sleepHours}h <span style={{ fontSize: '13px', fontWeight: 500, color: '#5A5B75' }}>dormidas</span>
+                  <div style={{ fontSize: '26px', fontWeight: 700, color: '#1A1B2F' }}>
+                    {isSleepLogged ? `${sleepHours}h` : '--'}{' '}
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#5A5B75' }}>
+                      {isSleepLogged ? 'dormidas' : 'não registrado hoje'}
+                    </span>
                   </div>
                   <div style={{ fontSize: '12px', color: '#5A5B75', marginTop: '4px' }}>
-                    Das <strong>{currentBedTime}</strong> às <strong>{currentWakeTime}</strong>
+                    {isSleepLogged
+                      ? <>Das <strong>{currentBedTime}</strong> às <strong>{currentWakeTime}</strong></>
+                      : 'Clique no ícone de editar para registrar seu sono'}
                   </div>
                 </div>
 
@@ -1121,11 +1130,15 @@ export function DashboardTab({
                     borderRadius: '999px',
                     fontSize: '12px',
                     fontWeight: 700,
-                    backgroundColor: sleepHours >= 7 ? 'rgba(16, 185, 129, 0.16)' : 'rgba(245, 158, 11, 0.18)',
-                    color: sleepHours >= 7 ? '#047857' : '#B45309'
+                    backgroundColor: !isSleepLogged
+                      ? 'rgba(33, 31, 56, 0.08)'
+                      : sleepHours >= 7
+                      ? 'rgba(16, 185, 129, 0.16)'
+                      : 'rgba(245, 158, 11, 0.18)',
+                    color: !isSleepLogged ? '#5A5B75' : sleepHours >= 7 ? '#047857' : '#B45309'
                   }}
                 >
-                  {sleepHours >= 7 ? 'Sono Ideal (≥7h)' : 'Sono Curto (<7h)'}
+                  {!isSleepLogged ? 'Pendente' : sleepHours >= 7 ? 'Sono Ideal (≥7h)' : 'Sono Curto (<7h)'}
                 </span>
               </div>
             )}
@@ -1253,6 +1266,11 @@ export function DashboardTab({
 
             {/* Passo B: Lista de Categorias com Ícone Discreto de Engrenagem (Configuração Avançada) + Excluir */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', maxHeight: '125px', overflowY: 'auto' }}>
+              {tags.length === 0 && (
+                <div style={{ fontSize: '12px', color: '#5A5B75', fontStyle: 'italic', padding: '10px 4px' }}>
+                  Nenhuma categoria criada ainda. Clique em "+ Nova Categoria" acima para criar a sua primeira!
+                </div>
+              )}
               {tags.map((t) => {
                 const subCount = Array.isArray(t.subclasses) ? t.subclasses.length : 0;
                 return (
