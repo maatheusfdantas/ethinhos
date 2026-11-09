@@ -524,186 +524,174 @@ function formatTokenDisplayEdge(token) {
 }
 
 function renderEthosEmailEdge({
-  title = 'Código de Verificação',
-  subtitle = 'Você solicitou acesso à sua conta no Ethos. Use o código abaixo para continuar.',
+  title = 'Código de verificação',
+  subtitle = 'Olá. Use o código abaixo para continuar no Ethos.',
   previewText = '',
-  categoryTag = 'AUTENTICAÇÃO',
-  subBrand = 'Security Engine',
+  categoryTag = 'Autenticação',
   token = null,
   expiresInText = '10 minutos',
   contentHtml = '',
-  actionUrl = '',
-  actionText = 'Acessar o Ethos',
-  securityNoticeTitle = 'Aviso de Segurança',
-  securityNoticeText = 'Se você não solicitou este procedimento, ignore este e-mail com segurança. Nenhuma alteração foi feita na sua conta.'
+  actionUrl = 'https://ethos-3hs.pages.dev',
+  actionText = 'Abrir o Ethos',
+  securityNoticeTitle = 'Aviso de segurança',
+  securityNoticeText = 'Se você não solicitou este procedimento, ignore este e-mail com segurança. Nenhuma alteração foi feita na sua conta.',
+  logoUrl = 'https://ethos-3hs.pages.dev/ethos-logo-email.png'
 }) {
   const displayToken = token ? formatTokenDisplayEdge(token) : '';
 
-  let centerBlockHtml = '';
-  if (token) {
-    centerBlockHtml = `
-      <div class="py-4" style="padding: 18px 0; text-align: center;">
-          <div class="inline-block bg-[#1a1b26] border border-[#00f2fe]/40 rounded-2xl px-8 py-5 glow-cyan" style="display: inline-block; background-color: #1a1b26; border: 1px solid rgba(0, 242, 254, 0.4); border-radius: 16px; padding: 20px 36px; box-shadow: 0 0 25px rgba(0, 242, 254, 0.15);">
-              <span class="text-3xl sm:text-4xl font-mono font-bold tracking-[0.3em] text-[#00f2fe]" style="font-family: 'Courier New', Courier, monospace, 'Inter', sans-serif; font-size: 34px; font-weight: 800; letter-spacing: 0.25em; color: #00f2fe; display: block; line-height: 1.2;">
-                  ${displayToken}
-              </span>
-          </div>
-          <span class="block text-[11px] text-slate-500 mt-2 font-medium" style="display: block; font-size: 11px; color: #64748b; margin-top: 10px; font-weight: 500;">
-              Este código expira em ${expiresInText}.
-          </span>
-      </div>
-    `;
-  } else if (contentHtml) {
-    centerBlockHtml = `
-      <div style="padding: 10px 0; text-align: left;">
-          <div class="bg-[#1a1b26] border border-[#2a2b3d] rounded-2xl p-5" style="background-color: #1a1b26; border: 1px solid #2a2b3d; border-radius: 16px; padding: 22px; color: #cbd5e1; font-size: 14px; line-height: 1.6;">
-              ${contentHtml}
-          </div>
-      </div>
-    `;
-  }
+  const tokenBlockHtml = token
+    ? `
+          <tr>
+            <td align="center" class="px" style="padding:4px 40px 0 40px;">
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="border-collapse:separate;">
+                <tr>
+                  <td align="center" bgcolor="#0f1a36" style="background-color:#0f1a36;border:1px solid #1b2a52;border-radius:14px;padding:22px 38px;">
+                    <span class="tk" style="display:block;font-family:'Courier New', Courier, monospace, 'Inter', sans-serif;font-size:30px;font-weight:700;letter-spacing:0.28em;color:#2ee6c5;line-height:1.2;">
+                      ${displayToken}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:12px 0 0 0;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:12px;color:#8fa0c4;">
+                Este código expira em ${expiresInText}.
+              </p>
+            </td>
+          </tr>`
+    : '';
 
-  const actionBtnHtml = actionUrl ? `
-    <div style="text-align: center; margin: 24px 0 12px 0;">
-      <a href="${actionUrl}" style="display: inline-block; background: linear-gradient(135deg, #00f2fe 0%, #10b981 100%); color: #020617; font-weight: 700; font-size: 13.5px; padding: 13px 32px; border-radius: 12px; text-decoration: none; box-shadow: 0 4px 16px rgba(0, 242, 254, 0.25); letter-spacing: 0.04em; text-transform: uppercase;">
-        ${actionText}
-      </a>
-    </div>
-  ` : '';
+  const contentBlockHtml = contentHtml
+    ? `
+          <tr>
+            <td class="px" style="padding:${token ? '18px' : '4px'} 40px 0 40px;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse:separate;">
+                <tr>
+                  <td bgcolor="#0f1a36" style="background-color:#0f1a36;border:1px solid #1b2a52;border-radius:14px;padding:20px 22px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14.5px;line-height:1.65;color:#c3cde6;text-align:left;">
+                    ${contentHtml}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`
+    : '';
+
+  const actionBtnHtml = actionUrl
+    ? `
+          <tr>
+            <td align="center" class="px" style="padding:28px 40px 0 40px;">
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center">
+                <tr>
+                  <td align="center" bgcolor="#2ee6c5"
+                      style="border-radius:12px;background-color:#2ee6c5;background-image:linear-gradient(135deg,#3d8bff 0%,#2ee6c5 100%);">
+                    <a href="${actionUrl}" target="_blank"
+                       style="display:inline-block;padding:14px 34px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:14.5px;font-weight:700;color:#04101f;text-decoration:none;border-radius:12px;">
+                      ${actionText}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`
+    : '';
 
   return `<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - Ethos</title>
-    <!-- Tailwind CSS CDN para renderização moderna e limpa no Preview -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        ethosBg: '#0f1016',
-                        ethosCard: '#1a1b26',
-                        ethosBorder: '#2a2b3d',
-                        ethosNeon: '#10b981',
-                        ethosCyan: '#00f2fe',
-                        ethosMuted: '#94a3b8'
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #0b0c10;
-            margin: 0;
-            padding: 0;
-            -webkit-font-smoothing: antialiased;
-        }
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .glow-cyan {
-            box-shadow: 0 0 25px rgba(0, 242, 254, 0.15);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>${title} - Ethos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; padding:0; background-color:#060a14; -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%; }
+    table { border-collapse:collapse; }
+    img { -ms-interpolation-mode:bicubic; }
+    @media only screen and (max-width:480px) {
+      .px { padding-left:22px !important; padding-right:22px !important; }
+      .h1 { font-size:23px !important; }
+      .tk { font-size:23px !important; }
+    }
+  </style>
 </head>
-<body class="bg-[#0f1016] text-slate-100 py-12 px-4" style="margin: 0; padding: 36px 12px; background-color: #0b0c10; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #f1f5f9;">
+<body style="margin:0;padding:0;background-color:#060a14;">
 
-    <div style="display: none; max-height: 0px; overflow: hidden; opacity: 0; font-size: 1px; line-height: 1px; color: #0b0c10;">
-        ${previewText || title}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
-    </div>
+  <!-- Preheader invisível -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:#060a14;">
+    ${previewText || title}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+  </div>
 
-    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="table-layout: fixed; background-color: #0b0c10; margin: 0; padding: 0;">
-      <tr>
-        <td align="center" style="padding: 10px 0;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#060a14" style="background-color:#060a14;">
+    <tr>
+      <td align="center" style="padding:36px 14px;">
 
-          <!-- Container Principal do Email -->
-          <div class="email-container bg-[#0f1016] rounded-3xl border border-[#2a2b3d] overflow-hidden shadow-2xl" style="max-width: 600px; width: 100%; background-color: #0f1016; border-radius: 24px; border: 1px solid #2a2b3d; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); text-align: left;">
+        <table role="presentation" width="560" border="0" cellspacing="0" cellpadding="0" bgcolor="#0b1226"
+               style="width:100%;max-width:560px;background-color:#0b1226;border:1px solid #1b2a52;border-radius:20px;overflow:hidden;border-collapse:separate;">
 
-              <!-- CABEÇALHO MINIMALISTA -->
-              <div class="px-6 py-6 border-b border-[#2a2b3d] flex items-center justify-between bg-[#13141f]" style="padding: 24px; border-bottom: 1px solid #2a2b3d; background-color: #13141f;">
-                  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
-                    <tr>
-                      <td align="left" style="vertical-align: middle;">
-                        <table role="presentation" border="0" cellspacing="0" cellpadding="0">
-                          <tr>
-                            <td style="vertical-align: middle;">
-                              <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#10b981] flex items-center justify-center font-bold text-slate-950 text-lg shadow-lg" style="width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, #00f2fe 0%, #10b981 100%); line-height: 36px; text-align: center; font-weight: 800; color: #020617; font-size: 18px; box-shadow: 0 4px 14px rgba(0, 242, 254, 0.35);">
-                                  ⚡
-                              </div>
-                            </td>
-                            <td style="padding-left: 12px; vertical-align: middle;">
-                              <span class="text-xl font-bold tracking-wider text-white" style="display: block; font-size: 19px; font-weight: 800; letter-spacing: 0.08em; color: #ffffff; line-height: 1.2;">ETHOS</span>
-                              <span class="text-[10px] block text-[#00f2fe] tracking-widest uppercase font-semibold" style="display: block; font-size: 10px; color: #00f2fe; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; line-height: 1.2; margin-top: 2px;">${subBrand}</span>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                      <td align="right" style="vertical-align: middle;">
-                        <span class="text-xs text-slate-400 block font-medium" style="display: block; font-size: 11.5px; color: #94a3b8; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">${categoryTag}</span>
-                      </td>
-                    </tr>
-                  </table>
-              </div>
+          <!-- Faixa de gradiente da marca -->
+          <tr>
+            <td height="3" bgcolor="#2ee6c5" style="height:3px;font-size:0;line-height:0;background-color:#2ee6c5;background-image:linear-gradient(90deg,#3d8bff 0%,#2ee6c5 100%);">&nbsp;</td>
+          </tr>
 
-              <!-- CORPO DO E-MAIL -->
-              <div class="p-8 space-y-6 text-center" style="padding: 32px 28px; text-align: center;">
+          <!-- Cabeçalho -->
+          <tr>
+            <td class="px" style="padding:26px 40px 22px 40px;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td width="44" bgcolor="#0f1a36" style="width:44px;border-radius:11px;background-color:#0f1a36;"><img src="${logoUrl}" width="44" height="44" alt="Ethos"
+           style="display:block;width:44px;height:44px;border-radius:11px;border:0;outline:none;text-decoration:none;"></td>
+                  <td style="padding-left:13px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:20px;font-weight:700;letter-spacing:0.04em;color:#f4f7ff;">Ethos</td>
+                  <td align="right" style="font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:12.5px;color:#8fa0c4;">${categoryTag}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px;" class="px"><div style="height:1px;line-height:1px;font-size:0;background-color:#142243;">&nbsp;</div></td>
+          </tr>
 
-                  <!-- SAUDAÇÃO E INSTRUÇÃO -->
-                  <div class="space-y-2" style="margin-bottom: 24px;">
-                      <h1 class="text-2xl font-extrabold text-white" style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 10px 0; line-height: 1.3;">${title}</h1>
-                      <p class="text-sm text-slate-400 max-w-sm mx-auto" style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 auto; max-width: 440px;">
-                          ${subtitle}
-                      </p>
-                  </div>
+          <!-- Título e subtítulo -->
+          <tr>
+            <td align="center" class="px" style="padding:34px 40px 26px 40px;">
+              <h1 class="h1" style="margin:0 0 12px 0;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:27px;font-weight:700;line-height:1.25;letter-spacing:-0.01em;color:#f4f7ff;">${title}</h1>
+              <p style="margin:0 auto;max-width:430px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:15px;line-height:1.65;color:#8fa0c4;">${subtitle}</p>
+            </td>
+          </tr>
 
-                  <!-- BLOCO DO TOKEN OU CONTEÚDO -->
-                  ${centerBlockHtml}
+          ${tokenBlockHtml}
+          ${contentBlockHtml}
+          ${actionBtnHtml}
 
-                  <!-- BOTÃO DE AÇÃO OPCIONAL -->
-                  ${actionBtnHtml}
+          <!-- Aviso -->
+          <tr>
+            <td class="px" style="padding:34px 40px 36px 40px;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td width="3" bgcolor="#3d8bff" style="width:3px;background-color:#3d8bff;border-radius:3px;">&nbsp;</td>
+                  <td style="padding:2px 0 2px 16px;text-align:left;">
+                    <p style="margin:0 0 4px 0;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;font-weight:600;color:#f4f7ff;">${securityNoticeTitle}</p>
+                    <p style="margin:0;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:12.5px;line-height:1.65;color:#8fa0c4;">${securityNoticeText}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-                  <!-- AVISO DE SEGURANÇA OU NOTA ADICIONAL -->
-                  <div class="bg-[#1a1b26] border border-[#2a2b3d] rounded-2xl p-4 text-left space-y-1" style="background-color: #1a1b26; border: 1px solid #2a2b3d; border-radius: 16px; padding: 16px; text-align: left; margin-top: 26px;">
-                      <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 6px;">
-                        <tr>
-                          <td style="vertical-align: middle; padding-right: 8px;">
-                            <svg class="w-4 h-4 text-amber-400" style="width: 16px; height: 16px; color: #fbbf24; display: block;" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                          </td>
-                          <td style="vertical-align: middle;">
-                            <span class="text-xs font-bold text-slate-300" style="font-size: 12px; font-weight: 700; color: #e2e8f0;">${securityNoticeTitle}</span>
-                          </td>
-                        </tr>
-                      </table>
-                      <p class="text-xs text-slate-400 leading-relaxed" style="font-size: 12px; color: #94a3b8; line-height: 1.6; margin: 0;">
-                          ${securityNoticeText}
-                      </p>
-                  </div>
+          <!-- Rodapé -->
+          <tr>
+            <td bgcolor="#080e1f" class="px" align="center" style="background-color:#080e1f;border-top:1px solid #142243;padding:22px 40px;">
+              <p style="margin:0 0 6px 0;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:12px;line-height:1.6;color:#8fa0c4;">
+                Mensagem automática do Ethos. Não é necessário responder. &nbsp;&bull;&nbsp; <a href="https://ethos-3hs.pages.dev" target="_blank" style="color:#8fa0c4;text-decoration:underline;">Abrir o Ethos</a>
+              </p>
+              <p style="margin:0;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:11px;line-height:1.5;color:#5d6c91;">&copy; 2026 Ethos. Todos os direitos reservados.</p>
+            </td>
+          </tr>
 
-              </div>
+        </table>
 
-              <!-- RODAPÉ DO E-MAIL -->
-              <div class="px-6 py-5 bg-[#13141f] border-t border-[#2a2b3d] text-center space-y-2" style="padding: 20px 24px; background-color: #13141f; border-top: 1px solid #2a2b3d; text-align: center;">
-                  <p class="text-[11px] text-slate-400" style="font-size: 11px; color: #94a3b8; margin: 0 0 6px 0; line-height: 1.5;">
-                      Enviado com segurança pela infraestrutura do Ethos.
-                  </p>
-                  <p class="text-[10px] text-slate-600" style="font-size: 10px; color: #475569; margin: 0; line-height: 1.4;">
-                      Ethos Intelligence Engine © 2026. Todos os direitos reservados.
-                  </p>
-              </div>
-
-          </div>
-
-        </td>
-      </tr>
-    </table>
-
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 }
@@ -715,18 +703,19 @@ async function sendVerificationEmailEdge(env, { email, name, token, expiresInMin
   const formatted = formatTokenDisplayEdge(token);
 
   const html = renderEthosEmailEdge({
-    title: 'Código de Verificação',
-    subtitle: `Olá, <strong style="color: #ffffff;">${safeName}</strong>!<br>Você solicitou acesso à sua conta no Ethos. Use o código abaixo para continuar.`,
+    title: 'Código de verificação',
+    subtitle: `Olá, <strong style="color:#ffffff;">${safeName}</strong>. Use o código abaixo para validar sua conta no Ethos.`,
     previewText: `Seu código de acesso Ethos é: ${formatted}`,
-    categoryTag: 'AUTENTICAÇÃO',
-    subBrand: 'Security Engine',
+    categoryTag: 'Autenticação',
     token,
     expiresInText: timeDesc,
-    securityNoticeTitle: 'Aviso de Segurança',
+    actionUrl: 'https://ethos-3hs.pages.dev',
+    actionText: 'Abrir o Ethos',
+    securityNoticeTitle: 'Aviso de segurança',
     securityNoticeText: 'Se você não solicitou este código, ignore este e-mail com segurança. Nenhuma alteração foi feita na sua conta.'
   });
 
-  const text = `Olá, ${safeName}!\n\nSeu código de verificação no Ethos é: ${formatted}\n\nEste código expira em ${timeDesc}.\n\nSe você não solicitou este código, ignore este e-mail com segurança.`;
+  const text = `Olá, ${safeName}.\n\nSeu código de verificação no Ethos é: ${formatted}\n\nEste código expira em ${timeDesc}.\n\nSe você não solicitou este código, ignore este e-mail com segurança.`;
 
   return sendResendEmailEdge(env, {
     to: email,
@@ -741,18 +730,19 @@ async function sendPasswordResetEmailEdge(env, { email, name, token, expiresInMi
   const formatted = formatTokenDisplayEdge(token);
 
   const html = renderEthosEmailEdge({
-    title: 'Recuperação de Senha',
-    subtitle: `Olá, <strong style="color: #ffffff;">${safeName}</strong>!<br>Recebemos uma solicitação para redefinir a senha da sua conta no Ethos. Use o código de segurança abaixo para prosseguir:`,
+    title: 'Recuperação de senha',
+    subtitle: `Olá, <strong style="color:#ffffff;">${safeName}</strong>. Recebemos uma solicitação para redefinir a senha da sua conta.`,
     previewText: `Código de redefinição de senha: ${formatted}`,
-    categoryTag: 'AUTENTICAÇÃO',
-    subBrand: 'Security Engine',
+    categoryTag: 'Autenticação',
     token,
     expiresInText: `${expiresInMinutes} minutos`,
-    securityNoticeTitle: 'Aviso de Segurança',
-    securityNoticeText: 'Este código é intransferível e de uso único. Se você não solicitou a redefinição de senha, desconsidere este aviso ou altere suas credenciais imediatamente.'
+    actionUrl: 'https://ethos-3hs.pages.dev',
+    actionText: 'Abrir o Ethos',
+    securityNoticeTitle: 'Aviso de segurança',
+    securityNoticeText: 'Este código é intransferível e de uso único. Se você não solicitou a redefinição de senha, desconsidere este aviso.'
   });
 
-  const text = `Olá, ${safeName}!\n\nRecebemos uma solicitação de redefinição de senha para sua conta no Ethos.\n\nSeu código de segurança OTP é: ${formatted}\n\nEste código expira em ${expiresInMinutes} minutos e é de uso único.\n\nSe não solicitou a redefinição, altere suas credenciais ou ignore este aviso.`;
+  const text = `Olá, ${safeName}.\n\nRecebemos uma solicitação de redefinição de senha para sua conta no Ethos.\n\nSeu código de segurança é: ${formatted}\n\nEste código expira em ${expiresInMinutes} minutos.\n\nSe não solicitou a redefinição, ignore este aviso.`;
 
   return sendResendEmailEdge(env, {
     to: email,
@@ -765,40 +755,76 @@ async function sendPasswordResetEmailEdge(env, { email, name, token, expiresInMi
 async function sendNotificationEmailEdge(env, {
   email,
   name,
-  title = 'Lembrete do Sistema',
+  title = 'Seu hábito está em sequência',
   message = '',
   detailsHtml = '',
-  actionUrl = '',
-  actionText = 'Acessar o Ethos',
-  categoryTag = 'NOTIFICAÇÃO'
+  actionUrl = 'https://ethos-3hs.pages.dev',
+  actionText = 'Abrir o Ethos',
+  categoryTag = 'Notificação'
 }) {
   const safeName = name ? String(name).trim() : 'Usuário';
 
   const content = `
-    <p style="margin: 0 0 12px 0; color: #f1f5f9; font-size: 14.5px;">
-      ${message}
-    </p>
-    ${detailsHtml ? `<div style="margin-top: 14px;">${detailsHtml}</div>` : ''}
+    <p style="margin:0;">${message}</p>
+    ${detailsHtml ? `<div style="margin-top:14px;">${detailsHtml}</div>` : ''}
   `;
 
   const html = renderEthosEmailEdge({
     title,
-    subtitle: `Olá, <strong style="color: #ffffff;">${safeName}</strong>! Aqui está uma atualização da sua rotina no Ethos.`,
+    subtitle: `Olá, <strong style="color:#ffffff;">${safeName}</strong>. Aqui está uma atualização da sua rotina.`,
     previewText: title,
     categoryTag,
-    subBrand: 'Intelligence Engine',
     contentHtml: content,
     actionUrl,
     actionText,
-    securityNoticeTitle: 'Preferências de Notificação',
-    securityNoticeText: 'Você recebeu este e-mail porque as notificações do Ethos estão ativadas no seu perfil.'
+    securityNoticeTitle: 'Preferências de notificação',
+    securityNoticeText: 'Você pode gerenciar estes avisos na aba Perfil.'
   });
 
-  const text = `Olá, ${safeName}!\n\n${title}\n\n${message}\n\nAcesse o Ethos para gerenciar sua rotina.`;
+  const text = `Olá, ${safeName}.\n\n${title}\n\n${message}\n\nAcesse o Ethos para gerenciar sua rotina: ${actionUrl}`;
 
   return sendResendEmailEdge(env, {
     to: email,
-    subject: `Ethos: ${title}`,
+    subject: `${title} - Ethos`,
+    html,
+    text
+  });
+}
+
+async function sendReportEmailEdge(env, {
+  email,
+  name,
+  title = 'Relatório da sua rotina',
+  summary = '',
+  metricsHtml = '',
+  actionUrl = 'https://ethos-3hs.pages.dev',
+  actionText = 'Abrir o Ethos',
+  categoryTag = 'Relatório'
+}) {
+  const safeName = name ? String(name).trim() : 'Usuário';
+
+  const content = `
+    <p style="margin:0;">${summary}</p>
+    ${metricsHtml ? `<div style="margin-top:14px;">${metricsHtml}</div>` : ''}
+  `;
+
+  const html = renderEthosEmailEdge({
+    title,
+    subtitle: `Olá, <strong style="color:#ffffff;">${safeName}</strong>. Confira o resumo consolidado das suas atividades no Ethos.`,
+    previewText: title,
+    categoryTag,
+    contentHtml: content,
+    actionUrl,
+    actionText,
+    securityNoticeTitle: 'Preferências de relatórios',
+    securityNoticeText: 'Você pode gerenciar o envio de relatórios e avisos na aba Perfil.'
+  });
+
+  const text = `Olá, ${safeName}.\n\n${title}\n\n${summary}\n\nAcesse o Ethos: ${actionUrl}`;
+
+  return sendResendEmailEdge(env, {
+    to: email,
+    subject: `${title} - Ethos`,
     html,
     text
   });
@@ -807,40 +833,37 @@ async function sendNotificationEmailEdge(env, {
 async function sendSecurityAlertEmailEdge(env, {
   email,
   name,
-  title = 'Alerta de Segurança',
+  title = 'Alerta de segurança',
   message = '',
   alertDetailsHtml = '',
-  actionUrl = '',
-  actionText = 'Revisar Atividade',
-  categoryTag = 'AVISO DE SEGURANÇA'
+  actionUrl = 'https://ethos-3hs.pages.dev',
+  actionText = 'Revisar atividade',
+  categoryTag = 'Aviso'
 }) {
   const safeName = name ? String(name).trim() : 'Usuário';
 
   const content = `
-    <p style="margin: 0 0 12px 0; color: #f87171; font-weight: 600; font-size: 14.5px;">
-      ${message}
-    </p>
-    ${alertDetailsHtml ? `<div style="margin-top: 14px;">${alertDetailsHtml}</div>` : ''}
+    <p style="margin:0;color:#f87171;font-weight:600;">${message}</p>
+    ${alertDetailsHtml ? `<div style="margin-top:14px;">${alertDetailsHtml}</div>` : ''}
   `;
 
   const html = renderEthosEmailEdge({
     title,
-    subtitle: `Olá, <strong style="color: #ffffff;">${safeName}</strong>! Detectamos uma atividade relevante na sua conta.`,
-    previewText: `Alerta de segurança na sua conta: ${title}`,
+    subtitle: `Olá, <strong style="color:#ffffff;">${safeName}</strong>. Detectamos uma atividade relevante na sua conta.`,
+    previewText: title,
     categoryTag,
-    subBrand: 'Security Engine',
     contentHtml: content,
     actionUrl,
     actionText,
-    securityNoticeTitle: 'Aviso de Proteção',
-    securityNoticeText: 'Se você não reconhece esta atividade, recomendamos alterar sua senha imediatamente e revogar o acesso de sessões ativas pelo painel de controle.'
+    securityNoticeTitle: 'Aviso de segurança',
+    securityNoticeText: 'Se você não reconhece esta atividade, altere sua senha imediatamente e revogue sessões ativas no painel de controle.'
   });
 
-  const text = `Olá, ${safeName}!\n\nAlerta de Segurança Ethos: ${title}\n\n${message}\n\nSe não foi você, acesse o painel imediatamente para proteger sua conta.`;
+  const text = `Olá, ${safeName}.\n\n${title}\n\n${message}\n\nAcesse o Ethos: ${actionUrl}`;
 
   return sendResendEmailEdge(env, {
     to: email,
-    subject: `Ethos: ${title}`,
+    subject: `${title} - Ethos`,
     html,
     text
   });
