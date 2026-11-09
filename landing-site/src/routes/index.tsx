@@ -440,9 +440,9 @@ function Team() {
     {
       i: "AK",
       name: "Ana Klaussen",
-      role: "Design de interface & experiência",
-      image: null,
-      text: "Desenha interfaces acolhedoras e intuitivas — tecnologia acessível e agradável para todas as idades.",
+      role: "Engenharia de Computação, Dados & Analytics",
+      image: "/dev2.jpg",
+      text: "Estudante de Engenharia de Computação na Universidade Presbiteriana Mackenzie e atuante na área de Dados e Analytics. Apaixonada por tecnologia, programação e análise de dados, sempre buscando aprender, explorar novas ferramentas e desenvolver soluções. Movida por desafios e por transformar conhecimento em ideias que gerem valor, unindo criatividade e inovação.",
     },
   ];
   return (
