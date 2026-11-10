@@ -29,6 +29,7 @@ import {
   Radio,
   Check
 } from 'lucide-react';
+import { WeeklyExecutionChart, CategoryAdherenceList } from './ui/EthosDataViz';
 
 export function TelemetryTab({ habits = [], health = {}, user = null }) {
   const [analytics, setAnalytics] = useState(null);
@@ -104,18 +105,18 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
   }
 
   const summary = analytics?.summary || {
-    consistency_score: 75.0,
-    label: 'consistente',
-    description: 'Calculando telemetria...',
-    main_streak: 5,
-    best_streak: 10,
+    consistency_score: todayTotalHabitsCount > 0 ? liveHabitsPct : 0.0,
+    label: todayTotalHabitsCount > 0 ? 'consistente' : 'sem_dados',
+    description: todayTotalHabitsCount > 0 ? 'Calculando telemetria...' : 'Nenhum hábito registrado ainda.',
+    main_streak: 0,
+    best_streak: 0,
     daily_progress: liveHabitsPct,
-    completion_rate: 75.0,
+    completion_rate: todayTotalHabitsCount > 0 ? liveHabitsPct : 0.0,
     trend_status: 'stable',
     trend_delta: 0.0,
-    logging_reliability: 85.0,
-    recovery_rate: 70.0,
-    variability: 18.0
+    logging_reliability: 0.0,
+    recovery_rate: 0.0,
+    variability: 0.0
   };
 
   const highlights = analytics?.highlights || {
@@ -885,52 +886,11 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             </div>
           </div>
 
-          <div style={{ height: '160px', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', alignItems: 'flex-end', paddingTop: '10px' }}>
-            {(() => {
-              const dayLabelsMap = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-              const todayDayLabel = dayLabelsMap[new Date().getDay()];
-
-              const weeklyList = charts.weekly_completion || [];
-              const maxVal = Math.max(5, ...weeklyList.map(x => Math.max(x.current, x.previous)), todayCompletedHabitsCount);
-
-              return weeklyList.map((d, i) => {
-                const isTodayDay = d.day === todayDayLabel;
-                const actualCur = isTodayDay && todayTotalHabitsCount > 0 ? Math.max(d.current, todayCompletedHabitsCount) : d.current;
-                const curH = Math.round((actualCur / maxVal) * 100);
-                const prevH = Math.round((d.previous / maxVal) * 100);
-
-                return (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '6px' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '100%', width: '100%', justifyContent: 'center' }}>
-                      <div 
-                        style={{ 
-                          width: '10px', 
-                          height: `${Math.max(4, prevH)}%`, 
-                          background: 'var(--accent-indigo)', 
-                          borderRadius: '3px 3px 0 0',
-                          opacity: 0.7 
-                        }} 
-                        title={`Semana anterior (${d.day}): ${d.previous}`}
-                      />
-                      <div 
-                        style={{ 
-                          width: '10px', 
-                          height: `${Math.max(4, curH)}%`, 
-                          background: isTodayDay ? 'var(--accent-emerald)' : 'var(--accent-cyan)', 
-                          borderRadius: '3px 3px 0 0',
-                          boxShadow: isTodayDay ? '0 0 10px rgba(52, 211, 153, 0.6)' : '0 0 8px rgba(0, 229, 255, 0.4)' 
-                        }} 
-                        title={isTodayDay ? `Hoje (${d.day}): ${actualCur} concluídos (Ao Vivo)` : `Semana atual (${d.day}): ${actualCur}`}
-                      />
-                    </div>
-                    <span style={{ fontSize: '0.72rem', color: isTodayDay ? 'var(--accent-emerald)' : 'var(--text-secondary)', fontWeight: isTodayDay ? 800 : 600 }}>
-                      {d.day}
-                    </span>
-                  </div>
-                );
-              });
-            })()}
-          </div>
+          <WeeklyExecutionChart
+            weeklyData={charts.weekly_completion || []}
+            todayCompletedHabitsCount={todayCompletedHabitsCount}
+            todayTotalHabitsCount={todayTotalHabitsCount}
+          />
         </div>
 
         {/* Aderência por Categoria */}
@@ -944,34 +904,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             </h4>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {categories.map((c, idx) => (
-              <div key={idx}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {c.category}
-                  </span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: c.adherence >= 80 ? 'var(--accent-emerald)' : c.adherence >= 50 ? 'var(--accent-cyan)' : 'var(--accent-amber)' }}>
-                    {c.adherence}%
-                  </span>
-                </div>
-                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div 
-                    style={{ 
-                      width: `${Math.min(100, c.adherence)}%`, 
-                      height: '100%', 
-                      background: c.adherence >= 80 ? 'var(--accent-emerald)' : c.adherence >= 50 ? 'var(--accent-cyan)' : 'var(--accent-amber)',
-                      borderRadius: '4px',
-                      transition: 'width 0.4s ease'
-                    }} 
-                  />
-                </div>
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '2px', display: 'block' }}>
-                  {c.total_completed} de {c.total_expected} execuções no período • {c.habits_count} hábitos
-                </span>
-              </div>
-            ))}
-          </div>
+          <CategoryAdherenceList categories={categories} />
         </div>
       </div>
 

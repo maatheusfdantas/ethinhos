@@ -23,6 +23,7 @@ import { INITIAL_TAGS, INITIAL_BADGES } from './data/initialData';
 import { Lock, Plus, Search, Bell, X, Users, Play, LifeBuoy } from 'lucide-react';
 import { Toast } from './components/Toast';
 import { TabErrorBoundary } from './components/TabErrorBoundary';
+import { SpringPageTransition } from './components/ui/MotionPrimitives';
 
 export function App() {
   const isReturningFromGoogleOAuth = typeof window !== 'undefined' && window.location.search.includes('google_auth=');
@@ -922,6 +923,7 @@ export function App() {
           {/* CONTEÚDO DA ABA ATIVA */}
           <main style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <TabErrorBoundary key={activeTab}>
+            <SpringPageTransition activeKey={activeTab}>
             {/* TAB 1: DASHBOARD (PAINEL PRINCIPAL FIEL AO MOCKUP) */}
             {activeTab === 'dashboard' && (
               <DashboardTab
@@ -1110,6 +1112,7 @@ export function App() {
                 )}
               </div>
             )}
+            </SpringPageTransition>
             </TabErrorBoundary>
           </main>
         </div>

@@ -337,6 +337,21 @@ export function initDatabase() {
     );
   `);
 
+  // 12. Índices de Alta Performance para Consultas Relacionais e Isolamento por Linha (user_id)
+  try {
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
+      CREATE INDEX IF NOT EXISTS idx_habits_user_completed ON habits (user_id, completed);
+      CREATE INDEX IF NOT EXISTS idx_habits_user_category ON habits (user_id, category);
+      CREATE INDEX IF NOT EXISTS idx_events_user_date ON events (user_id, date, start_time);
+      CREATE INDEX IF NOT EXISTS idx_tags_user_id ON tags (user_id);
+      CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON checkins (user_id, event_date);
+      CREATE INDEX IF NOT EXISTS idx_bad_habits_user_id ON bad_habits (user_id);
+      CREATE INDEX IF NOT EXISTS idx_bad_habit_relapses_user_id ON bad_habit_relapses (user_id, bad_habit_id);
+    `);
+  } catch (e) {}
+
   // Sincronizar os Usuários Obrigatórios com senhas hasheadas via scrypt
   seedFiveUsers();
 }

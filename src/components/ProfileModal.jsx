@@ -26,6 +26,8 @@ import {
   Droplets
 } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { VaulModalSheet } from './ui/MotionPrimitives';
+import { calculateDailyWaterTarget } from '../utils/biometricsAndAnalytics';
 
 export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, health = {}, setHealth }) {
   // Dados Pessoais & Identidade
@@ -87,11 +89,10 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
     }
   }, [user, isOpen]);
 
-  const numericWeightKg = Math.max(0, parseFloat(String(weight).replace(',', '.')) || 0);
-  const dailyWaterIdealMl = Math.round(numericWeightKg * 35);
-  const dailyWaterIdealGlasses = dailyWaterIdealMl > 0
-    ? Math.max(1, Math.ceil(dailyWaterIdealMl / (health?.glassMl || 250)))
-    : (health?.waterTarget || 8);
+  const waterCalc = calculateDailyWaterTarget(weight, health?.glassMl || 250);
+  const numericWeightKg = waterCalc.weightKg;
+  const dailyWaterIdealMl = waterCalc.dailyMl;
+  const dailyWaterIdealGlasses = waterCalc.targetGlasses;
 
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -283,41 +284,8 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
   };
 
   return createPortal(
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        backgroundColor: 'rgba(5, 8, 16, 0.78)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px'
-      }}
-    >
-      {/* CARD ETHOS GLASSMORPHISM ESCURO */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth: '540px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          background: 'rgba(13, 17, 30, 0.94)',
-          backdropFilter: 'blur(32px)',
-          WebkitBackdropFilter: 'blur(32px)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
-          borderRadius: '24px',
-          padding: '24px 28px',
-          boxSizing: 'border-box',
-          color: '#FFFFFF',
-          fontFamily: 'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-        }}
-      >
+    <VaulModalSheet isOpen={isOpen} onClose={onClose} maxWidth="540px">
+      <div>
         {/* CABEÇALHO */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <div>
@@ -993,7 +961,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
           }
         }}
       />
-    </div>,
+    </VaulModalSheet>,
     document.body
   );
 }

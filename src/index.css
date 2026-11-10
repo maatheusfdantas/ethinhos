@@ -48,7 +48,29 @@
   --font-display: 'Outfit', 'Inter', sans-serif;
 
   --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --spring-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-fast: 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-normal: 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bento-grid-editorial {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 20px;
+}
+
+button,
+.btn-primary,
+.btn-secondary,
+.glass-pill-btn {
+  transition: transform 0.22s var(--spring-easing), box-shadow 0.22s var(--spring-easing), background-color 0.18s ease, border-color 0.18s ease;
+}
+
+button:active:not(:disabled),
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled),
+.glass-pill-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 /* VISIONOS BENTO GRID & SPECULAR GLASS UTILITIES */

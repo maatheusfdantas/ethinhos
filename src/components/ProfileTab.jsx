@@ -32,6 +32,7 @@ import {
   Droplets,
   Scale
 } from 'lucide-react';
+import { calculateDailyWaterTarget, calculateUserLevelAndXp } from '../utils/biometricsAndAnalytics';
 
 const POSTIT_COLORS = [
   { id: 'yellow', name: 'Amarelo Clássico', bg: '#FEF08A', border: '#FDE047', text: '#713F12', pin: '#CA8A04' },
@@ -48,14 +49,6 @@ const PRESET_TRACKS = [
   { title: 'Veridis Quo', artist: 'Daft Punk', album: 'Discovery', duration: 345, gradient: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 50%, #8B5CF6 100%)' },
   { title: 'After Dark', artist: 'Mr.Kitty', album: 'Time', duration: 259, gradient: 'linear-gradient(135deg, #1E293B 0%, #7C3AED 50%, #EC4899 100%)' }
 ];
-
-function getLevelTitle(level) {
-  if (level <= 2) return 'Iniciante Consciente';
-  if (level <= 4) return 'Praticante Consistente';
-  if (level <= 7) return 'Estrategista da Rotina';
-  if (level <= 11) return 'Arquiteto de Performance';
-  return 'Mestre do Ethos';
-}
 
 export function ProfileTab({ 
   user, 
@@ -102,12 +95,11 @@ export function ProfileTab({
     }
   }, [health?.glassMl]);
 
-  const numericWeight = Math.max(0, parseFloat(String(weightKg).replace(',', '.')) || 0);
-  const idealDailyWaterMl = Math.round(numericWeight * 35);
-  const idealDailyWaterLiters = (idealDailyWaterMl / 1000).toFixed(2).replace('.', ',');
-  const recommendedGlasses = idealDailyWaterMl > 0
-    ? Math.max(1, Math.ceil(idealDailyWaterMl / (glassSizeMl || 250)))
-    : (health?.waterTarget || 8);
+  const waterCalc = calculateDailyWaterTarget(weightKg, glassSizeMl);
+  const numericWeight = waterCalc.weightKg;
+  const idealDailyWaterMl = waterCalc.dailyMl;
+  const idealDailyWaterLiters = waterCalc.dailyLiters;
+  const recommendedGlasses = numericWeight > 0 ? waterCalc.targetGlasses : (health?.waterTarget || 8);
 
   const handleSaveWaterGoal = async (e) => {
     e?.preventDefault?.();
@@ -518,24 +510,27 @@ export function ProfileTab({
     }
   });
 
-  const completedHabitsCount = habits.filter(h => h.completed).length;
-  const habitCompletionRate = habits.length > 0 ? Math.round((completedHabitsCount / habits.length) * 100) : 0;
   const userStreak = user?.streak_days || 0;
 
-  // Cálculo transparente e acumulativo de XP
-  const baseUserPoints = Number(user?.points) || 0;
-  const habitsXp = completedHabitsCount * 25 + habits.length * 10;
-  const streakXp = userStreak * 15;
-  const workoutsXp = workouts.reduce((acc, w) => acc + (w.exercises?.length || 0) * 20, 0);
-  const postItsXp = postIts.length * 10;
-  const playlistsXp = playlists.length * 15;
-
-  const totalXp = baseUserPoints + habitsXp + streakXp + workoutsXp + postItsXp + playlistsXp + bonusXp;
-  const xpPerLevel = 300;
-  const currentLevel = Math.max(1, Math.floor(totalXp / xpPerLevel) + 1);
-  const currentLevelProgressXp = totalXp % xpPerLevel;
-  const xpProgressPercent = Math.min(100, Math.round((currentLevelProgressXp / xpPerLevel) * 100));
-  const levelTitle = getLevelTitle(currentLevel);
+  // Cálculo transparente, puro e testável de XP e Nível
+  const {
+    totalXp,
+    currentLevel,
+    currentLevelProgressXp,
+    xpProgressPercent,
+    xpPerLevel,
+    levelTitle,
+    completedHabitsCount
+  } = calculateUserLevelAndXp({
+    basePoints: user?.points,
+    habits,
+    streakDays: userStreak,
+    workouts,
+    postIts,
+    playlists,
+    bonusXp
+  });
+  const habitCompletionRate = habits.length > 0 ? Math.round((completedHabitsCount / habits.length) * 100) : 0;
 
   const handleClaimDailyXp = () => {
     if (dailyClaimed) return;
