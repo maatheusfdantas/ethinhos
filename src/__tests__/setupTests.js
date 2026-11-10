@@ -10,3 +10,4 @@ class ResizeObserverMock {
 if (typeof window !== 'undefined' && !window.ResizeObserver) {
   window.ResizeObserver = ResizeObserverMock;
 }
+

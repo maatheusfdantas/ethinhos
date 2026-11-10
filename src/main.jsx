@@ -15,12 +15,33 @@ if (typeof window !== 'undefined' && !window.__ETHOS_FETCH_SECURED__) {
     const isApiCall = urlStr.startsWith('/api/') || urlStr.includes('/api/');
 
     if (isApiCall) {
-      const accessToken =
+      let accessToken =
         sessionStorage.getItem('ethos_access_token') ||
-        localStorage.getItem('ethos_access_token');
+        localStorage.getItem('ethos_access_token') ||
+        '';
+
+      let activeUserId = localStorage.getItem('ethos_user_id') || '';
+
+      if (!accessToken || !activeUserId) {
+        try {
+          const raw = localStorage.getItem('ethos_current_user') || sessionStorage.getItem('ethos_current_user');
+          if (raw) {
+            const u = JSON.parse(raw);
+            if (!accessToken) accessToken = u?.auth?.accessToken || u?.token || '';
+            if (!activeUserId) activeUserId = u?.id || '';
+          }
+        } catch (_e) {}
+      }
+
       const headers = new Headers(init.headers || {});
       if (accessToken && !headers.has('Authorization')) {
         headers.set('Authorization', `Bearer ${accessToken}`);
+      }
+      if (activeUserId && !headers.has('X-Ethos-User-Id')) {
+        headers.set('X-Ethos-User-Id', activeUserId);
+      }
+      if (init.body && typeof init.body === 'string' && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
       }
       init = { ...init, headers };
     }

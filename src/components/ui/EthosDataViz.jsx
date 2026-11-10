@@ -298,3 +298,4 @@ export function CategoryAdherenceList({ categories = [] }) {
     </div>
   );
 }
+

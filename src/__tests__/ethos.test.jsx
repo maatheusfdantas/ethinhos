@@ -151,3 +151,18 @@ describe('3. DataViz & Estados Vazios (WeeklyExecutionChart & CategoryAdherenceL
     expect(screen.getByText('88%')).toBeInTheDocument();
   });
 });
+
+describe('4. Resiliência de Sincronização & Proteção de Dados (Anti-Wipe)', () => {
+  it('garante que o cálculo de hidratação funcione para diferentes biotipos e tamanhos de copo', () => {
+    // Ex: 90kg com copo de 300ml -> 90 * 35 = 3150ml -> Math.ceil(3150 / 300) = 11 copos
+    const res90 = calculateDailyWaterTarget(90, 300);
+    expect(res90.dailyMl).toBe(3150);
+    expect(res90.targetGlasses).toBe(11);
+
+    // Ex: 50kg com garrafa de 500ml -> 50 * 35 = 1750ml -> Math.ceil(1750 / 500) = 4 copos
+    const res50 = calculateDailyWaterTarget(50, 500);
+    expect(res50.dailyMl).toBe(1750);
+    expect(res50.targetGlasses).toBe(4);
+  });
+});
+

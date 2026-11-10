@@ -6,3 +6,4 @@ test.describe('Ethos End-to-End Flow (Auth -> Dashboard -> Biometrics -> DataViz
     await expect(page.locator('input[placeholder*="usuário" i], input[type="text"], input[type="email"]').first()).toBeVisible();
   });
 });
+

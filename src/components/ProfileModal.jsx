@@ -174,11 +174,9 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              water: health?.water ?? 0,
+              waterGlasses: health?.waterGlasses ?? health?.water ?? 0,
               waterTarget: dailyWaterIdealGlasses,
-              sleep: health?.sleep ?? 0,
-              sleepGoal: health?.sleepGoal ?? 8,
-              mood: health?.mood ?? 3,
+              sleep: health?.sleep,
               glassMl: health?.glassMl ?? 250
             })
           });

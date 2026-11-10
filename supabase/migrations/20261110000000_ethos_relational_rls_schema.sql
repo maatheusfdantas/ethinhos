@@ -327,3 +327,4 @@ CREATE POLICY "tickets_owner_or_admin" ON public.support_tickets
 CREATE POLICY "audit_logs_admin_only" ON public.audit_logs
   FOR ALL USING (public.is_ethos_admin())
   WITH CHECK (public.is_ethos_admin());
+

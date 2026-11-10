@@ -24,6 +24,8 @@ import { Lock, Plus, Search, Bell, X, Users, Play, LifeBuoy } from 'lucide-react
 import { Toast } from './components/Toast';
 import { TabErrorBoundary } from './components/TabErrorBoundary';
 import { SpringPageTransition } from './components/ui/MotionPrimitives';
+import { useUserSync } from './hooks/useUserSync';
+import { apiFetch } from './utils/api';
 
 export function App() {
   const isReturningFromGoogleOAuth = typeof window !== 'undefined' && window.location.search.includes('google_auth=');
@@ -148,178 +150,21 @@ export function App() {
     setToast({ message, onUndo });
   };
 
-  const isHydratedRef = useRef(false);
-  const syncTimeoutRef = useRef(null);
-
-  // Load user data when user changes (sincroniza localStorage por usuário + SQLite/Cloudflare D1)
-  const loadUserData = async (activeUser) => {
-    if (!activeUser?.id) return;
-    isHydratedRef.current = false;
-
-    const uid = activeUser.id;
-    let localHabits = [];
-    let localEvents = [];
-    let localTags = [];
-    let localWorkouts = [];
-    let localHealth = {
-      waterGlasses: 0,
-      waterTarget: 10,
-      glassMl: 250,
-      waterHistory: [],
-      sleep: { bedTime: '23:30', wakeTime: '07:00', targetHours: 8, logged: false }
-    };
-
-    try {
-      const sh = localStorage.getItem(`ethos_habits_${uid}`);
-      if (sh) localHabits = JSON.parse(sh);
-    } catch (_e) {}
-    try {
-      const se = localStorage.getItem(`ethos_events_${uid}`);
-      if (se) localEvents = JSON.parse(se);
-    } catch (_e) {}
-    try {
-      const st = localStorage.getItem(`ethos_tags_${uid}`);
-      if (st) localTags = JSON.parse(st);
-    } catch (_e) {}
-    try {
-      const sw = localStorage.getItem(`ethos_workouts_${uid}`);
-      if (sw) localWorkouts = JSON.parse(sw);
-    } catch (_e) {}
-    try {
-      const shl = localStorage.getItem(`ethos_health_${uid}`);
-      if (shl) localHealth = { ...localHealth, ...JSON.parse(shl) };
-    } catch (_e) {}
-
-    // Hidratação imediata do cache local do usuário para evitar tela em branco
-    setHabits(localHabits);
-    setEvents(localEvents);
-    setTags(localTags);
-    setWorkouts(localWorkouts);
-    setHealth(localHealth);
-
-    try {
-      const res = await fetch(`/api/user/${uid}/data`);
-      if (res.ok) {
-        const data = await res.json();
-        const serverHabits = Array.isArray(data.habits) ? data.habits : [];
-        const serverEvents = Array.isArray(data.events) ? data.events : [];
-        const serverTags = Array.isArray(data.tags) ? data.tags : [];
-        const serverWorkouts = Array.isArray(data.workouts) ? data.workouts : [];
-
-        // Se o servidor possui registros, prioriza o servidor; se o servidor estiver vazio mas o cache local da conta tiver dados não sincronizados, preserva e envia ao servidor
-        const mergedHabits = serverHabits.length > 0 ? serverHabits : localHabits;
-        const mergedEvents = serverEvents.length > 0 ? serverEvents : localEvents;
-        const mergedTags = serverTags.length > 0 ? serverTags : localTags;
-        const mergedWorkouts = serverWorkouts.length > 0 ? serverWorkouts : localWorkouts;
-        const mergedHealth =
-          data.health && (data.health.waterGlasses > 0 || data.health.sleep?.logged || data.health.waterTarget !== 10)
-            ? data.health
-            : localHealth;
-
-        setHabits(mergedHabits);
-        setEvents(mergedEvents);
-        setTags(mergedTags);
-        setWorkouts(mergedWorkouts);
-        setHealth(mergedHealth);
-
-        try {
-          localStorage.setItem(`ethos_habits_${uid}`, JSON.stringify(mergedHabits));
-          localStorage.setItem(`ethos_events_${uid}`, JSON.stringify(mergedEvents));
-          localStorage.setItem(`ethos_tags_${uid}`, JSON.stringify(mergedTags));
-          localStorage.setItem(`ethos_workouts_${uid}`, JSON.stringify(mergedWorkouts));
-          localStorage.setItem(`ethos_health_${uid}`, JSON.stringify(mergedHealth));
-          if (Array.isArray(data.badHabits) && data.badHabits.length > 0) {
-            localStorage.setItem(`ethos_bad_habits_${uid}`, JSON.stringify(data.badHabits));
-          }
-          if (Array.isArray(data.user?.postIts) && data.user.postIts.length > 0) {
-            localStorage.setItem(`ethos_profile_postits_${uid}`, JSON.stringify(data.user.postIts));
-          }
-          if (data.user?.activeTrack) {
-            localStorage.setItem(`ethos_profile_track_${uid}`, JSON.stringify(data.user.activeTrack));
-          }
-        } catch (_e) {}
-
-        if (data.user) {
-          setUser((prev) => (prev ? { ...prev, ...data.user } : data.user));
-        }
-
-        // Caso havia itens locais ainda não gravados no servidor, sincroniza agora
-        if (
-          (serverHabits.length === 0 && mergedHabits.length > 0) ||
-          (serverEvents.length === 0 && mergedEvents.length > 0) ||
-          (serverTags.length === 0 && mergedTags.length > 0) ||
-          (serverWorkouts.length === 0 && mergedWorkouts.length > 0)
-        ) {
-          fetch(`/api/user/${uid}/sync`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              habits: mergedHabits,
-              events: mergedEvents,
-              tags: mergedTags,
-              workouts: mergedWorkouts,
-              health: mergedHealth
-            })
-          }).catch(() => {});
-        }
-      }
-    } catch (e) {
-      console.warn('Backend offline, using local states.');
-    } finally {
-      isHydratedRef.current = true;
-    }
-  };
-
-  useEffect(() => {
-    if (user?.id) {
-      loadUserData(user);
-    }
-  }, [user?.id]);
-
-  // Persiste continuamente hábitos, eventos, categorias, saúde e treinos no localStorage por usuário + sincroniza com o banco SQLite/D1
-  useEffect(() => {
-    if (!user?.id || !isHydratedRef.current) return;
-    const uid = user.id;
-
-    try {
-      localStorage.setItem(`ethos_habits_${uid}`, JSON.stringify(habits));
-      localStorage.setItem(`ethos_events_${uid}`, JSON.stringify(events));
-      localStorage.setItem(`ethos_tags_${uid}`, JSON.stringify(tags));
-      localStorage.setItem(`ethos_health_${uid}`, JSON.stringify(health));
-      localStorage.setItem(`ethos_workouts_${uid}`, JSON.stringify(workouts));
-    } catch (_e) {}
-
-    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    syncTimeoutRef.current = setTimeout(() => {
-      let currentBadHabits = undefined;
-      let currentPostIts = undefined;
-      try {
-        const rawBh = localStorage.getItem(`ethos_bad_habits_${uid}`);
-        if (rawBh) currentBadHabits = JSON.parse(rawBh);
-        const rawPi = localStorage.getItem(`ethos_profile_postits_${uid}`);
-        if (rawPi) currentPostIts = JSON.parse(rawPi);
-      } catch (_e) {}
-
-      fetch(`/api/user/${uid}/sync`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          habits,
-          events,
-          tags,
-          health,
-          workouts,
-          badHabits: currentBadHabits,
-          postIts: currentPostIts,
-          weight: user.weight
-        })
-      }).catch(() => {});
-    }, 350);
-
-    return () => {
-      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    };
-  }, [habits, events, tags, health, workouts, user?.id, user?.weight]);
+  // Sincronização e hidratação segura do usuário via hook modular
+  const { loadUserData, resetSyncState } = useUserSync({
+    user,
+    setUser,
+    habits,
+    setHabits,
+    events,
+    setEvents,
+    tags,
+    setTags,
+    health,
+    setHealth,
+    workouts,
+    setWorkouts
+  });
 
   // Handler: Add new Habit (US01, US19, US20, US39)
   const handleAddHabit = async (newHabit) => {
@@ -327,9 +172,8 @@ export function App() {
 
     if (user) {
       try {
-        await fetch(`/api/user/${user.id}/habit`, {
+        await apiFetch(`/api/user/${user.id}/habit`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newHabit)
         });
       } catch (e) {
@@ -344,9 +188,8 @@ export function App() {
 
     if (user) {
       try {
-        await fetch(`/api/user/${user.id}/event`, {
+        await apiFetch(`/api/user/${user.id}/event`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newEvent)
         });
       } catch (e) {
@@ -361,9 +204,8 @@ export function App() {
 
     if (user) {
       try {
-        await fetch(`/api/user/${user.id}/event/${eventId}/toggle`, {
+        await apiFetch(`/api/user/${user.id}/event/${eventId}/toggle`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ completed })
         });
       } catch (e) {
@@ -378,7 +220,7 @@ export function App() {
 
     if (user) {
       try {
-        await fetch(`/api/user/${user.id}/event/${eventId}`, {
+        await apiFetch(`/api/user/${user.id}/event/${eventId}`, {
           method: 'DELETE'
         });
       } catch (e) {
@@ -400,9 +242,8 @@ export function App() {
 
     if (user) {
       try {
-        await fetch(`/api/user/${user.id}/tag`, {
+        await apiFetch(`/api/user/${user.id}/tag`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(basicCategory)
         });
       } catch (e) {
@@ -429,9 +270,8 @@ export function App() {
 
     if (user) {
       try {
-        await fetch(`/api/user/${user.id}/category/${encodeURIComponent(updatedCat.id || updatedCat.name)}/config`, {
+        await apiFetch(`/api/user/${user.id}/category/${encodeURIComponent(updatedCat.id || updatedCat.name)}/config`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedCat)
         });
       } catch (e) {
@@ -476,9 +316,8 @@ export function App() {
 
     if (user && subclassName) {
       try {
-        await fetch(`/api/user/${user.id}/category/${encodeURIComponent(targetCat.id)}/log-effort`, {
+        await apiFetch(`/api/user/${user.id}/category/${encodeURIComponent(targetCat.id)}/log-effort`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ subclassName, hoursDelta })
         });
       } catch (e) {
@@ -493,7 +332,7 @@ export function App() {
 
     if (user) {
       try {
-        await fetch(`/api/user/${user.id}/tag/${encodeURIComponent(tagId || tagName)}`, {
+        await apiFetch(`/api/user/${user.id}/tag/${encodeURIComponent(tagId || tagName)}`, {
           method: 'DELETE'
         });
       } catch (e) {
@@ -568,6 +407,7 @@ export function App() {
       setWorkouts(savedWorkouts ? JSON.parse(savedWorkouts) : []);
     } catch (e) {}
     setUser(authenticatedUser);
+    loadUserData(authenticatedUser);
     setShowWelcomeIntro(true);
     setBootKey(prev => prev + 1);
     if (authenticatedUser.role === 'admin') {
@@ -579,8 +419,7 @@ export function App() {
 
   // Logout handler
   const handleLogout = () => {
-    isHydratedRef.current = false;
-    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    resetSyncState();
     setUser(null);
     setShowWelcomeIntro(false);
     sessionStorage.removeItem('ethos_current_user');

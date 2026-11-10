@@ -849,7 +849,9 @@ export function DashboardTab({
                 <div>
                   <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#1A1B2F', margin: 0 }}>Hidratação Diária</h3>
                   <span style={{ fontSize: '11.5px', color: '#5A5B75' }}>
-                    Meta: {waterTarget} copos ({(waterTarget * glassMl).toLocaleString('pt-BR')} ml)
+                    {user?.weight && Number(user.weight) > 0
+                      ? `Meta Biométrica (${user.weight}kg × 35ml = ${(Number(user.weight) * 35).toLocaleString('pt-BR')} ml • ${waterTarget} copos)`
+                      : `Meta: ${waterTarget} copos (${(waterTarget * glassMl).toLocaleString('pt-BR')} ml)`}
                   </span>
                 </div>
               </div>

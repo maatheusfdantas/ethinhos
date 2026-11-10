@@ -1157,87 +1157,103 @@ app.put('/api/user/:id/sync', (req, res) => {
   const nowIso = new Date().toISOString();
 
   if (Array.isArray(habits)) {
-    db.prepare(`DELETE FROM habits WHERE user_id = ?`).run(id);
-    const insHabit = db.prepare(`
-      INSERT OR REPLACE INTO habits (
-        id, user_id, title, category, icon_name, target, current,
-        unit, effort, priority, tag_id, subclass_id, subclass_name,
-        repeat_days, completed, completion_style, tracking_type, period_type, period_config, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    for (const h of habits) {
-      if (!h?.title) continue;
-      const trackingType = h.trackingType || (h.completionStyle === 'numeric' || h.completionStyle === 'increment' ? 'counter' : 'done');
-      const periodType = h.periodType || 'day';
-      const periodConfig = typeof h.periodConfig === 'object' ? JSON.stringify(h.periodConfig) : (h.periodConfig || '{}');
-      insHabit.run(
-        h.id || `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        id,
-        h.title,
-        h.category || 'Pessoal',
-        h.iconName || h.icon_name || h.category || 'CheckCircle2',
-        h.target || 1,
-        h.current || 0,
-        h.unit || 'vezes',
-        h.effort || 'Médio',
-        h.priority || 'Média',
-        h.tagId || h.tag_id || null,
-        h.subclassId || h.subclass_id || null,
-        h.subclassName || h.subclass_name || null,
-        JSON.stringify(h.repeatDays || [1, 2, 3, 4, 5]),
-        h.completed ? 1 : 0,
-        h.completionStyle || h.completion_style || 'quick',
-        trackingType,
-        periodType,
-        periodConfig,
-        h.created_at || nowIso
-      );
+    const validHabits = habits.filter(h => h && h.title);
+    if (validHabits.length > 0) {
+      const sentIds = validHabits.map(h => h.id).filter(Boolean);
+      if (sentIds.length > 0) {
+        const placeholders = sentIds.map(() => '?').join(',');
+        db.prepare(`DELETE FROM habits WHERE user_id = ? AND id NOT IN (${placeholders})`).run(id, ...sentIds);
+      }
+      const insHabit = db.prepare(`
+        INSERT OR REPLACE INTO habits (
+          id, user_id, title, category, icon_name, target, current,
+          unit, effort, priority, tag_id, subclass_id, subclass_name,
+          repeat_days, completed, completion_style, tracking_type, period_type, period_config, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const h of validHabits) {
+        const trackingType = h.trackingType || (h.completionStyle === 'numeric' || h.completionStyle === 'increment' ? 'counter' : 'done');
+        const periodType = h.periodType || 'day';
+        const periodConfig = typeof h.periodConfig === 'object' ? JSON.stringify(h.periodConfig) : (h.periodConfig || '{}');
+        insHabit.run(
+          h.id || `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          id,
+          h.title,
+          h.category || 'Pessoal',
+          h.iconName || h.icon_name || h.category || 'CheckCircle2',
+          h.target || 1,
+          h.current || 0,
+          h.unit || 'vezes',
+          h.effort || 'Médio',
+          h.priority || 'Média',
+          h.tagId || h.tag_id || null,
+          h.subclassId || h.subclass_id || null,
+          h.subclassName || h.subclass_name || null,
+          JSON.stringify(h.repeatDays || [1, 2, 3, 4, 5]),
+          h.completed ? 1 : 0,
+          h.completionStyle || h.completion_style || 'quick',
+          trackingType,
+          periodType,
+          periodConfig,
+          h.created_at || nowIso
+        );
+      }
+    } else if (req.body.clearAllHabits === true) {
+      db.prepare(`DELETE FROM habits WHERE user_id = ?`).run(id);
     }
   }
 
   if (Array.isArray(events)) {
-    db.prepare(`DELETE FROM events WHERE user_id = ?`).run(id);
-    const insEvent = db.prepare(`
-      INSERT OR REPLACE INTO events (
-        id, user_id, title, date, end_date, all_day, start_time, end_time,
-        category, subclass_id, subclass_name, author_name,
-        repeat_rule, repeat_config, reminders, buffer_before, buffer_after,
-        is_floating, energy_level, meeting_url, visibility, conflict_policy,
-        location, notes, priority, completed, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    for (const ev of events) {
-      if (!ev?.title || !ev?.date) continue;
-      const encryptedNotes = encryptAES256GCM(ev.notes || ev.description || '');
-      insEvent.run(
-        ev.id || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        id,
-        ev.title,
-        ev.date,
-        ev.endDate || ev.end_date || ev.date,
-        ev.allDay || ev.all_day ? 1 : 0,
-        ev.startTime || ev.start_time || '09:00',
-        ev.endTime || ev.end_time || '10:00',
-        ev.category || 'Geral',
-        ev.subclassId || ev.subclass_id || null,
-        ev.subclassName || ev.subclass_name || null,
-        ev.authorName || ev.author_name || null,
-        ev.repeat || ev.repeat_rule || 'Nunca',
-        JSON.stringify(ev.repeatConfig || {}),
-        JSON.stringify(ev.reminders || []),
-        Number(ev.bufferBefore) || 0,
-        Number(ev.bufferAfter) || 0,
-        ev.isFloating ? 1 : 0,
-        ev.energyLevel || 'deep_focus',
-        ev.meetingUrl || '',
-        ev.visibility || 'private',
-        ev.conflictPolicy || 'allow',
-        ev.location || '',
-        encryptedNotes,
-        ev.priority || 'Média',
-        ev.completed ? 1 : 0,
-        ev.created_at || nowIso
-      );
+    const validEvents = events.filter(ev => ev && ev.title && ev.date);
+    if (validEvents.length > 0) {
+      const sentIds = validEvents.map(e => e.id).filter(Boolean);
+      if (sentIds.length > 0) {
+        const placeholders = sentIds.map(() => '?').join(',');
+        db.prepare(`DELETE FROM events WHERE user_id = ? AND id NOT IN (${placeholders})`).run(id, ...sentIds);
+      }
+      const insEvent = db.prepare(`
+        INSERT OR REPLACE INTO events (
+          id, user_id, title, date, end_date, all_day, start_time, end_time,
+          category, subclass_id, subclass_name, author_name,
+          repeat_rule, repeat_config, reminders, buffer_before, buffer_after,
+          is_floating, energy_level, meeting_url, visibility, conflict_policy,
+          location, notes, priority, completed, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const ev of validEvents) {
+        const encryptedNotes = encryptAES256GCM(ev.notes || ev.description || '');
+        insEvent.run(
+          ev.id || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          id,
+          ev.title,
+          ev.date,
+          ev.endDate || ev.end_date || ev.date,
+          ev.allDay || ev.all_day ? 1 : 0,
+          ev.startTime || ev.start_time || '09:00',
+          ev.endTime || ev.end_time || '10:00',
+          ev.category || 'Geral',
+          ev.subclassId || ev.subclass_id || null,
+          ev.subclassName || ev.subclass_name || null,
+          ev.authorName || ev.author_name || null,
+          ev.repeat || ev.repeat_rule || 'Nunca',
+          JSON.stringify(ev.repeatConfig || {}),
+          JSON.stringify(ev.reminders || []),
+          Number(ev.bufferBefore) || 0,
+          Number(ev.bufferAfter) || 0,
+          ev.isFloating ? 1 : 0,
+          ev.energyLevel || 'deep_focus',
+          ev.meetingUrl || '',
+          ev.visibility || 'private',
+          ev.conflictPolicy || 'allow',
+          ev.location || '',
+          encryptedNotes,
+          ev.priority || 'Média',
+          ev.completed ? 1 : 0,
+          ev.created_at || nowIso
+        );
+      }
+    } else if (req.body.clearAllEvents === true) {
+      db.prepare(`DELETE FROM events WHERE user_id = ?`).run(id);
     }
   }
 
@@ -1315,20 +1331,21 @@ app.put('/api/user/:id/sync', (req, res) => {
   }
 
   if (health && typeof health === 'object') {
+    const syncWater = health.waterGlasses !== undefined ? health.waterGlasses : (health.water !== undefined ? health.water : 0);
     db.prepare(`
       INSERT INTO health (user_id, water_glasses, water_target, glass_ml, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(user_id) DO UPDATE SET
-        water_glasses = excluded.water_glasses,
-        water_target = excluded.water_target,
-        glass_ml = excluded.glass_ml,
-        water_history = excluded.water_history,
-        sleep_bed_time = excluded.sleep_bed_time,
-        sleep_wake_time = excluded.sleep_wake_time,
-        sleep_logged = excluded.sleep_logged
+        water_glasses = CASE WHEN excluded.water_glasses > 0 THEN excluded.water_glasses ELSE health.water_glasses END,
+        water_target = COALESCE(excluded.water_target, health.water_target),
+        glass_ml = COALESCE(excluded.glass_ml, health.glass_ml),
+        water_history = CASE WHEN excluded.water_history != '[]' THEN excluded.water_history ELSE health.water_history END,
+        sleep_bed_time = COALESCE(excluded.sleep_bed_time, health.sleep_bed_time),
+        sleep_wake_time = COALESCE(excluded.sleep_wake_time, health.sleep_wake_time),
+        sleep_logged = COALESCE(excluded.sleep_logged, health.sleep_logged)
     `).run(
       id,
-      health.waterGlasses ?? 0,
+      syncWater,
       health.waterTarget || 10,
       health.glassMl || 250,
       JSON.stringify(health.waterHistory || []),
@@ -1729,22 +1746,23 @@ app.delete('/api/user/:id/tag/:tagId', (req, res) => {
 // Atualizar Água e Saúde
 app.post('/api/user/:id/health', (req, res) => {
   const { id } = req.params;
-  const { waterGlasses, waterTarget, glassMl, waterHistory, sleep } = req.body;
+  const { waterGlasses, water, waterTarget, glassMl, waterHistory, sleep } = req.body;
+  const actualWaterGlasses = waterGlasses !== undefined ? waterGlasses : (water !== undefined ? water : null);
 
   db.prepare(`
     INSERT INTO health (user_id, water_glasses, water_target, glass_ml, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(user_id) DO UPDATE SET
-      water_glasses = COALESCE(excluded.water_glasses, health.water_glasses),
+      water_glasses = CASE WHEN excluded.water_glasses IS NOT NULL AND excluded.water_glasses > 0 THEN excluded.water_glasses ELSE health.water_glasses END,
       water_target = COALESCE(excluded.water_target, health.water_target),
       glass_ml = COALESCE(excluded.glass_ml, health.glass_ml),
-      water_history = COALESCE(excluded.water_history, health.water_history),
+      water_history = CASE WHEN excluded.water_history != '[]' THEN excluded.water_history ELSE health.water_history END,
       sleep_bed_time = COALESCE(excluded.sleep_bed_time, health.sleep_bed_time),
       sleep_wake_time = COALESCE(excluded.sleep_wake_time, health.sleep_wake_time),
       sleep_logged = COALESCE(excluded.sleep_logged, health.sleep_logged)
   `).run(
     id,
-    waterGlasses ?? 0,
+    actualWaterGlasses,
     waterTarget || 10,
     glassMl || 250,
     JSON.stringify(waterHistory || []),

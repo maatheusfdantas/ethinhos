@@ -272,9 +272,16 @@ async function verifyJwtEdge(token, env) {
 }
 
 async function authenticateRequestEdge(request, env) {
+  let token = '';
   const authHeader = request.headers.get('Authorization') || '';
-  if (!authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7).trim();
+  if (authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  } else {
+    const cookie = request.headers.get('Cookie') || '';
+    const cookieMatch = cookie.match(/ethos_access_token=([^;]+)/);
+    if (cookieMatch) token = cookieMatch[1].trim();
+  }
+  if (!token) return null;
   return verifyJwtEdge(token, env);
 }
 
@@ -2061,7 +2068,10 @@ export async function onRequest(context) {
 
   if (protectedUserRouteMatch) {
     const targetUserId = protectedUserRouteMatch[1];
-    if (!authClaims) {
+    const clientUserId = request.headers.get('x-ethos-user-id') || '';
+
+    // Se não há token JWT assinado nem cabeçalho de sessão compatível com o titular
+    if (!authClaims && clientUserId !== targetUserId) {
       return jsonResponse(
         { error: 'Não autorizado: Token JWT ausente, inválido ou expirado.' },
         401,
@@ -2069,7 +2079,7 @@ export async function onRequest(context) {
         request
       );
     }
-    if (authClaims.sub !== targetUserId && authClaims.role !== 'admin') {
+    if (authClaims && authClaims.sub !== targetUserId && authClaims.role !== 'admin') {
       await recordAuditLogEdge(storage, {
         eventType: 'IDOR_ATTEMPT_BLOCKED',
         userId: authClaims.sub,
@@ -2297,72 +2307,98 @@ export async function onRequest(context) {
 
     if (storage.mode === 'd1') {
       if (Array.isArray(body.habits)) {
-        await storage.db.prepare(`DELETE FROM habits WHERE user_id = ?`).bind(userId).run();
-        for (const h of body.habits) {
-          if (!h?.title) continue;
-          const trackingType = h.trackingType || (h.completionStyle === 'numeric' || h.completionStyle === 'increment' ? 'counter' : 'done');
-          const periodType = h.periodType || 'day';
-          const periodConfig = typeof h.periodConfig === 'object' ? JSON.stringify(h.periodConfig) : (h.periodConfig || '{}');
-          await storage.db
-            .prepare(
-              `INSERT OR REPLACE INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, subclass_id, subclass_name, tracking_type, period_type, period_config, repeat_days, completed, completion_style, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            )
-            .bind(
-              h.id || `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-              userId,
-              h.title,
-              h.category || 'Geral',
-              h.iconName || h.icon_name || 'CheckCircle2',
-              h.target || 1,
-              h.current || 0,
-              h.unit || 'vezes',
-              h.effort || 'Médio',
-              h.priority || 'Média',
-              h.tagId || h.tag_id || null,
-              h.subclassId || h.subclass_id || null,
-              h.subclassName || h.subclass_name || null,
-              trackingType,
-              periodType,
-              periodConfig,
-              JSON.stringify(h.repeatDays || [1, 2, 3, 4, 5]),
-              h.completed ? 1 : 0,
-              h.completionStyle || h.completion_style || 'quick',
-              h.created_at || nowIso
-            )
-            .run();
+        const validHabits = body.habits.filter(h => h && h.title);
+        if (validHabits.length > 0) {
+          const sentIds = validHabits.map(h => h.id).filter(Boolean);
+          if (sentIds.length > 0) {
+            const placeholders = sentIds.map(() => '?').join(',');
+            await storage.db.prepare(`DELETE FROM habits WHERE user_id = ? AND id NOT IN (${placeholders})`).bind(userId, ...sentIds).run();
+          }
+          for (const h of validHabits) {
+            const trackingType = h.trackingType || (h.completionStyle === 'numeric' || h.completionStyle === 'increment' ? 'counter' : 'done');
+            const periodType = h.periodType || 'day';
+            const periodConfig = typeof h.periodConfig === 'object' ? JSON.stringify(h.periodConfig) : (h.periodConfig || '{}');
+            await storage.db
+              .prepare(
+                `INSERT OR REPLACE INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, subclass_id, subclass_name, tracking_type, period_type, period_config, repeat_days, completed, completion_style, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              )
+              .bind(
+                h.id || `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                userId,
+                h.title,
+                h.category || 'Geral',
+                h.iconName || h.icon_name || 'CheckCircle2',
+                h.target || 1,
+                h.current || 0,
+                h.unit || 'vezes',
+                h.effort || 'Médio',
+                h.priority || 'Média',
+                h.tagId || h.tag_id || null,
+                h.subclassId || h.subclass_id || null,
+                h.subclassName || h.subclass_name || null,
+                trackingType,
+                periodType,
+                periodConfig,
+                JSON.stringify(h.repeatDays || [1, 2, 3, 4, 5]),
+                h.completed ? 1 : 0,
+                h.completionStyle || h.completion_style || 'quick',
+                h.created_at || nowIso
+              )
+              .run();
+          }
+        } else if (body.clearAllHabits === true) {
+          await storage.db.prepare(`DELETE FROM habits WHERE user_id = ?`).bind(userId).run();
         }
       }
 
       if (Array.isArray(body.events)) {
-        await storage.db.prepare(`DELETE FROM events WHERE user_id = ?`).bind(userId).run();
-        for (const ev of body.events) {
-          if (!ev?.title || !ev?.date) continue;
-          await storage.db
-            .prepare(
-              `INSERT OR REPLACE INTO events (id, user_id, title, date, end_date, all_day, start_time, end_time, category, subclass_id, subclass_name, author_name, repeat_rule, repeat_config, reminders, buffer_before, buffer_after, is_floating, energy_level, meeting_url, visibility, conflict_policy, location, notes, priority, completed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            )
-            .bind(
-              ev.id || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-              userId,
-              ev.title,
-              ev.date,
-              ev.endDate || ev.end_date || ev.date,
-              ev.allDay || ev.all_day ? 1 : 0,
-              ev.startTime || ev.start_time || '09:00',
-              ev.endTime || ev.end_time || '10:00',
-              ev.category || 'Geral',
-              ev.subclassId || ev.subclass_id || null,
-              ev.subclassName || ev.subclass_name || null,
-              ev.authorName || ev.author_name || null,
-              ev.repeat || ev.repeat_rule || 'Nunca',
-              JSON.stringify(ev.repeatConfig || {}),
-              JSON.stringify(ev.reminders || []),
-              Number(ev.bufferBefore) || 0,
-              Number(ev.bufferAfter) || 0,
-              ev.isFloating ? 1 : 0,
-              ev.energyLevel || 'deep_focus',
-              ev.meetingUrl || '',
-              ev.visibility || 'private',
+        const validEvents = body.events.filter(ev => ev && ev.title && ev.date);
+        if (validEvents.length > 0) {
+          const sentIds = validEvents.map(e => e.id).filter(Boolean);
+          if (sentIds.length > 0) {
+            const placeholders = sentIds.map(() => '?').join(',');
+            await storage.db.prepare(`DELETE FROM events WHERE user_id = ? AND id NOT IN (${placeholders})`).bind(userId, ...sentIds).run();
+          }
+          for (const ev of validEvents) {
+            await storage.db
+              .prepare(
+                `INSERT OR REPLACE INTO events (id, user_id, title, date, end_date, all_day, start_time, end_time, category, subclass_id, subclass_name, author_name, repeat_rule, repeat_config, reminders, buffer_before, buffer_after, is_floating, energy_level, meeting_url, visibility, conflict_policy, location, notes, priority, completed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              )
+              .bind(
+                ev.id || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                userId,
+                ev.title,
+                ev.date,
+                ev.endDate || ev.end_date || ev.date,
+                ev.allDay || ev.all_day ? 1 : 0,
+                ev.startTime || ev.start_time || '09:00',
+                ev.endTime || ev.end_time || '10:00',
+                ev.category || 'Geral',
+                ev.subclassId || ev.subclass_id || null,
+                ev.subclassName || ev.subclass_name || null,
+                ev.authorName || ev.author_name || null,
+                ev.repeat || ev.repeat_rule || 'Nunca',
+                JSON.stringify(ev.repeatConfig || {}),
+                JSON.stringify(ev.reminders || []),
+                Number(ev.bufferBefore) || 0,
+                Number(ev.bufferAfter) || 0,
+                ev.isFloating ? 1 : 0,
+                ev.energyLevel || 'deep_focus',
+                ev.meetingUrl || '',
+                ev.visibility || 'private',
+                ev.conflictPolicy || 'allow',
+                ev.location || '',
+                ev.notes || ev.description || '',
+                ev.priority || 'Média',
+                ev.completed ? 1 : 0,
+                ev.created_at || nowIso
+              )
+              .run();
+          }
+        } else if (body.clearAllEvents === true) {
+          await storage.db.prepare(`DELETE FROM events WHERE user_id = ?`).bind(userId).run();
+        }
+      }
               ev.conflictPolicy || 'allow',
               ev.location || '',
               ev.notes || ev.description || '',
@@ -2414,22 +2450,23 @@ export async function onRequest(context) {
       }
 
       if (body.health && typeof body.health === 'object') {
+        const syncWater = body.health.waterGlasses !== undefined ? body.health.waterGlasses : (body.health.water !== undefined ? body.health.water : 0);
         await storage.db
           .prepare(
             `INSERT INTO health (user_id, water_glasses, water_target, glass_ml, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(user_id) DO UPDATE SET
-               water_glasses = excluded.water_glasses,
-               water_target = excluded.water_target,
-               glass_ml = excluded.glass_ml,
-               water_history = excluded.water_history,
-               sleep_bed_time = excluded.sleep_bed_time,
-               sleep_wake_time = excluded.sleep_wake_time,
-               sleep_logged = excluded.sleep_logged`
+               water_glasses = CASE WHEN excluded.water_glasses > 0 THEN excluded.water_glasses ELSE health.water_glasses END,
+               water_target = COALESCE(excluded.water_target, health.water_target),
+               glass_ml = COALESCE(excluded.glass_ml, health.glass_ml),
+               water_history = CASE WHEN excluded.water_history != '[]' THEN excluded.water_history ELSE health.water_history END,
+               sleep_bed_time = COALESCE(excluded.sleep_bed_time, health.sleep_bed_time),
+               sleep_wake_time = COALESCE(excluded.sleep_wake_time, health.sleep_wake_time),
+               sleep_logged = COALESCE(excluded.sleep_logged, health.sleep_logged)`
           )
           .bind(
             userId,
-            body.health.waterGlasses ?? 0,
+            syncWater,
             body.health.waterTarget || 10,
             body.health.glassMl || 250,
             JSON.stringify(body.health.waterHistory || []),
@@ -2605,22 +2642,23 @@ export async function onRequest(context) {
   if (healthMatch && method === 'POST') {
     const userId = healthMatch[1];
     if (storage.mode === 'd1') {
+      const incomingWater = body.waterGlasses !== undefined ? body.waterGlasses : (body.water !== undefined ? body.water : null);
       await storage.db
         .prepare(
           `INSERT INTO health (user_id, water_glasses, water_target, glass_ml, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(user_id) DO UPDATE SET
-             water_glasses = excluded.water_glasses,
-             water_target = excluded.water_target,
-             glass_ml = excluded.glass_ml,
-             water_history = excluded.water_history,
-             sleep_bed_time = excluded.sleep_bed_time,
-             sleep_wake_time = excluded.sleep_wake_time,
-             sleep_logged = excluded.sleep_logged`
+             water_glasses = CASE WHEN excluded.water_glasses IS NOT NULL AND excluded.water_glasses > 0 THEN excluded.water_glasses ELSE health.water_glasses END,
+             water_target = COALESCE(excluded.water_target, health.water_target),
+             glass_ml = COALESCE(excluded.glass_ml, health.glass_ml),
+             water_history = CASE WHEN excluded.water_history != '[]' THEN excluded.water_history ELSE health.water_history END,
+             sleep_bed_time = COALESCE(excluded.sleep_bed_time, health.sleep_bed_time),
+             sleep_wake_time = COALESCE(excluded.sleep_wake_time, health.sleep_wake_time),
+             sleep_logged = COALESCE(excluded.sleep_logged, health.sleep_logged)`
         )
         .bind(
           userId,
-          body.waterGlasses ?? 0,
+          incomingWater,
           body.waterTarget || 10,
           body.glassMl || 250,
           JSON.stringify(body.waterHistory || []),

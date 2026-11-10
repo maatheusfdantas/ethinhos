@@ -171,3 +171,4 @@ export function calculateVitalityScore({ habits = [], health = {} } = {}) {
   if (activePillars.length === 0) return 0;
   return Math.round(activePillars.reduce((a, b) => a + b, 0) / activePillars.length);
 }
+
