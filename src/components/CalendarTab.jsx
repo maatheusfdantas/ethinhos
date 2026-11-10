@@ -120,18 +120,8 @@ export function CalendarTab({
   const [evParticipantsText, setEvParticipantsText] = useState('');
   const [evSelectedParticipants, setEvSelectedParticipants] = useState(['p1', 'p2', 'p3']);
 
-  // Eventos iniciais demonstrativos (apenas para modo demo/teste; contas reais iniciam vazias)
-  const isDemo = user?.id === 'usr_teste' || user?.id === 'usr_admin';
-  const [localSeedEvents, setLocalSeedEvents] = useState(() => {
-    if (!isDemo) return [];
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    return [
-      { id: 'seed_1', title: 'Reunião de Equipe', category: 'Faculdade', date: `${y}-${m}-02`, endDate: `${y}-${m}-02`, startTime: '10:00', endTime: '11:00', location: 'Sala 204 / Meet', description: 'Alinhamento de entregas da sprint acadêmica.', participants: ['p1', 'p2'], completed: false },
-      { id: 'seed_2', title: 'Reunião com Orientador', category: 'Faculdade', date: `${y}-${m}-03`, endDate: `${y}-${m}-03`, startTime: '09:30', endTime: '10:30', location: 'Gabinete 12', description: 'Revisão da metodologia do projeto.', participants: ['p3'], completed: false }
-    ];
-  });
+  // Nenhum perfil inicia com eventos falsos pré-preenchidos
+  const [localSeedEvents, setLocalSeedEvents] = useState([]);
 
   // Combina eventos reais + expansão de recorrência dinâmica (considerando Blackout Dates / Exceções)
   const combinedEvents = useMemo(() => {
@@ -278,8 +268,15 @@ export function CalendarTab({
     if (editingEventId) {
       if (String(editingEventId).startsWith('seed_')) {
         setLocalSeedEvents(prev => prev.map(item => item.id === editingEventId ? { ...item, ...payload } : item));
-      } else if (setEvents) {
-        setEvents(prev => prev.map(item => item.id === editingEventId ? { ...item, ...payload } : item));
+      } else {
+        setEvents?.(prev => prev.map(item => item.id === editingEventId ? { ...item, ...payload } : item));
+        if (user?.id) {
+          fetch(`/api/user/${user.id}/event`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).catch(() => {});
+        }
       }
       showToast?.(`Evento "${payload.title}" atualizado com sucesso!`);
     } else {

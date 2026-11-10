@@ -274,6 +274,21 @@ export function initDatabase() {
   try {
     db.exec(`ALTER TABLE users ADD COLUMN shared_metrics TEXT DEFAULT '{}';`);
   } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN workouts_json TEXT DEFAULT '[]';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN bad_habits_json TEXT DEFAULT '[]';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN post_its TEXT DEFAULT '[]';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN active_track TEXT DEFAULT '';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN page_preferences TEXT DEFAULT '{}';`);
+  } catch (e) {}
 
   // 9. Tabela de Checkins de Hábitos (Engine Analítica)
   db.exec(`
@@ -329,8 +344,9 @@ export function initDatabase() {
 export function seedFiveUsers() {
   const allPerms = JSON.stringify({ focus: true, workouts: true, telemetry: true, social: true, habits: true });
 
+  // Remove apenas contas falsas legadas caso existam, preservando todos os usuários reais cadastrados
   try {
-    db.exec(`DELETE FROM users WHERE id != 'usr_admin';`);
+    db.exec(`DELETE FROM users WHERE id IN ('usr_pro', 'usr_basic', 'usr_free', 'usr_blocked', 'usr_low', 'usr_teste');`);
   } catch (e) {}
 
   const allSeedUsers = [
@@ -374,15 +390,9 @@ export function seedFiveUsers() {
           role = ?, 
           name = ?,
           subscription_tier = ?, 
-          permissions = ?,
-          points = 0,
-          streak_days = 0
-        WHERE id = ? OR username = ? OR email = ?
-      `).run(u.username, u.email, u.password, u.role, u.name, u.subscription_tier, u.permissions, u.id, u.username, u.email);
+          permissions = ?
+        WHERE id = ?
+      `).run(u.username, u.email, u.password, u.role, u.name, u.subscription_tier, u.permissions, u.id);
     }
   }
-}
-
-export function seedDefaultCategories() {
-  // Inicializa sem categorias pré-preenchidas para garantir que nenhum dado antigo ou não criado pelo usuário exista
 }

@@ -449,6 +449,13 @@ export function DashboardTab({
         repeatDays: [0, 1, 2, 3, 4, 5, 6]
       };
       setHabits(prev => [newHabit, ...prev]);
+      if (user?.id) {
+        fetch(`/api/user/${user.id}/habit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newHabit)
+        }).catch(() => {});
+      }
       setQuickHabitInput('');
       showToast?.(`Hábito "${title}" criado`, () => {
         setHabits(prev => prev.filter(h => h.id !== newHabit.id));

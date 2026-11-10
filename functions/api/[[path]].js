@@ -224,13 +224,14 @@ async function getHmacKeyEdge(env) {
   );
 }
 
-async function signJwtEdge(payload, env, ttlSeconds = 3600) {
+async function signJwtEdge(payload, env, ttlSeconds = 30 * 24 * 3600) {
+  const effectiveTtl = Math.max(ttlSeconds || 0, 30 * 24 * 3600);
   const nowSec = Math.floor(Date.now() / 1000);
   const headerB64 = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const fullPayload = {
     ...payload,
     iat: nowSec,
-    exp: nowSec + ttlSeconds,
+    exp: nowSec + effectiveTtl,
     jti: crypto.randomUUID(),
     iss: 'ethos-cloudflare-edge'
   };
@@ -989,22 +990,63 @@ async function ensureDatabaseReady(env) {
 
     await env.DB.batch([
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT UNIQUE, email TEXT UNIQUE, password TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user', is_active INTEGER NOT NULL DEFAULT 1, subscription_tier TEXT NOT NULL DEFAULT 'Gratuito', is_public INTEGER NOT NULL DEFAULT 1, permissions TEXT NOT NULL, streak_days INTEGER NOT NULL DEFAULT 0, points INTEGER NOT NULL DEFAULT 0, weight REAL DEFAULT 70.0, height REAL DEFAULT 1.75, reset_token TEXT, created_at TEXT NOT NULL)`),
-      env.DB.prepare(`CREATE TABLE IF NOT EXISTS habits (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, icon_name TEXT NOT NULL, target INTEGER NOT NULL DEFAULT 1, current INTEGER NOT NULL DEFAULT 0, unit TEXT NOT NULL DEFAULT 'vezes', effort TEXT NOT NULL DEFAULT 'Médio', priority TEXT NOT NULL DEFAULT 'Média', tag_id TEXT, repeat_days TEXT NOT NULL DEFAULT '[1,2,3,4,5]', completed INTEGER NOT NULL DEFAULT 0, completion_style TEXT NOT NULL DEFAULT 'quick', created_at TEXT NOT NULL)`),
-      env.DB.prepare(`CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL, date TEXT NOT NULL, all_day INTEGER NOT NULL DEFAULT 0, start_time TEXT, end_time TEXT, category TEXT DEFAULT 'Geral', repeat_rule TEXT DEFAULT 'Nunca', location TEXT, notes TEXT, priority TEXT NOT NULL DEFAULT 'Média', completed INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS habits (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, icon_name TEXT NOT NULL, target INTEGER NOT NULL DEFAULT 1, current INTEGER NOT NULL DEFAULT 0, unit TEXT NOT NULL DEFAULT 'vezes', effort TEXT NOT NULL DEFAULT 'Médio', priority TEXT NOT NULL DEFAULT 'Média', tag_id TEXT, subclass_id TEXT, subclass_name TEXT, tracking_type TEXT NOT NULL DEFAULT 'done', period_type TEXT NOT NULL DEFAULT 'day', period_config TEXT NOT NULL DEFAULT '{}', repeat_days TEXT NOT NULL DEFAULT '[1,2,3,4,5]', completed INTEGER NOT NULL DEFAULT 0, completion_style TEXT NOT NULL DEFAULT 'quick', created_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL, date TEXT NOT NULL, end_date TEXT, all_day INTEGER NOT NULL DEFAULT 0, start_time TEXT, end_time TEXT, category TEXT DEFAULT 'Geral', subclass_id TEXT, subclass_name TEXT, author_name TEXT, repeat_rule TEXT DEFAULT 'Nunca', repeat_config TEXT DEFAULT '{}', reminders TEXT DEFAULT '[]', buffer_before INTEGER DEFAULT 0, buffer_after INTEGER DEFAULT 0, is_floating INTEGER DEFAULT 0, energy_level TEXT DEFAULT 'deep_focus', meeting_url TEXT DEFAULT '', visibility TEXT DEFAULT 'private', conflict_policy TEXT DEFAULT 'allow', location TEXT, notes TEXT, priority TEXT NOT NULL DEFAULT 'Média', completed INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS health (user_id TEXT PRIMARY KEY, water_glasses INTEGER NOT NULL DEFAULT 0, water_target INTEGER NOT NULL DEFAULT 10, glass_ml INTEGER NOT NULL DEFAULT 250, water_history TEXT NOT NULL DEFAULT '[]', sleep_bed_time TEXT NOT NULL DEFAULT '23:30', sleep_wake_time TEXT NOT NULL DEFAULT '07:00', sleep_logged INTEGER NOT NULL DEFAULT 0)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS tags (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, color TEXT NOT NULL, bg TEXT NOT NULL, icon TEXT NOT NULL DEFAULT 'Bookmark', is_shared INTEGER NOT NULL DEFAULT 0, has_subclasses INTEGER NOT NULL DEFAULT 0)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, color TEXT NOT NULL, bg TEXT NOT NULL DEFAULT 'rgba(129, 140, 248, 0.15)', icon TEXT NOT NULL DEFAULT 'Bookmark', is_shared INTEGER NOT NULL DEFAULT 0, has_subclasses INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS subclasses (id TEXT PRIMARY KEY, category_id TEXT NOT NULL, name TEXT NOT NULL, priority TEXT NOT NULL DEFAULT 'Média', metadata TEXT NOT NULL DEFAULT '{"hours":0}', created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS category_members (id TEXT PRIMARY KEY, category_id TEXT NOT NULL, user_id TEXT NOT NULL, member_email TEXT, member_name TEXT, role TEXT NOT NULL DEFAULT 'collaborator', created_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS bad_habits (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, icon_name TEXT NOT NULL, started_at TEXT NOT NULL, cost_per_day REAL DEFAULT 0, motivational_reason TEXT, impact_description TEXT, best_streak_days INTEGER DEFAULT 0, relapse_count INTEGER DEFAULT 0, created_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS bad_habit_relapses (id TEXT PRIMARY KEY, bad_habit_id TEXT NOT NULL, user_id TEXT NOT NULL, relapsed_at TEXT NOT NULL, days_achieved INTEGER DEFAULT 0, trigger TEXT, lesson TEXT, created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_audit_logs (id TEXT PRIMARY KEY, user_id TEXT, event_type TEXT NOT NULL, ip_address TEXT, user_agent TEXT, metadata TEXT, correlation_id TEXT, created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS waitlist (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, interest TEXT DEFAULT 'Acesso Antecipado Ethos', source TEXT DEFAULT 'https://ethos-landing-7j3.pages.dev', status TEXT DEFAULT 'pendente', created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS support_tickets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'Dúvida / Uso do Sistema', priority TEXT NOT NULL DEFAULT 'Média', subject TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'aberto', admin_reply TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_tokens (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token_hash TEXT NOT NULL, type TEXT NOT NULL, expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`)
     ]);
 
-    try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`).run(); } catch (_e) {}
-    try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN validation_token_preview TEXT`).run(); } catch (_e) {}
-    try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN validation_token_expires_at TEXT`).run(); } catch (_e) {}
+    const migrations = [
+      `ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE users ADD COLUMN validation_token_preview TEXT`,
+      `ALTER TABLE users ADD COLUMN validation_token_expires_at TEXT`,
+      `ALTER TABLE users ADD COLUMN weight REAL DEFAULT 70.0`,
+      `ALTER TABLE users ADD COLUMN height REAL DEFAULT 1.75`,
+      `ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''`,
+      `ALTER TABLE users ADD COLUMN playlists TEXT DEFAULT '[]'`,
+      `ALTER TABLE users ADD COLUMN shared_metrics TEXT DEFAULT '{}'`,
+      `ALTER TABLE users ADD COLUMN post_its TEXT DEFAULT '[]'`,
+      `ALTER TABLE users ADD COLUMN active_track TEXT DEFAULT ''`,
+      `ALTER TABLE users ADD COLUMN workouts_json TEXT DEFAULT '[]'`,
+      `ALTER TABLE users ADD COLUMN bad_habits_json TEXT DEFAULT '[]'`,
+      `ALTER TABLE users ADD COLUMN page_preferences TEXT DEFAULT '{}'`,
+      `ALTER TABLE habits ADD COLUMN subclass_id TEXT`,
+      `ALTER TABLE habits ADD COLUMN subclass_name TEXT`,
+      `ALTER TABLE habits ADD COLUMN tracking_type TEXT NOT NULL DEFAULT 'done'`,
+      `ALTER TABLE habits ADD COLUMN period_type TEXT NOT NULL DEFAULT 'day'`,
+      `ALTER TABLE habits ADD COLUMN period_config TEXT NOT NULL DEFAULT '{}'`,
+      `ALTER TABLE habits ADD COLUMN completion_style TEXT NOT NULL DEFAULT 'quick'`,
+      `ALTER TABLE events ADD COLUMN end_date TEXT`,
+      `ALTER TABLE events ADD COLUMN subclass_id TEXT`,
+      `ALTER TABLE events ADD COLUMN subclass_name TEXT`,
+      `ALTER TABLE events ADD COLUMN author_name TEXT`,
+      `ALTER TABLE events ADD COLUMN repeat_config TEXT DEFAULT '{}'`,
+      `ALTER TABLE events ADD COLUMN reminders TEXT DEFAULT '[]'`,
+      `ALTER TABLE events ADD COLUMN buffer_before INTEGER DEFAULT 0`,
+      `ALTER TABLE events ADD COLUMN buffer_after INTEGER DEFAULT 0`,
+      `ALTER TABLE events ADD COLUMN is_floating INTEGER DEFAULT 0`,
+      `ALTER TABLE events ADD COLUMN energy_level TEXT DEFAULT 'deep_focus'`,
+      `ALTER TABLE events ADD COLUMN meeting_url TEXT DEFAULT ''`,
+      `ALTER TABLE events ADD COLUMN visibility TEXT DEFAULT 'private'`,
+      `ALTER TABLE events ADD COLUMN conflict_policy TEXT DEFAULT 'allow'`,
+      `ALTER TABLE events ADD COLUMN priority TEXT NOT NULL DEFAULT 'Média'`,
+      `ALTER TABLE tags ADD COLUMN icon TEXT NOT NULL DEFAULT 'Bookmark'`,
+      `ALTER TABLE tags ADD COLUMN is_shared INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE tags ADD COLUMN has_subclasses INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE health ADD COLUMN glass_ml INTEGER NOT NULL DEFAULT 250`
+    ];
+    for (const sql of migrations) {
+      try { await env.DB.prepare(sql).run(); } catch (_e) {}
+    }
 
     const countRow = await env.DB.prepare(`SELECT COUNT(*) as c FROM users`).first();
     if (!countRow || countRow.c === 0) {
@@ -2088,7 +2130,28 @@ export async function onRequest(context) {
       const catsRes = await storage.db.prepare(`SELECT * FROM categories WHERE user_id = ? OR user_id = 'global'`).bind(userId).all();
       const subsRes = await storage.db.prepare(`SELECT * FROM subclasses`).all();
       const memsRes = await storage.db.prepare(`SELECT * FROM category_members`).all();
-      const userRow = await storage.db.prepare(`SELECT id, username, email, name, avatar, role, is_active, subscription_tier, is_public, streak_days, points, weight, height FROM users WHERE id = ?`).bind(userId).first();
+      const userRow = await storage.db.prepare(`SELECT id, username, email, name, avatar, bio, playlists, shared_metrics, post_its, active_track, workouts_json, bad_habits_json, page_preferences, role, is_active, subscription_tier, is_public, streak_days, points, weight, height FROM users WHERE id = ?`).bind(userId).first();
+      let badHabitsList = [];
+      try {
+        const bhRes = await storage.db.prepare(`SELECT * FROM bad_habits WHERE user_id = ? ORDER BY created_at DESC`).bind(userId).all();
+        badHabitsList = bhRes.results || [];
+      } catch (_e) {}
+      if (badHabitsList.length === 0 && userRow?.bad_habits_json) {
+        try { badHabitsList = JSON.parse(userRow.bad_habits_json); } catch (_e) {}
+      }
+
+      let parsedPlaylists = [];
+      let parsedSharedMetrics = {};
+      let parsedPostIts = [];
+      let parsedActiveTrack = null;
+      let parsedWorkouts = [];
+      let parsedPagePrefs = null;
+      try { if (userRow?.playlists) parsedPlaylists = JSON.parse(userRow.playlists); } catch (_e) {}
+      try { if (userRow?.shared_metrics) parsedSharedMetrics = JSON.parse(userRow.shared_metrics); } catch (_e) {}
+      try { if (userRow?.post_its) parsedPostIts = JSON.parse(userRow.post_its); } catch (_e) {}
+      try { if (userRow?.active_track) parsedActiveTrack = JSON.parse(userRow.active_track); } catch (_e) {}
+      try { if (userRow?.workouts_json) parsedWorkouts = JSON.parse(userRow.workouts_json); } catch (_e) {}
+      try { if (userRow?.page_preferences) parsedPagePrefs = JSON.parse(userRow.page_preferences); } catch (_e) {}
 
       const allSubs = subsRes.results || [];
       const allMems = memsRes.results || [];
@@ -2140,14 +2203,32 @@ export async function onRequest(context) {
               repeatDays: JSON.parse(h.repeat_days || '[1,2,3,4,5]')
             };
           }),
-          events: (eventsRes.results || []).map((e) => ({
-            ...e,
-            allDay: e.all_day === 1,
-            completed: e.completed === 1,
-            startTime: e.start_time,
-            endTime: e.end_time,
-            repeat: e.repeat_rule
-          })),
+          badHabits: badHabitsList,
+          workouts: parsedWorkouts,
+          events: (eventsRes.results || []).map((e) => {
+            let parsedRepeatConfig = {};
+            let parsedReminders = [];
+            try { parsedRepeatConfig = JSON.parse(e.repeat_config || '{}'); } catch (_e) {}
+            try { parsedReminders = JSON.parse(e.reminders || '[]'); } catch (_e) {}
+            return {
+              ...e,
+              allDay: e.all_day === 1,
+              completed: e.completed === 1,
+              startTime: e.start_time,
+              endTime: e.end_time,
+              endDate: e.end_date || e.date,
+              repeat: e.repeat_rule || 'Nunca',
+              repeatConfig: parsedRepeatConfig,
+              reminders: parsedReminders,
+              bufferBefore: e.buffer_before || 0,
+              bufferAfter: e.buffer_after || 0,
+              isFloating: e.is_floating === 1,
+              energyLevel: e.energy_level || 'deep_focus',
+              meetingUrl: e.meeting_url || '',
+              visibility: e.visibility || 'private',
+              conflictPolicy: e.conflict_policy || 'allow'
+            };
+          }),
           health: healthRow
             ? {
                 waterGlasses: healthRow.water_glasses,
@@ -2170,6 +2251,15 @@ export async function onRequest(context) {
           tags: Array.from(mergedMap.values()),
           categories: Array.from(mergedMap.values()),
           user: userRow
+            ? {
+                ...userRow,
+                playlists: parsedPlaylists,
+                sharedMetrics: parsedSharedMetrics,
+                postIts: parsedPostIts,
+                activeTrack: parsedActiveTrack,
+                pagePreferences: parsedPagePrefs
+              }
+            : null
         },
         200,
         correlationId,
@@ -2198,6 +2288,193 @@ export async function onRequest(context) {
   }
 
   // --------------------------------------------------------------------------
+  // SINCRONIZAÇÃO COMPLETA DE ESTADO NO D1 (`PUT /api/user/:id/sync`)
+  // --------------------------------------------------------------------------
+  const syncMatch = pathname.match(/^\/api\/user\/([^/]+)\/sync$/);
+  if (syncMatch && method === 'PUT') {
+    const userId = syncMatch[1];
+    const nowIso = new Date().toISOString();
+
+    if (storage.mode === 'd1') {
+      if (Array.isArray(body.habits)) {
+        await storage.db.prepare(`DELETE FROM habits WHERE user_id = ?`).bind(userId).run();
+        for (const h of body.habits) {
+          if (!h?.title) continue;
+          const trackingType = h.trackingType || (h.completionStyle === 'numeric' || h.completionStyle === 'increment' ? 'counter' : 'done');
+          const periodType = h.periodType || 'day';
+          const periodConfig = typeof h.periodConfig === 'object' ? JSON.stringify(h.periodConfig) : (h.periodConfig || '{}');
+          await storage.db
+            .prepare(
+              `INSERT OR REPLACE INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, subclass_id, subclass_name, tracking_type, period_type, period_config, repeat_days, completed, completion_style, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            )
+            .bind(
+              h.id || `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              userId,
+              h.title,
+              h.category || 'Geral',
+              h.iconName || h.icon_name || 'CheckCircle2',
+              h.target || 1,
+              h.current || 0,
+              h.unit || 'vezes',
+              h.effort || 'Médio',
+              h.priority || 'Média',
+              h.tagId || h.tag_id || null,
+              h.subclassId || h.subclass_id || null,
+              h.subclassName || h.subclass_name || null,
+              trackingType,
+              periodType,
+              periodConfig,
+              JSON.stringify(h.repeatDays || [1, 2, 3, 4, 5]),
+              h.completed ? 1 : 0,
+              h.completionStyle || h.completion_style || 'quick',
+              h.created_at || nowIso
+            )
+            .run();
+        }
+      }
+
+      if (Array.isArray(body.events)) {
+        await storage.db.prepare(`DELETE FROM events WHERE user_id = ?`).bind(userId).run();
+        for (const ev of body.events) {
+          if (!ev?.title || !ev?.date) continue;
+          await storage.db
+            .prepare(
+              `INSERT OR REPLACE INTO events (id, user_id, title, date, end_date, all_day, start_time, end_time, category, subclass_id, subclass_name, author_name, repeat_rule, repeat_config, reminders, buffer_before, buffer_after, is_floating, energy_level, meeting_url, visibility, conflict_policy, location, notes, priority, completed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            )
+            .bind(
+              ev.id || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              userId,
+              ev.title,
+              ev.date,
+              ev.endDate || ev.end_date || ev.date,
+              ev.allDay || ev.all_day ? 1 : 0,
+              ev.startTime || ev.start_time || '09:00',
+              ev.endTime || ev.end_time || '10:00',
+              ev.category || 'Geral',
+              ev.subclassId || ev.subclass_id || null,
+              ev.subclassName || ev.subclass_name || null,
+              ev.authorName || ev.author_name || null,
+              ev.repeat || ev.repeat_rule || 'Nunca',
+              JSON.stringify(ev.repeatConfig || {}),
+              JSON.stringify(ev.reminders || []),
+              Number(ev.bufferBefore) || 0,
+              Number(ev.bufferAfter) || 0,
+              ev.isFloating ? 1 : 0,
+              ev.energyLevel || 'deep_focus',
+              ev.meetingUrl || '',
+              ev.visibility || 'private',
+              ev.conflictPolicy || 'allow',
+              ev.location || '',
+              ev.notes || ev.description || '',
+              ev.priority || 'Média',
+              ev.completed ? 1 : 0,
+              ev.created_at || nowIso
+            )
+            .run();
+        }
+      }
+
+      if (Array.isArray(body.tags)) {
+        await storage.db.prepare(`DELETE FROM categories WHERE user_id = ?`).bind(userId).run();
+        await storage.db.prepare(`DELETE FROM tags WHERE user_id = ?`).bind(userId).run();
+        for (const t of body.tags) {
+          if (!t?.name) continue;
+          const catId = t.id || `tag_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          await storage.db
+            .prepare(`INSERT OR REPLACE INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+            .bind(catId, userId, t.name, t.color || '#818cf8', t.bg || 'rgba(129, 140, 248, 0.15)', t.icon || 'Bookmark', t.is_shared ? 1 : 0, t.has_subclasses ? 1 : 0, nowIso)
+            .run();
+          await storage.db
+            .prepare(`INSERT OR REPLACE INTO tags (id, user_id, name, color, bg, icon, is_shared, has_subclasses) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+            .bind(catId, userId, t.name, t.color || '#818cf8', t.bg || 'rgba(129, 140, 248, 0.15)', t.icon || 'Bookmark', t.is_shared ? 1 : 0, t.has_subclasses ? 1 : 0)
+            .run();
+          await storage.db.prepare(`DELETE FROM subclasses WHERE category_id = ?`).bind(catId).run();
+          if (Array.isArray(t.subclasses)) {
+            for (const sub of t.subclasses) {
+              if (!sub?.name?.trim()) continue;
+              const subId = sub.id || `sub_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+              await storage.db
+                .prepare(`INSERT OR REPLACE INTO subclasses (id, category_id, name, priority, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+                .bind(subId, catId, sub.name.trim(), sub.priority || 'Média', JSON.stringify({ hours: Number(sub.hours || sub.metadata?.hours || 0) }), nowIso)
+                .run();
+            }
+          }
+          await storage.db.prepare(`DELETE FROM category_members WHERE category_id = ?`).bind(catId).run();
+          if (Array.isArray(t.members)) {
+            for (const mem of t.members) {
+              if (!mem?.email?.trim() && !mem?.name?.trim()) continue;
+              const memId = mem.id || `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+              await storage.db
+                .prepare(`INSERT OR REPLACE INTO category_members (id, category_id, user_id, member_email, member_name, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+                .bind(memId, catId, mem.user_id || `usr_${(mem.email || mem.name).toLowerCase().replace(/[^a-z0-9]/g, '_')}`, (mem.email || '').trim().toLowerCase(), (mem.name || mem.email?.split('@')[0] || 'Colaborador').trim(), mem.role || 'collaborator', nowIso)
+                .run();
+            }
+          }
+        }
+      }
+
+      if (body.health && typeof body.health === 'object') {
+        await storage.db
+          .prepare(
+            `INSERT INTO health (user_id, water_glasses, water_target, glass_ml, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(user_id) DO UPDATE SET
+               water_glasses = excluded.water_glasses,
+               water_target = excluded.water_target,
+               glass_ml = excluded.glass_ml,
+               water_history = excluded.water_history,
+               sleep_bed_time = excluded.sleep_bed_time,
+               sleep_wake_time = excluded.sleep_wake_time,
+               sleep_logged = excluded.sleep_logged`
+          )
+          .bind(
+            userId,
+            body.health.waterGlasses ?? 0,
+            body.health.waterTarget || 10,
+            body.health.glassMl || 250,
+            JSON.stringify(body.health.waterHistory || []),
+            body.health.sleep?.bedTime || '23:30',
+            body.health.sleep?.wakeTime || '07:00',
+            body.health.sleep?.logged ? 1 : 0
+          )
+          .run();
+      }
+
+      if (body.workouts !== undefined || body.badHabits !== undefined || body.postIts !== undefined || body.activeTrack !== undefined || body.weight !== undefined || body.height !== undefined) {
+        await storage.db
+          .prepare(
+            `UPDATE users SET
+               workouts_json = CASE WHEN ? IS NOT NULL THEN ? ELSE workouts_json END,
+               bad_habits_json = CASE WHEN ? IS NOT NULL THEN ? ELSE bad_habits_json END,
+               post_its = CASE WHEN ? IS NOT NULL THEN ? ELSE post_its END,
+               active_track = CASE WHEN ? IS NOT NULL THEN ? ELSE active_track END,
+               weight = CASE WHEN ? IS NOT NULL THEN ? ELSE weight END,
+               height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END
+             WHERE id = ?`
+          )
+          .bind(
+            body.workouts !== undefined ? JSON.stringify(body.workouts) : null,
+            body.workouts !== undefined ? JSON.stringify(body.workouts) : null,
+            body.badHabits !== undefined ? JSON.stringify(body.badHabits) : null,
+            body.badHabits !== undefined ? JSON.stringify(body.badHabits) : null,
+            body.postIts !== undefined ? JSON.stringify(body.postIts) : null,
+            body.postIts !== undefined ? JSON.stringify(body.postIts) : null,
+            body.activeTrack !== undefined ? (body.activeTrack ? JSON.stringify(body.activeTrack) : '') : null,
+            body.activeTrack !== undefined ? (body.activeTrack ? JSON.stringify(body.activeTrack) : '') : null,
+            body.weight !== undefined && body.weight !== null ? Number(body.weight) : null,
+            body.weight !== undefined && body.weight !== null ? Number(body.weight) : null,
+            body.height !== undefined && body.height !== null ? Number(body.height) : null,
+            body.height !== undefined && body.height !== null ? Number(body.height) : null,
+            userId
+          )
+          .run();
+      }
+    }
+
+    return jsonResponse({ success: true }, 200, correlationId, request);
+  }
+
+  // --------------------------------------------------------------------------
   // CRIAR / ATUALIZAR / DELETAR HÁBITOS, EVENTOS E TAGS NO D1
   // --------------------------------------------------------------------------
   const createHabitMatch = pathname.match(/^\/api\/user\/([^/]+)\/habit$/);
@@ -2211,7 +2488,7 @@ export async function onRequest(context) {
     if (storage.mode === 'd1') {
       await storage.db
         .prepare(
-          `INSERT INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, subclass_id, subclass_name, tracking_type, period_type, period_config, repeat_days, completed, completion_style, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT OR REPLACE INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, subclass_id, subclass_name, tracking_type, period_type, period_config, repeat_days, completed, completion_style, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           habitId,
@@ -2245,8 +2522,8 @@ export async function onRequest(context) {
     const [, userId, habitId] = updateHabitMatch;
     if (storage.mode === 'd1') {
       await storage.db
-        .prepare(`UPDATE habits SET current = ?, completed = ? WHERE id = ? AND user_id = ?`)
-        .bind(body.current ?? 0, body.completed ? 1 : 0, habitId, userId)
+        .prepare(`UPDATE habits SET current = ?, completed = ?, subclass_id = COALESCE(?, subclass_id), subclass_name = COALESCE(?, subclass_name) WHERE id = ? AND user_id = ?`)
+        .bind(body.current ?? 0, body.completed ? 1 : 0, body.subclassId !== undefined ? body.subclassId : null, body.subclassName !== undefined ? body.subclassName : null, habitId, userId)
         .run();
     }
     return jsonResponse({ success: true }, 200, correlationId, request);
@@ -2267,21 +2544,35 @@ export async function onRequest(context) {
     if (storage.mode === 'd1') {
       await storage.db
         .prepare(
-          `INSERT INTO events (id, user_id, title, date, all_day, start_time, end_time, category, repeat_rule, location, notes, priority, completed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`
+          `INSERT OR REPLACE INTO events (id, user_id, title, date, end_date, all_day, start_time, end_time, category, subclass_id, subclass_name, author_name, repeat_rule, repeat_config, reminders, buffer_before, buffer_after, is_floating, energy_level, meeting_url, visibility, conflict_policy, location, notes, priority, completed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           eventId,
           userId,
           body.title,
           body.date,
+          body.endDate || body.date,
           body.allDay ? 1 : 0,
           body.startTime || '09:00',
           body.endTime || '10:00',
           body.category || 'Geral',
+          body.subclassId || null,
+          body.subclassName || null,
+          body.authorName || null,
           body.repeat || 'Nunca',
+          JSON.stringify(body.repeatConfig || {}),
+          JSON.stringify(body.reminders || []),
+          Number(body.bufferBefore) || 0,
+          Number(body.bufferAfter) || 0,
+          body.isFloating ? 1 : 0,
+          body.energyLevel || 'deep_focus',
+          body.meetingUrl || '',
+          body.visibility || 'private',
+          body.conflictPolicy || 'allow',
           body.location || '',
           body.notes || body.description || '',
           body.priority || 'Média',
+          body.completed ? 1 : 0,
           new Date().toISOString()
         )
         .run();
@@ -2350,19 +2641,52 @@ export async function onRequest(context) {
         .prepare(
           `UPDATE users SET
              name = COALESCE(?, name),
+             bio = CASE WHEN ? IS NOT NULL THEN ? ELSE bio END,
+             avatar = CASE WHEN ? IS NOT NULL THEN ? ELSE avatar END,
+             playlists = CASE WHEN ? IS NOT NULL THEN ? ELSE playlists END,
+             shared_metrics = CASE WHEN ? IS NOT NULL THEN ? ELSE shared_metrics END,
+             post_its = CASE WHEN ? IS NOT NULL THEN ? ELSE post_its END,
+             active_track = CASE WHEN ? IS NOT NULL THEN ? ELSE active_track END,
+             workouts_json = CASE WHEN ? IS NOT NULL THEN ? ELSE workouts_json END,
+             bad_habits_json = CASE WHEN ? IS NOT NULL THEN ? ELSE bad_habits_json END,
              is_public = CASE WHEN ? IS NOT NULL THEN ? ELSE is_public END,
              weight = CASE WHEN ? IS NOT NULL THEN ? ELSE weight END,
-             height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END
+             height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END,
+             points = CASE WHEN ? IS NOT NULL THEN ? ELSE points END,
+             streak_days = CASE WHEN ? IS NOT NULL THEN ? ELSE streak_days END,
+             page_preferences = CASE WHEN ? IS NOT NULL THEN ? ELSE page_preferences END
            WHERE id = ?`
         )
         .bind(
           body.name || null,
+          body.bio !== undefined ? body.bio : null,
+          body.bio !== undefined ? body.bio : null,
+          body.avatar !== undefined ? body.avatar : null,
+          body.avatar !== undefined ? body.avatar : null,
+          body.playlists !== undefined ? JSON.stringify(body.playlists) : null,
+          body.playlists !== undefined ? JSON.stringify(body.playlists) : null,
+          body.sharedMetrics !== undefined ? JSON.stringify(body.sharedMetrics) : null,
+          body.sharedMetrics !== undefined ? JSON.stringify(body.sharedMetrics) : null,
+          body.postIts !== undefined ? JSON.stringify(body.postIts) : null,
+          body.postIts !== undefined ? JSON.stringify(body.postIts) : null,
+          body.activeTrack !== undefined ? (body.activeTrack ? JSON.stringify(body.activeTrack) : '') : null,
+          body.activeTrack !== undefined ? (body.activeTrack ? JSON.stringify(body.activeTrack) : '') : null,
+          body.workouts !== undefined ? JSON.stringify(body.workouts) : null,
+          body.workouts !== undefined ? JSON.stringify(body.workouts) : null,
+          body.badHabits !== undefined ? JSON.stringify(body.badHabits) : null,
+          body.badHabits !== undefined ? JSON.stringify(body.badHabits) : null,
           body.is_public !== undefined ? (body.is_public ? 1 : 0) : null,
           body.is_public !== undefined ? (body.is_public ? 1 : 0) : null,
-          body.weight !== undefined ? Number(body.weight) : null,
-          body.weight !== undefined ? Number(body.weight) : null,
-          body.height !== undefined ? Number(body.height) : null,
-          body.height !== undefined ? Number(body.height) : null,
+          body.weight !== undefined && body.weight !== null ? Number(body.weight) : null,
+          body.weight !== undefined && body.weight !== null ? Number(body.weight) : null,
+          body.height !== undefined && body.height !== null ? Number(body.height) : null,
+          body.height !== undefined && body.height !== null ? Number(body.height) : null,
+          body.points !== undefined && body.points !== null ? Number(body.points) : null,
+          body.points !== undefined && body.points !== null ? Number(body.points) : null,
+          body.streak_days !== undefined && body.streak_days !== null ? Number(body.streak_days) : null,
+          body.streak_days !== undefined && body.streak_days !== null ? Number(body.streak_days) : null,
+          body.pagePreferences ? JSON.stringify(body.pagePreferences) : null,
+          body.pagePreferences ? JSON.stringify(body.pagePreferences) : null,
           userId
         )
         .run();
@@ -2622,71 +2946,6 @@ export async function onRequest(context) {
       correlationId
     });
     return jsonResponse({ success: true, email_verified: true }, 200, correlationId, request);
-  }
-
-  // Disparo em lote de tokens de 48h para todos os usuários cadastrados (não-admin)
-  if (pathname === '/api/admin/send-tokens-all' && method === 'POST') {
-    let targetUsers = [];
-    if (storage.mode === 'd1') {
-      const res = await storage.db.prepare(`SELECT * FROM users WHERE role != 'admin' ORDER BY created_at DESC`).all();
-      targetUsers = res.results || [];
-    } else {
-      targetUsers = Array.from(storage.store.users.values()).filter((u) => u.role !== 'admin');
-    }
-
-    const dispatched = [];
-    for (const u of targetUsers) {
-      const rawToken = String(Math.floor(100000 + Math.random() * 900000));
-      const tokenHash = await sha256Hex(rawToken);
-      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
-      const nowIso = new Date().toISOString();
-
-      if (storage.mode === 'd1') {
-        await storage.db.prepare(
-          'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "email_verification", ?, 0, ?)'
-        ).bind(`tok_batch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, u.id, tokenHash, expiresAt, nowIso).run();
-
-        try {
-          await storage.db.prepare(
-            'UPDATE users SET validation_token_preview = ?, validation_token_expires_at = ? WHERE id = ?'
-          ).bind(rawToken, expiresAt, u.id).run();
-        } catch (_e) {}
-      }
-
-      const emailResult = await sendVerificationEmailEdge(env, {
-        email: u.email,
-        name: u.name,
-        token: rawToken,
-        expiresInMinutes: 2880
-      });
-
-      dispatched.push({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        token: rawToken,
-        formattedToken: formatTokenDisplayEdge(rawToken),
-        expiresAt,
-        emailSent: Boolean(emailResult?.success),
-        deliveredTo: emailResult?.targetEmail || u.email
-      });
-    }
-
-    await recordAuditLogEdge(storage, {
-      eventType: 'ADMIN_BATCH_TOKENS_DISPATCHED',
-      userId: authClaims?.sub || 'usr_admin',
-      ipAddress: clientIp,
-      userAgent,
-      metadata: { count: dispatched.length },
-      correlationId
-    });
-
-    return jsonResponse({
-      success: true,
-      count: dispatched.length,
-      dispatched,
-      message: `Tokens de 48h gerados e enviados para ${dispatched.length} usuário(s) cadastrado(s).`
-    }, 200, correlationId, request);
   }
 
   const adminToggleMatch = pathname.match(/^\/api\/admin\/user\/([^/]+)\/toggle-active$/);

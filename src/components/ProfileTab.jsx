@@ -28,7 +28,9 @@ import {
   StickyNote,
   Pin,
   HelpCircle,
-  Trophy
+  Trophy,
+  Droplets,
+  Scale
 } from 'lucide-react';
 
 const POSTIT_COLORS = [
@@ -62,12 +64,99 @@ export function ProfileTab({
   workouts = [], 
   badges = [], 
   friends = [], 
+  health = {},
+  setHealth,
   showToast,
   onOpenSettings,
   onOpenSupport
 }) {
   const firstName = user?.name ? user.name.split(' ')[0] : 'Usuário';
   const fileInputRef = useRef(null);
+
+  // -------------------------------------------------------------------------
+  // 0. CALCULADORA DE HIDRATAÇÃO DIÁRIA IDEAL (Peso em kg × 35 ml)
+  // -------------------------------------------------------------------------
+  const [weightKg, setWeightKg] = useState(() => {
+    if (user?.weight && Number(user.weight) > 0) return String(user.weight);
+    try {
+      const savedW = localStorage.getItem(`ethos_user_weight_${user?.id || 'default'}`);
+      if (savedW && Number(savedW) > 0) return savedW;
+    } catch (_e) {}
+    return '';
+  });
+
+  const [glassSizeMl, setGlassSizeMl] = useState(() => {
+    if (health?.glassMl && Number(health.glassMl) > 0) return Number(health.glassMl);
+    return 250;
+  });
+
+  useEffect(() => {
+    if (user?.weight && Number(user.weight) > 0) {
+      setWeightKg(String(user.weight));
+    }
+  }, [user?.weight]);
+
+  useEffect(() => {
+    if (health?.glassMl && Number(health.glassMl) > 0) {
+      setGlassSizeMl(Number(health.glassMl));
+    }
+  }, [health?.glassMl]);
+
+  const numericWeight = Math.max(0, parseFloat(String(weightKg).replace(',', '.')) || 0);
+  const idealDailyWaterMl = Math.round(numericWeight * 35);
+  const idealDailyWaterLiters = (idealDailyWaterMl / 1000).toFixed(2).replace('.', ',');
+  const recommendedGlasses = idealDailyWaterMl > 0
+    ? Math.max(1, Math.ceil(idealDailyWaterMl / (glassSizeMl || 250)))
+    : (health?.waterTarget || 8);
+
+  const handleSaveWaterGoal = async (e) => {
+    e?.preventDefault?.();
+    if (numericWeight <= 0) {
+      showToast?.('Informe seu peso em kg para calcular a meta ideal de água.');
+      return;
+    }
+    const targetGlasses = Math.max(1, Math.ceil((numericWeight * 35) / (glassSizeMl || 250)));
+    const updatedUser = { ...user, weight: numericWeight };
+    setUser?.(updatedUser);
+
+    const nextHealth = {
+      ...health,
+      water: health?.water ?? 0,
+      waterTarget: targetGlasses,
+      glassMl: glassSizeMl || 250
+    };
+    setHealth?.(nextHealth);
+
+    try {
+      localStorage.setItem(`ethos_user_weight_${user?.id || 'default'}`, String(numericWeight));
+      localStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
+      sessionStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
+      if (user?.id) {
+        await Promise.all([
+          fetch(`/api/user/${user.id}/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ weight: numericWeight })
+          }),
+          fetch(`/api/user/${user.id}/health`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              water: nextHealth.water,
+              waterTarget: targetGlasses,
+              sleep: nextHealth.sleep ?? 0,
+              sleepGoal: nextHealth.sleepGoal ?? 8,
+              mood: nextHealth.mood ?? 3,
+              glassMl: glassSizeMl || 250
+            })
+          })
+        ]);
+      }
+      showToast?.(`Meta diária atualizada: ${idealDailyWaterMl} ml (${targetGlasses} copos de ${glassSizeMl} ml)!`);
+    } catch (_err) {
+      showToast?.('Meta de hidratação salva localmente.');
+    }
+  };
 
   // -------------------------------------------------------------------------
   // 1. ESTADOS DE BIO (LIMITE DE 150 CARACTERES - ESTILO INSTAGRAM / TIKTOK)
@@ -159,6 +248,7 @@ export function ProfileTab({
   const [trackIndex, setTrackIndex] = useState(0);
   const [customTrack, setCustomTrack] = useState(() => {
     try {
+      if (user?.activeTrack && user.activeTrack.title) return user.activeTrack;
       const saved = localStorage.getItem(`ethos_music_track_${user?.id || 'default'}`);
       if (saved) return JSON.parse(saved);
     } catch (_e) {}
@@ -216,10 +306,18 @@ export function ProfileTab({
       gradient: 'linear-gradient(135deg, #1DB954 0%, #0EA5E9 50%, #6366F1 100%)'
     };
     setCustomTrack(nextTrack);
+    setUser?.((prev) => (prev ? { ...prev, activeTrack: nextTrack } : prev));
     setMusicProgress(42);
     setShowEditTrackModal(false);
     try {
       localStorage.setItem(`ethos_music_track_${user?.id || 'default'}`, JSON.stringify(nextTrack));
+      if (user?.id) {
+        fetch(`/api/user/${user.id}/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activeTrack: nextTrack })
+        }).catch(() => {});
+      }
     } catch (_e) {}
     showToast?.('Música do perfil atualizada!');
   };
@@ -308,6 +406,7 @@ export function ProfileTab({
   // -------------------------------------------------------------------------
   const [postIts, setPostIts] = useState(() => {
     try {
+      if (Array.isArray(user?.postIts) && user.postIts.length > 0) return user.postIts;
       const saved = localStorage.getItem(`ethos_postits_${user?.id || 'default'}`);
       if (saved) return JSON.parse(saved);
     } catch (_e) {}
@@ -323,8 +422,16 @@ export function ProfileTab({
 
   const persistPostIts = (nextNotes) => {
     setPostIts(nextNotes);
+    setUser?.((prev) => (prev ? { ...prev, postIts: nextNotes } : prev));
     try {
       localStorage.setItem(`ethos_postits_${user?.id || 'default'}`, JSON.stringify(nextNotes));
+      if (user?.id) {
+        fetch(`/api/user/${user.id}/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postIts: nextNotes })
+        }).catch(() => {});
+      }
     } catch (_e) {}
   };
 
@@ -910,6 +1017,176 @@ export function ProfileTab({
             <span>{dailyClaimed ? 'Check-in Diário Resgatado (+50 XP)' : 'Resgatar Check-in Diário (+50 XP)'}</span>
           </button>
         </div>
+      </div>
+
+      {/* =====================================================================
+          1.5. CALCULADORA DE HIDRATAÇÃO DIÁRIA IDEAL (Peso em kg × 35 ml)
+         ===================================================================== */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, rgba(224, 242, 254, 0.88) 0%, rgba(255, 255, 255, 0.94) 100%)',
+          backdropFilter: 'blur(18px)',
+          borderRadius: '26px',
+          padding: '22px 24px',
+          boxShadow: '0 10px 30px rgba(2, 132, 199, 0.08)',
+          border: '1.5px solid rgba(125, 211, 252, 0.65)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '13px',
+                background: 'linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFFFFF',
+                boxShadow: '0 6px 14px rgba(2, 132, 199, 0.25)'
+              }}
+            >
+              <Droplets size={20} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#0F172A' }}>
+                Calculadora de Quantidade Diária Ideal de Água
+              </h3>
+              <span style={{ fontSize: '12px', color: '#0369A1', fontWeight: 600 }}>
+                Fórmula Biométrica Oficial: Peso (em kg) × 35 ml = quantidade diária de água
+              </span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              backgroundColor: 'rgba(2, 132, 199, 0.1)',
+              border: '1px solid rgba(2, 132, 199, 0.25)',
+              borderRadius: '999px',
+              padding: '5px 14px',
+              fontSize: '12px',
+              fontWeight: 800,
+              color: '#0369A1'
+            }}
+          >
+            {numericWeight > 0
+              ? `${numericWeight} kg × 35 ml = ${idealDailyWaterMl.toLocaleString('pt-BR')} ml (${idealDailyWaterLiters} L/dia)`
+              : 'Informe seu peso para calcular'}
+          </div>
+        </div>
+
+        <form
+          onSubmit={handleSaveWaterGoal}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+            gap: '14px',
+            alignItems: 'end'
+          }}
+        >
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              <Scale size={13} color="#0284C7" />
+              <span>Seu Peso Atual (kg)</span>
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="20"
+              max="300"
+              placeholder="Ex: 70"
+              value={weightKg}
+              onChange={(e) => setWeightKg(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                border: '1.5px solid #BAE6FD',
+                backgroundColor: '#FFFFFF',
+                color: '#0F172A',
+                fontSize: '14px',
+                fontWeight: 700,
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              Tamanho do Copo / Garrafa (ml)
+            </label>
+            <select
+              value={glassSizeMl}
+              onChange={(e) => setGlassSizeMl(Number(e.target.value) || 250)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                border: '1.5px solid #BAE6FD',
+                backgroundColor: '#FFFFFF',
+                color: '#0F172A',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                outline: 'none',
+                boxSizing: 'border-box',
+                cursor: 'pointer'
+              }}
+            >
+              <option value={200}>Copo Americano (200 ml)</option>
+              <option value={250}>Copo Padrão (250 ml)</option>
+              <option value={300}>Caneca / Copo Grande (300 ml)</option>
+              <option value={500}>Garrafa Squeeze (500 ml)</option>
+            </select>
+          </div>
+
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1.5px solid #BAE6FD',
+              borderRadius: '14px',
+              padding: '10px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}
+          >
+            <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+              Meta Diária Recomendada
+            </span>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#0284C7', marginTop: '2px' }}>
+              {numericWeight > 0
+                ? `${idealDailyWaterMl.toLocaleString('pt-BR')} ml (${recommendedGlasses} copos)`
+                : '— ml'}
+            </div>
+            <span style={{ fontSize: '11px', color: '#475569' }}>
+              Consumido hoje: <strong>{health?.water || 0} / {recommendedGlasses} copos</strong>
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            style={{
+              padding: '11px 18px',
+              borderRadius: '13px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+              color: '#FFFFFF',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 6px 16px rgba(2, 132, 199, 0.28)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <CheckCircle2 size={15} />
+            <span>Salvar Peso & Meta de Água</span>
+          </button>
+        </form>
       </div>
 
       {/* =====================================================================

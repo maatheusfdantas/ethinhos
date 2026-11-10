@@ -437,7 +437,7 @@ export function HabitsTab({
             <Flame size={16} color="#F43F5E" />
           </div>
           <div style={{ fontSize: '28px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            {user?.streak_days || 7} <span style={{ fontSize: '13px', fontWeight: 600, color: '#A9ABC6' }}>dias seguidos</span>
+            {user?.streak_days || 0} <span style={{ fontSize: '13px', fontWeight: 600, color: '#A9ABC6' }}>dias seguidos</span>
           </div>
           <span style={{ fontSize: '11.5px', color: '#34D399', display: 'block', marginTop: '16px', fontWeight: 600 }}>
             🔥 Ritmo consistente mantido

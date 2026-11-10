@@ -41,8 +41,6 @@ import {
   X
 } from 'lucide-react';
 
-const DEFAULT_WAITLIST_SEED = [];
-
 export function AdminPortalTab({ onSystemReset }) {
   const [activeAdminSection, setActiveAdminSection] = useState('users'); // 'users' | 'waitlist' | 'support' | 'logs' | 'security' | 'settings'
   const [users, setUsers] = useState([]);
@@ -57,6 +55,7 @@ export function AdminPortalTab({ onSystemReset }) {
   const [dateFilter, setDateFilter] = useState('');
   const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [manualPasswordInput, setManualPasswordInput] = useState('');
+  const [selectedTokenUserId, setSelectedTokenUserId] = useState('');
 
   // 2. LISTA DE ESPERA (WAITLIST DA LANDING PAGE)
   const [waitlist, setWaitlist] = useState([]);
@@ -78,7 +77,7 @@ export function AdminPortalTab({ onSystemReset }) {
     try {
       const saved = localStorage.getItem('ethos_admin_system_settings');
       if (saved) return JSON.parse(saved);
-    } catch (_e) {}
+    } catch (_e) { }
     return {
       maintenanceMode: false,
       maintenanceMessage: 'O Ethos está em manutenção programada para atualização de infraestrutura. Voltamos em instantes.',
@@ -99,7 +98,6 @@ export function AdminPortalTab({ onSystemReset }) {
   // 6. CENTRAL DE SUPORTE E MODERAÇÃO
   const [tickets, setTickets] = useState([]);
   const [replyTextMap, setReplyTextMap] = useState({});
-  const [moderatedPosts, setModeratedPosts] = useState([]);
 
   const showToast = (msg) => {
     setNotification(msg);
@@ -140,7 +138,7 @@ export function AdminPortalTab({ onSystemReset }) {
           setWaitlist(wlData.waitlist);
         }
       }
-    } catch (_e) {}
+    } catch (_e) { }
 
     // Tickets de suporte
     try {
@@ -155,7 +153,7 @@ export function AdminPortalTab({ onSystemReset }) {
       } else {
         setTickets(localTickets);
       }
-    } catch (_e) {}
+    } catch (_e) { }
 
     // Logs de observabilidade
     try {
@@ -166,7 +164,7 @@ export function AdminPortalTab({ onSystemReset }) {
         if (Array.isArray(logData.emailLogs)) setEmailLogs(logData.emailLogs);
         if (Array.isArray(logData.systemLogs)) setSystemLogs(logData.systemLogs);
       }
-    } catch (_e) {}
+    } catch (_e) { }
 
     setLoading(false);
   };
@@ -216,7 +214,7 @@ export function AdminPortalTab({ onSystemReset }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: nextActive, account_status: nextStatus })
       });
-    } catch (_e) {}
+    } catch (_e) { }
 
     setUsers((prev) =>
       prev.map((u) =>
@@ -243,7 +241,7 @@ export function AdminPortalTab({ onSystemReset }) {
     }
     try {
       await fetch(`/api/admin/user/${userObj.id}`, { method: 'DELETE' });
-    } catch (_e) {}
+    } catch (_e) { }
 
     setUsers((prev) => prev.filter((u) => u.id !== userObj.id));
     if (selectedUserDetail?.id === userObj.id) setSelectedUserDetail(null);
@@ -261,7 +259,7 @@ export function AdminPortalTab({ onSystemReset }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole })
       });
-    } catch (_e) {}
+    } catch (_e) { }
 
     setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
     recordAdminAudit('RBAC_ROLE_CHANGED', `Papel do usuário ${userId} alterado para "${newRole}".`);
@@ -276,7 +274,7 @@ export function AdminPortalTab({ onSystemReset }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newPassword: newPass })
       });
-    } catch (_e) {}
+    } catch (_e) { }
 
     setManualPasswordInput('');
     recordAdminAudit(
@@ -315,11 +313,11 @@ export function AdminPortalTab({ onSystemReset }) {
           prev.map((u) =>
             u.id === userObj.id
               ? {
-                  ...u,
-                  email_verified: false,
-                  validation_token_preview: data.token,
-                  validation_token_expires_at: data.expiresAt
-                }
+                ...u,
+                email_verified: false,
+                validation_token_preview: data.token,
+                validation_token_expires_at: data.expiresAt
+              }
               : u
           )
         );
@@ -327,11 +325,11 @@ export function AdminPortalTab({ onSystemReset }) {
           setSelectedUserDetail((prev) =>
             prev
               ? {
-                  ...prev,
-                  email_verified: false,
-                  validation_token_preview: data.token,
-                  validation_token_expires_at: data.expiresAt
-                }
+                ...prev,
+                email_verified: false,
+                validation_token_preview: data.token,
+                validation_token_expires_at: data.expiresAt
+              }
               : null
           );
         }
@@ -372,11 +370,11 @@ export function AdminPortalTab({ onSystemReset }) {
           prev.map((u) =>
             u.id === userObj.id
               ? {
-                  ...u,
-                  email_verified: true,
-                  validation_token_preview: null,
-                  validation_token_expires_at: null
-                }
+                ...u,
+                email_verified: true,
+                validation_token_preview: null,
+                validation_token_expires_at: null
+              }
               : u
           )
         );
@@ -384,11 +382,11 @@ export function AdminPortalTab({ onSystemReset }) {
           setSelectedUserDetail((prev) =>
             prev
               ? {
-                  ...prev,
-                  email_verified: true,
-                  validation_token_preview: null,
-                  validation_token_expires_at: null
-                }
+                ...prev,
+                email_verified: true,
+                validation_token_preview: null,
+                validation_token_expires_at: null
+              }
               : null
           );
         }
@@ -401,53 +399,6 @@ export function AdminPortalTab({ onSystemReset }) {
     } catch (_e) {
       showToast('Erro ao validar conta manualmente.');
     }
-  };
-
-  const handleSendTokensToAllUsers = async () => {
-    try {
-      showToast('Gerando e enviando tokens de 48h para os usuários cadastrados...');
-      const res = await fetch('/api/admin/send-tokens-all', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const data = await res.json();
-      if (res.ok && Array.isArray(data.dispatched)) {
-        const tokenMap = new Map(data.dispatched.map((d) => [d.id, d]));
-        setUsers((prev) =>
-          prev.map((u) => {
-            const d = tokenMap.get(u.id);
-            if (!d) return u;
-            return {
-              ...u,
-              validation_token_preview: d.token,
-              validation_token_expires_at: d.expiresAt
-            };
-          })
-        );
-        const newLogs = data.dispatched.map((d, idx) => ({
-          id: `em_batch_${Date.now()}_${idx}`,
-          recipient: d.email,
-          type: `Token de Validação 48h (${d.formattedToken || d.token})`,
-          provider: 'Resend API (Dark Cyber Engine)',
-          status: 'entregue',
-          created_at: new Date().toISOString()
-        }));
-        setEmailLogs((prev) => [...newLogs, ...prev]);
-        recordAdminAudit(
-          'ADMIN_BATCH_TOKENS_SENT',
-          `Disparo em lote de tokens 48h para ${data.count} usuário(s) cadastrado(s).`
-        );
-        showToast(data.message || `Tokens de 48h enviados para ${data.count} usuário(s)!`);
-      } else {
-        showToast(data.error || 'Não foi possível disparar os tokens em lote.');
-      }
-    } catch (_e) {
-      showToast('Erro ao disparar tokens em lote.');
-    }
-  };
-
-  const handleResendVerificationToken = async (userObj) => {
-    await handleGenerate48hToken(userObj);
   };
 
   const handleUpdateSubscription = async (userId, newTier) => {
@@ -545,7 +496,7 @@ export function AdminPortalTab({ onSystemReset }) {
   const handleDeleteWaitlistItem = async (id) => {
     try {
       await fetch(`/api/admin/waitlist/${id}`, { method: 'DELETE' });
-    } catch (_e) {}
+    } catch (_e) { }
     setWaitlist((prev) => prev.filter((w) => w.id !== id));
     showToast('Registro removido da lista de espera.');
   };
@@ -569,13 +520,13 @@ export function AdminPortalTab({ onSystemReset }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'resolvido', admin_reply: reply })
       });
-    } catch (_e) {}
+    } catch (_e) { }
 
     setTickets((prev) => {
       const next = prev.map((t) => (t.id === ticket.id ? updatedTicket : t));
       try {
         localStorage.setItem('ethos_support_tickets_v1', JSON.stringify(next));
-      } catch (_e) {}
+      } catch (_e) { }
       return next;
     });
 
@@ -905,7 +856,7 @@ export function AdminPortalTab({ onSystemReset }) {
               </div>
             </div>
 
-            {/* BARRA DE DISPARO DE TOKENS 48H EM LOTE */}
+            {/* SELETOR INDIVIDUAL DE USUÁRIO PARA GERAR TOKEN 48H */}
             <div
               style={{
                 display: 'flex',
@@ -922,27 +873,59 @@ export function AdminPortalTab({ onSystemReset }) {
             >
               <div>
                 <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <KeyRound size={15} /> Central de Tokens de Validação (Validade de 48 Horas)
+                  <KeyRound size={15} /> Central de Tokens de Validação Individual (Validade de 48 Horas)
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                  Gere um token individual válido por 48h em qualquer usuário abaixo ou envie tokens por e-mail para todos os usuários cadastrados.
+                  Selecione exatamente qual usuário cadastrado receberá um novo token de validação válido por 48h.
                 </div>
               </div>
-              <button
-                type="button"
-                className="btn-primary"
-                style={{
-                  padding: '8px 14px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  gap: '6px',
-                  display: 'inline-flex',
-                  alignItems: 'center'
-                }}
-                onClick={handleSendTokensToAllUsers}
-              >
-                <Send size={14} /> Enviar Tokens (48h) para Usuários Cadastrados
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <select
+                  className="input-dark"
+                  value={selectedTokenUserId}
+                  onChange={(e) => setSelectedTokenUserId(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    fontSize: '0.8rem',
+                    minWidth: '250px',
+                    borderRadius: '10px'
+                  }}
+                >
+                  <option value="">Escolher usuário para gerar token...</option>
+                  {users
+                    .filter((u) => u.role !== 'admin')
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.email}) {u.email_verified ? '• Verificado' : '• Pendente'}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={!selectedTokenUserId}
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    gap: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    opacity: selectedTokenUserId ? 1 : 0.5,
+                    cursor: selectedTokenUserId ? 'pointer' : 'not-allowed'
+                  }}
+                  onClick={() => {
+                    const targetUser = users.find((u) => u.id === selectedTokenUserId);
+                    if (targetUser) {
+                      handleGenerate48hToken(targetUser);
+                    } else {
+                      showToast('Selecione um usuário válido na lista.');
+                    }
+                  }}
+                >
+                  <Send size={14} /> Gerar Token (48h) para Usuário Selecionado
+                </button>
+              </div>
             </div>
 
             {/* LISTAGEM DE USUÁRIOS */}
@@ -976,10 +959,10 @@ export function AdminPortalTab({ onSystemReset }) {
                         borderColor: isBanned
                           ? 'rgba(239, 68, 68, 0.6)'
                           : !u.is_active
-                          ? 'rgba(245, 158, 11, 0.45)'
-                          : isAdmin
-                          ? 'rgba(0, 229, 255, 0.35)'
-                          : 'var(--border-subtle)',
+                            ? 'rgba(245, 158, 11, 0.45)'
+                            : isAdmin
+                              ? 'rgba(0, 229, 255, 0.35)'
+                              : 'var(--border-subtle)',
                         padding: '16px'
                       }}
                     >
@@ -1015,22 +998,22 @@ export function AdminPortalTab({ onSystemReset }) {
                                     u.role === 'admin'
                                       ? 'rgba(0, 229, 255, 0.2)'
                                       : u.role === 'moderator'
-                                      ? 'rgba(168, 85, 247, 0.2)'
-                                      : 'rgba(255, 255, 255, 0.08)',
+                                        ? 'rgba(168, 85, 247, 0.2)'
+                                        : 'rgba(255, 255, 255, 0.08)',
                                   color:
                                     u.role === 'admin'
                                       ? 'var(--accent-cyan)'
                                       : u.role === 'moderator'
-                                      ? '#C084FC'
-                                      : 'var(--text-secondary)',
+                                        ? '#C084FC'
+                                        : 'var(--text-secondary)',
                                   fontWeight: 700
                                 }}
                               >
                                 {u.role === 'admin'
                                   ? 'ADMINISTRADOR'
                                   : u.role === 'moderator'
-                                  ? 'MODERADOR'
-                                  : 'USUÁRIO COMUM'}
+                                    ? 'MODERADOR'
+                                    : 'USUÁRIO COMUM'}
                               </span>
                               {isBanned ? (
                                 <span className="priority-badge high">BANIDO</span>
@@ -1710,8 +1693,8 @@ export function AdminPortalTab({ onSystemReset }) {
                         em.status === 'entregue'
                           ? 'rgba(16, 185, 129, 0.18)'
                           : em.status === 'bounce'
-                          ? 'rgba(244, 63, 94, 0.18)'
-                          : 'rgba(245, 158, 11, 0.18)',
+                            ? 'rgba(244, 63, 94, 0.18)'
+                            : 'rgba(245, 158, 11, 0.18)',
                       color:
                         em.status === 'entregue' ? '#34D399' : em.status === 'bounce' ? '#F43F5E' : '#FBBF24'
                     }}
@@ -2047,7 +2030,7 @@ export function AdminPortalTab({ onSystemReset }) {
                 onClick={() => {
                   try {
                     localStorage.setItem('ethos_admin_system_settings', JSON.stringify(systemSettings));
-                  } catch (_e) {}
+                  } catch (_e) { }
                   recordAdminAudit('GLOBAL_PARAMETERS_SAVED', JSON.stringify(systemSettings));
                   showToast('Parâmetros globais salvos e aplicados com sucesso!');
                 }}

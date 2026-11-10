@@ -22,16 +22,18 @@ import {
   Timer,
   Users,
   AtSign,
-  Copy
+  Copy,
+  Droplets
 } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
-export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) {
+export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, health = {}, setHealth }) {
   // Dados Pessoais & Identidade
-  const [name, setName] = useState(user?.name || 'Matheus D.');
-  const [username, setUsername] = useState(user?.username || 'matheus');
-  const [email, setEmail] = useState(user?.email || 'matheus.d@email.com');
+  const [name, setName] = useState(user?.name || '');
+  const [username, setUsername] = useState(user?.username || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || user?.photoUrl || '');
+  const [weight, setWeight] = useState(user?.weight && Number(user.weight) > 0 ? String(user.weight) : '');
   const [copiedHandle, setCopiedHandle] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -78,11 +80,18 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
       setUsername(user.username || '');
       setEmail(user.email || '');
       setAvatarUrl(user.avatarUrl || user.photoUrl || '');
+      setWeight(user.weight && Number(user.weight) > 0 ? String(user.weight) : '');
       if (user.pagePreferences) {
         setPagePreferences(prev => ({ ...prev, ...user.pagePreferences }));
       }
     }
   }, [user, isOpen]);
+
+  const numericWeightKg = Math.max(0, parseFloat(String(weight).replace(',', '.')) || 0);
+  const dailyWaterIdealMl = Math.round(numericWeightKg * 35);
+  const dailyWaterIdealGlasses = dailyWaterIdealMl > 0
+    ? Math.max(1, Math.ceil(dailyWaterIdealMl / (health?.glassMl || 250)))
+    : (health?.waterTarget || 8);
 
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -120,6 +129,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
       email: email.trim(),
       avatar: initials,
       avatarUrl,
+      weight: numericWeightKg,
       language,
       timezone,
       theme,
@@ -129,8 +139,18 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
 
     onUpdateUser?.(updatedUser);
 
+    if (numericWeightKg > 0 && setHealth) {
+      setHealth((prev) => ({
+        ...prev,
+        waterTarget: dailyWaterIdealGlasses
+      }));
+    }
+
     try {
       localStorage.setItem(`ethos_pages_${user?.id || 'default'}`, JSON.stringify(pagePreferences));
+      if (numericWeightKg > 0) {
+        localStorage.setItem(`ethos_user_weight_${user?.id || 'default'}`, String(numericWeightKg));
+      }
       localStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
       sessionStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
     } catch (_err) {}
@@ -144,9 +164,24 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
             name: name.trim(),
             username: cleanUsername,
             avatarUrl,
+            weight: numericWeightKg,
             pagePreferences
           })
         });
+        if (numericWeightKg > 0) {
+          await fetch(`/api/user/${user.id}/health`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              water: health?.water ?? 0,
+              waterTarget: dailyWaterIdealGlasses,
+              sleep: health?.sleep ?? 0,
+              sleepGoal: health?.sleepGoal ?? 8,
+              mood: health?.mood ?? 3,
+              glassMl: health?.glassMl ?? 250
+            })
+          });
+        }
       }
     } catch (_err) {
       console.warn('Backend update failed, using local profile.');
@@ -499,6 +534,64 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout }) 
                 boxSizing: 'border-box'
               }}
             />
+          </div>
+
+          {/* Cálculo de Hidratação Diária Ideal com base no Peso (Peso em kg × 35 ml) */}
+          <div
+            style={{
+              marginTop: '12px',
+              padding: '12px 14px',
+              borderRadius: '14px',
+              backgroundColor: 'rgba(14, 165, 233, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1.4fr',
+              gap: '12px',
+              alignItems: 'center'
+            }}
+          >
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#7DD3FC', fontWeight: 700, marginBottom: '5px' }}>
+                <Droplets size={12} />
+                <span>Peso (kg)</span>
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="20"
+                max="300"
+                placeholder="Ex: 70"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  borderRadius: '10px',
+                  padding: '8px 10px',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  color: '#FFFFFF',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: '10.5px', color: '#94A3B8', fontWeight: 600 }}>
+                Peso (em kg) × 35 ml = Água Diária Ideal
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#38BDF8', marginTop: '3px' }}>
+                {numericWeightKg > 0
+                  ? `${numericWeightKg} kg × 35 ml = ${dailyWaterIdealMl.toLocaleString('pt-BR')} ml / dia`
+                  : 'Informe o peso para calcular'}
+              </div>
+              {numericWeightKg > 0 && (
+                <div style={{ fontSize: '11px', color: '#BAE6FD', marginTop: '2px' }}>
+                  Equivale a <strong>{dailyWaterIdealGlasses} copos</strong> de {health?.glassMl || 250} ml/dia
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

@@ -67,29 +67,18 @@ export function AuthModal({
         setLoading(false);
         return;
       }
+      if (data.auth?.accessToken) {
+        sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+        localStorage.setItem('ethos_access_token', data.auth.accessToken);
+      }
+      if (data.auth?.refreshToken) {
+        sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+        localStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+      }
       onLoginSuccess(data);
       onClose();
     } catch (err) {
-      // Fallback local caso backend esteja offline
-      if (loginInput.trim() === 'admin' && (password === 'admin123' || password === 'Foguete não tem ré')) {
-        onLoginSuccess({
-          id: 'usr_admin',
-          username: 'admin',
-          email: 'admin@ethos.dev',
-          name: 'Administrador Ethos',
-          avatar: 'AD',
-          role: 'admin',
-          is_active: true,
-          subscription_tier: 'Enterprise / Fundador',
-          is_public: true,
-          permissions: { focus: true, workouts: true, telemetry: true, social: true, habits: true },
-          streak_days: 0,
-          points: 500
-        });
-        onClose();
-      } else {
-        setErrorMessage('Erro de conexão com o banco de dados SQLite.');
-      }
+      setErrorMessage('Erro de conexão com o banco de dados SQLite.');
     } finally {
       setLoading(false);
     }
@@ -266,13 +255,6 @@ export function AuthModal({
     } finally {
       setLoading(false);
     }
-  };
-
-  // Preencher credenciais de admin
-  const fillAdminCredentials = () => {
-    setLoginInput('admin');
-    setPassword('Foguete não tem ré');
-    setErrorMessage('');
   };
 
   return (

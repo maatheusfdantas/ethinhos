@@ -137,12 +137,19 @@ export function BadHabitsTab({ user, showToast }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Sincronizar com localStorage
+  // Sincronizar com localStorage e com o backend
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(badHabits));
+      if (user?.id) {
+        fetch(`/api/user/${user.id}/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ badHabits })
+        }).catch(() => {});
+      }
     } catch (e) {}
-  }, [badHabits, storageKey]);
+  }, [badHabits, storageKey, user?.id]);
 
   // Modais
   const [showAddModal, setShowAddModal] = useState(false);

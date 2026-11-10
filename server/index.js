@@ -697,7 +697,23 @@ try {
 
 app.put('/api/user/:id/profile', (req, res) => {
   const { id } = req.params;
-  const { name, bio, avatar, playlists, sharedMetrics, is_public, weight, height, pagePreferences } = req.body;
+  const {
+    name,
+    bio,
+    avatar,
+    playlists,
+    sharedMetrics,
+    postIts,
+    activeTrack,
+    workouts,
+    badHabits,
+    is_public,
+    weight,
+    height,
+    points,
+    streak_days,
+    pagePreferences
+  } = req.body;
 
   db.prepare(`
     UPDATE users SET
@@ -706,9 +722,15 @@ app.put('/api/user/:id/profile', (req, res) => {
       avatar = CASE WHEN ? IS NOT NULL THEN ? ELSE avatar END,
       playlists = CASE WHEN ? IS NOT NULL THEN ? ELSE playlists END,
       shared_metrics = CASE WHEN ? IS NOT NULL THEN ? ELSE shared_metrics END,
+      post_its = CASE WHEN ? IS NOT NULL THEN ? ELSE post_its END,
+      active_track = CASE WHEN ? IS NOT NULL THEN ? ELSE active_track END,
+      workouts_json = CASE WHEN ? IS NOT NULL THEN ? ELSE workouts_json END,
+      bad_habits_json = CASE WHEN ? IS NOT NULL THEN ? ELSE bad_habits_json END,
       is_public = CASE WHEN ? IS NOT NULL THEN ? ELSE is_public END,
       weight = CASE WHEN ? IS NOT NULL THEN ? ELSE weight END,
       height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END,
+      points = CASE WHEN ? IS NOT NULL THEN ? ELSE points END,
+      streak_days = CASE WHEN ? IS NOT NULL THEN ? ELSE streak_days END,
       page_preferences = CASE WHEN ? IS NOT NULL THEN ? ELSE page_preferences END
     WHERE id = ?
   `).run(
@@ -721,12 +743,24 @@ app.put('/api/user/:id/profile', (req, res) => {
     playlists !== undefined ? JSON.stringify(playlists) : null,
     sharedMetrics !== undefined ? JSON.stringify(sharedMetrics) : null,
     sharedMetrics !== undefined ? JSON.stringify(sharedMetrics) : null,
+    postIts !== undefined ? JSON.stringify(postIts) : null,
+    postIts !== undefined ? JSON.stringify(postIts) : null,
+    activeTrack !== undefined ? (activeTrack ? JSON.stringify(activeTrack) : '') : null,
+    activeTrack !== undefined ? (activeTrack ? JSON.stringify(activeTrack) : '') : null,
+    workouts !== undefined ? JSON.stringify(workouts) : null,
+    workouts !== undefined ? JSON.stringify(workouts) : null,
+    badHabits !== undefined ? JSON.stringify(badHabits) : null,
+    badHabits !== undefined ? JSON.stringify(badHabits) : null,
     is_public !== undefined ? (is_public ? 1 : 0) : null,
     is_public !== undefined ? (is_public ? 1 : 0) : null,
     weight !== undefined && weight !== null ? Number(weight) : null,
     weight !== undefined && weight !== null ? Number(weight) : null,
     height !== undefined && height !== null ? Number(height) : null,
     height !== undefined && height !== null ? Number(height) : null,
+    points !== undefined && points !== null ? Number(points) : null,
+    points !== undefined && points !== null ? Number(points) : null,
+    streak_days !== undefined && streak_days !== null ? Number(streak_days) : null,
+    streak_days !== undefined && streak_days !== null ? Number(streak_days) : null,
     pagePreferences ? JSON.stringify(pagePreferences) : null,
     pagePreferences ? JSON.stringify(pagePreferences) : null,
     id
@@ -821,52 +855,6 @@ app.post('/api/admin/user/:id/verify-account', (req, res) => {
     db.prepare(`UPDATE users SET email_verified = 1 WHERE id = ?`).run(id);
   }
   res.json({ success: true, email_verified: true });
-});
-
-app.post('/api/admin/send-tokens-all', async (req, res) => {
-  const allUsers = db.prepare(`SELECT * FROM users WHERE role != 'admin' ORDER BY created_at DESC`).all();
-  const dispatched = [];
-
-  for (const user of allUsers) {
-    const tokenData = createAuthToken(db, {
-      userId: user.id,
-      type: 'email_verification',
-      durationMs: TOKEN_EXPIRATION.ADMIN_VALIDATION_48H_MS,
-      preserveExisting: true
-    });
-
-    try {
-      db.prepare(`
-        UPDATE users
-        SET validation_token_preview = ?, validation_token_expires_at = ?
-        WHERE id = ?
-      `).run(tokenData.rawToken, tokenData.expiresAt, user.id);
-    } catch (_e) {}
-
-    const emailResult = await sendVerificationEmail({
-      email: user.email,
-      name: user.name,
-      token: tokenData.rawToken,
-      expiresInMinutes: 2880
-    });
-
-    dispatched.push({
-      userId: user.id,
-      name: user.name,
-      email: user.email,
-      token: tokenData.rawToken,
-      formattedToken: formatTokenDisplay(tokenData.rawToken),
-      expiresAt: tokenData.expiresAt,
-      emailSent: Boolean(emailResult?.success),
-      deliveredTo: emailResult?.targetEmail || user.email
-    });
-  }
-
-  res.json({
-    success: true,
-    count: dispatched.length,
-    dispatched
-  });
 });
 
 app.post('/api/admin/user/:id/subscription', (req, res) => {
@@ -1111,13 +1099,16 @@ app.get('/api/user/:id/data', (req, res) => {
 
   const user = db
     .prepare(
-      `SELECT id, username, email, name, avatar, bio, playlists, shared_metrics, role, is_active, subscription_tier, is_public, streak_days, points, weight, height, page_preferences FROM users WHERE id = ?`
+      `SELECT id, username, email, name, avatar, bio, playlists, shared_metrics, post_its, active_track, workouts_json, bad_habits_json, role, is_active, subscription_tier, is_public, streak_days, points, weight, height, page_preferences FROM users WHERE id = ?`
     )
     .get(id);
 
   let pagePreferences = null;
   let parsedPlaylists = [];
   let parsedSharedMetrics = {};
+  let parsedPostIts = [];
+  let parsedActiveTrack = null;
+  let parsedWorkouts = [];
   if (user?.page_preferences) {
     try { pagePreferences = JSON.parse(user.page_preferences); } catch (e) {}
   }
@@ -1127,6 +1118,18 @@ app.get('/api/user/:id/data', (req, res) => {
   if (user?.shared_metrics) {
     try { parsedSharedMetrics = JSON.parse(user.shared_metrics); } catch (e) {}
   }
+  if (user?.post_its) {
+    try { parsedPostIts = JSON.parse(user.post_its); } catch (e) {}
+  }
+  if (user?.active_track) {
+    try { parsedActiveTrack = JSON.parse(user.active_track); } catch (e) {}
+  }
+  if (user?.workouts_json) {
+    try { parsedWorkouts = JSON.parse(user.workouts_json); } catch (e) {}
+  }
+  if ((!badHabits || badHabits.length === 0) && user?.bad_habits_json) {
+    try { badHabits = JSON.parse(user.bad_habits_json); } catch (e) {}
+  }
 
   res.json({ 
     habits, 
@@ -1134,14 +1137,235 @@ app.get('/api/user/:id/data', (req, res) => {
     events, 
     health, 
     tags, 
-    categories: tags, 
+    categories: tags,
+    workouts: parsedWorkouts,
     user: user ? { 
       ...user, 
       pagePreferences,
       playlists: parsedPlaylists,
-      sharedMetrics: parsedSharedMetrics
+      sharedMetrics: parsedSharedMetrics,
+      postIts: parsedPostIts,
+      activeTrack: parsedActiveTrack
     } : null 
   });
+});
+
+// Sincronização consolidada de estado do usuário (garante que hábitos, eventos, categorias, treinos e saúde nunca se percam ao sair)
+app.put('/api/user/:id/sync', (req, res) => {
+  const { id } = req.params;
+  const { habits, events, tags, health, workouts, badHabits, postIts, activeTrack, weight, height } = req.body;
+  const nowIso = new Date().toISOString();
+
+  if (Array.isArray(habits)) {
+    db.prepare(`DELETE FROM habits WHERE user_id = ?`).run(id);
+    const insHabit = db.prepare(`
+      INSERT OR REPLACE INTO habits (
+        id, user_id, title, category, icon_name, target, current,
+        unit, effort, priority, tag_id, subclass_id, subclass_name,
+        repeat_days, completed, completion_style, tracking_type, period_type, period_config, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const h of habits) {
+      if (!h?.title) continue;
+      const trackingType = h.trackingType || (h.completionStyle === 'numeric' || h.completionStyle === 'increment' ? 'counter' : 'done');
+      const periodType = h.periodType || 'day';
+      const periodConfig = typeof h.periodConfig === 'object' ? JSON.stringify(h.periodConfig) : (h.periodConfig || '{}');
+      insHabit.run(
+        h.id || `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        id,
+        h.title,
+        h.category || 'Pessoal',
+        h.iconName || h.icon_name || h.category || 'CheckCircle2',
+        h.target || 1,
+        h.current || 0,
+        h.unit || 'vezes',
+        h.effort || 'Médio',
+        h.priority || 'Média',
+        h.tagId || h.tag_id || null,
+        h.subclassId || h.subclass_id || null,
+        h.subclassName || h.subclass_name || null,
+        JSON.stringify(h.repeatDays || [1, 2, 3, 4, 5]),
+        h.completed ? 1 : 0,
+        h.completionStyle || h.completion_style || 'quick',
+        trackingType,
+        periodType,
+        periodConfig,
+        h.created_at || nowIso
+      );
+    }
+  }
+
+  if (Array.isArray(events)) {
+    db.prepare(`DELETE FROM events WHERE user_id = ?`).run(id);
+    const insEvent = db.prepare(`
+      INSERT OR REPLACE INTO events (
+        id, user_id, title, date, end_date, all_day, start_time, end_time,
+        category, subclass_id, subclass_name, author_name,
+        repeat_rule, repeat_config, reminders, buffer_before, buffer_after,
+        is_floating, energy_level, meeting_url, visibility, conflict_policy,
+        location, notes, priority, completed, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const ev of events) {
+      if (!ev?.title || !ev?.date) continue;
+      const encryptedNotes = encryptAES256GCM(ev.notes || ev.description || '');
+      insEvent.run(
+        ev.id || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        id,
+        ev.title,
+        ev.date,
+        ev.endDate || ev.end_date || ev.date,
+        ev.allDay || ev.all_day ? 1 : 0,
+        ev.startTime || ev.start_time || '09:00',
+        ev.endTime || ev.end_time || '10:00',
+        ev.category || 'Geral',
+        ev.subclassId || ev.subclass_id || null,
+        ev.subclassName || ev.subclass_name || null,
+        ev.authorName || ev.author_name || null,
+        ev.repeat || ev.repeat_rule || 'Nunca',
+        JSON.stringify(ev.repeatConfig || {}),
+        JSON.stringify(ev.reminders || []),
+        Number(ev.bufferBefore) || 0,
+        Number(ev.bufferAfter) || 0,
+        ev.isFloating ? 1 : 0,
+        ev.energyLevel || 'deep_focus',
+        ev.meetingUrl || '',
+        ev.visibility || 'private',
+        ev.conflictPolicy || 'allow',
+        ev.location || '',
+        encryptedNotes,
+        ev.priority || 'Média',
+        ev.completed ? 1 : 0,
+        ev.created_at || nowIso
+      );
+    }
+  }
+
+  if (Array.isArray(tags)) {
+    db.prepare(`DELETE FROM categories WHERE user_id = ?`).run(id);
+    db.prepare(`DELETE FROM tags WHERE user_id = ?`).run(id);
+    for (const t of tags) {
+      if (!t?.name) continue;
+      const catId = t.id || `tag_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      db.prepare(`
+        INSERT OR REPLACE INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        catId,
+        id,
+        t.name,
+        t.color || '#818cf8',
+        t.bg || 'rgba(129, 140, 248, 0.15)',
+        t.icon || 'Bookmark',
+        t.is_shared ? 1 : 0,
+        t.has_subclasses ? 1 : 0,
+        nowIso
+      );
+      db.prepare(`
+        INSERT OR REPLACE INTO tags (id, user_id, name, color, bg, icon, is_shared, has_subclasses)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        catId,
+        id,
+        t.name,
+        t.color || '#818cf8',
+        t.bg || 'rgba(129, 140, 248, 0.15)',
+        t.icon || 'Bookmark',
+        t.is_shared ? 1 : 0,
+        t.has_subclasses ? 1 : 0
+      );
+      db.prepare(`DELETE FROM subclasses WHERE category_id = ?`).run(catId);
+      if (Array.isArray(t.subclasses)) {
+        for (const sub of t.subclasses) {
+          if (!sub?.name?.trim()) continue;
+          const subId = sub.id || `sub_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          db.prepare(`
+            INSERT OR REPLACE INTO subclasses (id, category_id, name, priority, metadata, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(
+            subId,
+            catId,
+            sub.name.trim(),
+            sub.priority || 'Média',
+            JSON.stringify({ hours: Number(sub.hours || sub.metadata?.hours || 0) }),
+            nowIso
+          );
+        }
+      }
+      db.prepare(`DELETE FROM category_members WHERE category_id = ?`).run(catId);
+      if (Array.isArray(t.members)) {
+        for (const mem of t.members) {
+          if (!mem?.email?.trim() && !mem?.name?.trim()) continue;
+          const memId = mem.id || `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          db.prepare(`
+            INSERT OR REPLACE INTO category_members (id, category_id, user_id, member_email, member_name, role, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            memId,
+            catId,
+            mem.user_id || `usr_${(mem.email || mem.name).toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+            (mem.email || '').trim().toLowerCase(),
+            (mem.name || mem.email?.split('@')[0] || 'Colaborador').trim(),
+            mem.role || 'collaborator',
+            nowIso
+          );
+        }
+      }
+    }
+  }
+
+  if (health && typeof health === 'object') {
+    db.prepare(`
+      INSERT INTO health (user_id, water_glasses, water_target, glass_ml, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        water_glasses = excluded.water_glasses,
+        water_target = excluded.water_target,
+        glass_ml = excluded.glass_ml,
+        water_history = excluded.water_history,
+        sleep_bed_time = excluded.sleep_bed_time,
+        sleep_wake_time = excluded.sleep_wake_time,
+        sleep_logged = excluded.sleep_logged
+    `).run(
+      id,
+      health.waterGlasses ?? 0,
+      health.waterTarget || 10,
+      health.glassMl || 250,
+      JSON.stringify(health.waterHistory || []),
+      health.sleep?.bedTime || '23:30',
+      health.sleep?.wakeTime || '07:00',
+      health.sleep?.logged ? 1 : 0
+    );
+  }
+
+  if (workouts !== undefined || badHabits !== undefined || postIts !== undefined || activeTrack !== undefined || weight !== undefined || height !== undefined) {
+    db.prepare(`
+      UPDATE users SET
+        workouts_json = CASE WHEN ? IS NOT NULL THEN ? ELSE workouts_json END,
+        bad_habits_json = CASE WHEN ? IS NOT NULL THEN ? ELSE bad_habits_json END,
+        post_its = CASE WHEN ? IS NOT NULL THEN ? ELSE post_its END,
+        active_track = CASE WHEN ? IS NOT NULL THEN ? ELSE active_track END,
+        weight = CASE WHEN ? IS NOT NULL THEN ? ELSE weight END,
+        height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END
+      WHERE id = ?
+    `).run(
+      workouts !== undefined ? JSON.stringify(workouts) : null,
+      workouts !== undefined ? JSON.stringify(workouts) : null,
+      badHabits !== undefined ? JSON.stringify(badHabits) : null,
+      badHabits !== undefined ? JSON.stringify(badHabits) : null,
+      postIts !== undefined ? JSON.stringify(postIts) : null,
+      postIts !== undefined ? JSON.stringify(postIts) : null,
+      activeTrack !== undefined ? (activeTrack ? JSON.stringify(activeTrack) : '') : null,
+      activeTrack !== undefined ? (activeTrack ? JSON.stringify(activeTrack) : '') : null,
+      weight !== undefined && weight !== null ? Number(weight) : null,
+      weight !== undefined && weight !== null ? Number(weight) : null,
+      height !== undefined && height !== null ? Number(height) : null,
+      height !== undefined && height !== null ? Number(height) : null,
+      id
+    );
+  }
+
+  res.json({ success: true });
 });
 
 // ==========================================
@@ -1219,7 +1443,7 @@ app.post('/api/user/:id/habit', (req, res) => {
   const periodConfig = typeof habit.periodConfig === 'object' ? JSON.stringify(habit.periodConfig) : (habit.periodConfig || '{}');
 
   db.prepare(`
-    INSERT INTO habits (
+    INSERT OR REPLACE INTO habits (
       id, user_id, title, category, icon_name, target, current,
       unit, effort, priority, tag_id, subclass_id, subclass_name,
       repeat_days, completed, completion_style, tracking_type, period_type, period_config, created_at
@@ -1287,13 +1511,13 @@ app.post('/api/user/:id/event', (req, res) => {
   const encryptedNotes = encryptAES256GCM(event.notes || event.description || '');
 
   db.prepare(`
-    INSERT INTO events (
+    INSERT OR REPLACE INTO events (
       id, user_id, title, date, end_date, all_day, start_time, end_time,
       category, subclass_id, subclass_name, author_name,
       repeat_rule, repeat_config, reminders, buffer_before, buffer_after,
       is_floating, energy_level, meeting_url, visibility, conflict_policy,
       location, notes, priority, completed, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     eventId,
     id,
@@ -1320,6 +1544,7 @@ app.post('/api/user/:id/event', (req, res) => {
     event.location || '',
     encryptedNotes,
     event.priority || 'Média',
+    event.completed ? 1 : 0,
     new Date().toISOString()
   );
 

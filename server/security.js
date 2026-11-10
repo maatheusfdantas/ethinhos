@@ -202,8 +202,8 @@ export function decryptAES256GCM(ciphertextPayload) {
 // ============================================================================
 // 4. TOKENS JWT (CURTA DURAÇÃO) E SESSÕES COM ROTAÇÃO DE REFRESH TOKEN
 // ============================================================================
-const ACCESS_TOKEN_TTL_SECONDS = 15 * 60; // 15 minutos
-const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+const ACCESS_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 dias para evitar perda de sincronização durante uso contínuo
+const REFRESH_TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 dias
 
 function base64UrlEncode(input) {
   return Buffer.from(input)

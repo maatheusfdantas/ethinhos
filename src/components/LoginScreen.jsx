@@ -8,7 +8,6 @@ import {
   AlertCircle,
   KeyRound
 } from 'lucide-react';
-import { FIVE_SEEDED_USERS } from '../data/initialData';
 
 export function LoginScreen({ onLoginSuccess }) {
   const [mode, setMode] = useState('login'); // 'login', 'register', 'forgot_request', 'forgot_verify'
@@ -319,39 +318,6 @@ export function LoginScreen({ onLoginSuccess }) {
       }, 1500);
     } catch (err) {
       setErrorMessage('Erro ao comunicar com o servidor.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Quick Seed Login (Autentica via API real para emitir JWT assinado HMAC-SHA256)
-  const handleQuickLogin = async (seededUser) => {
-    setLoginInput(seededUser.username);
-    setPassword(seededUser.password);
-    setErrorMessage('');
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login: seededUser.username, password: seededUser.password })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        if (data.auth?.accessToken) {
-          sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
-        localStorage.setItem('ethos_access_token', data.auth.accessToken);
-        }
-        if (data.auth?.refreshToken) {
-          sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
-        localStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
-        }
-        onLoginSuccess(data);
-        return;
-      }
-      setErrorMessage(data.error || 'Erro ao autenticar conta de demonstração.');
-    } catch (_e) {
-      onLoginSuccess(seededUser);
     } finally {
       setLoading(false);
     }

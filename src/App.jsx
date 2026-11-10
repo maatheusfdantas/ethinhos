@@ -1,11 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  getStorageData, 
-  setStorageData, 
-  STORAGE_KEYS 
-} from './services/storage';
+import React, { useState, useEffect, useRef } from 'react';
 
-import { Header } from './components/Header';
 import { DesktopSidebar, MobileBottomNav } from './components/Nav';
 import { DashboardTab } from './components/DashboardTab';
 import { HabitsTab } from './components/HabitsTab';
@@ -25,9 +19,8 @@ import { WelcomeIntro } from './components/WelcomeIntro';
 import { CategoryConfigModal } from './components/CategoryConfigModal';
 import { SupportModal } from './components/SupportModal';
 
-import { INITIAL_TAGS, INITIAL_WORKOUTS, INITIAL_BADGES } from './data/initialData';
-import { Lock, Shield, Plus, Search, Bell, X, Menu, Users, Flame, Play, LifeBuoy } from 'lucide-react';
-import { GlobalProgressBar } from './components/GlobalProgressBar';
+import { INITIAL_TAGS, INITIAL_BADGES } from './data/initialData';
+import { Lock, Plus, Search, Bell, X, Users, Play, LifeBuoy } from 'lucide-react';
 import { Toast } from './components/Toast';
 import { TabErrorBoundary } from './components/TabErrorBoundary';
 
@@ -154,36 +147,125 @@ export function App() {
     setToast({ message, onUndo });
   };
 
-  // Load user data when user changes
+  const isHydratedRef = useRef(false);
+  const syncTimeoutRef = useRef(null);
+
+  // Load user data when user changes (sincroniza localStorage por usuário + SQLite/Cloudflare D1)
   const loadUserData = async (activeUser) => {
-    if (!activeUser) return;
+    if (!activeUser?.id) return;
+    isHydratedRef.current = false;
 
-    // Sincroniza treinos específicos desta conta
-    try {
-      const savedWorkouts = localStorage.getItem(`ethos_workouts_${activeUser.id}`);
-      setWorkouts(savedWorkouts ? JSON.parse(savedWorkouts) : []);
-    } catch (_e) {
-      setWorkouts([]);
-    }
+    const uid = activeUser.id;
+    let localHabits = [];
+    let localEvents = [];
+    let localTags = [];
+    let localWorkouts = [];
+    let localHealth = {
+      waterGlasses: 0,
+      waterTarget: 10,
+      glassMl: 250,
+      waterHistory: [],
+      sleep: { bedTime: '23:30', wakeTime: '07:00', targetHours: 8, logged: false }
+    };
 
     try {
-      const res = await fetch(`/api/user/${activeUser.id}/data`);
+      const sh = localStorage.getItem(`ethos_habits_${uid}`);
+      if (sh) localHabits = JSON.parse(sh);
+    } catch (_e) {}
+    try {
+      const se = localStorage.getItem(`ethos_events_${uid}`);
+      if (se) localEvents = JSON.parse(se);
+    } catch (_e) {}
+    try {
+      const st = localStorage.getItem(`ethos_tags_${uid}`);
+      if (st) localTags = JSON.parse(st);
+    } catch (_e) {}
+    try {
+      const sw = localStorage.getItem(`ethos_workouts_${uid}`);
+      if (sw) localWorkouts = JSON.parse(sw);
+    } catch (_e) {}
+    try {
+      const shl = localStorage.getItem(`ethos_health_${uid}`);
+      if (shl) localHealth = { ...localHealth, ...JSON.parse(shl) };
+    } catch (_e) {}
+
+    // Hidratação imediata do cache local do usuário para evitar tela em branco
+    setHabits(localHabits);
+    setEvents(localEvents);
+    setTags(localTags);
+    setWorkouts(localWorkouts);
+    setHealth(localHealth);
+
+    try {
+      const res = await fetch(`/api/user/${uid}/data`);
       if (res.ok) {
         const data = await res.json();
-        setHabits(data.habits || []);
-        setEvents(data.events || []);
-        if (data.health) setHealth(data.health);
-        if (data.tags && data.tags.length > 0) {
-          setTags(data.tags);
-        } else {
-          setTags([]);
-        }
+        const serverHabits = Array.isArray(data.habits) ? data.habits : [];
+        const serverEvents = Array.isArray(data.events) ? data.events : [];
+        const serverTags = Array.isArray(data.tags) ? data.tags : [];
+        const serverWorkouts = Array.isArray(data.workouts) ? data.workouts : [];
+
+        // Se o servidor possui registros, prioriza o servidor; se o servidor estiver vazio mas o cache local da conta tiver dados não sincronizados, preserva e envia ao servidor
+        const mergedHabits = serverHabits.length > 0 ? serverHabits : localHabits;
+        const mergedEvents = serverEvents.length > 0 ? serverEvents : localEvents;
+        const mergedTags = serverTags.length > 0 ? serverTags : localTags;
+        const mergedWorkouts = serverWorkouts.length > 0 ? serverWorkouts : localWorkouts;
+        const mergedHealth =
+          data.health && (data.health.waterGlasses > 0 || data.health.sleep?.logged || data.health.waterTarget !== 10)
+            ? data.health
+            : localHealth;
+
+        setHabits(mergedHabits);
+        setEvents(mergedEvents);
+        setTags(mergedTags);
+        setWorkouts(mergedWorkouts);
+        setHealth(mergedHealth);
+
+        try {
+          localStorage.setItem(`ethos_habits_${uid}`, JSON.stringify(mergedHabits));
+          localStorage.setItem(`ethos_events_${uid}`, JSON.stringify(mergedEvents));
+          localStorage.setItem(`ethos_tags_${uid}`, JSON.stringify(mergedTags));
+          localStorage.setItem(`ethos_workouts_${uid}`, JSON.stringify(mergedWorkouts));
+          localStorage.setItem(`ethos_health_${uid}`, JSON.stringify(mergedHealth));
+          if (Array.isArray(data.badHabits) && data.badHabits.length > 0) {
+            localStorage.setItem(`ethos_bad_habits_${uid}`, JSON.stringify(data.badHabits));
+          }
+          if (Array.isArray(data.user?.postIts) && data.user.postIts.length > 0) {
+            localStorage.setItem(`ethos_profile_postits_${uid}`, JSON.stringify(data.user.postIts));
+          }
+          if (data.user?.activeTrack) {
+            localStorage.setItem(`ethos_profile_track_${uid}`, JSON.stringify(data.user.activeTrack));
+          }
+        } catch (_e) {}
+
         if (data.user) {
-          setUser(prev => ({ ...prev, ...data.user }));
+          setUser((prev) => (prev ? { ...prev, ...data.user } : data.user));
+        }
+
+        // Caso havia itens locais ainda não gravados no servidor, sincroniza agora
+        if (
+          (serverHabits.length === 0 && mergedHabits.length > 0) ||
+          (serverEvents.length === 0 && mergedEvents.length > 0) ||
+          (serverTags.length === 0 && mergedTags.length > 0) ||
+          (serverWorkouts.length === 0 && mergedWorkouts.length > 0)
+        ) {
+          fetch(`/api/user/${uid}/sync`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              habits: mergedHabits,
+              events: mergedEvents,
+              tags: mergedTags,
+              workouts: mergedWorkouts,
+              health: mergedHealth
+            })
+          }).catch(() => {});
         }
       }
     } catch (e) {
       console.warn('Backend offline, using local states.');
+    } finally {
+      isHydratedRef.current = true;
     }
   };
 
@@ -193,14 +275,50 @@ export function App() {
     }
   }, [user?.id]);
 
-  // Persiste treinos no localStorage por usuário
+  // Persiste continuamente hábitos, eventos, categorias, saúde e treinos no localStorage por usuário + sincroniza com o banco SQLite/D1
   useEffect(() => {
-    if (user?.id) {
+    if (!user?.id || !isHydratedRef.current) return;
+    const uid = user.id;
+
+    try {
+      localStorage.setItem(`ethos_habits_${uid}`, JSON.stringify(habits));
+      localStorage.setItem(`ethos_events_${uid}`, JSON.stringify(events));
+      localStorage.setItem(`ethos_tags_${uid}`, JSON.stringify(tags));
+      localStorage.setItem(`ethos_health_${uid}`, JSON.stringify(health));
+      localStorage.setItem(`ethos_workouts_${uid}`, JSON.stringify(workouts));
+    } catch (_e) {}
+
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = setTimeout(() => {
+      let currentBadHabits = undefined;
+      let currentPostIts = undefined;
       try {
-        localStorage.setItem(`ethos_workouts_${user.id}`, JSON.stringify(workouts));
-      } catch (e) {}
-    }
-  }, [workouts, user?.id]);
+        const rawBh = localStorage.getItem(`ethos_bad_habits_${uid}`);
+        if (rawBh) currentBadHabits = JSON.parse(rawBh);
+        const rawPi = localStorage.getItem(`ethos_profile_postits_${uid}`);
+        if (rawPi) currentPostIts = JSON.parse(rawPi);
+      } catch (_e) {}
+
+      fetch(`/api/user/${uid}/sync`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          habits,
+          events,
+          tags,
+          health,
+          workouts,
+          badHabits: currentBadHabits,
+          postIts: currentPostIts,
+          weight: user.weight
+        })
+      }).catch(() => {});
+    }, 350);
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [habits, events, tags, health, workouts, user?.id, user?.weight]);
 
   // Handler: Add new Habit (US01, US19, US20, US39)
   const handleAddHabit = async (newHabit) => {
@@ -460,6 +578,8 @@ export function App() {
 
   // Logout handler
   const handleLogout = () => {
+    isHydratedRef.current = false;
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     setUser(null);
     setShowWelcomeIntro(false);
     sessionStorage.removeItem('ethos_current_user');
@@ -477,6 +597,7 @@ export function App() {
     setHealth({
       waterGlasses: 0,
       waterTarget: 10,
+      glassMl: 250,
       waterHistory: [],
       sleep: { bedTime: '23:30', wakeTime: '07:00', targetHours: 8, logged: false }
     });
@@ -892,10 +1013,13 @@ export function App() {
                 setUser={setUser}
                 habits={habits}
                 workouts={workouts}
+                health={health}
+                setHealth={setHealth}
                 badges={badges}
                 friends={friends}
                 showToast={showToast}
                 onOpenSettings={() => setShowProfileModal(true)}
+                onOpenSupport={() => setShowSupportModal(true)}
               />
             )}
 
@@ -1040,6 +1164,8 @@ export function App() {
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
         user={user}
+        health={health}
+        setHealth={setHealth}
         onUpdateUser={(updated) => {
           setUser(updated);
           try {
