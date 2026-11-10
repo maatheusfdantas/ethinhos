@@ -2399,16 +2399,6 @@ export async function onRequest(context) {
           await storage.db.prepare(`DELETE FROM events WHERE user_id = ?`).bind(userId).run();
         }
       }
-              ev.conflictPolicy || 'allow',
-              ev.location || '',
-              ev.notes || ev.description || '',
-              ev.priority || 'Média',
-              ev.completed ? 1 : 0,
-              ev.created_at || nowIso
-            )
-            .run();
-        }
-      }
 
       if (Array.isArray(body.tags)) {
         await storage.db.prepare(`DELETE FROM categories WHERE user_id = ?`).bind(userId).run();
