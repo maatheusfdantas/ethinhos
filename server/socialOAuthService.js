@@ -368,3 +368,4 @@ export async function syncUpcomingCalendarEvents(userId, oauthAccountId) {
 
   return { synced: count, provider: account.provider };
 }
+
