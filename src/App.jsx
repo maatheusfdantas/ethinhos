@@ -117,6 +117,43 @@ export function App() {
     }
   }, [user?.pagePreferences, activeTab]);
 
+  // Captura retorno de autenticação social OAuth (Google Agenda ou Microsoft Graph)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const authSuccess = urlParams.get('auth_success');
+    const accessToken = urlParams.get('access_token');
+    const refreshToken = urlParams.get('refresh_token');
+    const rawUser = urlParams.get('user');
+    const authError = urlParams.get('auth_error');
+
+    if (authError) {
+      showToast(`Aviso de login social: ${decodeURIComponent(authError)}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+
+    if (authSuccess === 'true' && accessToken && rawUser) {
+      try {
+        const parsedUser = JSON.parse(rawUser);
+        localStorage.setItem('ethos_access_token', accessToken);
+        sessionStorage.setItem('ethos_access_token', accessToken);
+        if (refreshToken) {
+          localStorage.setItem('ethos_refresh_token', refreshToken);
+          sessionStorage.setItem('ethos_refresh_token', refreshToken);
+        }
+        localStorage.setItem('ethos_current_user', JSON.stringify(parsedUser));
+        sessionStorage.setItem('ethos_current_user', JSON.stringify(parsedUser));
+        setUser(parsedUser);
+        loadUserData(parsedUser);
+        showToast(`Bem-vindo, ${parsedUser.name}! Agenda sincronizada.`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (err) {
+        console.error('Erro ao processar sessão OAuth:', err);
+      }
+    }
+  }, []);
+
   // Modals & Header Controls
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalInitialMode, setAddModalInitialMode] = useState('event');

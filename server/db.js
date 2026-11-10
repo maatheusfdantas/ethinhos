@@ -337,6 +337,38 @@ export function initDatabase() {
     );
   `);
 
+  // 11.5. Tabela de Credenciais e Contas OAuth (Google Calendar & Microsoft Graph)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS oauth_accounts (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      provider_account_id TEXT NOT NULL,
+      provider_email TEXT,
+      access_token TEXT NOT NULL,
+      refresh_token TEXT,
+      token_expires_at TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      last_sync_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(provider, provider_account_id)
+    );
+  `);
+
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN external_source TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN external_event_id TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN external_calendar_id TEXT;`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN last_synced_at TEXT;`);
+  } catch (e) {}
+
   // 12. Índices de Alta Performance para Consultas Relacionais e Isolamento por Linha (user_id)
   try {
     db.exec(`

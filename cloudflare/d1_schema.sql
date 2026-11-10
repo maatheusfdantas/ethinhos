@@ -211,5 +211,26 @@ CREATE TABLE IF NOT EXISTS bad_habit_relapses (
   created_at TEXT NOT NULL
 );
 
+-- Tabela de Contas e Credenciais OAuth (Google Calendar & Microsoft Graph)
+CREATE TABLE IF NOT EXISTS oauth_accounts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  provider_account_id TEXT NOT NULL,
+  provider_email TEXT,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT,
+  token_expires_at TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  last_sync_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(provider, provider_account_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_oauth_accounts_user ON oauth_accounts (user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_accounts_provider ON oauth_accounts (provider, provider_account_id);
+
+
 
 

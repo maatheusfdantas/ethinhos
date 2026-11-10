@@ -38,6 +38,12 @@ import {
   maskEmail,
   TOKEN_EXPIRATION
 } from './authTokens.js';
+import {
+  generateAuthUrl,
+  exchangeCodeForTokens,
+  fetchProviderProfile,
+  syncUpcomingCalendarEvents
+} from './socialOAuthService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -684,6 +690,162 @@ app.post('/api/auth/reset-password', authRateLimiter, (req, res) => {
     success: true,
     message: 'Senha redefinida com sucesso! Todas as sessões anteriores foram desconectadas por segurança.'
   });
+});
+
+// ============================================================================
+// ROTAS DE AUTENTICAÇÃO SOCIAL E SINCRONIZAÇÃO DE CALENDÁRIO (OAuth 2.0)
+// ============================================================================
+
+// 1. Inicia o fluxo OAuth 2.0 (Google ou Microsoft)
+app.get('/api/auth/oauth/:provider', (req, res) => {
+  const { provider } = req.params;
+  const { action, userId } = req.query;
+
+  try {
+    const authUrl = generateAuthUrl(provider, action || 'login', userId || null);
+    return res.redirect(authUrl);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// 2. Callback unificado OAuth 2.0
+app.get('/api/auth/oauth/callback/:provider', async (req, res) => {
+  const { provider } = req.params;
+  const { code, state, error, error_description } = req.query;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+  if (error) {
+    console.error(`[OAuth Callback] Erro de ${provider}:`, error, error_description);
+    return res.redirect(`${frontendUrl}?auth_error=${encodeURIComponent(error_description || error)}`);
+  }
+
+  if (!code) {
+    return res.redirect(`${frontendUrl}?auth_error=Codigo_ausente`);
+  }
+
+  try {
+    let stateData = {};
+    try {
+      stateData = JSON.parse(Buffer.from(state, 'base64url').toString('utf-8'));
+    } catch (_e) {
+      return res.redirect(`${frontendUrl}?auth_error=Invalid_State_CSRF`);
+    }
+
+    // 1. Troca o código por tokens
+    const tokens = await exchangeCodeForTokens(provider, code);
+
+    // 2. Busca perfil
+    const profile = await fetchProviderProfile(provider, tokens.accessToken);
+
+    const nowIso = new Date().toISOString();
+    const expiresAtIso = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
+
+    // 3. Localiza ou cria usuário
+    let user = null;
+    const existingOAuth = db.prepare(`
+      SELECT * FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?
+    `).get(provider, profile.providerAccountId);
+
+    if (existingOAuth) {
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(existingOAuth.user_id);
+    }
+
+    if (!user && profile.email) {
+      user = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(profile.email);
+    }
+
+    if (!user) {
+      const newUserId = `usr_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+      const defaultUsername = (profile.email ? profile.email.split('@')[0] : 'user') + '_' + crypto.randomBytes(2).toString('hex');
+
+      db.prepare(`
+        INSERT INTO users (
+          id, username, email, password, name, avatar, role, is_active,
+          subscription_tier, is_public, permissions, streak_days, points, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'user', 1, 'Gratuito', 1, ?, 0, 0, ?)
+      `).run(
+        newUserId,
+        defaultUsername.toLowerCase(),
+        profile.email,
+        'OAUTH_FEDERATED_ACCOUNT',
+        profile.name,
+        profile.avatar || profile.name.slice(0, 2).toUpperCase(),
+        JSON.stringify({ focus: true, workouts: true, telemetry: true, social: true, habits: true }),
+        nowIso
+      );
+
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(newUserId);
+    }
+
+    // 4. Salva credenciais criptografadas em oauth_accounts
+    const oauthAccountId = existingOAuth ? existingOAuth.id : `oauth_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+
+    if (existingOAuth) {
+      db.prepare(`
+        UPDATE oauth_accounts
+        SET user_id = ?, access_token = ?, refresh_token = COALESCE(?, refresh_token),
+            token_expires_at = ?, scope = ?, updated_at = ?
+        WHERE id = ?
+      `).run(
+        user.id,
+        encryptAES256GCM(tokens.accessToken),
+        tokens.refreshToken ? encryptAES256GCM(tokens.refreshToken) : null,
+        expiresAtIso,
+        tokens.scope,
+        nowIso,
+        existingOAuth.id
+      );
+    } else {
+      db.prepare(`
+        INSERT INTO oauth_accounts (
+          id, user_id, provider, provider_account_id, provider_email,
+          access_token, refresh_token, token_expires_at, scope, updated_at, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        oauthAccountId,
+        user.id,
+        provider,
+        profile.providerAccountId,
+        profile.email,
+        encryptAES256GCM(tokens.accessToken),
+        tokens.refreshToken ? encryptAES256GCM(tokens.refreshToken) : null,
+        expiresAtIso,
+        tokens.scope,
+        nowIso,
+        nowIso
+      );
+    }
+
+    // 5. Sincronização inicial automática dos próximos 30 dias
+    try {
+      await syncUpcomingCalendarEvents(user.id, oauthAccountId);
+    } catch (syncErr) {
+      console.warn(`[OAuth Initial Sync] Aviso ao sincronizar ${provider}:`, syncErr.message);
+    }
+
+    // 6. Emite tokens de sessão e redireciona
+    const sessionTokens = issueSessionTokens(db, user, req.ip, req.headers['user-agent'] || 'browser');
+
+    const redirectParams = new URLSearchParams({
+      auth_success: 'true',
+      access_token: sessionTokens.accessToken,
+      refresh_token: sessionTokens.refreshToken,
+      user: JSON.stringify({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatar: user.avatar
+      })
+    });
+
+    return res.redirect(`${frontendUrl}?${redirectParams.toString()}`);
+  } catch (err) {
+    console.error(`[OAuth Callback Fatal]:`, err);
+    return res.redirect(`${frontendUrl}?auth_error=${encodeURIComponent(err.message)}`);
+  }
 });
 
 // Proteção Anti-IDOR e Autenticação JWT Obrigatória para todas as rotas de dados do usuário

@@ -8,6 +8,7 @@ import {
   AlertCircle,
   KeyRound
 } from 'lucide-react';
+import { SocialLoginButtons } from './SocialLoginButtons';
 
 export function LoginScreen({ onLoginSuccess }) {
   const [mode, setMode] = useState('login'); // 'login', 'register', 'forgot_request', 'forgot_verify'
@@ -586,6 +587,9 @@ export function LoginScreen({ onLoginSuccess }) {
               >
                 {loading ? 'ENTRANDO...' : 'ENTRAR'}
               </button>
+
+              {/* Botões Oficiais de Login Social e Sincronização de Calendários */}
+              <SocialLoginButtons />
 
               {/* Link Cadastre-se agora */}
               <div 
