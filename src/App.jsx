@@ -470,6 +470,20 @@ export function App() {
     }
   }, [activeTab, isAdmin]);
 
+  // PORTAL DO ADMINISTRADOR DEDICADO (SEPARAÇÃO TOTAL DE ESCOPO E DESIGN ESTILO LANDING PAGE)
+  if (activeTab === 'admin' && isAdmin) {
+    return (
+      <div style={{ minHeight: '100vh', width: '100%', backgroundColor: '#0A0A0C' }}>
+        <AdminPortalTab
+          onSystemReset={handleSystemReset}
+          showToast={showToast}
+          onSwitchToApp={() => setActiveTab('dashboard')}
+        />
+        <Toast toast={toast} onDismiss={() => setToast(null)} />
+      </div>
+    );
+  }
+
   return (
     <div className="ethos-app-outer">
       {/* ANIMAÇÃO CINEMATOGRÁFICA DE BOAS-VINDAS EM ALTA RESOLUÇÃO (PÓS-LOGIN) */}
@@ -483,19 +497,12 @@ export function App() {
         />
       )}
 
-      {/* MOLDURA TRANSLÚCIDA FLUTUANTE COM EFEITO LIQUID GLASS DO IPHONE OU PORTAL ADMIN DEDICADO */}
+      {/* MOLDURA TRANSLÚCIDA FLUTUANTE COM EFEITO LIQUID GLASS DO IPHONE */}
       {!showWelcomeIntro && (
-        activeTab === 'admin' && isAdmin ? (
-          <AdminPortalTab
-            onSystemReset={handleSystemReset}
-            showToast={showToast}
-            onSwitchToApp={() => setActiveTab('dashboard')}
-          />
-        ) : (
-          <div
-            key={`boot-${bootKey}`}
-            className="ethos-boot-frame"
-          >
+        <div
+          key={`boot-${bootKey}`}
+          className="ethos-boot-frame"
+        >
         {/* 1. SIDEBAR ESQUERDA ARREDONDADA (DARK PLUM #211F38) + DRAWER MOBILE */}
         <DesktopSidebar
           activeTab={activeTab}
@@ -963,7 +970,6 @@ export function App() {
           </main>
         </div>
       </div>
-        )
       )}
 
       {/* MOBILE BOTTOM NAVIGATION */}

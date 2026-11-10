@@ -12,20 +12,30 @@ export function WelcomeIntro({ userName = 'Usuário', onComplete }) {
   const canvasRef = useRef(null);
   const [phase, setPhase] = useState('ignite'); // 'ignite' -> 'welcome' -> 'expand'
   const firstName = userName ? userName.split(' ')[0].toUpperCase() : 'VOCÊ';
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('welcome'), 450);
-    const t2 = setTimeout(() => setPhase('expand'), 3400);
+    const t2 = setTimeout(() => setPhase('expand'), 2800);
     const t3 = setTimeout(() => {
-      onComplete?.();
-    }, 4100);
+      onCompleteRef.current?.();
+    }, 3500);
+
+    const handleKey = (e) => {
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+        onCompleteRef.current?.();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      window.removeEventListener('keydown', handleKey);
     };
-  }, [onComplete]);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -364,10 +374,13 @@ export function WelcomeIntro({ userName = 'Usuário', onComplete }) {
 
   return (
     <div
+      onClick={() => onCompleteRef.current?.()}
+      title="Clique para pular introdução"
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
+        cursor: 'pointer',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
