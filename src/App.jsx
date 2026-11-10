@@ -463,6 +463,13 @@ export function App() {
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
 
+  // Redireciona usuários não-administradores se tentarem acessar a aba admin
+  useEffect(() => {
+    if (activeTab === 'admin' && !isAdmin) {
+      setActiveTab('dashboard');
+    }
+  }, [activeTab, isAdmin]);
+
   return (
     <div className="ethos-app-outer">
       {/* ANIMAÇÃO CINEMATOGRÁFICA DE BOAS-VINDAS EM ALTA RESOLUÇÃO (PÓS-LOGIN) */}
@@ -476,12 +483,19 @@ export function App() {
         />
       )}
 
-      {/* MOLDURA TRANSLÚCIDA FLUTUANTE COM EFEITO LIQUID GLASS DO IPHONE */}
+      {/* MOLDURA TRANSLÚCIDA FLUTUANTE COM EFEITO LIQUID GLASS DO IPHONE OU PORTAL ADMIN DEDICADO */}
       {!showWelcomeIntro && (
-      <div
-        key={`boot-${bootKey}`}
-        className="ethos-boot-frame"
-      >
+        activeTab === 'admin' && isAdmin ? (
+          <AdminPortalTab
+            onSystemReset={handleSystemReset}
+            showToast={showToast}
+            onSwitchToApp={() => setActiveTab('dashboard')}
+          />
+        ) : (
+          <div
+            key={`boot-${bootKey}`}
+            className="ethos-boot-frame"
+          >
         {/* 1. SIDEBAR ESQUERDA ARREDONDADA (DARK PLUM #211F38) + DRAWER MOBILE */}
         <DesktopSidebar
           activeTab={activeTab}
@@ -865,7 +879,7 @@ export function App() {
             )}
 
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
-            {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && (
+            {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && (
               <div 
                 style={{
                   backgroundColor: '#211F38',
@@ -942,13 +956,6 @@ export function App() {
                   )
                 )}
 
-                {/* TAB 7: PORTAL ADMIN */}
-                {activeTab === 'admin' && (
-                  <AdminPortalTab
-                    onSystemReset={handleSystemReset}
-                    showToast={showToast}
-                  />
-                )}
               </div>
             )}
             </SpringPageTransition>
@@ -956,17 +963,20 @@ export function App() {
           </main>
         </div>
       </div>
+        )
       )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
-      <MobileBottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
-        isAdmin={isAdmin}
-        userPermissions={permissions}
-        user={user}
-      />
+      {activeTab !== 'admin' && (
+        <MobileBottomNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
+          isAdmin={isAdmin}
+          userPermissions={permissions}
+          user={user}
+        />
+      )}
 
       {/* DISCREET TOAST NOTIFICATION (WITH UNDO / CTRL+Z) */}
       <Toast toast={toast} onDismiss={() => setToast(null)} />
