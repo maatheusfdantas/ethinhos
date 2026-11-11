@@ -1,7 +1,99 @@
-import { StrictMode } from 'react'
+import React, { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+
+class GlobalErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error('[Ethos Fatal Error]:', error, info);
+  }
+
+  handleReload = () => {
+    try {
+      sessionStorage.clear();
+    } catch (_e) {}
+    window.location.href = window.location.origin;
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'radial-gradient(circle at 50% 30%, #152238 0%, #05070B 80%)',
+          padding: '24px',
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+        }}>
+          <div style={{
+            maxWidth: '460px',
+            width: '100%',
+            backgroundColor: 'rgba(17, 24, 39, 0.92)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '24px',
+            padding: '36px 32px',
+            textAlign: 'center',
+            color: '#F8FAFC',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(20px)'
+          }}>
+            <div style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              color: '#EF4444',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 18px',
+              fontSize: '24px'
+            }}>
+              ⚠️
+            </div>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 10px 0', letterSpacing: '-0.02em' }}>
+              Recuperação do Sistema
+            </h2>
+            <p style={{ fontSize: '13.5px', color: '#94A3B8', margin: '0 0 24px 0', lineHeight: 1.55 }}>
+              Detectamos uma instabilidade temporária na inicialização da interface. Clique abaixo para reiniciar o aplicativo com segurança.
+            </p>
+            <button
+              type="button"
+              onClick={this.handleReload}
+              style={{
+                width: '100%',
+                height: '44px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                color: '#FFFFFF',
+                fontWeight: 600,
+                fontSize: '14px',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(37, 99, 235, 0.35)'
+              }}
+            >
+              Reiniciar Aplicativo
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ============================================================================
 // INTERCEPTOR GLOBAL DE SEGURANÇA JWT (INJETA AUTHORIZATION: BEARER <TOKEN>)
@@ -85,6 +177,8 @@ if (typeof window !== 'undefined' && !window.__ETHOS_FETCH_SECURED__) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <GlobalErrorBoundary>
+      <App />
+    </GlobalErrorBoundary>
   </StrictMode>,
 )

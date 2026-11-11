@@ -15,7 +15,6 @@ import { AuthModal } from './components/AuthModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AdminPortalTab } from './components/AdminPortalTab';
 import { LoginScreen } from './components/LoginScreen';
-import { WelcomeIntro } from './components/WelcomeIntro';
 import { CategoryConfigModal } from './components/CategoryConfigModal';
 import { SupportModal } from './components/SupportModal';
 
@@ -167,7 +166,6 @@ export function App() {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
   const [bootKey, setBootKey] = useState(0);
 
   // Passo B & Passo D: Configuração Avançada de Categoria & Dinâmica Colaborativa em Tempo Real
@@ -445,7 +443,6 @@ export function App() {
     } catch (e) {}
     setUser(authenticatedUser);
     loadUserData(authenticatedUser);
-    setShowWelcomeIntro(true);
     setBootKey(prev => prev + 1);
     if (authenticatedUser.role === 'admin') {
       setActiveTab('admin');
@@ -458,7 +455,6 @@ export function App() {
   const handleLogout = () => {
     resetSyncState();
     setUser(null);
-    setShowWelcomeIntro(false);
     sessionStorage.removeItem('ethos_current_user');
     sessionStorage.removeItem('ethos_access_token');
     sessionStorage.removeItem('ethos_refresh_token');
@@ -491,11 +487,6 @@ export function App() {
     }
   };
 
-  // REQUISITO 5: SE NÃO ESTIVER LOGADO, MOSTRA A TELA DE LOGIN OBRIGATÓRIA
-  if (!user) {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-  }
-
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
@@ -506,6 +497,11 @@ export function App() {
       setActiveTab('dashboard');
     }
   }, [activeTab, isAdmin]);
+
+  // REQUISITO 5: SE NÃO ESTIVER LOGADO, MOSTRA A TELA DE LOGIN OBRIGATÓRIA
+  if (!user) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
 
   // PORTAL DO ADMINISTRADOR DEDICADO (SEPARAÇÃO TOTAL DE ESCOPO E DESIGN ESTILO LANDING PAGE)
   if (activeTab === 'admin' && isAdmin) {
@@ -523,23 +519,11 @@ export function App() {
 
   return (
     <div className="ethos-app-outer">
-      {/* ANIMAÇÃO CINEMATOGRÁFICA DE BOAS-VINDAS EM ALTA RESOLUÇÃO (PÓS-LOGIN) */}
-      {showWelcomeIntro && (
-        <WelcomeIntro
-          userName={user?.name}
-          onComplete={() => {
-            setShowWelcomeIntro(false);
-            setBootKey(prev => prev + 1);
-          }}
-        />
-      )}
-
       {/* MOLDURA TRANSLÚCIDA FLUTUANTE COM EFEITO LIQUID GLASS DO IPHONE */}
-      {!showWelcomeIntro && (
-        <div
-          key={`boot-${bootKey}`}
-          className="ethos-boot-frame"
-        >
+      <div
+        key={`boot-${bootKey}`}
+        className="ethos-boot-frame"
+      >
         {/* 1. SIDEBAR ESQUERDA ARREDONDADA (DARK PLUM #211F38) + DRAWER MOBILE */}
         <DesktopSidebar
           activeTab={activeTab}
@@ -1007,7 +991,6 @@ export function App() {
           </main>
         </div>
       </div>
-      )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
       {activeTab !== 'admin' && (
