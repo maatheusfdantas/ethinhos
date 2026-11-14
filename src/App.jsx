@@ -750,32 +750,32 @@ export function App() {
               /></div>
             )}
 
-            {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
-            {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && (
-              <div className="rx-sheet-dark">
-                {/* TAB 3: FOCO POMODORO / BIBLIOTECA DE PROJETOS */}
-                {activeTab === 'focus' && (
-                  permissions.focus === false ? (
-                    <div className="card-native text-center py-10 px-4">
-                      <Lock size={32} className="text-zinc-400 mx-auto mb-3" />
-                      <h3 className="text-sm font-medium text-zinc-200 mb-1">Módulo de Foco Bloqueado</h3>
-                      <p className="text-xs text-zinc-400">
-                        O Administrador desativou o seu acesso ao Cronômetro de Foco.
-                      </p>
-                    </div>
-                  ) : (
-                    <FocusTab
-                      user={user}
-                      tags={tags}
-                      syncedFocusRequest={syncedFocusRequest}
-                      onConfigureCategory={(cat) => setConfigCategory(cat)}
-                      onLogSubclassEffort={handleLogSubclassEffort}
-                      onTriggerSharedPomodoro={(info) => setSharedPomodoroAlert({ active: true, ...info })}
-                      onFocusComplete={handleFocusComplete}
-                    />
-                  )
-                )}
+            {/* TAB 3: FOCO POMODORO / BIBLIOTECA DE PROJETOS */}
+            {activeTab === 'focus' && (
+              permissions.focus === false ? (
+                <div className="card-native text-center py-10 px-4">
+                  <Lock size={32} className="text-zinc-400 mx-auto mb-3" />
+                  <h3 className="text-sm font-medium text-zinc-200 mb-1">Módulo de Foco Bloqueado</h3>
+                  <p className="text-xs text-zinc-400">
+                    O Administrador desativou o seu acesso ao Cronômetro de Foco.
+                  </p>
+                </div>
+              ) : (
+                <FocusTab
+                  user={user}
+                  tags={tags}
+                  syncedFocusRequest={syncedFocusRequest}
+                  onConfigureCategory={(cat) => setConfigCategory(cat)}
+                  onLogSubclassEffort={handleLogSubclassEffort}
+                  onTriggerSharedPomodoro={(info) => setSharedPomodoroAlert({ active: true, ...info })}
+                  onFocusComplete={handleFocusComplete}
+                />
+              )
+            )}
 
+            {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
+            {activeTab !== 'dashboard' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && (
+              <div className="rx-sheet-dark">
                 {/* TAB 5: TELEMETRIA / ANÁLISE DE PROGRESSO */}
                 {activeTab === 'telemetry' && (
                   permissions.telemetry === false ? (
