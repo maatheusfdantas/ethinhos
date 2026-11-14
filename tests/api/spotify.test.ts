@@ -25,7 +25,7 @@ vi.stubGlobal('fetch', vi.fn(async (input: unknown, init?: RequestInit) => {
 let tokenAna = '';
 const start = async (token = tokenAna) => {
   const r = await call(env, '/api/integrations/spotify/start', { method: 'POST', token });
-  const cookie = (r.headers.get('Set-Cookie') || '').split(';')[0];
+  const cookie = (r.headers.get('Set-Cookie') || '').split(';')[0] ?? '';
   return { r, cookie, state: r.json?.url ? new URL(r.json.url).searchParams.get('state')! : '' };
 };
 const connect = async (token = tokenAna) => {
