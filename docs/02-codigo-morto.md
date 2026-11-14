@@ -62,6 +62,10 @@ Ficam onde estão até as fases indicadas, porque ainda têm lógica a portar.
 | Dependências `express`, `cors` | Usadas só em `server/`. `resend` idem, a menos que o e-mail seja portado usando o SDK (hoje `functions/api` não o importa). | Fase 1 |
 | Script `npm run server` | Aponta para `server/`. | Fase 1 |
 
-## 4. Assets de `public/` sem referência no código (não movidos)
-`login-left-prisms.png`, `login-right-prisms.png`, `ethos-logo-clean.png`, `icons.svg`, `dev1.jpg`, `dev2.jpg` (os dois últimos são usados só pelo `landing-site`, que tem cópia própria em `landing-site/public/`).
-O briefing pedia para mover só as imagens de referência e os crops. Estas ficam aguardando confirmação.
+## 4. Assets de `public/` sem referência no código
+Movidos para `_to_delete/public/` com aprovação: `login-left-prisms.png`, `login-right-prisms.png`, `ethos-logo-clean.png`, `icons.svg`, `dev1.jpg`, `dev2.jpg` (os dois últimos continuam em `landing-site/public/`, que é quem os usa).
+
+## 5. Landing: decisão
+**Fica `landing-site/`** (TanStack/TS). `landing/` foi movida para `_to_delete/landing/`.
+Motivo: é a versão mais recente (inclui as bios dos devs e o preset Cloudflare Pages). As duas faziam deploy no mesmo projeto `ethos-landing`, o que era fonte de confusão.
+Consequência: a waitlist passa a depender de `POST /api/waitlist` do app principal (`functions/api`), e não mais da função própria de `landing/functions/api/waitlist.js`. Essa rota precisa ser preservada na modularização da Fase 1.
