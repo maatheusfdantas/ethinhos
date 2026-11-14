@@ -183,8 +183,11 @@ describe('virada do dia pelo fuso do usuário', () => {
 
   it('GET /api/v1/day sem data usa "hoje" no fuso do usuário', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date(INSTANT) });
-    const dAna = await call(env, '/api/v1/day', { token: ana });
-    const dBeto = await call(env, '/api/v1/day', { token: beto });
+    // Tokens emitidos com o relógio simulado: o access token vale 1 h (sem piso de 30 dias).
+    const anaNow = await login(env, 'ana', 'Ana#Senha-forte-1');
+    const betoNow = await login(env, 'beto', 'Beto#Senha-forte-1');
+    const dAna = await call(env, '/api/v1/day', { token: anaNow });
+    const dBeto = await call(env, '/api/v1/day', { token: betoNow });
     expect(dAna.json).toMatchObject({ date: '2026-11-14', timezone: 'America/Sao_Paulo' });
     expect(dBeto.json).toMatchObject({ date: '2026-11-15', timezone: 'Asia/Tokyo' });
   });

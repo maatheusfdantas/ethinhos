@@ -46,36 +46,66 @@ export async function call(env: TestEnv, path: string, opts: CallOptions = {}) {
   return { status: res.status, json, headers: res.headers };
 }
 
+const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+
 /** Mesmo algoritmo de hash do backend (PBKDF2-SHA256, 100k iterações). */
 export async function hashPassword(plain: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(plain), { name: 'PBKDF2' }, false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, key, 256);
-  const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
   return `pbkdf2$${hex(salt)}$${hex(new Uint8Array(bits))}`;
 }
 
-/** Insere um usuário verificado direto no banco (após o handler ter criado as tabelas). */
+/** Insere um usuário verificado direto no banco. `rawPassword` grava o campo sem hash. */
 export async function insertUser(
   env: TestEnv,
-  u: { id: string; username: string; email: string; password: string; role?: string; timezone?: string }
+  u: { id: string; username: string; email: string; password?: string; rawPassword?: string; role?: string; timezone?: string }
 ) {
-  const hash = await hashPassword(u.password);
+  const stored = u.rawPassword ?? (await hashPassword(u.password ?? ''));
   await env.DB.prepare(
     `INSERT INTO users (id, username, email, password, name, avatar, role, is_active, subscription_tier, is_public, permissions, streak_days, points, created_at, email_verified)
      VALUES (?, ?, ?, ?, ?, 'US', ?, 1, 'Gratuito', 1, '{}', 0, 0, ?, 1)`
   )
-    .bind(u.id, u.username, u.email, hash, u.username, u.role || 'user', new Date().toISOString())
+    .bind(u.id, u.username, u.email, stored, u.username, u.role || 'user', new Date().toISOString())
     .run();
   if (u.timezone) {
-    await env.DB.prepare(`UPDATE users SET timezone = ? WHERE id = ?`).bind(u.timezone, u.id).run();
+    await env.DB.prepare('UPDATE users SET timezone = ? WHERE id = ?').bind(u.timezone, u.id).run();
   }
 }
 
-export async function login(env: TestEnv, loginId: string, password: string): Promise<string> {
-  const res = await call(env, '/api/auth/login', { method: 'POST', body: { login: loginId, password } });
+export async function loginFull(env: TestEnv, loginId: string, password: string, ip?: string) {
+  const res = await call(env, '/api/auth/login', {
+    method: 'POST',
+    body: { login: loginId, password },
+    headers: ip ? { 'CF-Connecting-IP': ip } : {}
+  });
   if (res.status !== 200 || !res.json?.auth?.accessToken) {
     throw new Error(`login falhou (${res.status}): ${JSON.stringify(res.json)}`);
   }
-  return res.json.auth.accessToken as string;
+  return res.json.auth as { accessToken: string; refreshToken: string; expiresIn: number };
+}
+
+export async function login(env: TestEnv, loginId: string, password: string): Promise<string> {
+  return (await loginFull(env, loginId, password)).accessToken;
+}
+
+// ---- JWT (só para os testes forjarem tokens nos cenários de recusa) ----
+const b64url = (bytes: Uint8Array | string) => {
+  const b = typeof bytes === 'string' ? new TextEncoder().encode(bytes) : bytes;
+  let s = '';
+  for (const x of b) s += String.fromCharCode(x);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
+export async function signTestJwt(payload: Record<string, unknown>, secret: string): Promise<string> {
+  const head = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const body = b64url(JSON.stringify(payload));
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${head}.${body}`)));
+  return `${head}.${body}.${b64url(sig)}`;
+}
+
+export function decodeJwt(token: string): Record<string, any> {
+  const part = token.split('.')[1]!.replace(/-/g, '+').replace(/_/g, '/');
+  return JSON.parse(atob(part + '='.repeat((4 - (part.length % 4)) % 4)));
 }

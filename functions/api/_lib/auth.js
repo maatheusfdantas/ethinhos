@@ -119,7 +119,8 @@ export async function getHmacKeyEdge(env) {
 }
 
 export async function signJwtEdge(payload, env, ttlSeconds = 30 * 24 * 3600) {
-  const effectiveTtl = Math.max(ttlSeconds || 0, 30 * 24 * 3600);
+  // Respeita o TTL pedido (antes havia um piso de 30 dias, inclusive no access token).
+  const effectiveTtl = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds : 30 * 24 * 3600;
   const nowSec = Math.floor(Date.now() / 1000);
   const headerB64 = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const fullPayload = {
@@ -176,6 +177,9 @@ export async function authenticateRequestEdge(request, env) {
     if (cookieMatch) token = cookieMatch[1].trim();
   }
   if (!token) return null;
-  return verifyJwtEdge(token, env);
+  const claims = await verifyJwtEdge(token, env);
+  // Refresh tokens não autenticam rotas de recurso (só servem em /api/auth/refresh).
+  if (!claims || claims.type === 'refresh') return null;
+  return claims;
 }
 

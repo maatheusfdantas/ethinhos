@@ -57,10 +57,11 @@ export async function handlePublicRoutes(ctx) {
 
     await recordAuditLogEdge(storage, {
       eventType: 'WAITLIST_SIGNUP',
-      userId: email,
+      userId: null,
       ipAddress: clientIp,
       userAgent,
-      metadata: { name, email, phone, source },
+      // O log de auditoria não duplica nome, e-mail nem telefone (ficam só na tabela waitlist).
+      metadata: { waitlistId: entryId, source },
       correlationId
     });
 
