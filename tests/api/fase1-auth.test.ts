@@ -97,7 +97,7 @@ describe('chamados de suporte', () => {
 async function startFlow(provider: 'google' | 'microsoft', query = '') {
   const r = await call(env, `/api/auth/oauth/${provider}${query}`);
   const loc = new URL(r.headers.get('Location')!);
-  const cookie = (r.headers.get('Set-Cookie') || '').split(';')[0];
+  const cookie = (r.headers.get('Set-Cookie') || '').split(';')[0] ?? '';
   return { r, loc, cookie, state: loc.searchParams.get('state')! };
 }
 async function finishFlow(provider: 'google' | 'microsoft', query = '') {
