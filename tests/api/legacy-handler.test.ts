@@ -6,7 +6,8 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { call, insertUser, login, makeEnv } from '../helpers/api';
 
-const env = makeEnv();
+const ADMIN_PASSWORD = 'Adm1n#Inicial-Somente-Teste';
+const env = makeEnv({ ADMIN_INITIAL_PASSWORD: ADMIN_PASSWORD });
 let adminToken = '';
 let aliceToken = '';
 
@@ -21,7 +22,7 @@ beforeAll(async () => {
   await insertUser(env, { id: 'usr_alice', username: 'alice', email: 'alice@ethos.test', password: 'Alice#Senha-forte-1' });
   await insertUser(env, { id: 'usr_bob', username: 'bob', email: 'bob@ethos.test', password: 'Bob#Senha-forte-1' });
   aliceToken = await login(env, 'alice', 'Alice#Senha-forte-1');
-  adminToken = await login(env, 'admin', 'Admin@2026!Ethos');
+  adminToken = await login(env, 'admin', ADMIN_PASSWORD);
 });
 
 describe('handler legado: rotas públicas', () => {

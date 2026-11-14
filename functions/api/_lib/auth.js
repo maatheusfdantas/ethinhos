@@ -41,69 +41,31 @@ export async function hashPasswordEdge(plainPassword, existingSaltHex = null) {
   return `pbkdf2$${saltHex}$${hashHex}`;
 }
 
+/** Comparação em tempo constante de duas strings hex de mesmo tamanho. */
+function timingSafeEqualHex(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * Verifica a senha contra o hash PBKDF2 gravado (`pbkdf2$salt$hash` ou `pbkdf2_sha256$...`).
+ * Não há senhas mestras nem comparação em texto puro: qualquer outro formato é recusado.
+ */
 export async function verifyPasswordEdge(plainPassword, storedPassword) {
-  if (!storedPassword) return false;
-  const strPlain = String(plainPassword);
+  if (typeof storedPassword !== 'string' || !storedPassword) return false;
+  if (!storedPassword.startsWith('pbkdf2$') && !storedPassword.startsWith('pbkdf2_sha256$')) return false;
 
-  // 1. Verificação de hash PBKDF2 (aceita tanto 'pbkdf2$' quanto 'pbkdf2_sha256$')
-  if (storedPassword.startsWith('pbkdf2$') || storedPassword.startsWith('pbkdf2_sha256$')) {
-    const parts = storedPassword.split('$');
-    if (parts.length === 3) {
-      const saltHex = parts[1];
-      const storedHashHex = parts[2];
-      try {
-        const candidate = await hashPasswordEdge(strPlain, saltHex);
-        const candidateHashHex = candidate.split('$')[2];
-        if (candidateHashHex === storedHashHex) return true;
+  const parts = storedPassword.split('$');
+  if (parts.length !== 3 || !/^[0-9a-f]+$/i.test(parts[1]) || !/^[0-9a-f]{64}$/i.test(parts[2])) return false;
 
-        // Suporte retrocompatível para admin (Admin@2026!Ethos ou admin123)
-        if (strPlain === 'Admin@2026!Ethos' || strPlain === 'admin123') {
-          for (const alias of ['Admin@2026!Ethos', 'admin123']) {
-            const c = await hashPasswordEdge(alias, saltHex);
-            if (c.split('$')[2] === storedHashHex) return true;
-          }
-        }
-
-        // Suporte retrocompatível para contas de usuário (Teste@2026!Ethos, teste123, Ethos@User123! ou 123)
-        if (strPlain === 'Teste@2026!Ethos' || strPlain === 'teste123' || strPlain === 'Ethos@User123!' || strPlain === '123') {
-          for (const alias of ['Teste@2026!Ethos', 'teste123', 'Ethos@User123!', '123']) {
-            const c = await hashPasswordEdge(alias, saltHex);
-            if (c.split('$')[2] === storedHashHex) return true;
-          }
-        }
-      } catch (e) {}
-    }
+  try {
+    const candidate = await hashPasswordEdge(String(plainPassword), parts[1]);
+    return timingSafeEqualHex(candidate.split('$')[2], parts[2].toLowerCase());
+  } catch (_e) {
+    return false;
   }
-
-  // 2. Suporte universal a senhas mestras de demonstração / admin
-  if (strPlain === 'Admin@2026!Ethos' || strPlain === 'admin123') {
-    if (
-      storedPassword.includes('febf532795b036798452056058a895de') ||
-      storedPassword.includes('admin') ||
-      storedPassword === 'admin123' ||
-      storedPassword === 'Admin@2026!Ethos'
-    ) {
-      return true;
-    }
-  }
-
-  if (strPlain === 'Teste@2026!Ethos' || strPlain === 'teste123' || strPlain === 'Ethos@User123!' || strPlain === '123') {
-    if (
-      storedPassword.includes('cc0f5f3e6731f40c32c7d213ef07d13d') ||
-      storedPassword.includes('cb31c61939830df7483ad19c0a93d07a') ||
-      storedPassword.includes('84031a9eca1665248f7748df78788360') ||
-      storedPassword.includes('f9021394d7cbb44c77fae0821fc12687') ||
-      storedPassword.includes('e5ed0191f53323c19c425ae34740b482') ||
-      storedPassword === '123' ||
-      storedPassword === 'teste123' ||
-      storedPassword === 'Teste@2026!Ethos' ||
-      storedPassword === 'Ethos@User123!'
-    ) {
-      return true;
-    }
-  }
-
-  return strPlain === String(storedPassword);
 }
 
 export function base64UrlEncode(strOrBytes) {

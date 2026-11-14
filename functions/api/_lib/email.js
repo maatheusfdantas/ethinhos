@@ -22,7 +22,7 @@ export function maskEmailEdge(emailStr) {
 }
 
 export async function sendResendEmailEdge(env, { to, subject, html, text }) {
-  const apiKey = env?.RESEND_API_KEY || (typeof process !== 'undefined' ? process.env?.RESEND_API_KEY : '') || 're_UT5T9E4B_9qkasyb3dheYv4Spd5yvJz3o';
+  const apiKey = env?.RESEND_API_KEY || (typeof process !== 'undefined' ? process.env?.RESEND_API_KEY : '') || '';
   const recipient = Array.isArray(to) ? to : [to];
   const from = env?.RESEND_FROM || (typeof process !== 'undefined' ? process.env?.RESEND_FROM : '') || 'Ethos <onboarding@resend.dev>';
 

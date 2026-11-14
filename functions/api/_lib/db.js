@@ -28,25 +28,31 @@ export async function ensureDatabaseReady(env) {
   const nowIso = new Date().toISOString();
   const todayStr = nowIso.split('T')[0];
 
-  const defaultUsers = [
-    {
-      id: 'usr_admin',
-      username: 'admin',
-      email: 'admin@ethos.local',
-      password: await hashPasswordEdge('Admin@2026!Ethos'),
-      name: 'Administrador Ethos',
-      avatar: 'AD',
-      role: 'admin',
-      is_active: 1,
-      subscription_tier: 'Enterprise / Fundador',
-      is_public: 1,
-      permissions: ALL_PERMS,
-      streak_days: 0,
-      points: 0,
-      weight: 75.0,
-      height: 1.78
-    }
-  ];
+  // Admin inicial: só é criado se ADMIN_INITIAL_PASSWORD estiver definido no ambiente.
+  // Não existe senha padrão no código. O hash (PBKDF2, caro) só é calculado ao semear.
+  const buildDefaultUsers = async () => {
+    const initialPassword = env?.ADMIN_INITIAL_PASSWORD;
+    if (!initialPassword) return [];
+    return [
+      {
+        id: 'usr_admin',
+        username: 'admin',
+        email: 'admin@ethos.local',
+        password: await hashPasswordEdge(initialPassword),
+        name: 'Administrador Ethos',
+        avatar: 'AD',
+        role: 'admin',
+        is_active: 1,
+        subscription_tier: 'Enterprise / Fundador',
+        is_public: 1,
+        permissions: ALL_PERMS,
+        streak_days: 0,
+        points: 0,
+        weight: 75.0,
+        height: 1.78
+      }
+    ];
+  };
 
   if (env && env.DB) {
     if (d1Initialized) return { mode: 'd1', db: env.DB };
@@ -113,7 +119,7 @@ export async function ensureDatabaseReady(env) {
 
     const countRow = await env.DB.prepare(`SELECT COUNT(*) as c FROM users`).first();
     if (!countRow || countRow.c === 0) {
-      for (const u of defaultUsers) {
+      for (const u of await buildDefaultUsers()) {
         await env.DB.prepare(
           `INSERT OR IGNORE INTO users (id, username, email, password, name, avatar, role, is_active, subscription_tier, is_public, permissions, streak_days, points, weight, height, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
@@ -144,7 +150,7 @@ export async function ensureDatabaseReady(env) {
   }
 
   if (!edgeFallbackMemory.initialized) {
-    for (const u of defaultUsers) {
+    for (const u of await buildDefaultUsers()) {
       edgeFallbackMemory.users.set(u.id, u);
     }
     edgeFallbackMemory.initialized = true;

@@ -24,10 +24,10 @@ export async function authorizeRequest(ctx) {
 
   if (protectedUserRouteMatch) {
     const targetUserId = protectedUserRouteMatch[1];
-    const clientUserId = request.headers.get('x-ethos-user-id') || '';
 
-    // Se não há token JWT assinado nem cabeçalho de sessão compatível com o titular
-    if (!authClaims && clientUserId !== targetUserId) {
+    // JWT assinado é obrigatório. O cabeçalho X-Ethos-User-Id NÃO autoriza nada:
+    // qualquer cliente pode enviá-lo com o id de outra pessoa.
+    if (!authClaims) {
       return jsonResponse(
         { error: 'Não autorizado: Token JWT ausente, inválido ou expirado.' },
         401,

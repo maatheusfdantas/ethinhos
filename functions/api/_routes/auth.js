@@ -60,21 +60,19 @@ export async function handleAuthRoutes(ctx) {
       return jsonResponse({ error: 'Informe e-mail/usuário e senha.' }, 400, correlationId, request);
     }
 
-    // Permitir sempre a tentativa do admin@ethos.local sem bloqueio de IP/brute-force
-    const isAdminLogin = login === 'admin@ethos.local' || login === 'admin.local' || login === 'admin';
-    if (!isAdminLogin) {
-      const bruteCheck = await checkBruteForceEdge(storage, clientIp, login);
-      if (!bruteCheck.allowed) {
-        await recordAuditLogEdge(storage, {
-          eventType: 'BRUTE_FORCE_LOCKED',
-          userId: login,
-          ipAddress: clientIp,
-          userAgent,
-          metadata: { login },
-          correlationId
-        });
-        return jsonResponse({ error: bruteCheck.message }, 429, correlationId, request);
-      }
+    // Proteção contra força bruta vale para TODAS as contas, inclusive o admin
+    // (a conta mais valiosa não pode aceitar tentativas ilimitadas).
+    const bruteCheck = await checkBruteForceEdge(storage, clientIp, login);
+    if (!bruteCheck.allowed) {
+      await recordAuditLogEdge(storage, {
+        eventType: 'BRUTE_FORCE_LOCKED',
+        userId: login,
+        ipAddress: clientIp,
+        userAgent,
+        metadata: { login },
+        correlationId
+      });
+      return jsonResponse({ error: bruteCheck.message }, 429, correlationId, request);
     }
 
     let user = null;
