@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { addDays, diffDays, isLocalDate, isTimeZone, toLocalDate } from './date';
+import { addDays, diffDays, isLocalDate, isTimeZone, localHour, toLocalDate } from './date';
 
 describe('domain/date', () => {
   it('valida datas locais YYYY-MM-DD de calendário', () => {
@@ -32,5 +32,13 @@ describe('domain/date', () => {
     expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
     expect(diffDays('2026-11-01', '2026-11-14')).toBe(13);
     expect(diffDays('2026-11-14', '2026-11-01')).toBe(-13);
+  });
+
+  it('hora local por fuso, inclusive quando o dia local é outro que o UTC', () => {
+    const instant = '2026-11-15T02:30:00.000Z';
+    expect(localHour(instant, 'America/Sao_Paulo')).toBe(23);
+    expect(localHour(instant, 'Asia/Tokyo')).toBe(11);
+    expect(localHour(instant, 'UTC')).toBe(2);
+    expect(localHour('2026-11-15T00:05:00.000Z', 'UTC')).toBe(0); // meia-noite é 0, nunca 24
   });
 });
