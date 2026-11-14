@@ -15,7 +15,8 @@
     "cf:login": "npx wrangler login",
     "cf:db:create": "npx wrangler d1 create ethos-db",
     "cf:db:migrate": "npx wrangler d1 execute ethos-db --remote --file=./cloudflare/d1_schema.sql",
-    "cf:deploy": "npm run build && npx wrangler pages deploy dist --project-name=ethos"
+    "cf:deploy": "npm run build && npx wrangler pages deploy dist --project-name=ethos",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -39,6 +40,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^31.0.0",
     "oxlint": "^1.81.0",
+    "typescript": "^5.9.3",
     "vite": "^8.3.0",
     "vitest": "^5.1.0"
   }
