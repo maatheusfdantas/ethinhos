@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   User, LayoutGrid, Calendar, TrendingUp, Plus, Settings, LogOut, ShieldAlert, Timer,
-  Dumbbell, Users, CheckCircle2, ShieldOff, LifeBuoy, Menu
+  Dumbbell, Users, CheckCircle2, ShieldOff, LifeBuoy, Menu, StickyNote
 } from 'lucide-react';
 
 /**
@@ -9,7 +9,7 @@ import {
  * Todos os módulos continuam acessíveis, respeitando permissões do admin e preferências de página.
  */
 
-const DEFAULT_PAGES = { dashboard: true, telemetry: true, habits: true, bad_habits: true, calendar: true, workouts: true, focus: true, social: true };
+const DEFAULT_PAGES = { notes: true, dashboard: true, telemetry: true, habits: true, bad_habits: true, calendar: true, workouts: true, focus: true, social: true };
 
 function buildModules(user, userPermissions = {}) {
   const pages = { ...DEFAULT_PAGES, ...(user?.pagePreferences || {}) };
@@ -20,6 +20,7 @@ function buildModules(user, userPermissions = {}) {
     { id: 'workouts', label: 'Treino', icon: Dumbbell, group: 'Corpo e mente', enabled: pages.workouts !== false && userPermissions.workouts !== false },
     { id: 'focus', label: 'Foco', icon: Timer, group: 'Corpo e mente', enabled: pages.focus !== false && userPermissions.focus !== false },
     { id: 'bad_habits', label: 'Maus hábitos', icon: ShieldOff, group: 'Corpo e mente', enabled: pages.bad_habits !== false },
+    { id: 'notes', label: 'Notas', icon: StickyNote, group: 'Corpo e mente', enabled: pages.notes !== false },
     { id: 'telemetry', label: 'Análise de progresso', icon: TrendingUp, group: 'Entender', enabled: true },
     { id: 'social', label: 'Comunidade', icon: Users, group: 'Pessoas', enabled: pages.social !== false && userPermissions.social !== false },
     { id: 'profile', label: 'Perfil', icon: User, group: 'Pessoas', enabled: true }

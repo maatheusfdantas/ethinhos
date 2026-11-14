@@ -16,6 +16,7 @@ import { ServerConfigError } from './_lib/auth.js';
 import { authorizeRequest } from './_lib/guard.js';
 import { ensureDatabaseReady } from './_lib/db.js';
 import { getSecurityHeaders, jsonResponse, sanitizeObjectEdge } from './_lib/http.js';
+import { handleAccountRoutes } from './_routes/account.js';
 import { handleAdminRoutes } from './_routes/admin.js';
 import { handleAuthRoutes } from './_routes/auth.js';
 import { handleEntriesRoutes } from './_routes/entries';
@@ -28,7 +29,7 @@ import { handleUserRoutes } from './_routes/user.js';
 
 /** Rotas públicas (antes da camada de autorização), na ordem original. */
 // handleIntegrationsRoutes autentica por conta própria (a volta do provedor chega sem Authorization).
-const PUBLIC_HANDLERS = [handleAuthRoutes, handleOAuthRoutes, handleIntegrationsRoutes, handlePublicRoutes];
+const PUBLIC_HANDLERS = [handleAuthRoutes, handleOAuthRoutes, handleIntegrationsRoutes, handleAccountRoutes, handlePublicRoutes];
 /**
  * Rotas protegidas (depois de authorizeRequest). O núcleo /api/v1 vem primeiro e
  * exige JWT por conta própria (o usuário sai do token, nunca da URL).
@@ -56,7 +57,7 @@ export async function onRequest(context) {
   // núcleo /api/v1, que valida campo a campo e deixa o escape para a camada de exibição.
   let body = {};
   let rawBody = null;
-  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
     try {
       rawBody = await request.json();
       body = sanitizeObjectEdge(rawBody);

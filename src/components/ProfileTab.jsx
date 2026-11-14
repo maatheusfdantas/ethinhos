@@ -33,8 +33,7 @@ import {
   Scale
 } from 'lucide-react';
 import { calculateDailyWaterTarget, calculateUserLevelAndXp } from '../utils/biometricsAndAnalytics';
-import ProfileBiometricsCard from './profile/ProfileBiometricsCard';
-import { SpotifyConnectCard } from './profile/SpotifyConnectCard';
+import { ProfileAccountSections } from './profile/ProfileAccountSections';
 
 const POSTIT_COLORS = [
   { id: 'yellow', name: 'Amarelo Clássico', bg: '#FEF08A', border: '#FDE047', text: '#713F12', pin: '#CA8A04' },
@@ -63,7 +62,8 @@ export function ProfileTab({
   setHealth,
   showToast,
   onOpenSettings,
-  onOpenSupport
+  onOpenSupport,
+  onLogout
 }) {
   const firstName = user?.name ? user.name.split(' ')[0] : 'Usuário';
   const fileInputRef = useRef(null);
@@ -322,92 +322,6 @@ export function ProfileTab({
     } catch (_e) {}
     return [];
   });
-
-  const [showPostItModal, setShowPostItModal] = useState(false);
-  const [editingPostItId, setEditingPostItId] = useState(null);
-  const [postItTitle, setPostItTitle] = useState('');
-  const [postItContent, setPostItContent] = useState('');
-  const [postItColorId, setPostItColorId] = useState('yellow');
-  const [postItPinned, setPostItPinned] = useState(false);
-
-  const persistPostIts = (nextNotes) => {
-    setPostIts(nextNotes);
-    setUser?.((prev) => (prev ? { ...prev, postIts: nextNotes } : prev));
-    try {
-      localStorage.setItem(`ethos_postits_${user?.id || 'default'}`, JSON.stringify(nextNotes));
-      if (user?.id) {
-        fetch(`/api/user/${user.id}/profile`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ postIts: nextNotes })
-        }).catch(() => {});
-      }
-    } catch (_e) {}
-  };
-
-  const handleOpenNewPostIt = () => {
-    setEditingPostItId(null);
-    setPostItTitle('');
-    setPostItContent('');
-    setPostItColorId('yellow');
-    setPostItPinned(false);
-    setShowPostItModal(true);
-  };
-
-  const handleOpenEditPostIt = (note) => {
-    setEditingPostItId(note.id);
-    setPostItTitle(note.title || '');
-    setPostItContent(note.content || '');
-    setPostItColorId(note.colorId || 'yellow');
-    setPostItPinned(Boolean(note.pinned));
-    setShowPostItModal(true);
-  };
-
-  const handleSavePostIt = (e) => {
-    e.preventDefault();
-    if (!postItContent.trim()) return;
-
-    if (editingPostItId) {
-      const updated = postIts.map((item) =>
-        item.id === editingPostItId
-          ? {
-              ...item,
-              title: postItTitle.trim() || 'Nota Rápida',
-              content: postItContent.trim().slice(0, 280),
-              colorId: postItColorId,
-              pinned: postItPinned
-            }
-          : item
-      );
-      persistPostIts(updated);
-      showToast?.('Post-it atualizado!');
-    } else {
-      const newNote = {
-        id: `pi_${Date.now()}`,
-        title: postItTitle.trim() || 'Nota Rápida',
-        content: postItContent.trim().slice(0, 280),
-        colorId: postItColorId,
-        pinned: postItPinned,
-        createdAt: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-      };
-      persistPostIts([newNote, ...postIts]);
-      showToast?.('Novo Post-it colado no mural! (+10 XP)');
-    }
-    setShowPostItModal(false);
-  };
-
-  const handleTogglePinPostIt = (id) => {
-    const updated = postIts.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n));
-    persistPostIts(updated);
-  };
-
-  const handleDeletePostIt = (id) => {
-    const updated = postIts.filter((n) => n.id !== id);
-    persistPostIts(updated);
-    showToast?.('Post-it removido do mural.');
-  };
-
-  const sortedPostIts = [...postIts].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 
   // -------------------------------------------------------------------------
   // 6. SISTEMA DE NÍVEL DE XP DO USUÁRIO
@@ -878,7 +792,7 @@ export function ProfileTab({
                 <Sparkles size={12} />
                 <span>Perfil Focado em Evolução</span>
               </div>
-              <span>Sem grade de fotos: apenas sua foto de perfil, músicas, métricas e post-its ficam visíveis.</span>
+              <span>Sem grade de fotos: apenas sua foto de perfil, músicas e métricas ficam visíveis.</span>
             </div>
           </div>
         </div>
@@ -925,7 +839,7 @@ export function ProfileTab({
               <span>⚡ Hábito concluído: <strong>+25 XP</strong></span>
               <span>🔥 Dia de Streak: <strong>+15 XP</strong></span>
               <span>🏋️ Exercício na ficha: <strong>+20 XP</strong></span>
-              <span>📌 Nota Post-it: <strong>+10 XP</strong></span>
+              <span>📌 Nota: <strong>+10 XP</strong></span>
             </div>
           </div>
 
@@ -954,199 +868,9 @@ export function ProfileTab({
         </div>
       </div>
 
-      {/* =====================================================================
-          1.5. CALCULADORA DE HIDRATAÇÃO DIÁRIA IDEAL (Peso em kg × 35 ml)
-         ===================================================================== */}
-      <ProfileBiometricsCard
-        user={user}
-        setUser={setUser}
-        health={health}
-        setHealth={setHealth}
-        showToast={showToast}
-      />
-
-      {/* =====================================================================
-          2. MURAL DE NOTAS EM POST-IT DO USUÁRIO
-         ===================================================================== */}
-      <div
-        style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.82)',
-          backdropFilter: 'blur(18px)',
-          borderRadius: '26px',
-          padding: '22px 24px',
-          boxShadow: '0 10px 30px rgba(33, 31, 56, 0.06)',
-          border: '1.5px solid rgba(255, 255, 255, 0.9)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '11px',
-                backgroundColor: '#FEF08A',
-                border: '1.5px solid #FDE047',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#854D0E'
-              }}
-            >
-              <StickyNote size={18} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#1A1B2F' }}>
-                Mural de Notas em Post-it
-              </h3>
-              <span style={{ fontSize: '11.5px', color: '#64748B' }}>
-                Cole lembretes rápidos, insights, metas curtas e pensamentos do dia
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleOpenNewPostIt}
-            style={{
-              backgroundColor: '#211F38',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '999px',
-              padding: '7px 14px',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 4px 12px rgba(33, 31, 56, 0.2)'
-            }}
-          >
-            <Plus size={14} />
-            <span>Novo Post-it</span>
-          </button>
-        </div>
-
-        {sortedPostIts.length === 0 ? (
-          <div
-            style={{
-              padding: '28px',
-              textAlign: 'center',
-              backgroundColor: 'rgba(254, 240, 138, 0.25)',
-              borderRadius: '18px',
-              border: '1.5px dashed #FACC15',
-              color: '#854D0E',
-              fontSize: '13px'
-            }}
-          >
-            Nenhum Post-it colado ainda. Clique em <strong>"Novo Post-it"</strong> para adicionar sua primeira nota!
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '14px' }}>
-            {sortedPostIts.map((note, idx) => {
-              const palette = POSTIT_COLORS.find((c) => c.id === note.colorId) || POSTIT_COLORS[0];
-              const tilt = idx % 2 === 0 ? '-0.6deg' : '0.6deg';
-              return (
-                <div
-                  key={note.id}
-                  style={{
-                    backgroundColor: palette.bg,
-                    border: `1.5px solid ${palette.border}`,
-                    borderRadius: '18px',
-                    padding: '16px',
-                    color: palette.text,
-                    position: 'relative',
-                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.07)',
-                    transform: `rotate(${tilt})`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    minHeight: '135px',
-                    transition: 'transform 0.15s ease'
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '13.5px', fontWeight: 800, lineHeight: 1.25 }}>
-                        {note.title}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePinPostIt(note.id)}
-                          title={note.pinned ? 'Desafixar Post-it' : 'Fixar Post-it no topo'}
-                          style={{
-                            background: note.pinned ? palette.pin : 'rgba(0,0,0,0.06)',
-                            color: note.pinned ? '#FFFFFF' : palette.text,
-                            border: 'none',
-                            borderRadius: '6px',
-                            width: '22px',
-                            height: '22px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Pin size={11} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditPostIt(note)}
-                          title="Editar Post-it"
-                          style={{
-                            background: 'rgba(0,0,0,0.06)',
-                            color: palette.text,
-                            border: 'none',
-                            borderRadius: '6px',
-                            width: '22px',
-                            height: '22px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Edit3 size={11} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeletePostIt(note.id)}
-                          title="Excluir Post-it"
-                          style={{
-                            background: 'rgba(0,0,0,0.06)',
-                            color: palette.text,
-                            border: 'none',
-                            borderRadius: '6px',
-                            width: '22px',
-                            height: '22px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <p style={{ margin: 0, fontSize: '12.5px', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {note.content}
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px', paddingTop: '8px', borderTop: '1px solid rgba(0,0,0,0.07)', fontSize: '10px', opacity: 0.8, fontWeight: 700 }}>
-                    <span>{note.pinned ? '📌 Fixado' : 'Nota Post-it'}</span>
-                    <span>{note.createdAt || 'Hoje'}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* SEÇÕES DA CONTA: saúde (privada), contas conectadas, segurança, dados.
+          Os post-its agora vivem na aba Notas (mesmos dados). */}
+      <ProfileAccountSections user={user} setUser={setUser} health={health} setHealth={setHealth} showToast={showToast} onOpenSettings={onOpenSettings} onLogout={onLogout} />
 
       {/* =====================================================================
           3. GRADE PRINCIPAL: MÚSICA & PLAYLISTS + MÉTRICAS COMPARTILHADAS
@@ -1155,9 +879,6 @@ export function ProfileTab({
         
         {/* COLUNA ESQUERDA: MÚSICA & PLAYLISTS */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-          {/* CONEXÃO OPCIONAL COM O SPOTIFY (música atual e última; só leitura) */}
-          <SpotifyConnectCard showToast={showToast} />
 
           {/* ITEM 1: ÚLTIMA MÚSICA ESCUTADA / QUAL ESTÁ ESCUTANDO */}
           <div
@@ -1729,183 +1450,6 @@ export function ProfileTab({
           </div>
         </div>
       </div>
-
-      {/* =====================================================================
-          MODAL: CRIAR / EDITAR NOTA EM POST-IT
-         ===================================================================== */}
-      {showPostItModal && (
-        <div
-          onClick={() => setShowPostItModal(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 99999,
-            backgroundColor: 'rgba(9, 11, 20, 0.82)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px'
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '24px',
-              maxWidth: '460px',
-              width: '100%',
-              padding: '24px',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.35)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <StickyNote size={20} color="#CA8A04" />
-                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#1A1B2F' }}>
-                  {editingPostItId ? 'Editar Post-it' : 'Novo Post-it no Perfil'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPostItModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSavePostIt} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  Título do Post-it
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: Meta da Semana, Lembrete de Leitura..."
-                  value={postItTitle}
-                  onChange={(e) => setPostItTitle(e.target.value)}
-                  maxLength={50}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid #CBD5E1',
-                    fontSize: '13px',
-                    color: '#1E293B',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  Conteúdo da Nota (máx. 280 caracteres)
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Escreva sua anotação rápida em formato post-it..."
-                  value={postItContent}
-                  onChange={(e) => setPostItContent(e.target.value.slice(0, 280))}
-                  maxLength={280}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid #CBD5E1',
-                    fontSize: '13px',
-                    color: '#1E293B',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    resize: 'none'
-                  }}
-                />
-                <div style={{ textAlign: 'right', fontSize: '10.5px', color: '#64748B', marginTop: '2px' }}>
-                  {postItContent.length} / 280
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                  Cor do Post-it
-                </label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {POSTIT_COLORS.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setPostItColorId(c.id)}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '10px',
-                        backgroundColor: c.bg,
-                        border: postItColorId === c.id ? '2.5px solid #1A1B2F' : `1.5px solid ${c.border}`,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title={c.name}
-                    >
-                      {postItColorId === c.id && <Check size={14} color={c.text} />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={postItPinned}
-                  onChange={(e) => setPostItPinned(e.target.checked)}
-                  style={{ accentColor: '#4F46E5' }}
-                />
-                <span>Fixar este Post-it no topo do mural</span>
-              </label>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowPostItModal(false)}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: '10px',
-                    backgroundColor: '#F1F5F9',
-                    color: '#475569',
-                    border: 'none',
-                    fontWeight: 700,
-                    fontSize: '12.5px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    flex: 1.3,
-                    padding: '10px',
-                    borderRadius: '10px',
-                    backgroundColor: '#211F38',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    fontWeight: 800,
-                    fontSize: '12.5px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {editingPostItId ? 'Salvar Alterações' : 'Colar Post-it (+10 XP)'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* =====================================================================
           MODAL: ALTERAR MÚSICA ATUAL / ÚLTIMA ESCUTADA

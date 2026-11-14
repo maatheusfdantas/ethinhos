@@ -74,6 +74,7 @@ export async function ensureDatabaseReady(env) {
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS oauth_identities (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, provider TEXT NOT NULL, provider_account_id TEXT NOT NULL, provider_email TEXT, created_at TEXT NOT NULL, last_login_at TEXT, UNIQUE(provider, provider_account_id))`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS oauth_login_codes (code_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS spotify_connections (user_id TEXT PRIMARY KEY, spotify_user_id TEXT NOT NULL UNIQUE, display_name TEXT, access_token_enc TEXT NOT NULL, refresh_token_enc TEXT NOT NULL, expires_at TEXT NOT NULL, scope TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS user_health_profile (user_id TEXT PRIMARY KEY, goal TEXT, activity_level TEXT, birth_date TEXT, updated_at TEXT NOT NULL)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_tokens (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token_hash TEXT NOT NULL, type TEXT NOT NULL, expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`)
     ]);
 

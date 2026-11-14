@@ -13,7 +13,8 @@ export default function ProfileBiometricsCard({
   setUser,
   health,
   setHealth,
-  showToast
+  showToast,
+  hideConsumption = false
 }) {
   const [weightInput, setWeightInput] = useState(() => {
     if (user?.weight && Number(user.weight) > 0) return String(user.weight);
@@ -349,9 +350,9 @@ export default function ProfileBiometricsCard({
                 ? `${idealDailyWaterMl.toLocaleString('pt-BR')} ml (${recommendedGlasses} copos)`
                 : 'Aguardando peso...'}
             </div>
-            <span style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
+            {!hideConsumption && <span style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
               Consumo hoje: <strong>{consumedGlasses} / {recommendedGlasses} copos</strong> ({progressPercent}%)
-            </span>
+            </span>}
           </div>
 
           {/* Botão de Ação / Feedback de Salvamento */}
@@ -388,8 +389,8 @@ export default function ProfileBiometricsCard({
         </div>
       </form>
 
-      {/* Barra de Progresso de Hidratação do Dia */}
-      <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #E0F2FE' }}>
+      {/* Barra de Progresso de Hidratação do Dia (oculta no Perfil: já aparece no Painel) */}
+      {!hideConsumption && <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #E0F2FE' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
           <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>
             Progresso Diário com Base na Meta Biométrica
@@ -417,7 +418,7 @@ export default function ProfileBiometricsCard({
             }}
           />
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 import { DesktopSidebar, MobileBottomNav, BrandMark } from './components/Nav';
 import { PainelTab } from './components/PainelTab';
+import { NotesTab } from './components/NotesTab';
 import { HabitsTab } from './components/HabitsTab';
 import { BadHabitsTab } from './components/BadHabitsTab';
 import { AddModal } from './components/AddModal';
@@ -464,7 +465,7 @@ export function App() {
     }
   };
 
-  const TAB_TITLES = { dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
+  const TAB_TITLES = { dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
@@ -723,7 +724,12 @@ export function App() {
                 showToast={showToast}
                 onOpenSettings={() => setShowProfileModal(true)}
                 onOpenSupport={() => setShowSupportModal(true)}
+                onLogout={handleLogout}
               /></div>
+            )}
+
+            {activeTab === 'notes' && (
+              <div className="rx-sheet-legacy"><NotesTab user={user} setUser={setUser} showToast={showToast} /></div>
             )}
 
             {/* TAB 3: FOCO POMODORO / BIBLIOTECA DE PROJETOS */}
@@ -750,7 +756,7 @@ export function App() {
             )}
 
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
-            {activeTab !== 'dashboard' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && (
+            {activeTab !== 'dashboard' && activeTab !== 'notes' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && (
               <div className="rx-sheet-dark">
                 {/* TAB 5: TELEMETRIA / ANÁLISE DE PROGRESSO */}
                 {activeTab === 'telemetry' && (
