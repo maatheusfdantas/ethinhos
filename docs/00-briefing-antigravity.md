@@ -1,3 +1,5 @@
+> **SUPERADO (14/11/2026).** Este briefing foi a instrução inicial da refatoração. Parte dele conflita com as decisões atuais e **não deve ser seguido**: manda trabalhar em `refactor/base` (hoje atrasada em relação à produção) e proíbe mudar a paleta azul-marinho/ciano (a paleta aprovada e publicada é roxo + azul). As regras vigentes estão em `AGENTS.md`; o visual aprovado, em `docs/07-referencia-visual.md`. Mantido apenas como histórico.
+
 # Prompt para o Antigravity — Ethos, fases 0 a 3
 
 Você é um engenheiro de software sênior (frontend + backend) e product designer. Trabalhe no projeto Ethos (D:\Codes\Ethos), um sistema web de rotina, hábitos, registros e insights que virará app mobile.

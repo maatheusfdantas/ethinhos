@@ -17,7 +17,17 @@
     "cf:db:migrate:local": "npx wrangler d1 migrations apply ethos-db --local",
     "cf:db:migrations:list": "npx wrangler d1 migrations list ethos-db --local",
     "cf:deploy": "npm run build && npx wrangler pages deploy dist --project-name=ethos",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "guard": "node scripts/agent-guard.mjs --range origin/main",
+    "guard:staged": "node scripts/agent-guard.mjs --staged",
+    "scope:init": "node scripts/agent-scope.mjs init",
+    "scope:add": "node scripts/agent-scope.mjs add",
+    "scope:allow-delete": "node scripts/agent-scope.mjs allow-delete",
+    "scope:allow-large-removal": "node scripts/agent-scope.mjs allow-large-removal",
+    "scope:show": "node scripts/agent-scope.mjs show",
+    "agent:start": "node scripts/agent-start.mjs",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
