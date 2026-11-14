@@ -9,6 +9,7 @@ import { ALL_PERMS } from '../_lib/constants.js';
 import { verifyEmailExistsViaAPI } from '../_lib/email-verify.js';
 import { maskEmailEdge, sendPasswordResetEmailEdge, sendVerificationEmailEdge, sha256Hex } from '../_lib/email.js';
 import { jsonResponse } from '../_lib/http.js';
+import { normalizeUsername, passwordProblem, usernameProblem } from '../../../src/domain/credentials.js';
 
 /** Devolve a Response da rota correspondente, ou null se nenhuma rota deste domínio casar. */
 export async function handleAuthRoutes(ctx) {
@@ -82,25 +83,11 @@ export async function handleAuthRoutes(ctx) {
         .bind(login, login)
         .first();
 
-      // Garantir compatibilidade imediata se tentar entrar com admin@ethos.local
-      if (!user && (login === 'admin@ethos.local' || login === 'admin.local')) {
-        user = await storage.db
-          .prepare(`SELECT * FROM users WHERE role = 'admin' LIMIT 1`)
-          .first();
-      }
     } else {
       for (const u of storage.store.users.values()) {
         if (u.username.toLowerCase() === login || u.email.toLowerCase() === login) {
           user = u;
           break;
-        }
-      }
-      if (!user && (login === 'admin@ethos.local' || login === 'admin.local')) {
-        for (const u of storage.store.users.values()) {
-          if (u.role === 'admin') {
-            user = u;
-            break;
-          }
         }
       }
     }
@@ -189,14 +176,35 @@ export async function handleAuthRoutes(ctx) {
   // --------------------------------------------------------------------------
   // CADASTRO COM VERIFICAÇÃO DE E-MAIL VIA API (`/api/auth/register`)
   // --------------------------------------------------------------------------
+  if (pathname === '/api/auth/username-available' && method === 'GET') {
+    const candidate = normalizeUsername(url.searchParams.get('u'));
+    const issue = usernameProblem(candidate);
+    if (issue) return jsonResponse({ available: false, reason: issue }, 200, correlationId, request);
+    let taken = false;
+    if (storage.mode === 'd1') {
+      taken = Boolean(await storage.db.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(candidate).first());
+    } else {
+      for (const u of storage.store.users.values()) if (String(u.username).toLowerCase() === candidate) taken = true;
+    }
+    return jsonResponse(taken ? { available: false, reason: 'Esse @ já está em uso.' } : { available: true }, 200, correlationId, request);
+  }
+
   if (pathname === '/api/auth/register' && method === 'POST') {
     const { name, email, username, password } = body;
-    if (!name || !email || !password) {
-      return jsonResponse({ error: 'Preencha todos os campos obrigatórios.' }, 400, correlationId, request);
+    if (!name || !email || !password || !username) {
+      return jsonResponse({ error: 'Preencha nome, e-mail, @ e senha.' }, 400, correlationId, request);
     }
 
-    if (String(password).length < 6) {
-      return jsonResponse({ error: 'A senha deve ter no mínimo 6 caracteres.' }, 400, correlationId, request);
+    const usernameIssue = usernameProblem(username);
+    if (usernameIssue) {
+      return jsonResponse({ error: usernameIssue, field: 'username' }, 400, correlationId, request);
+    }
+    const passwordIssue = passwordProblem(password);
+    if (passwordIssue) {
+      return jsonResponse({ error: passwordIssue, field: 'password' }, 400, correlationId, request);
+    }
+    if (body.passwordConfirm !== undefined && body.passwordConfirm !== password) {
+      return jsonResponse({ error: 'As senhas não coincidem.', field: 'passwordConfirm' }, 400, correlationId, request);
     }
 
     // 1. Verifica na API externa se o e-mail e o servidor MX realmente existem
@@ -211,24 +219,33 @@ export async function handleAuthRoutes(ctx) {
     }
 
     const cleanEmail = String(email).trim().toLowerCase();
-    const cleanUsername = String(username || cleanEmail.split('@')[0]).trim();
+    const cleanUsername = normalizeUsername(username);
 
-    // 2. Verifica duplicidade no banco D1 (se ainda não verificado, reenvia token sem bloquear)
+    // 2. Duplicidade. E-mail e @ são checados separadamente para a mensagem ser precisa.
+    //    Conta com o mesmo e-mail ainda não confirmada: só reenvia o código. A senha salva
+    //    NÃO é trocada (antes era, o que permitia sequestrar uma conta pendente).
     if (storage.mode === 'd1') {
       const existing = await storage.db
-        .prepare(`SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = LOWER(?)`)
-        .bind(cleanEmail, cleanUsername)
+        .prepare(`SELECT * FROM users WHERE LOWER(email) = ?`)
+        .bind(cleanEmail)
         .first();
+      if (!existing) {
+        const usernameTaken = await storage.db
+          .prepare(`SELECT id FROM users WHERE LOWER(username) = ?`)
+          .bind(cleanUsername)
+          .first();
+        if (usernameTaken) {
+          return jsonResponse({ error: 'Esse @ já está em uso. Escolha outro.', field: 'username' }, 409, correlationId, request);
+        }
+      }
       if (existing) {
         if (existing.email_verified === 0) {
-          const hashed = await hashPasswordEdge(password);
           const nowIso = new Date().toISOString();
-          await storage.db.prepare(`UPDATE users SET password = ?, name = ? WHERE id = ?`).bind(hashed, name.trim(), existing.id).run();
           const rawToken = String(Math.floor(100000 + Math.random() * 900000));
           const tokenHash = await sha256Hex(rawToken);
           const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
           await storage.db.prepare(
-            'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "email_verification", ?, 0, ?)'
+            'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, \'email_verification\', ?, 0, ?)'
           ).bind(`tok_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, existing.id, tokenHash, expiresAt, nowIso).run();
           await sendVerificationEmailEdge(env, {
             email: existing.email,
@@ -255,7 +272,7 @@ export async function handleAuthRoutes(ctx) {
             request
           );
         }
-        return jsonResponse({ error: 'Este e-mail ou nome de usuário já está cadastrado.' }, 409, correlationId, request);
+        return jsonResponse({ error: 'Já existe uma conta com esse e-mail. Entre ou recupere a senha.', field: 'email' }, 409, correlationId, request);
       }
     }
 
@@ -297,7 +314,7 @@ export async function handleAuthRoutes(ctx) {
 
     if (storage.mode === 'd1') {
       await storage.db.prepare(
-        'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "email_verification", ?, 0, ?)'
+        'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, \'email_verification\', ?, 0, ?)'
       ).bind(`tok_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, newId, tokenHash, expiresAt, nowIso).run();
     }
 
@@ -389,7 +406,7 @@ export async function handleAuthRoutes(ctx) {
 
     if (storage.mode === 'd1') {
       const record = await storage.db.prepare(
-        'SELECT * FROM auth_tokens WHERE user_id = ? AND type = "email_verification" AND token_hash = ? AND used = 0 ORDER BY created_at DESC LIMIT 1'
+        'SELECT * FROM auth_tokens WHERE user_id = ? AND type = \'email_verification\' AND token_hash = ? AND used = 0 ORDER BY created_at DESC LIMIT 1'
       ).bind(user.id, candidateHash).first();
 
       if (record) {
@@ -398,7 +415,7 @@ export async function handleAuthRoutes(ctx) {
           return jsonResponse({ error: 'Código de verificação expirado. Solicite um novo código.' }, 400, correlationId, request);
         }
         validToken = true;
-        await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = "email_verification"').bind(user.id).run();
+        await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = \'email_verification\'').bind(user.id).run();
         try {
           await storage.db.prepare('UPDATE users SET email_verified = 1, validation_token_preview = NULL, validation_token_expires_at = NULL WHERE id = ?').bind(user.id).run();
         } catch (_e) {
@@ -413,7 +430,7 @@ export async function handleAuthRoutes(ctx) {
             await storage.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').bind(user.id).run();
           }
           try {
-            await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = "email_verification"').bind(user.id).run();
+            await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = \'email_verification\'').bind(user.id).run();
           } catch (_e) {}
         }
       }
@@ -488,7 +505,7 @@ export async function handleAuthRoutes(ctx) {
     if (storage.mode === 'd1') {
       // Preserva tokens anteriores (ex: Token de 48h gerado no Portal Admin)
       await storage.db.prepare(
-        'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "email_verification", ?, 0, ?)'
+        'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, \'email_verification\', ?, 0, ?)'
       ).bind(`tok_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, user.id, tokenHash, expiresAt, nowIso).run();
     }
 
@@ -559,9 +576,9 @@ export async function handleAuthRoutes(ctx) {
 
     if (storage.mode === 'd1') {
       try {
-        await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = "password_reset" AND used = 0').bind(user.id).run();
+        await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = \'password_reset\' AND used = 0').bind(user.id).run();
         await storage.db.prepare(
-          'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "password_reset", ?, 0, ?)'
+          'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, \'password_reset\', ?, 0, ?)'
         ).bind(`tok_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, user.id, tokenHash, expiresAt, nowIso).run();
 
         await storage.db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE user_id = ?').bind(user.id).run();
@@ -605,8 +622,8 @@ export async function handleAuthRoutes(ctx) {
     if (!inputIdentifier || !token || !newPassword) {
       return jsonResponse({ error: 'Dados incompletos para redefinição.' }, 400, correlationId, request);
     }
-    if (newPassword.length < 6) {
-      return jsonResponse({ error: 'A nova senha deve ter no mínimo 6 caracteres.' }, 400, correlationId, request);
+    if (passwordProblem(newPassword)) {
+      return jsonResponse({ error: passwordProblem(newPassword), field: 'newPassword' }, 400, correlationId, request);
     }
 
     let user = null;
@@ -629,7 +646,7 @@ export async function handleAuthRoutes(ctx) {
     if (storage.mode === 'd1') {
       try {
         const record = await storage.db.prepare(
-          'SELECT * FROM auth_tokens WHERE user_id = ? AND type = "password_reset" AND token_hash = ? AND used = 0 ORDER BY created_at DESC LIMIT 1'
+          'SELECT * FROM auth_tokens WHERE user_id = ? AND type = \'password_reset\' AND token_hash = ? AND used = 0 ORDER BY created_at DESC LIMIT 1'
         ).bind(user.id, candidateHash).first();
 
         if (record && record.expires_at > nowIso) {

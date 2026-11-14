@@ -4,6 +4,7 @@
  */
 
 import { recordAuditLogEdge } from '../_lib/audit.js';
+import { authenticateRequestEdge } from '../_lib/auth.js';
 import { edgeFallbackMemory } from '../_lib/db.js';
 import { jsonResponse, sanitizeStringEdge } from '../_lib/http.js';
 
@@ -72,7 +73,12 @@ export async function handlePublicRoutes(ctx) {
   // ROTAS DE SUPORTE / HELP DESK PARA USUÁRIOS (`/api/support/tickets`)
   // --------------------------------------------------------------------------
   if (pathname === '/api/support/tickets' && method === 'GET') {
-    const userId = url.searchParams.get('userId') || '';
+    // Exige login: cada pessoa vê só os próprios chamados; o admin vê todos.
+    const claims = await authenticateRequestEdge(request, ctx.env);
+    if (!claims) {
+      return jsonResponse({ error: 'Entre na sua conta para ver seus chamados.' }, 401, correlationId, request);
+    }
+    const userId = claims.role === 'admin' ? (url.searchParams.get('userId') || '') : claims.sub;
     if (storage.mode === 'd1') {
       try {
         await storage.db
@@ -91,10 +97,12 @@ export async function handlePublicRoutes(ctx) {
   }
 
   if (pathname === '/api/support/tickets' && method === 'POST') {
+    // Quem está logado tem o chamado ligado à própria conta (o id não vem mais do corpo).
+    const postClaims = await authenticateRequestEdge(request, ctx.env);
     const nowIso = new Date().toISOString();
     const ticket = {
       id: body.id || `TCK-${Math.floor(1000 + Math.random() * 9000)}`,
-      user_id: sanitizeStringEdge(body.user_id || 'usr_anon', 64),
+      user_id: sanitizeStringEdge(postClaims?.sub || 'usr_anon', 64),
       user_name: sanitizeStringEdge(body.user_name || 'Usuário Ethos', 100),
       user_email: sanitizeStringEdge(body.user_email || 'usuario@ethos.dev', 120),
       category: sanitizeStringEdge(body.category || 'Dúvida / Uso do Sistema', 80),

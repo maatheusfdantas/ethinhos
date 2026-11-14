@@ -178,8 +178,9 @@ export async function authenticateRequestEdge(request, env) {
   }
   if (!token) return null;
   const claims = await verifyJwtEdge(token, env);
-  // Refresh tokens não autenticam rotas de recurso (só servem em /api/auth/refresh).
-  if (!claims || claims.type === 'refresh') return null;
+  // Só access tokens (sem `type`) autenticam rotas. Refresh, estado de OAuth e tickets de
+  // vínculo são assinados com a mesma chave, mas não podem ser usados como sessão.
+  if (!claims || claims.type) return null;
   return claims;
 }
 

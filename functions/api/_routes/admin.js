@@ -9,6 +9,7 @@ import { ALL_PERMS } from '../_lib/constants.js';
 import { edgeFallbackMemory } from '../_lib/db.js';
 import { formatTokenDisplayEdge, sendVerificationEmailEdge, sha256Hex } from '../_lib/email.js';
 import { jsonResponse } from '../_lib/http.js';
+import { passwordProblem } from '../../../src/domain/credentials.js';
 
 /** Devolve a Response da rota correspondente, ou null se nenhuma rota deste domínio casar. */
 export async function handleAdminRoutes(ctx) {
@@ -61,7 +62,7 @@ export async function handleAdminRoutes(ctx) {
 
     if (storage.mode === 'd1') {
       await storage.db.prepare(
-        'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, "email_verification", ?, 0, ?)'
+        'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, \'email_verification\', ?, 0, ?)'
       ).bind(`tok_48h_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, user.id, tokenHash, expiresAt, nowIso).run();
 
       try {
@@ -111,7 +112,7 @@ export async function handleAdminRoutes(ctx) {
         await storage.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').bind(targetId).run();
       }
       try {
-        await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = "email_verification"').bind(targetId).run();
+        await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = \'email_verification\'').bind(targetId).run();
       } catch (_e) {}
     }
     await recordAuditLogEdge(storage, {
@@ -174,8 +175,8 @@ export async function handleAdminRoutes(ctx) {
   if (adminResetPwdMatch && method === 'POST') {
     const targetId = adminResetPwdMatch[1];
     const newPassword = String(body.newPassword || '');
-    if (newPassword.length < 6) {
-      return jsonResponse({ error: 'A nova senha deve ter no mínimo 6 caracteres.' }, 400, correlationId, request);
+    if (passwordProblem(newPassword)) {
+      return jsonResponse({ error: passwordProblem(newPassword) }, 400, correlationId, request);
     }
     const hashed = await hashPasswordEdge(newPassword);
     if (storage.mode === 'd1') {
