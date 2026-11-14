@@ -14,7 +14,7 @@ import {
   Radio,
   Mail
 } from 'lucide-react';
-import { IconPicker, CleanIcon, CATEGORY_COLOR_PALETTE } from './IconLibrary';
+import { IconField, CleanIcon, CATEGORY_COLOR_PALETTE } from './IconLibrary';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 const COLOR_OPTIONS = CATEGORY_COLOR_PALETTE;
@@ -397,17 +397,9 @@ export function CategoryConfigModal({
             </div>
           </div>
 
-          {/* BIBLIOTECA DE ÍCONES (DIRETRIZES DE ESTILO CLEAN) */}
+          {/* ÍCONE: mostra o atual; a biblioteca abre só quando a pessoa pede */}
           <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #ECEEF4' }}>
-            <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#3A3C58', marginBottom: '8px' }}>
-              Biblioteca de Ícones Separados por Tema (112 Ícones Disponíveis)
-            </label>
-            <IconPicker
-              selectedIcon={icon}
-              onSelectIcon={setIcon}
-              activeColor={color}
-              maxHeight="280px"
-            />
+            <IconField value={icon} onChange={setIcon} color={color} label="Ícone da categoria" />
           </div>
         </div>
 

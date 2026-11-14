@@ -357,3 +357,18 @@ body.rx-body {
 /* Título da tela no topo (no celular a marca ocupa o lugar) */
 .rx-top-title { margin: 0; font-size: 17px; font-weight: 620; letter-spacing: -.01em; color: var(--rx-ink-2); font-family: var(--rx-font); }
 @media (max-width: 900px) { .rx-top-title { display: none; } }
+
+/* ---------- Fase 1: cadastro com @, requisitos de senha, avisos ---------- */
+.rx-at { display: flex; align-items: center; border: 1px solid var(--rx-line-2); border-radius: 13px; background: rgba(33, 29, 59, .7); }
+.rx-at:focus-within { border-color: var(--rx-lavender); box-shadow: 0 0 0 4px rgba(167, 139, 250, .18); }
+.rx-at > span { padding: 0 2px 0 14px; color: var(--rx-ink-3); font-size: 16px; }
+.rx-field .rx-at input { border: 0; background: transparent; box-shadow: none; padding-left: 2px; }
+.rx-field input[aria-invalid="true"], .rx-at:has(input[aria-invalid="true"]) { border-color: var(--rx-bad); }
+.rx-field-error { font-size: 13.5px; color: var(--rx-bad); }
+.rx-reqs { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; color: var(--rx-ink-3); }
+.rx-reqs li { display: flex; align-items: center; gap: 8px; }
+.rx-reqs li.ok { color: var(--rx-lavender); }
+.rx-check-msg.checking { background: var(--rx-wash); color: var(--rx-ink-2); }
+.rx-social-note { margin: 10px 0 0; font-size: 13px; color: var(--rx-ink-3); text-align: center; }
+.rx-btn.ghost:disabled { opacity: .45; }
+.rx-field .rx-at input:focus { border: 0; box-shadow: none; }

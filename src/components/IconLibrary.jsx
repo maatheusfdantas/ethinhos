@@ -353,7 +353,9 @@ export function IconPicker({
   selectedIcon = 'BookOpen',
   onSelectIcon,
   activeColor = '#818cf8',
-  maxHeight = '320px'
+  maxHeight = '320px',
+  autoFocusSearch = false,
+  showPreview = true
 }) {
   const [activeGroup, setActiveGroup] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -392,7 +394,7 @@ export function IconPicker({
       
       {/* BARRA DE PREVIEW DO ÍCONE SELECIONADO & CAMPO DE BUSCA */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-        <div
+        {showPreview && <div
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -408,7 +410,7 @@ export function IconPicker({
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#1A1B2F' }}>
             {currentIconDef.name}
           </span>
-        </div>
+        </div>}
 
         <div style={{ flex: 1, minWidth: '180px', position: 'relative' }}>
           <Search
@@ -420,6 +422,8 @@ export function IconPicker({
             type="text"
             placeholder={`Buscar entre ${CLEAN_ICONS_COLLECTION.length} ícones (ex: código, treino, finanças)...`}
             value={searchQuery}
+            autoFocus={autoFocusSearch}
+            aria-label="Buscar ícone"
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
@@ -618,6 +622,48 @@ export function IconPicker({
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// COMPONENTE: IconField — mostra só o ícone atual; a biblioteca abre ao clicar.
+// Escolher um ícone fecha a lista. Esc também fecha. Mesmo componente para criar e editar.
+// =====================================================================
+export function IconField({ value = 'Bookmark', onChange, color = '#818cf8', label = 'Ícone' }) {
+  const [open, setOpen] = useState(false);
+  const def = CLEAN_ICONS_MAP[value] || null;
+  return (
+    <div onKeyDown={(e) => { if (open && e.key === 'Escape') { e.stopPropagation(); setOpen(false); } }}>
+      <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#3A3C58', marginBottom: '8px' }}>{label}</span>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="ethos-icon-library"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: '10px', minHeight: '44px', padding: '6px 14px 6px 8px',
+          borderRadius: '12px', border: `1.5px solid ${open ? color : '#D5D6E2'}`, backgroundColor: '#FFFFFF', cursor: 'pointer'
+        }}
+      >
+        <span style={{ width: '32px', height: '32px', borderRadius: '9px', display: 'grid', placeItems: 'center', backgroundColor: `${color}1F` }}>
+          <CleanIcon name={value} size={18} color={color} strokeWidth={2.2} />
+        </span>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1A1B2F' }}>{def ? def.name : 'Sem ícone'}</span>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: '#5B4FD0', marginLeft: '6px' }}>{open ? 'Fechar' : 'Trocar ícone'}</span>
+      </button>
+      {open && (
+        <div id="ethos-icon-library" style={{ marginTop: '10px' }}>
+          <IconPicker
+            selectedIcon={value}
+            activeColor={color}
+            maxHeight="260px"
+            autoFocusSearch
+            showPreview={false}
+            onSelectIcon={(id) => { onChange?.(id); setOpen(false); }}
+          />
+        </div>
+      )}
     </div>
   );
 }

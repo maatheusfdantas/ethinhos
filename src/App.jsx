@@ -25,12 +25,15 @@ import { TabErrorBoundary } from './components/TabErrorBoundary';
 import { SpringPageTransition } from './components/ui/MotionPrimitives';
 import { useUserSync } from './hooks/useUserSync';
 import { apiFetch } from './utils/api';
+import { oauthErrorMessage, PROVIDER_LABEL, takeOAuthReturn } from './utils/oauthMessages';
 
 export function App() {
-  const isReturningFromGoogleOAuth = typeof window !== 'undefined' && window.location.search.includes('google_auth=');
+  // Volta do login social: a tela de login troca o código pela sessão (mesmo que haja outra sessão salva).
+  const isOAuthLoginReturn = typeof window !== 'undefined' && /[?&]auth=ok/.test(window.location.search);
 
   // Persistência de sessão: restaura o usuário logado ao recarregar a página
   const [user, setUser] = useState(() => {
+    if (isOAuthLoginReturn) return null;
     try {
       const saved = localStorage.getItem('ethos_current_user') || sessionStorage.getItem('ethos_current_user');
       if (saved) {
@@ -38,9 +41,6 @@ export function App() {
       }
     } catch (e) {
       console.warn('Erro ao restaurar sessão salva:', e);
-    }
-    if (isReturningFromGoogleOAuth) {
-      return { id: 'usr_1', name: 'Lucas Dev', username: 'lucas', email: 'lucas@ethos.dev', role: 'user', avatar: 'LD' };
     }
     return null;
   });
@@ -83,7 +83,7 @@ export function App() {
 
   // Active Navigation Tab (abre direto na aba Calendário ao retornar do Google OAuth)
   const [activeTab, setActiveTab] = useState(() => {
-    if (isReturningFromGoogleOAuth) return 'calendar';
+    if (typeof window !== 'undefined' && window.location.search.includes('google_auth=')) return 'calendar';
     try {
       const savedTab = localStorage.getItem('ethos_active_tab');
       if (savedTab) return savedTab;
@@ -116,41 +116,14 @@ export function App() {
     }
   }, [user?.pagePreferences, activeTab]);
 
-  // Captura retorno de autenticação social OAuth (Google Agenda ou Microsoft Graph)
+  // Avisos da volta do provedor quando já há sessão (ex.: conectar conta pelo Perfil).
+  // O login social em si é tratado na tela de login; nenhum token vem mais pela URL.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const urlParams = new URLSearchParams(window.location.search);
-    const authSuccess = urlParams.get('auth_success');
-    const accessToken = urlParams.get('access_token');
-    const refreshToken = urlParams.get('refresh_token');
-    const rawUser = urlParams.get('user');
-    const authError = urlParams.get('auth_error');
-
-    if (authError) {
-      showToast(`Aviso de login social: ${decodeURIComponent(authError)}`);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      return;
-    }
-
-    if (authSuccess === 'true' && accessToken && rawUser) {
-      try {
-        const parsedUser = JSON.parse(rawUser);
-        localStorage.setItem('ethos_access_token', accessToken);
-        sessionStorage.setItem('ethos_access_token', accessToken);
-        if (refreshToken) {
-          localStorage.setItem('ethos_refresh_token', refreshToken);
-          sessionStorage.setItem('ethos_refresh_token', refreshToken);
-        }
-        localStorage.setItem('ethos_current_user', JSON.stringify(parsedUser));
-        sessionStorage.setItem('ethos_current_user', JSON.stringify(parsedUser));
-        setUser(parsedUser);
-        loadUserData(parsedUser);
-        showToast(`Bem-vindo, ${parsedUser.name}! Agenda sincronizada.`);
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (err) {
-        console.error('Erro ao processar sessão OAuth:', err);
-      }
-    }
+    if (!user || isOAuthLoginReturn) return;
+    const ret = takeOAuthReturn();
+    if (ret.connected) showToast(`${PROVIDER_LABEL[ret.connected] || 'Conta'} conectada.`);
+    else if (ret.error) showToast(oauthErrorMessage(ret.error));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Modals & Header Controls

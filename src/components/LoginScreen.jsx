@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CheckCircle2, AlertCircle, Circle } from 'lucide-react';
+import { normalizeUsername, passwordChecklist, passwordProblem, usernameProblem } from '../domain/credentials';
+import { oauthErrorMessage, takeOAuthReturn } from '../utils/oauthMessages';
 import { DustCanvas } from './rx/DustCanvas';
 import { BrandMark } from './Nav';
 
@@ -15,6 +17,12 @@ export function LoginScreen({ onLoginSuccess }) {
   const [regEmail, setRegEmail] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regPasswordConfirm, setRegPasswordConfirm] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [usernameCheck, setUsernameCheck] = useState({ status: 'idle', message: '' });
+  const [providers, setProviders] = useState({ google: false, microsoft: false, loaded: false });
+  const [pendingSession, setPendingSession] = useState(null); // conta nova do Google/Microsoft escolhendo o @
+  const [chosenUsername, setChosenUsername] = useState('');
   const [emailCheck, setEmailCheck] = useState({
     status: 'idle', // 'idle' | 'checking' | 'valid' | 'invalid'
     message: '',
@@ -67,6 +75,93 @@ export function LoginScreen({ onLoginSuccess }) {
         mxServer: ''
       });
       return false;
+    }
+  };
+
+  // Sessão pronta: guarda os tokens e entra
+  const finishLogin = (data) => {
+    if (data.auth?.accessToken) {
+      sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+      localStorage.setItem('ethos_access_token', data.auth.accessToken);
+    }
+    if (data.auth?.refreshToken) {
+      sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+      localStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
+    }
+    const { needsUsername: _n, ...user } = data;
+    onLoginSuccess(user);
+  };
+
+  // Quais logins sociais estão configurados no servidor
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/auth/oauth/providers')
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((d) => { if (alive) setProviders({ google: !!d.google, microsoft: !!d.microsoft, loaded: true }); })
+      .catch(() => { if (alive) setProviders((p) => ({ ...p, loaded: true })); });
+    return () => { alive = false; };
+  }, []);
+
+  // Volta do Google/Microsoft: troca o código de uso único pela sessão
+  const oauthHandled = useRef(false);
+  useEffect(() => {
+    if (oauthHandled.current) return;
+    oauthHandled.current = true;
+    const ret = takeOAuthReturn();
+    if (ret.error) { setErrorMessage(oauthErrorMessage(ret.error)); return; }
+    if (!ret.ok || !ret.code) return;
+    setMode('oauth_wait');
+    fetch('/api/auth/oauth/exchange', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: ret.code }) })
+      .then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => ({})) }))
+      .then(({ ok, data }) => {
+        if (!ok) { setMode('login'); setErrorMessage(data.error || oauthErrorMessage('falha')); return; }
+        if (data.needsUsername) { setPendingSession(data); setChosenUsername(''); setMode('choose_username'); return; }
+        finishLogin(data);
+      })
+      .catch(() => { setMode('login'); setErrorMessage(oauthErrorMessage('falha')); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Disponibilidade do @ em tempo real (cadastro e escolha após login social)
+  const usernameValue = mode === 'choose_username' ? chosenUsername : regUsername;
+  useEffect(() => {
+    if (mode !== 'register' && mode !== 'choose_username') return undefined;
+    const u = normalizeUsername(usernameValue);
+    if (!u) { setUsernameCheck({ status: 'idle', message: '' }); return undefined; }
+    const problem = usernameProblem(u);
+    if (problem) { setUsernameCheck({ status: 'invalid', message: problem }); return undefined; }
+    setUsernameCheck({ status: 'checking', message: 'Verificando disponibilidade…' });
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/auth/username-available?u=${encodeURIComponent(u)}`);
+        const d = await r.json();
+        setUsernameCheck(d.available ? { status: 'valid', message: `@${u} está disponível.` } : { status: 'invalid', message: d.reason || 'Esse @ não está disponível.' });
+      } catch {
+        setUsernameCheck({ status: 'idle', message: '' });
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [usernameValue, mode]);
+
+  const handleChooseUsername = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    const problem = usernameProblem(chosenUsername);
+    if (problem) { setFieldErrors({ username: problem }); return; }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/username', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pendingSession?.auth?.accessToken || ''}` },
+        body: JSON.stringify({ username: normalizeUsername(chosenUsername) })
+      });
+      const data = await res.json();
+      if (!res.ok) { setFieldErrors({ username: data.error || 'Não foi possível salvar o @.' }); return; }
+      finishLogin(data);
+    } catch {
+      setErrorMessage('Erro ao comunicar com o servidor.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -128,6 +223,16 @@ export function LoginScreen({ onLoginSuccess }) {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    const errs = {};
+    if (!regName.trim()) errs.name = 'Informe seu nome.';
+    const uProblem = usernameProblem(regUsername);
+    if (uProblem) errs.username = uProblem;
+    else if (usernameCheck.status === 'invalid') errs.username = usernameCheck.message;
+    const pProblem = passwordProblem(regPassword);
+    if (pProblem) errs.password = pProblem;
+    if (regPassword !== regPasswordConfirm) errs.passwordConfirm = 'As senhas não coincidem.';
+    setFieldErrors(errs);
+    if (Object.keys(errs).length) return;
     setLoading(true);
 
     try {
@@ -144,14 +249,16 @@ export function LoginScreen({ onLoginSuccess }) {
         body: JSON.stringify({
           name: regName.trim(),
           email: regEmail.trim(),
-          username: regUsername.trim() || regEmail.split('@')[0],
-          password: regPassword
+          username: normalizeUsername(regUsername),
+          password: regPassword,
+          passwordConfirm: regPasswordConfirm
         })
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMessage(data.error || 'Erro ao criar conta.');
+        if (data.field) setFieldErrors({ [data.field]: data.error });
+        else setErrorMessage(data.error || 'Erro ao criar conta.');
         setLoading(false);
         return;
       }
@@ -284,6 +391,8 @@ export function LoginScreen({ onLoginSuccess }) {
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    const pProblem = passwordProblem(newPassword);
+    if (pProblem) { setErrorMessage(pProblem); return; }
     setLoading(true);
 
     try {
@@ -317,13 +426,45 @@ export function LoginScreen({ onLoginSuccess }) {
     }
   };
 
-  const goto = (m) => { setErrorMessage(''); setMode(m); };
-  const social = (provider) => { window.location.href = `/api/auth/oauth/${provider}?action=login`; };
+  const goto = (m) => { setErrorMessage(''); setFieldErrors({}); setMode(m); };
+  const social = (provider, action = 'login') => { window.location.href = `/api/auth/oauth/${provider}?action=${action}`; };
+  const anySocial = providers.google || providers.microsoft;
+  const socialButtons = (action) => (
+    <>
+      <div className="rx-divider">{action === 'signup' ? 'ou crie com' : 'ou continue com'}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <button type="button" className="rx-btn ghost" style={{ height: 46 }} disabled={!providers.google} onClick={() => social('google', action)}>Google</button>
+        <button type="button" className="rx-btn ghost" style={{ height: 46 }} disabled={!providers.microsoft} onClick={() => social('microsoft', action)}>Microsoft</button>
+      </div>
+      {providers.loaded && !anySocial && <p className="rx-social-note">Entrar com Google ou Microsoft ainda não está disponível. Use e-mail e senha por enquanto.</p>}
+    </>
+  );
+  const clearErr = (k) => setFieldErrors((e) => (e[k] ? { ...e, [k]: undefined } : e));
+  const fieldError = (k) => fieldErrors[k] ? <span className="rx-field-error" role="alert">{fieldErrors[k]}</span> : null;
+  const checklist = (value, id) => (
+    <ul className="rx-reqs" id={id} aria-live="polite">
+      {passwordChecklist(value).map((r) => (
+        <li key={r.id} className={r.ok ? 'ok' : ''}>
+          {r.ok ? <CheckCircle2 size={15} aria-hidden="true" /> : <Circle size={15} aria-hidden="true" />}
+          <span>{r.label}<span className="sr-only">{r.ok ? ': atendido' : ': pendente'}</span></span>
+        </li>
+      ))}
+    </ul>
+  );
+  const usernameStatus = usernameCheck.status !== 'idle' && !fieldErrors.username && (
+    <div className={`rx-check-msg ${usernameCheck.status}`} role="status">
+      {usernameCheck.status === 'valid' && <CheckCircle2 size={16} />}
+      {usernameCheck.status === 'invalid' && <AlertCircle size={16} />}
+      <span>{usernameCheck.message}</span>
+    </div>
+  );
   const titles = {
     login: ['Entrar no Ethos', 'Que bom te ver de novo.'],
     register: ['Criar sua conta', 'Leva menos de um minuto. Depois é só começar.'],
     register_verify: ['Confirme seu e-mail', maskedEmail ? `Enviamos um código para ${maskedEmail}.` : 'Digite o código que enviamos para o seu e-mail.'],
     forgot_request: ['Recuperar senha', 'Informe seu e-mail ou usuário para receber um código.'],
+    choose_username: ['Escolha seu @', 'Esse será o @ da sua conta no Ethos. Outras pessoas vão te encontrar por ele.'],
+    oauth_wait: ['Entrando…', 'Só um instante.'],
     forgot_verify: ['Nova senha', maskedEmail ? `Digite o código enviado para ${maskedEmail} e escolha a nova senha.` : 'Digite o código recebido e escolha a nova senha.']
   };
   const [title, lead] = titles[mode] || titles.login;
@@ -377,11 +518,7 @@ export function LoginScreen({ onLoginSuccess }) {
                 <button type="button" className="rx-text-btn" onClick={() => goto('forgot_request')}>Esqueci minha senha</button>
                 <button type="button" className="rx-text-btn" onClick={() => goto('register_verify')}>Tenho um código de confirmação</button>
               </div>
-              <div className="rx-divider">ou continue com</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <button type="button" className="rx-btn ghost" style={{ height: 46 }} onClick={() => social('google')}>Google</button>
-                <button type="button" className="rx-btn ghost" style={{ height: 46 }} onClick={() => social('microsoft')}>Microsoft</button>
-              </div>
+              {socialButtons('login')}
               <p className="rx-switch">Ainda não tem conta? <button type="button" className="rx-text-btn" onClick={() => goto('register')}>Criar conta</button></p>
             </form>
           )}
@@ -390,20 +527,22 @@ export function LoginScreen({ onLoginSuccess }) {
             <form onSubmit={handleRegisterSubmit} noValidate>
               <div className="rx-field">
                 <label htmlFor="rxName">Nome</label>
-                <input id="rxName" type="text" autoComplete="name" value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="Como quer ser chamado" required />
+                <input id="rxName" type="text" autoComplete="name" value={regName} onChange={(e) => { setRegName(e.target.value); clearErr('name'); }} placeholder="Como quer ser chamado" required aria-invalid={!!fieldErrors.name} />
+                {fieldError('name')}
               </div>
               <div className="rx-field">
                 <label htmlFor="rxEmail">E-mail</label>
                 <div className="row">
                   <input
                     id="rxEmail" type="email" autoComplete="email" value={regEmail} placeholder="voce@exemplo.com" required
-                    onChange={(e) => { setRegEmail(e.target.value); if (emailCheck.status !== 'idle') setEmailCheck({ status: 'idle', message: '', mxServer: '' }); }}
+                    onChange={(e) => { setRegEmail(e.target.value); clearErr('email'); if (emailCheck.status !== 'idle') setEmailCheck({ status: 'idle', message: '', mxServer: '' }); }}
                     onBlur={() => { if (regEmail && emailCheck.status === 'idle') verifyEmailAddress(regEmail); }}
                   />
                   <button type="button" className="rx-btn ghost" style={{ height: 48 }} disabled={!regEmail || emailCheck.status === 'checking'} onClick={() => verifyEmailAddress(regEmail)}>
                     {emailCheck.status === 'checking' ? 'Verificando…' : 'Verificar'}
                   </button>
                 </div>
+                {fieldError('email')}
                 {emailCheck.status !== 'idle' && (
                   <div className={`rx-check-msg ${emailCheck.status}`} role="status">
                     {emailCheck.status === 'valid' && <CheckCircle2 size={16} />}
@@ -413,16 +552,48 @@ export function LoginScreen({ onLoginSuccess }) {
                 )}
               </div>
               <div className="rx-field">
-                <label htmlFor="rxUser">Usuário <span style={{ fontWeight: 400, color: 'var(--rx-ink-3)' }}>(opcional)</span></label>
-                <input id="rxUser" type="text" autoComplete="username" value={regUsername} onChange={(e) => setRegUsername(e.target.value)} placeholder={regEmail ? regEmail.split('@')[0] : 'seu.usuario'} />
+                <label htmlFor="rxUser">Seu @ no Ethos</label>
+                <div className="rx-at"><span aria-hidden="true">@</span>
+                  <input id="rxUser" type="text" autoComplete="username" autoCapitalize="none" spellCheck="false" maxLength={21} value={regUsername}
+                    onChange={(e) => { setRegUsername(e.target.value.replace(/^@+/, '')); clearErr('username'); }} placeholder="seu.nome" required aria-invalid={!!fieldErrors.username} aria-describedby="rxUserHint" />
+                </div>
+                <span className="hint" id="rxUserHint">Esse será o @ da sua conta. Letras minúsculas, números, ponto e sublinhado.</span>
+                {fieldError('username')}
+                {usernameStatus}
               </div>
               <div className="rx-field">
                 <label htmlFor="rxNewPass">Senha</label>
-                <input id="rxNewPass" type="password" autoComplete="new-password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Crie uma senha" required />
-                <span className="hint">Use pelo menos 6 caracteres.</span>
+                <input id="rxNewPass" type="password" autoComplete="new-password" value={regPassword} onChange={(e) => { setRegPassword(e.target.value); clearErr('password'); }} placeholder="Crie uma senha" required aria-invalid={!!fieldErrors.password} aria-describedby="rxPassReqs" />
+                {checklist(regPassword, 'rxPassReqs')}
+                {fieldError('password')}
+              </div>
+              <div className="rx-field">
+                <label htmlFor="rxNewPass2">Confirmar senha</label>
+                <input id="rxNewPass2" type="password" autoComplete="new-password" value={regPasswordConfirm} onChange={(e) => { setRegPasswordConfirm(e.target.value); clearErr('passwordConfirm'); }} placeholder="Digite a senha de novo" required aria-invalid={!!fieldErrors.passwordConfirm} />
+                {regPasswordConfirm && regPassword !== regPasswordConfirm && !fieldErrors.passwordConfirm && <span className="rx-field-error" role="alert">As senhas não coincidem.</span>}
+                {fieldError('passwordConfirm')}
               </div>
               <button type="submit" className="rx-btn full" disabled={loading}>{loading ? 'Criando conta…' : 'Criar conta'}</button>
+              {socialButtons('signup')}
               <p className="rx-switch">Já tem conta? <button type="button" className="rx-text-btn" onClick={() => goto('login')}>Entrar</button></p>
+            </form>
+          )}
+
+          {mode === 'oauth_wait' && <p className="lead" role="status">Confirmando seu login…</p>}
+
+          {mode === 'choose_username' && (
+            <form onSubmit={handleChooseUsername} noValidate>
+              <div className="rx-field">
+                <label htmlFor="rxChoose">Seu @ no Ethos</label>
+                <div className="rx-at"><span aria-hidden="true">@</span>
+                  <input id="rxChoose" type="text" autoComplete="username" autoCapitalize="none" spellCheck="false" maxLength={21} autoFocus value={chosenUsername}
+                    onChange={(e) => { setChosenUsername(e.target.value.replace(/^@+/, '')); setFieldErrors({}); }} placeholder="seu.nome" required aria-invalid={!!fieldErrors.username} />
+                </div>
+                <span className="hint">Letras minúsculas, números, ponto e sublinhado. De 3 a 20 caracteres.</span>
+                {fieldError('username')}
+                {usernameStatus}
+              </div>
+              <button type="submit" className="rx-btn full" disabled={loading || usernameCheck.status === 'checking'}>{loading ? 'Salvando…' : 'Continuar'}</button>
             </form>
           )}
 
@@ -465,7 +636,8 @@ export function LoginScreen({ onLoginSuccess }) {
               </div>
               <div className="rx-field">
                 <label htmlFor="rxResetPass">Nova senha</label>
-                <input id="rxResetPass" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Escolha uma nova senha" required />
+                <input id="rxResetPass" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Escolha uma nova senha" required aria-describedby="rxResetReqs" />
+                {checklist(newPassword, 'rxResetReqs')}
               </div>
               <button type="submit" className="rx-btn full" disabled={loading}>{loading ? 'Salvando…' : 'Redefinir senha'}</button>
             </form>
