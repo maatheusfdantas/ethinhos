@@ -128,69 +128,32 @@ async function hashPasswordEdge(plainPassword, existingSaltHex = null) {
   return `pbkdf2$${saltHex}$${hashHex}`;
 }
 
+/** Comparação em tempo constante de duas strings hex de mesmo tamanho. */
+function timingSafeEqualHex(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * HOTFIX: aceita apenas hash PBKDF2 gravado (`pbkdf2$salt$hash` ou `pbkdf2_sha256$...`).
+ * Sem senhas mestras/aliases e sem comparação em texto puro (contas OAuth, cujo campo
+ * de senha guarda um marcador fixo, não podem mais ser acessadas por senha).
+ */
 async function verifyPasswordEdge(plainPassword, storedPassword) {
-  if (!storedPassword) return false;
-  const strPlain = String(plainPassword);
+  if (typeof storedPassword !== 'string' || !storedPassword) return false;
+  if (!storedPassword.startsWith('pbkdf2$') && !storedPassword.startsWith('pbkdf2_sha256$')) return false;
 
-  // 1. Verificação de hash PBKDF2 (aceita tanto 'pbkdf2$' quanto 'pbkdf2_sha256$')
-  if (storedPassword.startsWith('pbkdf2$') || storedPassword.startsWith('pbkdf2_sha256$')) {
-    const parts = storedPassword.split('$');
-    if (parts.length === 3) {
-      const saltHex = parts[1];
-      const storedHashHex = parts[2];
-      try {
-        const candidate = await hashPasswordEdge(strPlain, saltHex);
-        const candidateHashHex = candidate.split('$')[2];
-        if (candidateHashHex === storedHashHex) return true;
+  const parts = storedPassword.split('$');
+  if (parts.length !== 3 || !/^[0-9a-f]+$/i.test(parts[1]) || !/^[0-9a-f]{64}$/i.test(parts[2])) return false;
 
-        // Suporte retrocompatível para admin (Admin@2026!Ethos ou admin123)
-        if (strPlain === 'Admin@2026!Ethos' || strPlain === 'admin123') {
-          for (const alias of ['Admin@2026!Ethos', 'admin123']) {
-            const c = await hashPasswordEdge(alias, saltHex);
-            if (c.split('$')[2] === storedHashHex) return true;
-          }
-        }
-
-        // Suporte retrocompatível para contas de usuário (Teste@2026!Ethos, teste123, Ethos@User123! ou 123)
-        if (strPlain === 'Teste@2026!Ethos' || strPlain === 'teste123' || strPlain === 'Ethos@User123!' || strPlain === '123') {
-          for (const alias of ['Teste@2026!Ethos', 'teste123', 'Ethos@User123!', '123']) {
-            const c = await hashPasswordEdge(alias, saltHex);
-            if (c.split('$')[2] === storedHashHex) return true;
-          }
-        }
-      } catch (e) {}
-    }
+  try {
+    const candidate = await hashPasswordEdge(String(plainPassword), parts[1]);
+    return timingSafeEqualHex(candidate.split('$')[2], parts[2].toLowerCase());
+  } catch (_e) {
+    return false;
   }
-
-  // 2. Suporte universal a senhas mestras de demonstração / admin
-  if (strPlain === 'Admin@2026!Ethos' || strPlain === 'admin123') {
-    if (
-      storedPassword.includes('febf532795b036798452056058a895de') ||
-      storedPassword.includes('admin') ||
-      storedPassword === 'admin123' ||
-      storedPassword === 'Admin@2026!Ethos'
-    ) {
-      return true;
-    }
-  }
-
-  if (strPlain === 'Teste@2026!Ethos' || strPlain === 'teste123' || strPlain === 'Ethos@User123!' || strPlain === '123') {
-    if (
-      storedPassword.includes('cc0f5f3e6731f40c32c7d213ef07d13d') ||
-      storedPassword.includes('cb31c61939830df7483ad19c0a93d07a') ||
-      storedPassword.includes('84031a9eca1665248f7748df78788360') ||
-      storedPassword.includes('f9021394d7cbb44c77fae0821fc12687') ||
-      storedPassword.includes('e5ed0191f53323c19c425ae34740b482') ||
-      storedPassword === '123' ||
-      storedPassword === 'teste123' ||
-      storedPassword === 'Teste@2026!Ethos' ||
-      storedPassword === 'Ethos@User123!'
-    ) {
-      return true;
-    }
-  }
-
-  return strPlain === String(storedPassword);
 }
 
 function base64UrlEncode(strOrBytes) {
@@ -213,8 +176,24 @@ function base64UrlDecodeToString(b64url) {
   return new TextDecoder().decode(bytes);
 }
 
+/** Erro de configuração do servidor (ex.: segredo ausente). onRequest responde 503. */
+class ServerConfigError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'ServerConfigError';
+  }
+}
+
+const MIN_JWT_SECRET_LENGTH = 32;
+
+/** HOTFIX: sem segredo padrão embutido. Falha fechada se JWT_SECRET faltar ou for curto. */
 async function getHmacKeyEdge(env) {
-  const secret = env?.JWT_SECRET || 'ethos_edge_jwt_hmac_secret_2026_v1_production_key_secure';
+  const secret = env?.JWT_SECRET;
+  if (typeof secret !== 'string' || secret.length < MIN_JWT_SECRET_LENGTH) {
+    throw new ServerConfigError(
+      `JWT_SECRET ausente ou com menos de ${MIN_JWT_SECRET_LENGTH} caracteres. Configure-o nas variáveis do Cloudflare Pages.`
+    );
+  }
   return crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
@@ -225,7 +204,8 @@ async function getHmacKeyEdge(env) {
 }
 
 async function signJwtEdge(payload, env, ttlSeconds = 30 * 24 * 3600) {
-  const effectiveTtl = Math.max(ttlSeconds || 0, 30 * 24 * 3600);
+  // HOTFIX: respeita o TTL pedido (antes havia um piso de 30 dias, inclusive no access token).
+  const effectiveTtl = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds : 30 * 24 * 3600;
   const nowSec = Math.floor(Date.now() / 1000);
   const headerB64 = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const fullPayload = {
@@ -271,6 +251,10 @@ async function verifyJwtEdge(token, env) {
   }
 }
 
+/**
+ * Claims do token de ACESSO da requisição, ou null.
+ * HOTFIX: refresh tokens não autenticam rotas de recurso (só servem em /api/auth/refresh).
+ */
 async function authenticateRequestEdge(request, env) {
   let token = '';
   const authHeader = request.headers.get('Authorization') || '';
@@ -282,7 +266,9 @@ async function authenticateRequestEdge(request, env) {
     if (cookieMatch) token = cookieMatch[1].trim();
   }
   if (!token) return null;
-  return verifyJwtEdge(token, env);
+  const claims = await verifyJwtEdge(token, env);
+  if (!claims || claims.type === 'refresh') return null;
+  return claims;
 }
 
 // ============================================================================
@@ -451,7 +437,7 @@ function maskEmailEdge(emailStr) {
 }
 
 async function sendResendEmailEdge(env, { to, subject, html, text }) {
-  const apiKey = env?.RESEND_API_KEY || (typeof process !== 'undefined' ? process.env?.RESEND_API_KEY : '') || 're_UT5T9E4B_9qkasyb3dheYv4Spd5yvJz3o';
+  const apiKey = env?.RESEND_API_KEY || (typeof process !== 'undefined' ? process.env?.RESEND_API_KEY : '') || ''; // HOTFIX: sem chave embutida
   const recipient = Array.isArray(to) ? to : [to];
   const from = env?.RESEND_FROM || (typeof process !== 'undefined' ? process.env?.RESEND_FROM : '') || 'Ethos <onboarding@resend.dev>';
 
@@ -972,25 +958,31 @@ async function ensureDatabaseReady(env) {
   const nowIso = new Date().toISOString();
   const todayStr = nowIso.split('T')[0];
 
-  const defaultUsers = [
-    {
-      id: 'usr_admin',
-      username: 'admin',
-      email: 'admin@ethos.local',
-      password: await hashPasswordEdge('Admin@2026!Ethos'),
-      name: 'Administrador Ethos',
-      avatar: 'AD',
-      role: 'admin',
-      is_active: 1,
-      subscription_tier: 'Enterprise / Fundador',
-      is_public: 1,
-      permissions: ALL_PERMS,
-      streak_days: 0,
-      points: 0,
-      weight: 75.0,
-      height: 1.78
-    }
-  ];
+  // HOTFIX: admin inicial só é criado se ADMIN_INITIAL_PASSWORD estiver definido.
+  // Sem senha padrão no código; o hash (caro) só é calculado ao semear.
+  const buildDefaultUsers = async () => {
+    const initialPassword = env?.ADMIN_INITIAL_PASSWORD;
+    if (!initialPassword) return [];
+    return [
+      {
+        id: 'usr_admin',
+        username: 'admin',
+        email: 'admin@ethos.local',
+        password: await hashPasswordEdge(initialPassword),
+        name: 'Administrador Ethos',
+        avatar: 'AD',
+        role: 'admin',
+        is_active: 1,
+        subscription_tier: 'Enterprise / Fundador',
+        is_public: 1,
+        permissions: ALL_PERMS,
+        streak_days: 0,
+        points: 0,
+        weight: 75.0,
+        height: 1.78
+      }
+    ];
+  };
 
   if (env && env.DB) {
     if (d1Initialized) return { mode: 'd1', db: env.DB };
@@ -1057,7 +1049,7 @@ async function ensureDatabaseReady(env) {
 
     const countRow = await env.DB.prepare(`SELECT COUNT(*) as c FROM users`).first();
     if (!countRow || countRow.c === 0) {
-      for (const u of defaultUsers) {
+      for (const u of await buildDefaultUsers()) {
         await env.DB.prepare(
           `INSERT OR IGNORE INTO users (id, username, email, password, name, avatar, role, is_active, subscription_tier, is_public, permissions, streak_days, points, weight, height, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
@@ -1088,7 +1080,7 @@ async function ensureDatabaseReady(env) {
   }
 
   if (!edgeFallbackMemory.initialized) {
-    for (const u of defaultUsers) {
+    for (const u of await buildDefaultUsers()) {
       edgeFallbackMemory.users.set(u.id, u);
     }
     edgeFallbackMemory.initialized = true;
@@ -1190,7 +1182,7 @@ function buildEdgeAnalyticsReport(userId, habitsList = []) {
 // ============================================================================
 // 7. HANDLER PRINCIPAL DO CLOUDFLARE PAGES FUNCTIONS
 // ============================================================================
-export async function onRequest(context) {
+async function handleRequest(context) {
   const { request, env } = context;
   const correlationId = crypto.randomUUID();
   const clientIp =
@@ -1265,21 +1257,18 @@ export async function onRequest(context) {
       return jsonResponse({ error: 'Informe e-mail/usuário e senha.' }, 400, correlationId, request);
     }
 
-    // Permitir sempre a tentativa do admin@ethos.local sem bloqueio de IP/brute-force
-    const isAdminLogin = login === 'admin@ethos.local' || login === 'admin.local' || login === 'admin';
-    if (!isAdminLogin) {
-      const bruteCheck = await checkBruteForceEdge(storage, clientIp, login);
-      if (!bruteCheck.allowed) {
-        await recordAuditLogEdge(storage, {
-          eventType: 'BRUTE_FORCE_LOCKED',
-          userId: login,
-          ipAddress: clientIp,
-          userAgent,
-          metadata: { login },
-          correlationId
-        });
-        return jsonResponse({ error: bruteCheck.message }, 429, correlationId, request);
-      }
+    // HOTFIX: proteção contra força bruta vale para TODAS as contas, inclusive o admin.
+    const bruteCheck = await checkBruteForceEdge(storage, clientIp, login);
+    if (!bruteCheck.allowed) {
+      await recordAuditLogEdge(storage, {
+        eventType: 'BRUTE_FORCE_LOCKED',
+        userId: login,
+        ipAddress: clientIp,
+        userAgent,
+        metadata: { login },
+        correlationId
+      });
+      return jsonResponse({ error: bruteCheck.message }, 429, correlationId, request);
     }
 
     let user = null;
@@ -2161,12 +2150,13 @@ export async function onRequest(context) {
       edgeFallbackMemory.waitlist.unshift(entry);
     }
 
+    // HOTFIX: o log de auditoria não duplica nome, e-mail nem telefone (ficam só na tabela waitlist).
     await recordAuditLogEdge(storage, {
       eventType: 'WAITLIST_SIGNUP',
-      userId: email,
+      userId: null,
       ipAddress: clientIp,
       userAgent,
-      metadata: { name, email, phone, source },
+      metadata: { waitlistId: entryId, source },
       correlationId
     });
 
@@ -2247,10 +2237,9 @@ export async function onRequest(context) {
 
   if (protectedUserRouteMatch) {
     const targetUserId = protectedUserRouteMatch[1];
-    const clientUserId = request.headers.get('x-ethos-user-id') || '';
 
-    // Se não há token JWT assinado nem cabeçalho de sessão compatível com o titular
-    if (!authClaims && clientUserId !== targetUserId) {
+    // HOTFIX: JWT de acesso é obrigatório. O cabeçalho X-Ethos-User-Id não autoriza nada.
+    if (!authClaims) {
       return jsonResponse(
         { error: 'Não autorizado: Token JWT ausente, inválido ou expirado.' },
         401,
@@ -3325,4 +3314,16 @@ export async function onRequest(context) {
   }
 
   return jsonResponse({ error: 'Rota não encontrada.' }, 404, correlationId, request);
+}
+
+// HOTFIX: falta de configuração (ex.: JWT_SECRET) responde 503 claro, em vez de erro 500 genérico.
+export async function onRequest(context) {
+  try {
+    return await handleRequest(context);
+  } catch (err) {
+    if (err instanceof ServerConfigError) {
+      return jsonResponse({ error: err.message }, 503, crypto.randomUUID(), context.request);
+    }
+    throw err;
+  }
 }
