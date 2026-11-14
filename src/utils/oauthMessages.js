@@ -8,12 +8,13 @@ export const OAUTH_ERROR_MESSAGES = {
   conta_existe: 'Já existe uma conta Ethos com esse e-mail. Entre com sua senha e conecte o provedor em Perfil > Contas conectadas.',
   ja_vinculada: 'Essa conta do provedor já está ligada a outro usuário do Ethos.',
   conta_desativada: 'Sua conta está desativada. Fale com o suporte.',
+  spotify_nao_liberado: 'Sua conta do Spotify ainda não foi liberada para testar o Ethos. Peça ao administrador para cadastrá-la.',
   falha: 'Não foi possível concluir o login agora. Tente de novo em instantes.'
 };
 
 export const oauthErrorMessage = (code) => OAUTH_ERROR_MESSAGES[code] || OAUTH_ERROR_MESSAGES.falha;
 
-export const PROVIDER_LABEL = { google: 'Google', microsoft: 'Microsoft' };
+export const PROVIDER_LABEL = { google: 'Google', microsoft: 'Microsoft', spotify: 'Spotify' };
 
 /** Lê e limpa os parâmetros de retorno do OAuth da barra de endereço. */
 export function takeOAuthReturn() {

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { calculateDailyWaterTarget, calculateUserLevelAndXp } from '../utils/biometricsAndAnalytics';
 import ProfileBiometricsCard from './profile/ProfileBiometricsCard';
+import { SpotifyConnectCard } from './profile/SpotifyConnectCard';
 
 const POSTIT_COLORS = [
   { id: 'yellow', name: 'Amarelo Clássico', bg: '#FEF08A', border: '#FDE047', text: '#713F12', pin: '#CA8A04' },
@@ -1154,6 +1155,9 @@ export function ProfileTab({
         
         {/* COLUNA ESQUERDA: MÚSICA & PLAYLISTS */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+          {/* CONEXÃO OPCIONAL COM O SPOTIFY (música atual e última; só leitura) */}
+          <SpotifyConnectCard showToast={showToast} />
 
           {/* ITEM 1: ÚLTIMA MÚSICA ESCUTADA / QUAL ESTÁ ESCUTANDO */}
           <div

@@ -20,13 +20,15 @@ import { handleAdminRoutes } from './_routes/admin.js';
 import { handleAuthRoutes } from './_routes/auth.js';
 import { handleEntriesRoutes } from './_routes/entries';
 import { handleInsightsRoutes } from './_routes/insights.js';
+import { handleIntegrationsRoutes } from './_routes/integrations.js';
 import { handleOAuthRoutes } from './_routes/oauth.js';
 import { handlePublicRoutes } from './_routes/public.js';
 import { handleRoutineRoutes } from './_routes/routine';
 import { handleUserRoutes } from './_routes/user.js';
 
 /** Rotas públicas (antes da camada de autorização), na ordem original. */
-const PUBLIC_HANDLERS = [handleAuthRoutes, handleOAuthRoutes, handlePublicRoutes];
+// handleIntegrationsRoutes autentica por conta própria (a volta do provedor chega sem Authorization).
+const PUBLIC_HANDLERS = [handleAuthRoutes, handleOAuthRoutes, handleIntegrationsRoutes, handlePublicRoutes];
 /**
  * Rotas protegidas (depois de authorizeRequest). O núcleo /api/v1 vem primeiro e
  * exige JWT por conta própria (o usuário sai do token, nunca da URL).

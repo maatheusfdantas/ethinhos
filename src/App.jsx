@@ -121,7 +121,10 @@ export function App() {
   useEffect(() => {
     if (!user || isOAuthLoginReturn) return;
     const ret = takeOAuthReturn();
-    if (ret.connected) showToast(`${PROVIDER_LABEL[ret.connected] || 'Conta'} conectada.`);
+    if (ret.connected) {
+      showToast(`${PROVIDER_LABEL[ret.connected] || 'Conta'} conectada.`);
+      if (ret.connected === 'spotify') setActiveTab('profile');
+    }
     else if (ret.error) showToast(oauthErrorMessage(ret.error));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

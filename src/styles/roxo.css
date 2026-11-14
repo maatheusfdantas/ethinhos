@@ -372,3 +372,24 @@ body.rx-body {
 .rx-social-note { margin: 10px 0 0; font-size: 13px; color: var(--rx-ink-3); text-align: center; }
 .rx-btn.ghost:disabled { opacity: .45; }
 .rx-field .rx-at input:focus { border: 0; box-shadow: none; }
+
+/* ---------- Spotify (Perfil, folha clara legada) ---------- */
+.sp-card { background: #fff; border: 1px solid #E3E1F0; border-radius: 20px; padding: 20px; color: #1A1B2F; font-family: var(--rx-font); }
+.sp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.sp-head h3 { margin: 0; font-size: 18px; font-weight: 650; }
+.sp-badge { font-size: 12.5px; font-weight: 600; color: #1B6B3A; background: #E4F6EA; border-radius: 99px; padding: 3px 10px; }
+.sp-text { margin: 0 0 6px; font-size: 14.5px; }
+.sp-list { margin: 0 0 8px; padding-left: 20px; font-size: 14.5px; }
+.sp-muted { margin: 0 0 12px; font-size: 13.5px; color: #5B5D78; }
+.sp-btn { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 0; background: var(--rx-grad); color: #0C1020; font: 650 15px var(--rx-font); cursor: pointer; margin-right: 8px; }
+.sp-btn.ghost { background: transparent; color: #1A1B2F; border: 1px solid #C9C7DD; font-weight: 560; }
+.sp-btn:disabled { opacity: .55; cursor: default; }
+.sp-track { display: flex; gap: 14px; align-items: center; padding: 12px; background: #F6F4FC; border-radius: 14px; margin-bottom: 12px; }
+.sp-track img, .sp-cover { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; flex: none; background: #E3E1F0; }
+.sp-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13.5px; color: #4A4C66; }
+.sp-meta b { color: #1A1B2F; font-size: 16px; overflow-wrap: anywhere; }
+.sp-meta a { color: #5B4FD0; font-weight: 600; }
+.sp-state { font-size: 12.5px; font-weight: 650; color: #1B6B3A; }
+.sp-confirm { background: #FFF6E8; border: 1px solid #F0D3A0; border-radius: 12px; padding: 12px; font-size: 14px; }
+.sp-confirm p { margin: 0 0 10px; }
+.sp-error { margin: 10px 0 0; font-size: 13.5px; color: #B3261E; }
