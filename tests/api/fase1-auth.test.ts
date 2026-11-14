@@ -118,6 +118,17 @@ describe('login social', () => {
     expect(r.headers.get('Location')).toBe('https://ethos.test/?auth_error=provedor_indisponivel');
   });
 
+  it('só Google configurado (como em produção): Google funciona, Microsoft fica indisponível', async () => {
+    const onlyGoogle = makeEnv({ GOOGLE_CLIENT_ID: 'g-id', GOOGLE_CLIENT_SECRET: 'g-secret' });
+    await call(onlyGoogle, '/api/health');
+    expect((await call(onlyGoogle, '/api/auth/oauth/providers')).json).toEqual({ google: true, microsoft: false });
+    const g = await call(onlyGoogle, '/api/auth/oauth/google?action=login');
+    expect(g.status).toBe(302);
+    expect(new URL(g.headers.get('Location')!).origin).toBe('https://accounts.google.com');
+    const ms = await call(onlyGoogle, '/api/auth/oauth/microsoft');
+    expect(ms.headers.get('Location')).toBe('https://ethos.test/?auth_error=provedor_indisponivel');
+  });
+
   it('início pede só identidade, com PKCE e state em cookie HttpOnly', async () => {
     const { r, loc } = await startFlow('google');
     expect(r.status).toBe(302);
@@ -145,6 +156,8 @@ describe('login social', () => {
     const code = loc.searchParams.get('code')!;
     const ex = await exchange(code);
     expect(ex.status).toBe(200); expect(ex.json.needsUsername).toBe(true);
+    expect(ex.json.role).toBe('user'); // conta nova nunca nasce admin
+    expect(ex.json.username).toMatch(/^novo_/); // provisório até escolher o @
     expect((await exchange(code)).status).toBe(400); // não reutiliza
     const tok = ex.json.auth.accessToken;
     expect((await call(env, '/api/auth/username', { method: 'PUT', token: tok, body: { username: 'bia' } })).status).toBe(409);
