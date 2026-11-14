@@ -128,7 +128,13 @@ export type InsightKind =
   | 'completion_rate'
   | 'best_day'
   | 'best_time'
-  | 'weekly_consistency';
+  | 'weekly_consistency'
+  // Alertas diagnósticos (herdados da engine Python, com nomes de domínio):
+  | 'decline' // queda recente frente à semana anterior
+  | 'instability' // oscilação alta entre dias
+  | 'low_coverage' // poucas ocorrências esperadas receberam registro
+  | 'at_risk' // compromisso com baixa conclusão persistente
+  | 'weekday_conflict'; // falhas concentradas em um dia da semana
 
 export type InsightTone = 'positive' | 'neutral' | 'attention';
 

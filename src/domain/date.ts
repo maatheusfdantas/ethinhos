@@ -33,6 +33,13 @@ export function toLocalDate(instant: Date | IsoInstant | number, tz: TimeZone): 
   }).format(date);
 }
 
+/** Hora local (0..23) de um instante em um fuso. */
+export function localHour(instant: Date | IsoInstant | number, tz: TimeZone): number {
+  const date = instant instanceof Date ? instant : new Date(instant);
+  const hour = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' }).format(date);
+  return Number(hour) % 24;
+}
+
 /** Soma `days` dias a uma data local (aritmética de calendário, sem fuso). */
 export function addDays(date: LocalDate, days: number): LocalDate {
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];
