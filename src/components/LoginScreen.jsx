@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  Lock, 
-  Mail, 
-  User, 
-  ArrowLeft,
-  CheckCircle2, 
-  AlertCircle,
-  KeyRound
-} from 'lucide-react';
-import { SocialLoginButtons } from './SocialLoginButtons';
+import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { DustCanvas } from './rx/DustCanvas';
+import { BrandMark } from './Nav';
 
 export function LoginScreen({ onLoginSuccess }) {
   const [mode, setMode] = useState('login'); // 'login', 'register', 'forgot_request', 'forgot_verify'
@@ -324,807 +317,161 @@ export function LoginScreen({ onLoginSuccess }) {
     }
   };
 
+  const goto = (m) => { setErrorMessage(''); setMode(m); };
+  const social = (provider) => { window.location.href = `/api/auth/oauth/${provider}?action=login`; };
+  const titles = {
+    login: ['Entrar no Ethos', 'Que bom te ver de novo.'],
+    register: ['Criar sua conta', 'Leva menos de um minuto. Depois é só começar.'],
+    register_verify: ['Confirme seu e-mail', maskedEmail ? `Enviamos um código para ${maskedEmail}.` : 'Digite o código que enviamos para o seu e-mail.'],
+    forgot_request: ['Recuperar senha', 'Informe seu e-mail ou usuário para receber um código.'],
+    forgot_verify: ['Nova senha', maskedEmail ? `Digite o código enviado para ${maskedEmail} e escolha a nova senha.` : 'Digite o código recebido e escolha a nova senha.']
+  };
+  const [title, lead] = titles[mode] || titles.login;
+
   return (
-    <div 
-      style={{
-        minHeight: '100vh',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundImage: 'url("/ethos-login-bg.png")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundColor: '#f1f5f9',
-        color: '#1e293b',
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        position: 'relative',
-        overflowX: 'hidden',
-        padding: '24px 16px'
-      }}
-    >
-      {/* Espaçador superior para centralização equilibrada */}
-      <div style={{ height: '16px' }} />
-
-      {/* ============================================================== */}
-      {/* CARD CENTRAL DE LOGIN (FIEL AO MOCKUP ENVIADO)                 */}
-      {/* ============================================================== */}
-      <div 
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          width: '100%',
-          maxWidth: '380px',
-          margin: 'auto 0'
-        }}
-      >
-        <div 
-          style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '14px',
-            boxShadow: '0 18px 45px -12px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04)',
-            padding: '38px 36px 34px 36px'
-          }}
-        >
-          {/* LOGO ETHOS (SÍMBOLO INFINITO COM 'E' E BRILHO GLOSSY) */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '18px' }}>
-            <img 
-              src="/ethos-logo-exact.png" 
-              alt="Ethos Logo" 
-              style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                if (e.target.nextSibling) e.target.nextSibling.style.display = 'block';
-              }}
-            />
-            <svg 
-              width="76" 
-              height="38" 
-              viewBox="0 0 76 38" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg"
-              style={{ display: 'none' }}
-            >
-              <defs>
-                <linearGradient id="ethosGrad" x1="0" y1="0" x2="76" y2="38" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#12355b" />
-                  <stop offset="50%" stopColor="#22558c" />
-                  <stop offset="100%" stopColor="#3b76b2" />
-                </linearGradient>
-              </defs>
-              <path 
-                d="M 38 19 C 31 6, 8 6, 8 19 C 8 32, 31 32, 38 19 C 45 6, 68 6, 68 19 C 68 32, 45 32, 38 19 Z" 
-                stroke="url(#ethosGrad)" 
-                strokeWidth="4.5" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-              />
-              <line 
-                x1="8" 
-                y1="19" 
-                x2="25" 
-                y2="19" 
-                stroke="#12355b" 
-                strokeWidth="4.5" 
-                strokeLinecap="round" 
-              />
-            </svg>
+    <div className="rx-login">
+      <section className="rx-login-art" aria-hidden="false">
+        <DustCanvas variant="art" count={34} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 24, fontWeight: 700, letterSpacing: '-.035em' }}>
+          <BrandMark size={30} id="rxBrandLogin" />
+          <span>ethos</span>
+        </div>
+        <div>
+          <h1>Sua rotina, um dia de cada vez.</h1>
+          <p>Hábitos, agenda, treino e foco num só lugar, com registro em um toque.</p>
+          <div className="rx-preview">
+            <div className="row"><span>Hábitos do dia</span><b>Concluir com um toque</b></div>
+            <div className="row"><span>Água e sono</span><b>No índice do dia</b></div>
+            <div className="row"><span>Agenda</span><b>Numa linha do tempo</b></div>
           </div>
+        </div>
+        <p style={{ margin: 0, fontSize: 13.5, color: 'var(--rx-ink-3)' }}>Seus dados ficam na sua conta e só você os vê.</p>
+      </section>
 
-          {/* TÍTULO */}
-          <h1 
-            style={{
-              fontSize: '21px',
-              fontWeight: 500,
-              color: '#0f172a',
-              textAlign: 'center',
-              marginBottom: '26px',
-              letterSpacing: '-0.01em'
-            }}
-          >
-            {mode === 'login' && 'Entrar no Ethos'}
-            {mode === 'register' && 'Cadastrar no Ethos'}
-            {mode === 'register_verify' && 'Confirmar E-mail'}
-            {mode === 'forgot_request' && 'Recuperar Senha'}
-            {mode === 'forgot_verify' && 'Validar Código'}
-          </h1>
+      <main className="rx-login-main">
+        <div className="rx-auth">
+          {mode !== 'login' && mode !== 'register' && (
+            <button type="button" className="rx-text-btn" onClick={() => goto('login')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+              <ArrowLeft size={16} /> Voltar para o login
+            </button>
+          )}
+          <h2>{title}</h2>
+          <p className="lead">{lead}</p>
 
-          {/* MENSAGEM DE ERRO */}
           {errorMessage && (
-            <div 
-              style={{
-                marginBottom: '16px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                backgroundColor: '#fff1f2',
-                border: '1px solid #fecdd3',
-                color: '#e11d48',
-                fontSize: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <AlertCircle size={15} style={{ flexShrink: 0 }} />
-              <span>{errorMessage}</span>
-            </div>
+            <div className="rx-error" role="alert"><AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} /><span>{errorMessage}</span></div>
           )}
 
-          {/* ========================================================== */}
-          {/* 1. FORMULÁRIO DE LOGIN                                     */}
-          {/* ========================================================== */}
           {mode === 'login' && (
-            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
-              
-              {/* Campo Email */}
-              <div style={{ marginBottom: '18px' }}>
-                <label 
-                  style={{
-                    display: 'block',
-                    fontSize: '11.5px',
-                    color: '#64748b',
-                    marginBottom: '6px',
-                    fontWeight: 400
-                  }}
-                >
-                  Email
-                </label>
-                <div 
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    paddingBottom: '7px',
-                    borderBottom: '1.5px solid #4a6b96'
-                  }}
-                >
-                  <Mail size={16} color="#1e293b" strokeWidth={1.75} style={{ flexShrink: 0 }} />
-                  <input 
-                    type="text" 
-                    placeholder="Digite seu email"
-                    value={loginInput}
-                    onChange={(e) => setLoginInput(e.target.value)}
-                    autoFocus
-                    required
-                    style={{
-                      width: '100%',
-                      fontSize: '13.5px',
-                      color: '#1e293b',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
+            <form onSubmit={handleLoginSubmit} noValidate>
+              <div className="rx-field">
+                <label htmlFor="rxLogin">E-mail ou usuário</label>
+                <input id="rxLogin" type="text" autoComplete="username" value={loginInput} onChange={(e) => setLoginInput(e.target.value)} placeholder="voce@exemplo.com" required />
               </div>
-
-              {/* Campo Senha */}
-              <div style={{ marginBottom: '8px' }}>
-                <label 
-                  style={{
-                    display: 'block',
-                    fontSize: '11.5px',
-                    color: '#64748b',
-                    marginBottom: '6px',
-                    fontWeight: 400
-                  }}
-                >
-                  Senha
-                </label>
-                <div 
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    paddingBottom: '7px',
-                    borderBottom: '1.5px solid #4a6b96'
-                  }}
-                >
-                  <Lock size={16} color="#1e293b" strokeWidth={1.75} style={{ flexShrink: 0 }} />
-                  <input 
-                    type="password" 
-                    placeholder="Digite sua senha"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      fontSize: '13.5px',
-                      color: '#1e293b',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
+              <div className="rx-field">
+                <label htmlFor="rxPass">Senha</label>
+                <input id="rxPass" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua senha" required />
               </div>
-
-              {/* Esqueceu sua senha? */}
-              <div style={{ textAlign: 'right', marginBottom: '22px' }}>
-                <button 
-                  type="button" 
-                  onClick={() => { setErrorMessage(''); setMode('forgot_request'); }}
-                  style={{
-                    fontSize: '11.5px',
-                    color: '#2b5b92',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontWeight: 400
-                  }}
-                >
-                  Esqueceu sua senha?
-                </button>
+              <button type="submit" className="rx-btn full" disabled={loading}>{loading ? 'Entrando…' : 'Entrar'}</button>
+              <div className="links">
+                <button type="button" className="rx-text-btn" onClick={() => goto('forgot_request')}>Esqueci minha senha</button>
+                <button type="button" className="rx-text-btn" onClick={() => goto('register_verify')}>Tenho um código de confirmação</button>
               </div>
-
-              {/* Botão ENTRAR */}
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  borderRadius: '7px',
-                  backgroundColor: '#215287',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  border: 'none',
-                  boxShadow: '0 4px 10px rgba(33, 82, 135, 0.25)',
-                  cursor: loading ? 'wait' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background-color 0.2s ease'
-                }}
-                onMouseOver={(e) => { if (!loading) e.currentTarget.style.backgroundColor = '#19416d'; }}
-                onMouseOut={(e) => { if (!loading) e.currentTarget.style.backgroundColor = '#215287'; }}
-              >
-                {loading ? 'ENTRANDO...' : 'ENTRAR'}
-              </button>
-
-              {/* Botões Oficiais de Login Social e Sincronização de Calendários */}
-              <SocialLoginButtons />
-
-              {/* Link Cadastre-se agora */}
-              <div 
-                style={{
-                  marginTop: '18px',
-                  textAlign: 'center',
-                  fontSize: '12px',
-                  color: '#334155'
-                }}
-              >
-                Ainda não tem uma conta?{' '}
-                <button 
-                  type="button" 
-                  onClick={() => { setErrorMessage(''); setMode('register'); }}
-                  style={{
-                    color: '#215287',
-                    fontWeight: 600,
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontSize: '12px'
-                  }}
-                >
-                  Cadastre-se agora
-                </button>
+              <div className="rx-divider">ou continue com</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button type="button" className="rx-btn ghost" style={{ height: 46 }} onClick={() => social('google')}>Google</button>
+                <button type="button" className="rx-btn ghost" style={{ height: 46 }} onClick={() => social('microsoft')}>Microsoft</button>
               </div>
-
-              {/* Atalho direto para validar conta com Token de 48h */}
-              <div style={{ marginTop: '12px', textAlign: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setErrorMessage('');
-                    if (loginInput.trim()) setRegEmail(loginInput.trim());
-                    setTokenInput('');
-                    setMode('register_verify');
-                  }}
-                  style={{
-                    fontSize: '11.5px',
-                    color: '#0f766e',
-                    backgroundColor: '#f0fdfa',
-                    border: '1px solid #99f6e4',
-                    borderRadius: '6px',
-                    padding: '6px 12px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    width: '100%'
-                  }}
-                >
-                  🔑 Já tenho um Token / Validar Conta (48h)
-                </button>
-              </div>
-
+              <p className="rx-switch">Ainda não tem conta? <button type="button" className="rx-text-btn" onClick={() => goto('register')}>Criar conta</button></p>
             </form>
           )}
 
-          {/* ========================================================== */}
-          {/* 2. FORMULÁRIO DE CADASTRO                                  */}
-          {/* ========================================================== */}
           {mode === 'register' && (
-            <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  Nome Completo
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
-                  <User size={16} color="#1e293b" strokeWidth={1.75} />
-                  <input 
-                    type="text" 
-                    placeholder="Digite seu nome"
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    required
-                    style={{ width: '100%', fontSize: '13.5px', color: '#1e293b', backgroundColor: 'transparent', border: 'none', outline: 'none' }}
-                  />
-                </div>
+            <form onSubmit={handleRegisterSubmit} noValidate>
+              <div className="rx-field">
+                <label htmlFor="rxName">Nome</label>
+                <input id="rxName" type="text" autoComplete="name" value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="Como quer ser chamado" required />
               </div>
-
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b' }}>
-                    Email (Verificado por API)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => verifyEmailAddress(regEmail)}
-                    disabled={!regEmail || emailCheck.status === 'checking'}
-                    style={{
-                      fontSize: '10.5px',
-                      fontWeight: 600,
-                      color: '#215287',
-                      backgroundColor: 'rgba(33, 82, 135, 0.08)',
-                      border: '1px solid rgba(33, 82, 135, 0.2)',
-                      borderRadius: '999px',
-                      padding: '2px 8px',
-                      cursor: regEmail ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    {emailCheck.status === 'checking' ? 'Verificando...' : 'Verificar E-mail'}
+              <div className="rx-field">
+                <label htmlFor="rxEmail">E-mail</label>
+                <div className="row">
+                  <input
+                    id="rxEmail" type="email" autoComplete="email" value={regEmail} placeholder="voce@exemplo.com" required
+                    onChange={(e) => { setRegEmail(e.target.value); if (emailCheck.status !== 'idle') setEmailCheck({ status: 'idle', message: '', mxServer: '' }); }}
+                    onBlur={() => { if (regEmail && emailCheck.status === 'idle') verifyEmailAddress(regEmail); }}
+                  />
+                  <button type="button" className="rx-btn ghost" style={{ height: 48 }} disabled={!regEmail || emailCheck.status === 'checking'} onClick={() => verifyEmailAddress(regEmail)}>
+                    {emailCheck.status === 'checking' ? 'Verificando…' : 'Verificar'}
                   </button>
                 </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    paddingBottom: '6px',
-                    borderBottom:
-                      emailCheck.status === 'valid'
-                        ? '1.5px solid #10b981'
-                        : emailCheck.status === 'invalid'
-                        ? '1.5px solid #e11d48'
-                        : '1.5px solid #4a6b96'
-                  }}
-                >
-                  <Mail
-                    size={16}
-                    color={
-                      emailCheck.status === 'valid'
-                        ? '#059669'
-                        : emailCheck.status === 'invalid'
-                        ? '#e11d48'
-                        : '#1e293b'
-                    }
-                    strokeWidth={1.75}
-                  />
-                  <input 
-                    type="email" 
-                    placeholder="Digite um e-mail real existente"
-                    value={regEmail}
-                    onChange={(e) => {
-                      setRegEmail(e.target.value);
-                      if (emailCheck.status !== 'idle') {
-                        setEmailCheck({ status: 'idle', message: '', mxServer: '' });
-                      }
-                    }}
-                    onBlur={(e) => {
-                      if (e.target.value.includes('@')) {
-                        verifyEmailAddress(e.target.value);
-                      }
-                    }}
-                    required
-                    style={{ width: '100%', fontSize: '13.5px', color: '#1e293b', backgroundColor: 'transparent', border: 'none', outline: 'none' }}
-                  />
-                </div>
                 {emailCheck.status !== 'idle' && (
-                  <div
-                    style={{
-                      marginTop: '6px',
-                      padding: '6px 9px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      backgroundColor:
-                        emailCheck.status === 'valid'
-                          ? '#ecfdf5'
-                          : emailCheck.status === 'invalid'
-                          ? '#fff1f2'
-                          : '#f8fafc',
-                      border:
-                        emailCheck.status === 'valid'
-                          ? '1px solid #a7f3d0'
-                          : emailCheck.status === 'invalid'
-                          ? '1px solid #fecdd3'
-                          : '1px solid #e2e8f0',
-                      color:
-                        emailCheck.status === 'valid'
-                          ? '#047857'
-                          : emailCheck.status === 'invalid'
-                          ? '#be123c'
-                          : '#475569'
-                    }}
-                  >
-                    {emailCheck.status === 'valid' && <CheckCircle2 size={13} style={{ flexShrink: 0 }} />}
-                    {emailCheck.status === 'invalid' && <AlertCircle size={13} style={{ flexShrink: 0 }} />}
-                    <span>{emailCheck.message}</span>
+                  <div className={`rx-check-msg ${emailCheck.status}`} role="status">
+                    {emailCheck.status === 'valid' && <CheckCircle2 size={16} />}
+                    {emailCheck.status === 'invalid' && <AlertCircle size={16} />}
+                    <span>{emailCheck.status === 'valid' ? 'E-mail verificado.' : emailCheck.message}</span>
                   </div>
                 )}
               </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  Usuário
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
-                  <User size={16} color="#1e293b" strokeWidth={1.75} />
-                  <input 
-                    type="text" 
-                    placeholder="Digite seu usuário"
-                    value={regUsername}
-                    onChange={(e) => setRegUsername(e.target.value)}
-                    required
-                    style={{ width: '100%', fontSize: '13.5px', color: '#1e293b', backgroundColor: 'transparent', border: 'none', outline: 'none' }}
-                  />
-                </div>
+              <div className="rx-field">
+                <label htmlFor="rxUser">Usuário <span style={{ fontWeight: 400, color: 'var(--rx-ink-3)' }}>(opcional)</span></label>
+                <input id="rxUser" type="text" autoComplete="username" value={regUsername} onChange={(e) => setRegUsername(e.target.value)} placeholder={regEmail ? regEmail.split('@')[0] : 'seu.usuario'} />
               </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  Senha
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
-                  <Lock size={16} color="#1e293b" strokeWidth={1.75} />
-                  <input 
-                    type="password" 
-                    placeholder="Crie uma senha"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    required
-                    style={{ width: '100%', fontSize: '13.5px', color: '#1e293b', backgroundColor: 'transparent', border: 'none', outline: 'none' }}
-                  />
-                </div>
+              <div className="rx-field">
+                <label htmlFor="rxNewPass">Senha</label>
+                <input id="rxNewPass" type="password" autoComplete="new-password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Crie uma senha" required />
+                <span className="hint">Use pelo menos 6 caracteres.</span>
               </div>
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  marginTop: '8px',
-                  borderRadius: '7px',
-                  backgroundColor: '#215287',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  border: 'none',
-                  boxShadow: '0 4px 10px rgba(33, 82, 135, 0.25)',
-                  cursor: 'pointer'
-                }}
-              >
-                {loading ? 'CRIANDO CONTA...' : 'CADASTRAR'}
-              </button>
-
-              <div style={{ marginTop: '6px', textAlign: 'center', fontSize: '12px', color: '#334155' }}>
-                Já possui uma conta?{' '}
-                <button 
-                  type="button" 
-                  onClick={() => { setErrorMessage(''); setMode('login'); }}
-                  style={{ color: '#215287', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '12px' }}
-                >
-                  Entrar agora
-                </button>
-              </div>
+              <button type="submit" className="rx-btn full" disabled={loading}>{loading ? 'Criando conta…' : 'Criar conta'}</button>
+              <p className="rx-switch">Já tem conta? <button type="button" className="rx-text-btn" onClick={() => goto('login')}>Entrar</button></p>
             </form>
           )}
 
-          {/* ========================================================== */}
-          {/* 2.1. CONFIRMAÇÃO DE E-MAIL (CADASTRO / TOKEN 48H)          */}
-          {/* ========================================================== */}
           {mode === 'register_verify' && (
-            <form onSubmit={handleVerifyRegisterToken} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <Mail size={15} color="#16a34a" />
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#15803d' }}>
-                    Validação de Conta (E-mail ou Token 48h)
-                  </span>
-                </div>
-                <p style={{ fontSize: '12px', color: '#1f2937', margin: 0, lineHeight: 1.45 }}>
-                  Informe seu e-mail (ou usuário) e o código de 6 dígitos recebido no e-mail ou gerado pelo Administrador (válido por 48h).
-                </p>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  E-mail ou Usuário da Conta
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
-                  <Mail size={16} color="#1e293b" strokeWidth={1.75} />
-                  <input
-                    type="text"
-                    placeholder="Digite seu e-mail ou usuário"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      fontSize: '13.5px',
-                      color: '#1e293b',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  Código / Token de 6 dígitos
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
-                  <KeyRound size={16} color="#1e293b" strokeWidth={1.75} />
-                  <input 
-                    type="text" 
-                    placeholder="000 • 000"
-                    maxLength={12}
-                    value={tokenInput}
-                    onChange={(e) => setTokenInput(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      fontSize: '18px',
-                      fontWeight: 700,
-                      letterSpacing: '4px',
-                      color: '#1e293b',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      textAlign: 'center'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  height: '42px',
-                  borderRadius: '7px',
-                  backgroundColor: '#16a34a',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  border: 'none',
-                  cursor: 'pointer',
-                  marginTop: '4px'
-                }}
-              >
-                {loading ? 'VALIDANDO...' : 'CONFIRMAR E ENTRAR'}
-              </button>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '12px' }}>
-                <button
-                  type="button"
-                  onClick={handleResendRegisterCode}
-                  disabled={loading}
-                  style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
-                >
-                  Reenviar código
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setErrorMessage(''); setMode('login'); }}
-                  style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}
-                >
-                  Voltar ao Login
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* ========================================================== */}
-          {/* 3. RECUPERAR SENHA                                         */}
-          {/* ========================================================== */}
-          {mode === 'forgot_request' && (
-            <form onSubmit={handleRequestToken} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '6px' }}>
-                  Email da conta
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '7px', borderBottom: '1.5px solid #4a6b96' }}>
-                  <Mail size={16} color="#1e293b" strokeWidth={1.75} />
-                  <input 
-                    type="email" 
-                    placeholder="Digite seu email"
-                    value={loginInput}
-                    onChange={(e) => setLoginInput(e.target.value)}
-                    autoFocus
-                    required
-                    style={{ width: '100%', fontSize: '13.5px', color: '#1e293b', backgroundColor: 'transparent', border: 'none', outline: 'none' }}
-                  />
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  borderRadius: '7px',
-                  backgroundColor: '#215287',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  border: 'none',
-                  boxShadow: '0 4px 10px rgba(33, 82, 135, 0.25)',
-                  cursor: 'pointer'
-                }}
-              >
-                {loading ? 'ENVIANDO...' : 'RECEBER CÓDIGO'}
-              </button>
-
-              <button 
-                type="button" 
-                onClick={() => setMode('login')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  fontSize: '12px',
-                  color: '#64748b',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <ArrowLeft size={14} />
-                <span>Voltar para o login</span>
-              </button>
-            </form>
-          )}
-
-          {/* ========================================================== */}
-          {/* 4. VALIDAR TOKEN E REDEFINIR SENHA                         */}
-          {/* ========================================================== */}
-          {mode === 'forgot_verify' && (
-            <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f0f7ff', border: '1px solid #bae6fd', textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <Mail size={15} color="#0284c7" />
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#0369a1' }}>
-                    Código Enviado por E-mail
-                  </span>
-                </div>
-                <p style={{ fontSize: '12px', color: '#334155', margin: 0, lineHeight: 1.45 }}>
-                  Enviamos um código de 6 dígitos para o e-mail <strong>{maskedEmail || loginInput}</strong>. Digite-o abaixo junto com a sua nova senha (expira em 15 min).
-                </p>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  Código de 6 dígitos
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
-                  <KeyRound size={16} color="#1e293b" strokeWidth={1.75} />
-                  <input 
-                    type="text" 
-                    placeholder="Digite o código"
-                    maxLength={6}
-                    value={tokenInput}
-                    onChange={(e) => setTokenInput(e.target.value)}
-                    required
-                    style={{ width: '100%', fontSize: '13.5px', color: '#1e293b', backgroundColor: 'transparent', border: 'none', outline: 'none' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  Nova Senha
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px', borderBottom: '1.5px solid #4a6b96' }}>
-                  <Lock size={16} color="#1e293b" strokeWidth={1.75} />
-                  <input 
-                    type="password" 
-                    placeholder="Digite a nova senha"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    style={{ width: '100%', fontSize: '13.5px', color: '#1e293b', backgroundColor: 'transparent', border: 'none', outline: 'none' }}
-                  />
-                </div>
-              </div>
-
-              {resetSuccessMsg && (
-                <div style={{ padding: '8px 10px', borderRadius: '6px', backgroundColor: '#ecfdf5', color: '#047857', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <CheckCircle2 size={14} />
-                  <span>Senha alterada com sucesso!</span>
+            <form onSubmit={handleVerifyRegisterToken} noValidate>
+              {!maskedEmail && (
+                <div className="rx-field">
+                  <label htmlFor="rxVerLogin">E-mail ou usuário</label>
+                  <input id="rxVerLogin" type="text" value={regEmail || loginInput} onChange={(e) => { setLoginInput(e.target.value); setRegEmail(''); }} placeholder="voce@exemplo.com" />
                 </div>
               )}
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  marginTop: '4px',
-                  borderRadius: '7px',
-                  backgroundColor: '#215287',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                SALVAR NOVA SENHA
-              </button>
+              <div className="rx-field">
+                <label htmlFor="rxCode">Código</label>
+                <input id="rxCode" className="rx-code" inputMode="numeric" autoComplete="one-time-code" value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} placeholder="000000" required />
+                <span className="hint">O código de 6 dígitos chega por e-mail. Também vale o token de 48h enviado pelo administrador.</span>
+              </div>
+              <button type="submit" className="rx-btn full" disabled={loading}>{loading ? 'Confirmando…' : 'Confirmar e entrar'}</button>
+              <div className="links">
+                <button type="button" className="rx-text-btn" onClick={handleResendRegisterCode} disabled={loading}>Reenviar código</button>
+              </div>
             </form>
           )}
 
-        </div>
-      </div>
+          {mode === 'forgot_request' && (
+            <form onSubmit={handleRequestToken} noValidate>
+              <div className="rx-field">
+                <label htmlFor="rxForgot">E-mail ou usuário</label>
+                <input id="rxForgot" type="text" autoComplete="username" value={loginInput} onChange={(e) => setLoginInput(e.target.value)} placeholder="voce@exemplo.com" required />
+              </div>
+              <button type="submit" className="rx-btn full" disabled={loading}>{loading ? 'Enviando…' : 'Enviar código'}</button>
+            </form>
+          )}
 
-      {/* ============================================================== */}
-      {/* RODAPÉ FIEL À IMAGEM DE REFERÊNCIA                             */}
-      {/* ============================================================== */}
-      <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', paddingBottom: '8px' }}>
-        <div 
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '24px',
-            fontSize: '11.5px',
-            color: '#64748b',
-            flexWrap: 'wrap'
-          }}
-        >
-          <a href="#sobre" onClick={(e) => e.preventDefault()} style={{ color: '#64748b', textDecoration: 'none' }}>Sobre</a>
-          <a href="#suporte" onClick={(e) => e.preventDefault()} style={{ color: '#64748b', textDecoration: 'none' }}>Suporte</a>
-          <a href="#privacidade" onClick={(e) => e.preventDefault()} style={{ color: '#64748b', textDecoration: 'none' }}>Política de Privacidade</a>
-          <span>© 2024 Ethos</span>
+          {mode === 'forgot_verify' && (
+            <form onSubmit={handleResetPassword} noValidate>
+              {resetSuccessMsg && <div className="rx-ok" role="status">Senha redefinida. Você já pode entrar.</div>}
+              <div className="rx-field">
+                <label htmlFor="rxResetCode">Código</label>
+                <input id="rxResetCode" className="rx-code" inputMode="numeric" autoComplete="one-time-code" value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} placeholder="000000" required />
+              </div>
+              <div className="rx-field">
+                <label htmlFor="rxResetPass">Nova senha</label>
+                <input id="rxResetPass" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Escolha uma nova senha" required />
+              </div>
+              <button type="submit" className="rx-btn full" disabled={loading}>{loading ? 'Salvando…' : 'Redefinir senha'}</button>
+            </form>
+          )}
         </div>
-      </div>
-
+      </main>
     </div>
   );
 }

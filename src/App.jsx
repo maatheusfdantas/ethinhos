@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-import { DesktopSidebar, MobileBottomNav } from './components/Nav';
-import { DashboardTab } from './components/DashboardTab';
+import { DesktopSidebar, MobileBottomNav, BrandMark } from './components/Nav';
+import { PainelTab } from './components/PainelTab';
 import { HabitsTab } from './components/HabitsTab';
 import { BadHabitsTab } from './components/BadHabitsTab';
 import { AddModal } from './components/AddModal';
@@ -19,7 +19,7 @@ import { CategoryConfigModal } from './components/CategoryConfigModal';
 import { SupportModal } from './components/SupportModal';
 
 import { INITIAL_TAGS, INITIAL_BADGES } from './data/initialData';
-import { Lock, Plus, Search, Bell, X, Users, Play, LifeBuoy } from 'lucide-react';
+import { Lock, Plus, Bell, X, Users, Play, LifeBuoy } from 'lucide-react';
 import { Toast } from './components/Toast';
 import { TabErrorBoundary } from './components/TabErrorBoundary';
 import { SpringPageTransition } from './components/ui/MotionPrimitives';
@@ -166,6 +166,7 @@ export function App() {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  useEffect(() => { document.body.classList.add('rx-body'); }, []);
   const [bootKey, setBootKey] = useState(0);
 
   // Passo B & Passo D: Configuração Avançada de Categoria & Dinâmica Colaborativa em Tempo Real
@@ -487,6 +488,7 @@ export function App() {
     }
   };
 
+  const TAB_TITLES = { dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
@@ -518,13 +520,8 @@ export function App() {
   }
 
   return (
-    <div className="ethos-app-outer">
-      {/* MOLDURA TRANSLÚCIDA FLUTUANTE COM EFEITO LIQUID GLASS DO IPHONE */}
-      <div
-        key={`boot-${bootKey}`}
-        className="ethos-boot-frame"
-      >
-        {/* 1. SIDEBAR ESQUERDA ARREDONDADA (DARK PLUM #211F38) + DRAWER MOBILE */}
+    <div className="rx-root">
+      <div key={`boot-${bootKey}`} className="rx-app">
         <DesktopSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -541,169 +538,21 @@ export function App() {
           onLogout={handleLogout}
         />
 
-        {/* 2. ÁREA DE CONTEÚDO PRINCIPAL */}
-        <div className="ethos-main-content">
-          
-          {/* TOP HEADER: Botão Menu Mobile + "Hi, Dilan!" + [+ Create] + Search + Bell + Avatar */}
-          <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-              
-
-              <h1 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 700, color: '#1A1B2F', letterSpacing: '-0.02em', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {activeTab === 'workouts' ? 'Workout & Fitness' : activeTab === 'profile' ? 'Perfil do Usuário' : `Hi, ${firstName}!`}
-              </h1>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              {/* Barra de busca expansível */}
-              {showSearchBar && (
-                <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '999px', padding: '6px 12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                  <input
-                    type="text"
-                    placeholder="Buscar..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    autoFocus
-                    style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '12.5px', color: '#1A1B2F', width: '130px' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { setShowSearchBar(false); setSearchQuery(''); }}
-                    style={{ background: 'none', border: 'none', color: '#7E7F9A', cursor: 'pointer', display: 'flex' }}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
-
-              {/* Botão + Create (Pílula Preta/Escura) */}
-              <button
-                type="button"
-                onClick={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
-                style={{
-                  height: '38px',
-                  padding: '0 16px',
-                  borderRadius: '999px',
-                  backgroundColor: '#181824',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  fontSize: '12.5px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 16px rgba(24, 24, 36, 0.22)'
-                }}
-              >
-                <Plus size={15} strokeWidth={2.5} />
-                <span>Create</span>
-              </button>
-
-              {/* Botão Search Circular Branco */}
-              <button
-                type="button"
-                onClick={() => setShowSearchBar(!showSearchBar)}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: '#F8F8FA',
-                  color: '#1A1B2F',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-                }}
-                title="Pesquisar"
-              >
-                <Search size={17} strokeWidth={2} />
-              </button>
-
-              {/* Botão Suporte / Abrir Ticket Circular Branco */}
-              <button
-                type="button"
-                onClick={() => setShowSupportModal(true)}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: '#F8F8FA',
-                  color: '#56548A',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-                }}
-                title="Central de Suporte / Abrir Ticket de Ajuda"
-              >
-                <LifeBuoy size={17} strokeWidth={2} />
-              </button>
-
-              {/* Botão Notificações Circular Branco com Ponto Vermelho */}
-              <button
-                type="button"
-                onClick={() => showToast('Você tem 2 tarefas em andamento e 1 meta concluída hoje!')}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: '#F8F8FA',
-                  color: '#1A1B2F',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-                }}
-                title="Notificações"
-              >
-                <Bell size={17} strokeWidth={2} />
-                <span 
-                  style={{
-                    position: 'absolute',
-                    top: '9px',
-                    right: '10px',
-                    width: '7px',
-                    height: '7px',
-                    borderRadius: '50%',
-                    backgroundColor: '#EF4444',
-                    border: '1.5px solid #F8F8FA'
-                  }}
-                />
-              </button>
-
-              {/* Avatar Circular do Usuário */}
-              <button
-                type="button"
-                onClick={() => setActiveTab('profile')}
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  backgroundColor: '#211F38',
-                  color: '#FFFFFF',
-                  border: '2px solid #FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  overflow: 'hidden',
-                  boxShadow: '0 4px 14px rgba(33, 31, 56, 0.25)'
-                }}
-                title="Abrir Perfil e Biometria"
-              >
-                {user?.avatar || (user?.name ? user.name.slice(0, 2).toUpperCase() : 'DL')}
-              </button>
-            </div>
+        <div className="rx-col">
+          <header className="rx-top">
+            <button type="button" className="rx-mbrand" onClick={() => setActiveTab('dashboard')} aria-label="Ethos, ir para o painel">
+              <BrandMark size={26} id="rxBrandTop" />
+              <span>ethos</span>
+            </button>
+            <h1 className="rx-top-title">{TAB_TITLES[activeTab] || 'Ethos'}</h1>
+            <span className="rx-spacer" />
+            <button type="button" className="rx-icon-btn" onClick={() => setShowSupportModal(true)} title="Suporte" aria-label="Abrir suporte">
+              <LifeBuoy size={19} />
+            </button>
+            <button type="button" className="rx-btn new" onClick={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}>
+              <Plus size={18} strokeWidth={2.4} />
+              <span>Novo</span>
+            </button>
           </header>
 
           {/* PASSO D: ALERTA SUTIL EM TEMPO REAL DE POMODORO COMPARTILHADO */}
@@ -802,12 +651,12 @@ export function App() {
           )}
 
           {/* CONTEÚDO DA ABA ATIVA */}
-          <main style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <main className="rx-main">
             <TabErrorBoundary key={activeTab}>
             <SpringPageTransition activeKey={activeTab}>
             {/* TAB 1: DASHBOARD (PAINEL PRINCIPAL FIEL AO MOCKUP) */}
             {activeTab === 'dashboard' && (
-              <DashboardTab
+              <PainelTab
                 habits={habits}
                 setHabits={setHabits}
                 events={events}
@@ -817,21 +666,16 @@ export function App() {
                 tags={tags}
                 user={user}
                 onOpenAdd={() => handleOpenAdd('habit')}
-                onOpenWorkout={() => setActiveTab('workouts')}
-                onCreateCategory={handleOpenCreateCategory}
-                onAddTag={handleAddTag}
-                onDeleteTag={handleDeleteTag}
-                onConfigureCategory={(cat) => setConfigCategory(cat)}
-                onLogSubclassEffort={handleLogSubclassEffort}
-                onToggleEvent={handleToggleEvent}
                 onSwitchTab={setActiveTab}
+                onToggleEvent={handleToggleEvent}
+                onLogSubclassEffort={handleLogSubclassEffort}
                 showToast={showToast}
               />
             )}
 
             {/* TAB: HÁBITOS & ROTINAS (ABA DEDICADA EXCLUSIVAMENTE A HÁBITOS) */}
             {activeTab === 'habits' && (
-              <HabitsTab
+              <div className="rx-sheet-legacy"><HabitsTab
                 habits={habits}
                 setHabits={setHabits}
                 tags={tags}
@@ -839,20 +683,20 @@ export function App() {
                 onOpenAddHabit={() => handleOpenAdd('habit')}
                 onLogSubclassEffort={handleLogSubclassEffort}
                 showToast={showToast}
-              />
+              /></div>
             )}
 
             {/* TAB: MAUS HÁBITOS & VÍCIOS (SUPERAÇÃO, SOBRIEDADE E DESEMPENHO) */}
             {activeTab === 'bad_habits' && (
-              <BadHabitsTab
+              <div className="rx-sheet-legacy"><BadHabitsTab
                 user={user}
                 showToast={showToast}
-              />
+              /></div>
             )}
 
             {/* TAB 4: CALENDÁRIO / AGENDA MENSAL, SEMANAL E DIÁRIA */}
             {activeTab === 'calendar' && (
-              <CalendarTab
+              <div className="rx-sheet-legacy"><CalendarTab
                 events={events}
                 setEvents={setEvents}
                 habits={habits}
@@ -865,7 +709,7 @@ export function App() {
                 onDeleteEvent={handleDeleteEvent}
                 onSwitchTab={setActiveTab}
                 showToast={showToast}
-              />
+              /></div>
             )}
 
             {/* TAB 2: MUSCULAÇÃO & TREINO (RENDERIZADO DIRETO NA MOLDURA CLARA FIEL AO MOCKUP) */}
@@ -879,19 +723,19 @@ export function App() {
                   </p>
                 </div>
               ) : (
-                <WorkoutTab
+                <div className="rx-sheet-legacy"><WorkoutTab
                   workouts={workouts}
                   setWorkouts={setWorkouts}
                   onCompleteWorkout={handleCompleteWorkout}
                   habits={habits}
                   setHabits={setHabits}
-                />
+                /></div>
               )
             )}
 
             {/* TAB: PERFIL DO USUÁRIO (XP, POST-ITS, MÚSICA, PLAYLISTS, STREAKS E BIO) */}
             {activeTab === 'profile' && (
-              <ProfileTab
+              <div className="rx-sheet-legacy"><ProfileTab
                 user={user}
                 setUser={setUser}
                 habits={habits}
@@ -903,20 +747,12 @@ export function App() {
                 showToast={showToast}
                 onOpenSettings={() => setShowProfileModal(true)}
                 onOpenSupport={() => setShowSupportModal(true)}
-              />
+              /></div>
             )}
 
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
             {activeTab !== 'dashboard' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && (
-              <div 
-                style={{
-                  backgroundColor: '#211F38',
-                  borderRadius: '28px',
-                  padding: '24px',
-                  color: '#F8FAFC',
-                  boxShadow: '0 16px 40px rgba(33, 31, 56, 0.22)'
-                }}
-              >
+              <div className="rx-sheet-dark">
                 {/* TAB 3: FOCO POMODORO / BIBLIOTECA DE PROJETOS */}
                 {activeTab === 'focus' && (
                   permissions.focus === false ? (
@@ -1001,6 +837,9 @@ export function App() {
           isAdmin={isAdmin}
           userPermissions={permissions}
           user={user}
+          onOpenSupport={() => setShowSupportModal(true)}
+          onOpenAuth={() => setShowAuthModal(true)}
+          onLogout={handleLogout}
         />
       )}
 

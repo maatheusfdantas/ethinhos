@@ -1,29 +1,57 @@
-import { CleanIcon } from './IconLibrary';
-import React from 'react';
-import { 
-  User,
-  LayoutGrid, 
-  Calendar, 
-  TrendingUp, 
-  Plus, 
-  Settings,
-  LogOut,
-  ShieldAlert,
-  Timer,
-  Dumbbell,
-  Users,
-  CheckCircle2,
-  ShieldOff,
-  LifeBuoy,
-  X
+import React, { useState } from 'react';
+import {
+  User, LayoutGrid, Calendar, TrendingUp, Plus, Settings, LogOut, ShieldAlert, Timer,
+  Dumbbell, Users, CheckCircle2, ShieldOff, LifeBuoy, Menu
 } from 'lucide-react';
 
-export function DesktopSidebar({ 
-  activeTab, 
-  setActiveTab, 
-  onOpenAdd, 
-  isAdmin, 
-  userPermissions = {}, 
+/**
+ * Navegação (direção roxo + azul). Mesmas exportações e props de antes.
+ * Todos os módulos continuam acessíveis, respeitando permissões do admin e preferências de página.
+ */
+
+const DEFAULT_PAGES = { dashboard: true, telemetry: true, habits: true, bad_habits: true, calendar: true, workouts: true, focus: true, social: true };
+
+function buildModules(user, userPermissions = {}) {
+  const pages = { ...DEFAULT_PAGES, ...(user?.pagePreferences || {}) };
+  const all = [
+    { id: 'dashboard', label: 'Painel principal', icon: LayoutGrid, group: null, enabled: true },
+    { id: 'habits', label: 'Hábitos e rotinas', icon: CheckCircle2, group: 'Rotina', enabled: pages.habits !== false && userPermissions.habits !== false },
+    { id: 'calendar', label: 'Agenda semanal', icon: Calendar, group: 'Rotina', enabled: pages.calendar !== false },
+    { id: 'workouts', label: 'Treino', icon: Dumbbell, group: 'Corpo e mente', enabled: pages.workouts !== false && userPermissions.workouts !== false },
+    { id: 'focus', label: 'Foco', icon: Timer, group: 'Corpo e mente', enabled: pages.focus !== false && userPermissions.focus !== false },
+    { id: 'bad_habits', label: 'Maus hábitos', icon: ShieldOff, group: 'Corpo e mente', enabled: pages.bad_habits !== false },
+    { id: 'telemetry', label: 'Análise de progresso', icon: TrendingUp, group: 'Entender', enabled: true },
+    { id: 'social', label: 'Comunidade', icon: Users, group: 'Pessoas', enabled: pages.social !== false && userPermissions.social !== false },
+    { id: 'profile', label: 'Perfil', icon: User, group: 'Pessoas', enabled: true }
+  ];
+  return all.filter((m) => m.enabled);
+}
+
+export function BrandMark({ size = 28, id = 'rxBrand' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 28 28" aria-hidden="true">
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#A78BFA" />
+          <stop offset="1" stopColor="#60A5FA" />
+        </linearGradient>
+      </defs>
+      <circle cx="14" cy="14" r="11" fill="none" stroke="currentColor" strokeWidth="2.4" />
+      <circle cx="14" cy="14" r="4.6" fill={`url(#${id})`} />
+    </svg>
+  );
+}
+
+function initials(user) {
+  const name = user?.name || user?.username || 'Ethos';
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('') || 'E';
+}
+
+export function DesktopSidebar({
+  activeTab,
+  setActiveTab,
+  isAdmin,
+  userPermissions = {},
   user,
   tags = [],
   onConfigureCategory,
@@ -31,481 +59,162 @@ export function DesktopSidebar({
   onOpenProfile,
   onOpenAuth,
   onOpenSupport,
-  onLogout,
-  mobileOpen = false,
-  onCloseMobile
+  onLogout
 }) {
-  const defaultPagePreferences = {
-    dashboard: true,
-    telemetry: true,
-    habits: true,
-    bad_habits: true,
-    calendar: true,
-    workouts: true,
-    focus: true,
-    social: true
-  };
-  const pages = { ...defaultPagePreferences, ...(user?.pagePreferences || {}) };
-
-  const navItems = [
-    { id: 'dashboard', label: 'Painel Principal', icon: LayoutGrid, enabled: true },
-    { id: 'habits', label: 'Hábitos & Rotinas', icon: CheckCircle2, enabled: pages.habits !== false && userPermissions.habits !== false },
-    { id: 'bad_habits', label: 'Maus Hábitos & Vícios', icon: ShieldOff, enabled: pages.bad_habits !== false },
-    { id: 'calendar', label: 'Agenda Semanal', icon: Calendar, enabled: pages.calendar !== false },
-    { id: 'workouts', label: 'Musculação & Treino', icon: Dumbbell, enabled: pages.workouts !== false && userPermissions.workouts !== false },
-    { id: 'focus', label: 'Foco Pomodoro', icon: Timer, enabled: pages.focus !== false && userPermissions.focus !== false },
-    { id: 'telemetry', label: 'Análise de Progresso', icon: TrendingUp, enabled: true },
-    { id: 'social', label: 'Comunidade', icon: Users, enabled: pages.social !== false && userPermissions.social !== false },
-    { id: 'profile', label: 'Perfil do Usuário', icon: User, enabled: true },
-  ];
-
-  if (isAdmin) {
-    navItems.push({ id: 'admin', label: 'Portal Admin', icon: ShieldAlert, enabled: true });
-  }
-
-  const handleSelectTab = (tabId) => {
-    setActiveTab(tabId);
-    onCloseMobile?.();
-  };
-
-  const renderSidebarContent = (isMobileDrawer = false) => (
-    <>
-      <div>
-        {/* 1. TOPO: LOGO ETHOS */}
-        <div 
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 10px 24px 10px'
-          }}
-        >
-          <div
-            onClick={() => handleSelectTab('dashboard')}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-          >
-            <svg width="36" height="20" viewBox="0 0 68 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path 
-                d="M 34 17 C 28 5, 6 5, 6 17 C 6 29, 28 29, 34 17 C 40 5, 62 5, 62 17 C 62 29, 40 29, 34 17 Z" 
-                stroke="#FFFFFF" 
-                strokeWidth="5" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-              />
-              <line x1="6" y1="17" x2="23" y2="17" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" />
-            </svg>
-            <span style={{ fontSize: '21px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-              Ethos
-            </span>
-          </div>
-
-          {isMobileDrawer && (
-            <button
-              type="button"
-              onClick={onCloseMobile}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                color: '#FFFFFF',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-              aria-label="Fechar menu"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
-
-        {/* 2. MENU PRINCIPAL */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {navItems.filter(item => item.enabled).map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleSelectTab(item.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  fontSize: '13px',
-                  fontWeight: isActive ? 600 : 400,
-                  backgroundColor: isActive ? '#56548A' : 'transparent',
-                  color: isActive ? '#FFFFFF' : '#A9ABC6',
-                  boxShadow: isActive ? '0 6px 16px rgba(86, 84, 138, 0.35)' : 'none',
-                  transition: 'all 0.18s ease'
-                }}
-              >
-                <Icon size={17} strokeWidth={isActive ? 2.2 : 1.75} style={{ flexShrink: 0 }} />
-                <span style={{ lineHeight: 1.25 }}>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* 4. ÁREAS DE FOCO / CATEGORIAS MODULARES (PASSO B) */}
-        <div style={{ marginTop: '24px', padding: '0 10px' }}>
-          <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>
-            Áreas de Foco
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: '#797B9E', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              CATEGORIAS MODULARES
-            </div>
-            {onCreateCategory && (
-              <button
-                type="button"
-                onClick={onCreateCategory}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#A5A6F6',
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px'
-                }}
-                title="Adicionar Nova Categoria Modular"
-              >
-                <Plus size={12} />
-                <span>Nova</span>
-              </button>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', maxHeight: '165px', overflowY: 'auto' }}>
-            {tags.map((tag) => (
-              <div 
-                key={tag.id || tag.name}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '6px',
-                  padding: '4px 6px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(255,255,255,0.03)',
-                  fontSize: '12px',
-                  color: '#D8DAE8'
-                }}
-              >
-                <div
-                  onClick={() => handleSelectTab('dashboard')}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, cursor: 'pointer' }}
-                >
-                  <CleanIcon name={tag.icon || 'Bookmark'} size={13} color={tag.color || '#6366f1'} strokeWidth={2.2} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tag.name}</span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                  {tag.has_subclasses && tag.subclasses?.length > 0 && (
-                    <span
-                      style={{
-                        fontSize: '9.5px',
-                        fontWeight: 700,
-                        padding: '1px 5px',
-                        borderRadius: '999px',
-                        backgroundColor: 'rgba(129, 140, 248, 0.2)',
-                        color: '#C7D2FE'
-                      }}
-                      title={`${tag.subclasses.length} sub-classes ativas`}
-                    >
-                      {tag.subclasses.length}
-                    </span>
-                  )}
-                  {tag.is_shared && (
-                    <Users size={11} color="#38BDF8" title="Categoria Compartilhada" />
-                  )}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCloseMobile?.();
-                      onConfigureCategory?.(tag);
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      padding: '2px',
-                      color: '#8E90B0',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                    title={`Configuração Avançada de ${tag.name}`}
-                  >
-                    <Settings size={13} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* 5. RODAPÉ DA SIDEBAR: SUPORTE, CONFIGURAÇÕES & SAIR */}
-      <div style={{ padding: '14px 10px 0 10px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {onOpenSupport && (
-          <button
-            type="button"
-            onClick={() => {
-              onCloseMobile?.();
-              onOpenSupport?.();
-            }}
-            style={{
-              background: 'rgba(124, 111, 239, 0.14)',
-              border: '1px solid rgba(124, 111, 239, 0.28)',
-              borderRadius: '11px',
-              padding: '8px 11px',
-              color: '#DDD6FE',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              width: '100%'
-            }}
-          >
-            <LifeBuoy size={15} color="#A78BFA" />
-            <span>Suporte & Tickets</span>
-          </button>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button
-            type="button"
-            onClick={() => {
-              onCloseMobile?.();
-              onOpenAuth?.();
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              color: '#C5C7DE',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <Settings size={15} />
-            <span>Configurações</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              onCloseMobile?.();
-              onLogout?.();
-            }}
-            title="Sair da Conta"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '4px',
-              color: '#8E90B0',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            <LogOut size={15} />
-          </button>
-        </div>
-      </div>
-    </>
-  );
+  const modules = buildModules(user, userPermissions);
+  const groups = [];
+  modules.forEach((m) => {
+    const last = groups[groups.length - 1];
+    if (!last || last.name !== m.group) groups.push({ name: m.group, items: [m] });
+    else last.items.push(m);
+  });
 
   return (
-    /* SIDEBAR DESKTOP (VISÍVEL APENAS EM >= 1024px; EM TABLETS E CELULARES NÃO EXISTE MENU LATERAL, APENAS A BARRA DE TAREFAS) */
-    <aside 
-      style={{
-        backgroundColor: '#211F38',
-        borderRadius: '26px',
-        padding: '28px 18px',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        color: '#E2E4F0',
-        boxShadow: '0 20px 45px rgba(20, 18, 40, 0.25)',
-        userSelect: 'none'
-      }}
-      className="ethos-desktop-sidebar"
-    >
-      {renderSidebarContent(false)}
+    <aside className="rx-side" aria-label="Navegação principal">
+      <button type="button" className="rx-brand" onClick={() => setActiveTab('dashboard')} aria-label="Ethos, ir para o painel">
+        <BrandMark id="rxBrandSide" />
+        <span>ethos</span>
+      </button>
+
+      <nav className="rx-nav" aria-label="Módulos">
+        {groups.map((g) => (
+          <div className="rx-nav-group" key={g.name || 'root'}>
+            {g.name && <p>{g.name}</p>}
+            {g.items.map((m) => {
+              const Icon = m.icon;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="rx-nav-btn"
+                  aria-current={activeTab === m.id ? 'page' : undefined}
+                  onClick={() => setActiveTab(m.id)}
+                >
+                  <Icon className="rx-i" strokeWidth={1.75} />
+                  <span>{m.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      <section className="rx-cats" aria-label="Categorias">
+        <h2>Categorias</h2>
+        {tags.map((tag) => (
+          <button
+            key={tag.id || tag.name}
+            type="button"
+            className="rx-cat"
+            onClick={() => onConfigureCategory?.(tag)}
+            title={`Configurar ${tag.name}`}
+          >
+            <span className="rx-dot" style={{ '--rx-dot': tag.color || '#A78BFA' }} />
+            <span>{tag.name}</span>
+            {tag.has_subclasses && tag.subclasses?.length > 0 && <small>{tag.subclasses.length}</small>}
+          </button>
+        ))}
+        {onCreateCategory && (
+          <button type="button" className="rx-cat rx-cat-add" onClick={onCreateCategory}>
+            <Plus className="rx-i" strokeWidth={1.75} />
+            <span>Nova categoria</span>
+          </button>
+        )}
+      </section>
+
+      <div className="rx-side-foot">
+        {isAdmin && (
+          <button type="button" className="rx-nav-btn" aria-current={activeTab === 'admin' ? 'page' : undefined} onClick={() => setActiveTab('admin')}>
+            <ShieldAlert className="rx-i" strokeWidth={1.75} />
+            <span>Portal admin</span>
+          </button>
+        )}
+        <button type="button" className="rx-nav-btn" onClick={() => onOpenSupport?.()}>
+          <LifeBuoy className="rx-i" strokeWidth={1.75} />
+          <span>Suporte</span>
+        </button>
+        <button type="button" className="rx-nav-btn" onClick={() => onOpenAuth?.()}>
+          <Settings className="rx-i" strokeWidth={1.75} />
+          <span>Configurações</span>
+        </button>
+        <button type="button" className="rx-me" onClick={() => onOpenProfile?.()}>
+          <span className="rx-avatar">{initials(user)}</span>
+          <span>
+            <b>{user?.name || user?.username || 'Visitante'}</b>
+            <small>{user?.subscription_tier || 'Conta Ethos'}</small>
+          </span>
+        </button>
+        <button type="button" className="rx-nav-btn" onClick={() => onLogout?.()}>
+          <LogOut className="rx-i" strokeWidth={1.75} />
+          <span>Sair</span>
+        </button>
+      </div>
     </aside>
   );
 }
 
-export function MobileBottomNav({ activeTab, setActiveTab, onOpenAdd, isAdmin, userPermissions = {}, user }) {
-  const defaultPagePreferences = {
-    dashboard: true,
-    telemetry: true,
-    habits: true,
-    bad_habits: true,
-    calendar: true,
-    workouts: true,
-    focus: true,
-    social: true
-  };
-  const pages = { ...defaultPagePreferences, ...(user?.pagePreferences || {}) };
+export function MobileBottomNav({
+  activeTab,
+  setActiveTab,
+  onOpenAdd,
+  isAdmin,
+  userPermissions = {},
+  user,
+  onOpenSupport,
+  onOpenAuth,
+  onLogout
+}) {
+  const [open, setOpen] = useState(false);
+  const modules = buildModules(user, userPermissions);
+  const go = (id) => { setActiveTab(id); setOpen(false); };
+  const tab = (id, label, Icon) => (
+    <button type="button" aria-current={activeTab === id ? 'page' : undefined} onClick={() => go(id)}>
+      <Icon className="rx-i" strokeWidth={1.75} />
+      <span>{label}</span>
+    </button>
+  );
 
   return (
-    <nav 
-      style={{
-        backgroundColor: '#211F38',
-        borderRadius: '22px',
-        padding: '6px 8px',
-        boxShadow: '0 12px 32px rgba(20, 18, 40, 0.45)'
-      }}
-      className="lg:hidden fixed bottom-2.5 left-2.5 right-2.5 z-50 flex items-center justify-around border border-white/10"
-    >
-      <button
-        type="button"
-        style={{
-          color: activeTab === 'dashboard' ? '#FFFFFF' : '#A9ABC6',
-          backgroundColor: activeTab === 'dashboard' ? '#56548A' : 'transparent',
-          border: 'none',
-          borderRadius: '12px',
-          padding: '5px 10px'
-        }}
-        className="flex flex-col items-center gap-0.5"
-        onClick={() => setActiveTab('dashboard')}
-      >
-        <LayoutGrid size={17} />
-        <span className="text-[10px] font-medium">Painel</span>
-      </button>
-
-      {pages.habits !== false && userPermissions.habits !== false && (
-        <button
-          type="button"
-          style={{
-            color: activeTab === 'habits' ? '#FFFFFF' : '#A9ABC6',
-            backgroundColor: activeTab === 'habits' ? '#56548A' : 'transparent',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '5px 10px'
-          }}
-          className="flex flex-col items-center gap-0.5"
-          onClick={() => setActiveTab('habits')}
-        >
-          <CheckCircle2 size={17} />
-          <span className="text-[10px] font-medium">Hábitos</span>
+    <>
+      <nav className="rx-tabbar" aria-label="Navegação">
+        {tab('dashboard', 'Painel', LayoutGrid)}
+        {modules.some((m) => m.id === 'habits') ? tab('habits', 'Hábitos', CheckCircle2) : tab('calendar', 'Agenda', Calendar)}
+        <button type="button" className="fab" aria-label="Novo" onClick={() => onOpenAdd?.()}>
+          <span className="c"><Plus className="rx-i" strokeWidth={2.2} /></span>
+          <span>Novo</span>
         </button>
-      )}
-
-      {pages.bad_habits !== false && (
-        <button
-          type="button"
-          style={{
-            color: activeTab === 'bad_habits' ? '#FFFFFF' : '#A9ABC6',
-            backgroundColor: activeTab === 'bad_habits' ? '#56548A' : 'transparent',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '5px 10px'
-          }}
-          className="flex flex-col items-center gap-0.5"
-          onClick={() => setActiveTab('bad_habits')}
-        >
-          <ShieldOff size={17} />
-          <span className="text-[10px] font-medium">Vícios</span>
+        {tab('telemetry', 'Análise', TrendingUp)}
+        <button type="button" aria-expanded={open} onClick={() => setOpen(true)}>
+          <Menu className="rx-i" strokeWidth={1.75} />
+          <span>Menu</span>
         </button>
-      )}
+      </nav>
 
-      {userPermissions.habits !== false && (
-        <button
-          type="button"
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: '#56548A',
-            color: '#FFFFFF',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: '0 4px 14px rgba(86, 84, 138, 0.5)'
-          }}
-          onClick={onOpenAdd}
-          aria-label="Adicionar"
-        >
-          <Plus size={19} strokeWidth={2.4} />
-        </button>
+      {open && (
+        <div className="rx-msheet" onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="rxMenuTitle">
+            <div className="rx-grab" />
+            <h2 id="rxMenuTitle">Todos os módulos</h2>
+            <div className="rx-mods">
+              {modules.map((m) => {
+                const Icon = m.icon;
+                return (
+                  <button key={m.id} type="button" aria-current={activeTab === m.id ? 'page' : undefined} onClick={() => go(m.id)}>
+                    <Icon className="rx-i" strokeWidth={1.75} />
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="rx-extra">
+              {isAdmin && <button type="button" className="rx-btn ghost" onClick={() => go('admin')}><ShieldAlert className="rx-i" strokeWidth={1.75} />Portal admin</button>}
+              <button type="button" className="rx-btn ghost" onClick={() => { setOpen(false); onOpenSupport?.(); }}><LifeBuoy className="rx-i" strokeWidth={1.75} />Suporte</button>
+              <button type="button" className="rx-btn ghost" onClick={() => { setOpen(false); onOpenAuth?.(); }}><Settings className="rx-i" strokeWidth={1.75} />Configurações</button>
+              <button type="button" className="rx-btn ghost" onClick={() => { setOpen(false); onLogout?.(); }}><LogOut className="rx-i" strokeWidth={1.75} />Sair</button>
+            </div>
+          </div>
+        </div>
       )}
-
-      {pages.calendar !== false && (
-        <button
-          type="button"
-          style={{
-            color: activeTab === 'calendar' ? '#FFFFFF' : '#A9ABC6',
-            backgroundColor: activeTab === 'calendar' ? '#56548A' : 'transparent',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '5px 10px'
-          }}
-          className="flex flex-col items-center gap-0.5"
-          onClick={() => setActiveTab('calendar')}
-        >
-          <Calendar size={17} />
-          <span className="text-[10px] font-medium">Agenda</span>
-        </button>
-      )}
-
-      {pages.workouts !== false && userPermissions.workouts !== false && (
-        <button
-          type="button"
-          style={{
-            color: activeTab === 'workouts' ? '#FFFFFF' : '#A9ABC6',
-            backgroundColor: activeTab === 'workouts' ? '#56548A' : 'transparent',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '5px 10px'
-          }}
-          className="flex flex-col items-center gap-0.5"
-          onClick={() => setActiveTab('workouts')}
-        >
-          <Dumbbell size={17} />
-          <span className="text-[10px] font-medium">Treinos</span>
-        </button>
-      )}
-
-      <button
-        type="button"
-        style={{
-          color: activeTab === 'telemetry' ? '#FFFFFF' : '#A9ABC6',
-          backgroundColor: activeTab === 'telemetry' ? '#56548A' : 'transparent',
-          border: 'none',
-          borderRadius: '12px',
-          padding: '5px 10px'
-        }}
-        className="flex flex-col items-center gap-0.5"
-        onClick={() => setActiveTab('telemetry')}
-      >
-        <TrendingUp size={17} />
-        <span className="text-[10px] font-medium">Progresso</span>
-      </button>
-    </nav>
+    </>
   );
 }
