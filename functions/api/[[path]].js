@@ -12,6 +12,7 @@
  * - _lib/    utilitários (http, auth/JWT, e-mail, auditoria, banco legado)
  * - _routes/ rotas por domínio, testadas na mesma ordem de antes
  */
+import { ServerConfigError } from './_lib/auth.js';
 import { authorizeRequest } from './_lib/guard.js';
 import { ensureDatabaseReady } from './_lib/db.js';
 import { getSecurityHeaders, jsonResponse, sanitizeObjectEdge } from './_lib/http.js';
@@ -58,17 +59,24 @@ export async function onRequest(context) {
 
   const ctx = { request, env, correlationId, clientIp, userAgent, url, pathname, method, body, storage, authClaims: null };
 
-  for (const handler of PUBLIC_HANDLERS) {
-    const res = await handler(ctx);
-    if (res) return res;
-  }
+  try {
+    for (const handler of PUBLIC_HANDLERS) {
+      const res = await handler(ctx);
+      if (res) return res;
+    }
 
-  const denied = await authorizeRequest(ctx);
-  if (denied) return denied;
+    const denied = await authorizeRequest(ctx);
+    if (denied) return denied;
 
-  for (const handler of PROTECTED_HANDLERS) {
-    const res = await handler(ctx);
-    if (res) return res;
+    for (const handler of PROTECTED_HANDLERS) {
+      const res = await handler(ctx);
+      if (res) return res;
+    }
+  } catch (err) {
+    if (err instanceof ServerConfigError) {
+      return jsonResponse({ error: err.message }, 503, correlationId, request);
+    }
+    throw err;
   }
 
   return jsonResponse({ error: 'Rota não encontrada.' }, 404, correlationId, request);

@@ -88,8 +88,27 @@ export function base64UrlDecodeToString(b64url) {
   return new TextDecoder().decode(bytes);
 }
 
+/** Erro de configuração do servidor (ex.: segredo ausente). O roteador responde 503. */
+export class ServerConfigError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'ServerConfigError';
+  }
+}
+
+const MIN_JWT_SECRET_LENGTH = 32;
+
+/**
+ * Chave HMAC dos JWT. Falha fechada: sem JWT_SECRET (ou com segredo curto) não há
+ * assinatura nem verificação. Não existe segredo padrão embutido no código.
+ */
 export async function getHmacKeyEdge(env) {
-  const secret = env?.JWT_SECRET || 'ethos_edge_jwt_hmac_secret_2026_v1_production_key_secure';
+  const secret = env?.JWT_SECRET;
+  if (typeof secret !== 'string' || secret.length < MIN_JWT_SECRET_LENGTH) {
+    throw new ServerConfigError(
+      `JWT_SECRET ausente ou com menos de ${MIN_JWT_SECRET_LENGTH} caracteres. Configure-o nas variáveis do Cloudflare Pages.`
+    );
+  }
   return crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
