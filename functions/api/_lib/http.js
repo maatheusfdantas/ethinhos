@@ -25,6 +25,11 @@ export function getAllowedOrigin(request) {
   return 'https://ethos-3hs.pages.dev';
 }
 
+/**
+ * @param {string} correlationId
+ * @param {Request | null} [request]
+ * @returns {Record<string, string>}
+ */
 export function getSecurityHeaders(correlationId, request = null) {
   return {
     'Content-Type': 'application/json; charset=utf-8',
@@ -35,12 +40,19 @@ export function getSecurityHeaders(correlationId, request = null) {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
     'Access-Control-Allow-Origin': getAllowedOrigin(request),
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Correlation-ID, X-CSRF-Token',
     'Vary': 'Origin'
   };
 }
 
+/**
+ * @param {unknown} data
+ * @param {number} [status]
+ * @param {string} [correlationId]
+ * @param {Request | null} [request]
+ * @returns {Response}
+ */
 export function jsonResponse(data, status = 200, correlationId = crypto.randomUUID(), request = null) {
   return new Response(JSON.stringify(data), {
     status,

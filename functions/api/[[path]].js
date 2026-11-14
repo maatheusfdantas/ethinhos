@@ -18,15 +18,20 @@ import { ensureDatabaseReady } from './_lib/db.js';
 import { getSecurityHeaders, jsonResponse, sanitizeObjectEdge } from './_lib/http.js';
 import { handleAdminRoutes } from './_routes/admin.js';
 import { handleAuthRoutes } from './_routes/auth.js';
+import { handleEntriesRoutes } from './_routes/entries';
 import { handleInsightsRoutes } from './_routes/insights.js';
 import { handleOAuthRoutes } from './_routes/oauth.js';
 import { handlePublicRoutes } from './_routes/public.js';
+import { handleRoutineRoutes } from './_routes/routine';
 import { handleUserRoutes } from './_routes/user.js';
 
 /** Rotas públicas (antes da camada de autorização), na ordem original. */
 const PUBLIC_HANDLERS = [handleAuthRoutes, handleOAuthRoutes, handlePublicRoutes];
-/** Rotas protegidas (depois de authorizeRequest), na ordem original. */
-const PROTECTED_HANDLERS = [handleUserRoutes, handleInsightsRoutes, handleAdminRoutes];
+/**
+ * Rotas protegidas (depois de authorizeRequest). O núcleo /api/v1 vem primeiro e
+ * exige JWT por conta própria (o usuário sai do token, nunca da URL).
+ */
+const PROTECTED_HANDLERS = [handleRoutineRoutes, handleEntriesRoutes, handleUserRoutes, handleInsightsRoutes, handleAdminRoutes];
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -45,10 +50,13 @@ export async function onRequest(context) {
   const pathname = url.pathname;
   const method = request.method.toUpperCase();
 
+  // `body` (sanitizado) atende as rotas legadas; `rawBody` (JSON original) atende o
+  // núcleo /api/v1, que valida campo a campo e deixa o escape para a camada de exibição.
   let body = {};
-  if (method === 'POST' || method === 'PUT') {
+  let rawBody = null;
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
     try {
-      const rawBody = await request.json();
+      rawBody = await request.json();
       body = sanitizeObjectEdge(rawBody);
     } catch (_e) {
       body = {};
@@ -57,7 +65,7 @@ export async function onRequest(context) {
 
   const storage = await ensureDatabaseReady(env);
 
-  const ctx = { request, env, correlationId, clientIp, userAgent, url, pathname, method, body, storage, authClaims: null };
+  const ctx = { request, env, correlationId, clientIp, userAgent, url, pathname, method, body, rawBody, storage, authClaims: null };
 
   try {
     for (const handler of PUBLIC_HANDLERS) {
