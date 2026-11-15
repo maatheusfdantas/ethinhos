@@ -48,7 +48,7 @@ export function parseHealth(body) {
 const USER_TABLES = [
   'habits', 'events', 'health', 'tags', 'bad_habit_relapses', 'bad_habits', 'support_tickets', 'auth_tokens',
   'oauth_identities', 'oauth_login_codes', 'spotify_connections', 'user_health_profile', 'category_members',
-  'routines', 'core_categories', 'commitments', 'entries'
+  'routines', 'core_categories', 'commitments', 'entries', 'support_access_grants'
 ];
 
 async function safeAll(db, sql, ...binds) {

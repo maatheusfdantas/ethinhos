@@ -35,7 +35,10 @@ export async function authorizeRequest(ctx) {
         request
       );
     }
-    if (authClaims && authClaims.sub !== targetUserId && authClaims.role !== 'admin') {
+    // Ninguém lê ou altera dados de outra conta por estas rotas, nem o admin (decisão de 14/11/2026).
+    // O admin administra contas por /api/admin/*; atendimento que precise ver dados usa o acesso
+    // consentido e temporário liberado pelo próprio cliente (/api/support-access).
+    if (authClaims && authClaims.sub !== targetUserId) {
       await recordAuditLogEdge(storage, {
         eventType: 'IDOR_ATTEMPT_BLOCKED',
         userId: authClaims.sub,

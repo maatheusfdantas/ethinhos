@@ -25,6 +25,7 @@ import {
   X
 } from 'lucide-react';
 import { apiFetch } from '../utils/api';
+import { AdminSupportGrant } from './support/AdminSupportGrant';
 
 /**
  * Floating Ambient Dust Particles
@@ -1604,6 +1605,9 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                         <div style={{ fontSize: '11.5px', color: '#9CA3AF', marginBottom: '12px' }}>
                           Autor: <strong>{t.user_name || 'Usuário'}</strong> • {t.user_email}
                         </div>
+
+                        {/* Dados da conta só com acesso liberado pelo cliente neste chamado */}
+                        <AdminSupportGrant ticketId={t.id} />
 
                         {/* Resposta do Admin */}
                         {t.admin_reply && (

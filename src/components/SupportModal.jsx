@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SupportAccessPanel } from './support/SupportAccessPanel';
 import {
   LifeBuoy,
   Send,
@@ -381,6 +382,9 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                         {t.admin_reply}
                       </div>
                     )}
+
+                    {/* Acesso de suporte consentido: o cliente libera, acompanha e revoga */}
+                    <SupportAccessPanel ticketId={t.id} resolved={isResolved} />
                   </div>
                 );
               })
