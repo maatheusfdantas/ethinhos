@@ -80,12 +80,17 @@ describe('regras do guard', () => {
 
 describe('guard de ponta a ponta num repositório de teste', () => {
   const guard = resolve('scripts/agent-guard.mjs');
-  const sh = (cwd: string, ...a: string[]) => execFileSync('git', a, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  // IMPORTANTE: dentro de um hook do git (pre-push roda npm test), o processo herda GIT_DIR, GIT_INDEX_FILE etc.
+  // Sem limpar essas variáveis, os comandos abaixo agiriam no repositório REAL (isso já aconteceu: commit 6f6e987).
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+  const sh = (cwd: string, ...a: string[]) => execFileSync('git', a, { cwd, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
   it('agente que apaga um componente e esvazia outro é barrado no commit', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ethos-guard-'));
     try {
-      sh(dir, 'init', '-q', '-b', 'main'); sh(dir, 'config', 'user.email', 't@t'); sh(dir, 'config', 'user.name', 't');
+      sh(dir, 'init', '-q', '-b', 'main');
+      // trava extra: confirma que o teste está mesmo no repositório temporário
+      expect(resolve(sh(dir, 'rev-parse', '--show-toplevel').trim()).toLowerCase()).toBe(resolve(dir).toLowerCase()); sh(dir, 'config', 'user.email', 't@t'); sh(dir, 'config', 'user.name', 't');
       mkdirSync(join(dir, 'src/components'), { recursive: true });
       writeFileSync(join(dir, '.agent-protected.json'), JSON.stringify(cfg));
       writeFileSync(join(dir, 'src/components/A.jsx'), Array.from({ length: 400 }, (_, i) => `// linha ${i}`).join('\n'));
@@ -97,7 +102,7 @@ describe('guard de ponta a ponta num repositório de teste', () => {
       writeFileSync(join(dir, 'src/components/A.jsx'), '// versão genérica\n');
       sh(dir, 'add', '-A');
       let out = ''; let code = 0;
-      try { execFileSync('node', [guard, '--staged'], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e: any) { code = e.status; out = String(e.stderr); }
+      try { execFileSync('node', [guard, '--staged'], { cwd: dir, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e: any) { code = e.status; out = String(e.stderr); }
       expect(code).toBe(1);
       expect(out).toMatch(/arquivo protegido: src\/components\/B\.jsx/);
       expect(out).toMatch(/Remoção muito grande em src\/components\/A\.jsx/);
