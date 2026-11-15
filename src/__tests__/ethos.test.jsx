@@ -8,6 +8,8 @@ import {
   calculateVitalityScore
 } from '../utils/biometricsAndAnalytics';
 import { ProfileTab } from '../components/ProfileTab';
+import { CalendarTab } from '../components/CalendarTab';
+import { WorkoutTab } from '../components/WorkoutTab';
 import { WeeklyExecutionChart, CategoryAdherenceList } from '../components/ui/EthosDataViz';
 
 describe('1. Biometria & Engine Analítica (Pure Domain Functions)', () => {
@@ -163,6 +165,63 @@ describe('4. Resiliência de Sincronização & Proteção de Dados (Anti-Wipe)',
     const res50 = calculateDailyWaterTarget(50, 500);
     expect(res50.dailyMl).toBe(1750);
     expect(res50.targetGlasses).toBe(4);
+  });
+});
+
+describe('5. Suporte, Treinos e Convidados de Calendário', () => {
+  it('não exibe convidados fantasmas no calendário e lista apenas amigos reais aprovados', () => {
+    const mockFriends = [
+      { id: 'f_juliana', name: 'Juliana Silva', username: 'juliana', status: 'approved' },
+      { id: 'f_pedro', name: 'Pedro Pendente', username: 'pedro', status: 'pending_sent' }
+    ];
+
+    render(
+      <CalendarTab
+        events={[]}
+        friends={mockFriends}
+      />
+    );
+
+    // Clica para adicionar novo evento e abrir o modal
+    const addBtn = screen.getByRole('button', { name: /Novo Evento/i });
+    fireEvent.click(addBtn);
+
+    // Garante que convidados fantasmas não existem mais
+    expect(screen.queryByText('Lucas Dev')).not.toBeInTheDocument();
+    expect(screen.queryByText('Prof. Marcos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Matheus Pro')).not.toBeInTheDocument();
+
+    // Apenas Juliana (amiga aprovada) aparece como opção de convite com suas iniciais JS
+    expect(screen.getByTitle(/Juliana Silva/i)).toBeInTheDocument();
+    // Pedro (status pending) não aparece para convidar
+    expect(screen.queryByTitle(/Pedro Pendente/i)).not.toBeInTheDocument();
+  });
+
+  it('permite apagar uma ficha de treino mesmo quando há apenas 1 ficha cadastrada', () => {
+    const mockSetWorkouts = vi.fn();
+    const singleWorkout = [{ id: 'wo_1', name: 'Treino A', scheduledDays: [1], exercises: [] }];
+
+    render(
+      <WorkoutTab
+        workouts={singleWorkout}
+        setWorkouts={mockSetWorkouts}
+      />
+    );
+
+    // O botão de excluir deve estar disponível mesmo com 1 ficha
+    const deleteBtn = screen.getByTitle('Excluir ficha de treino');
+    expect(deleteBtn).toBeInTheDocument();
+
+    fireEvent.click(deleteBtn);
+
+    // Modal de confirmação deve aparecer
+    expect(screen.getByText('Excluir Ficha de Treino')).toBeInTheDocument();
+
+    // Confirma a exclusão
+    const confirmBtn = screen.getByRole('button', { name: /Confirmar Exclusão/i });
+    fireEvent.click(confirmBtn);
+
+    expect(mockSetWorkouts).toHaveBeenCalledWith([]);
   });
 });
 

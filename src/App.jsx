@@ -82,6 +82,35 @@ export function App() {
   const [friends, setFriends] = useState([]);
   const [feed, setFeed] = useState([]);
 
+  // Sincronizar conexões de amigos da rede
+  useEffect(() => {
+    if (!user?.id) {
+      setFriends([]);
+      return;
+    }
+    const loadFriends = async () => {
+      try {
+        const res = await apiFetch(`/api/user/${user.id}/connections`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.connections)) {
+            setFriends(data.connections.map(c => ({
+              id: c.friend_id,
+              name: c.friend_name,
+              avatar: c.friend_avatar,
+              bio: c.friend_bio || '',
+              username: c.friend_username || c.friend_name.toLowerCase().replace(/\s+/g, ''),
+              status: c.status,
+              streakDays: c.streak_days || 0,
+              points: c.points || 0
+            })));
+          }
+        }
+      } catch (_e) {}
+    };
+    loadFriends();
+  }, [user?.id]);
+
   // Active Navigation Tab (abre direto na aba Calendário ao retornar do Google OAuth)
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined' && window.location.search.includes('google_auth=')) return 'calendar';
@@ -680,6 +709,7 @@ export function App() {
                 setHabits={setHabits}
                 workouts={workouts}
                 tags={tags}
+                friends={friends}
                 onOpenAdd={() => setShowAddModal(true)}
                 onToggleEvent={handleToggleEvent}
                 onAddEvent={handleAddEvent}
@@ -836,6 +866,7 @@ export function App() {
         onAddHabit={handleAddHabit}
         onAddEvent={handleAddEvent}
         tags={tags}
+        friends={friends}
         onAddTag={handleAddTag}
       />
 

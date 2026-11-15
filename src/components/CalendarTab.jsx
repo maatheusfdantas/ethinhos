@@ -44,13 +44,6 @@ const EVENT_CATEGORIES = [
   { name: 'Leitura',   dotColor: '#9B8CE8', chipBg: '#9B8CE8', chipText: '#FFFFFF', bg: '#C4BDE8', border: '#A89FDB', text: '#221D3A' }
 ];
 
-const PRESET_PARTICIPANTS = [
-  { id: 'p1', name: 'Lucas Dev', initials: 'LD', bg: '#4E67B8' },
-  { id: 'p2', name: 'Ana Clara', initials: 'AC', bg: '#D96B78' },
-  { id: 'p3', name: 'Prof. Marcos', initials: 'PM', bg: '#3BA386' },
-  { id: 'p4', name: 'Matheus Pro', initials: 'MP', bg: '#6C5CE7' }
-];
-
 function getPaletteForCategory(cat = 'Trabalho', customColor = null, index = 0) {
   if (customColor) {
     return {
@@ -84,6 +77,7 @@ export function CalendarTab({
   habits = [], 
   setHabits,
   workouts = [], 
+  friends = [],
   onOpenAdd, 
   onToggleEvent,
   onAddEvent,
@@ -91,6 +85,10 @@ export function CalendarTab({
   onSwitchTab,
   showToast
 }) {
+  const approvedFriends = useMemo(() => {
+    return Array.isArray(friends) ? friends.filter((f) => f.status === 'approved') : [];
+  }, [friends]);
+
   // REQUISITO 2: Aba calendário sempre abre na visualização MENSAL ('month')
   const [viewMode, setViewMode] = useState('month'); // 'day' | 'week' | 'month'
 
@@ -118,7 +116,7 @@ export function CalendarTab({
   const [evDescription, setEvDescription] = useState('');
   const [evReminder, setEvReminder] = useState('15 min antes');
   const [evParticipantsText, setEvParticipantsText] = useState('');
-  const [evSelectedParticipants, setEvSelectedParticipants] = useState(['p1', 'p2', 'p3']);
+  const [evSelectedParticipants, setEvSelectedParticipants] = useState([]);
 
   // Nenhum perfil inicia com eventos falsos pré-preenchidos
   const [localSeedEvents, setLocalSeedEvents] = useState([]);
@@ -217,7 +215,7 @@ export function CalendarTab({
     setEvDescription('');
     setEvReminder('15 min antes');
     setEvParticipantsText('');
-    setEvSelectedParticipants(['p1', 'p2', 'p3']);
+    setEvSelectedParticipants([]);
     setIsEventModalOpen(true);
     setOpenMenuId(null);
   };
@@ -237,7 +235,7 @@ export function CalendarTab({
     setEvDescription(ev.description || '');
     setEvReminder(ev.reminder || '15 min antes');
     setEvParticipantsText(ev.participantsText || '');
-    setEvSelectedParticipants(ev.participants || ['p1', 'p2']);
+    setEvSelectedParticipants(Array.isArray(ev.participants) ? ev.participants : []);
     setIsEventModalOpen(true);
     setOpenMenuId(null);
   };
@@ -1668,36 +1666,49 @@ export function CalendarTab({
                         </select>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {PRESET_PARTICIPANTS.map((person) => {
-                            const isIncluded = evSelectedParticipants.includes(person.id);
-                            return (
-                              <button
-                                key={person.id}
-                                type="button"
-                                onClick={() => toggleParticipantSelection(person.id)}
-                                title={`${person.name} (${isIncluded ? 'Incluído' : 'Clique para incluir'})`}
-                                style={{
-                                  width: '24px',
-                                  height: '24px',
-                                  borderRadius: '7px',
-                                  backgroundColor: isIncluded ? '#211F38' : '#DCDCE6',
-                                  color: isIncluded ? '#FFFFFF' : '#5A5B75',
-                                  border: 'none',
-                                  fontSize: '9.5px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {person.initials}
-                              </button>
-                            );
-                          })}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                          {approvedFriends.length === 0 ? (
+                            <span style={{ fontSize: '11px', color: '#5A5B75', fontStyle: 'italic' }}>
+                              Nenhum amigo conectado ainda.
+                            </span>
+                          ) : (
+                            approvedFriends.map((friend) => {
+                              const isIncluded = evSelectedParticipants.includes(friend.id);
+                              const initials = friend.avatar && friend.avatar.length <= 3
+                                ? friend.avatar
+                                : (friend.name ? friend.name.slice(0, 2).toUpperCase() : 'AM');
+                              return (
+                                <button
+                                  key={friend.id}
+                                  type="button"
+                                  onClick={() => toggleParticipantSelection(friend.id)}
+                                  title={`${friend.name} (@${(friend.username || '').replace(/^@/, '')}) - ${isIncluded ? 'Convidado (clique para remover)' : 'Clique para convidar'}`}
+                                  style={{
+                                    height: '24px',
+                                    padding: '0 8px',
+                                    borderRadius: '7px',
+                                    backgroundColor: isIncluded ? '#211F38' : '#DCDCE6',
+                                    color: isIncluded ? '#FFFFFF' : '#5A5B75',
+                                    border: 'none',
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px'
+                                  }}
+                                >
+                                  <span>{initials}</span>
+                                  {isIncluded && <span style={{ fontSize: '9px' }}>✓</span>}
+                                </button>
+                              );
+                            })
+                          )}
                         </div>
 
                         <span style={{ fontSize: '10.5px', color: '#5A5B75', fontWeight: 500 }}>
-                          {evSelectedParticipants.length} participante(s)
+                          {evSelectedParticipants.length} convidado(s)
                         </span>
                       </div>
                     </div>

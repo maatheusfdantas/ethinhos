@@ -45,13 +45,6 @@ const DEFAULT_TAG_STYLES = [
   { name: 'Leitura',   color: '#9B8CE8' }
 ];
 
-const PRESET_PARTICIPANTS = [
-  { id: 'p1', name: 'Lucas Dev', initials: 'LD', bg: '#211F38' },
-  { id: 'p2', name: 'Ana Clara', initials: 'AC', bg: '#56548A' },
-  { id: 'p3', name: 'Prof. Marcos', initials: 'PM', bg: '#059669' },
-  { id: 'p4', name: 'Matheus Pro', initials: 'MP', bg: '#3B82F6' }
-];
-
 const WEEKDAYS = [
   { dayIndex: 1, label: 'Seg' },
   { dayIndex: 2, label: 'Ter' },
@@ -76,8 +69,10 @@ export function AddModal({
   onAddHabit, 
   onAddEvent, 
   tags = [],
+  friends = [],
   initialMode = 'event'
 }) {
+  const _approvedFriends = Array.isArray(friends) ? friends.filter((f) => f.status === 'approved') : [];
   const [mode, setMode] = useState(initialMode); // 'event' | 'habit'
 
   useEffect(() => {
@@ -132,7 +127,7 @@ export function AddModal({
   const [notes, setNotes] = useState('');
   const [reminder, setReminder] = useState('15 min antes');
   const [participantsText, setParticipantsText] = useState('');
-  const [selectedParticipants, setSelectedParticipants] = useState(['p1', 'p2']);
+  const [selectedParticipants, setSelectedParticipants] = useState([]);
 
   // Opções Avançadas do Evento (Item 4: Recorrência, Exceções, Lembretes, Buffers, Energia)
   const [eventRepeat, setEventRepeat] = useState('Nunca');

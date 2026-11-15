@@ -629,14 +629,10 @@ export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
   // Excluir ficha de treino inteira
   const handleDeleteWorkout = (wId) => {
     if (isWorkoutRunning) return;
-    if (safeWorkouts.length <= 1) {
-      alert('Você deve manter pelo menos uma ficha de treino.');
-      return;
-    }
     const remaining = safeWorkouts.filter(w => w.id !== wId);
     setWorkouts(remaining);
-    setActiveWorkoutId(remaining[0]?.id);
-    if (activeWorkoutId === wId) {
+    setActiveWorkoutId(remaining[0]?.id || null);
+    if (activeWorkoutId === wId || remaining.length === 0) {
       setCurrentView('list');
     }
   };
@@ -872,6 +868,31 @@ export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
                   </button>
                 );
               })}
+
+              {!isWorkoutRunning && currentWorkout && (
+                <button
+                  type="button"
+                  onClick={() => setWorkoutToDelete(currentWorkout)}
+                  title="Excluir esta ficha de treino"
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    color: '#EF4444',
+                    border: '1px solid rgba(239, 68, 68, 0.28)',
+                    borderRadius: '12px',
+                    padding: '6px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    marginLeft: '4px'
+                  }}
+                >
+                  <Trash2 size={12} />
+                  <span>Excluir Ficha</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -2464,7 +2485,6 @@ export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
                     <span>Editar Card</span>
                   </button>
 
-                  {safeWorkouts.length > 1 && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -2488,7 +2508,6 @@ export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
                     >
                       <Trash2 size={13} />
                     </button>
-                  )}
                 </div>
               </div>
             );
@@ -2863,7 +2882,33 @@ export function WorkoutTab({ workouts = [], setWorkouts, onCompleteWorkout }) {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    const target = safeWorkouts.find(w => w.id === editingWorkoutId);
+                    if (target) {
+                      setShowEditWorkoutModal(false);
+                      setWorkoutToDelete(target);
+                    }
+                  }}
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    color: '#EF4444',
+                    border: '1px solid rgba(239, 68, 68, 0.28)',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Trash2 size={14} />
+                  <span>Excluir Ficha</span>
+                </button>
                 <button 
                   type="button" 
                   className="btn-secondary" 

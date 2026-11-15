@@ -356,18 +356,21 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
   };
 
   // Handlers: Suporte
-  const handleSendTicketReply = async (ticketId) => {
+  const handleSendTicketReply = async (ticketId, andResolve = false) => {
     const reply = replyTextMap[ticketId];
     if (!reply || !reply.trim()) {
       showLocalToast('Digite uma resposta antes de enviar.');
       return;
     }
 
+    const currentTicket = tickets.find((t) => t.id === ticketId);
+    const targetStatus = andResolve ? 'resolved' : (currentTicket?.status || 'open');
+
     try {
       const res = await apiFetch(`/api/admin/tickets/${ticketId}`, {
         method: 'PUT',
         body: JSON.stringify({
-          status: 'resolved',
+          status: targetStatus,
           adminReply: reply.trim()
         })
       });
@@ -375,15 +378,38 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
         setTickets((prev) =>
           prev.map((t) =>
             t.id === ticketId
-              ? { ...t, status: 'resolved', admin_reply: reply.trim(), updated_at: new Date().toISOString() }
+              ? { ...t, status: targetStatus, admin_reply: reply.trim(), updated_at: new Date().toISOString() }
               : t
           )
         );
         setReplyTextMap((prev) => ({ ...prev, [ticketId]: '' }));
-        showLocalToast('Resposta enviada e ticket marcado como resolvido!');
+        showLocalToast(andResolve ? 'Resposta enviada e ticket finalizado como resolvido!' : 'Resposta enviada com sucesso!');
       }
     } catch (_e) {
       showLocalToast('Erro ao responder ticket de suporte.');
+    }
+  };
+
+  const handleUpdateTicketStatus = async (ticketId, nextStatus) => {
+    try {
+      const res = await apiFetch(`/api/admin/tickets/${ticketId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          status: nextStatus
+        })
+      });
+      if (res.ok) {
+        setTickets((prev) =>
+          prev.map((t) =>
+            t.id === ticketId
+              ? { ...t, status: nextStatus, updated_at: new Date().toISOString() }
+              : t
+          )
+        );
+        showLocalToast(nextStatus === 'resolved' ? 'Ticket finalizado como resolvido!' : 'Ticket reaberto em aberto!');
+      }
+    } catch (_e) {
+      showLocalToast('Erro ao atualizar status do ticket.');
     }
   };
 
@@ -1525,8 +1551,8 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                           padding: '18px'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span
                               style={{
                                 fontSize: '11px',
@@ -1544,9 +1570,31 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                               Assunto: {t.subject || 'Dúvida Geral'}
                             </span>
                           </div>
-                          <span style={{ fontSize: '11.5px', color: '#6B7280' }}>
-                            {new Date(t.created_at || Date.now()).toLocaleString('pt-BR')}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateTicketStatus(t.id, isResolved ? 'open' : 'resolved')}
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                padding: '4px 10px',
+                                borderRadius: '8px',
+                                backgroundColor: isResolved ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                color: isResolved ? '#FBBF24' : '#34D399',
+                                border: `1px solid ${isResolved ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              {isResolved ? <RefreshCw size={11} /> : <CheckCircle2 size={11} />}
+                              <span>{isResolved ? 'Reabrir Chamado' : 'Finalizar como Resolvido'}</span>
+                            </button>
+                            <span style={{ fontSize: '11.5px', color: '#6B7280' }}>
+                              {new Date(t.created_at || Date.now()).toLocaleString('pt-BR')}
+                            </span>
+                          </div>
                         </div>
 
                         <div style={{ fontSize: '13.5px', color: '#F3F4F6', lineHeight: 1.5, margin: '10px 0' }}>
@@ -1558,7 +1606,7 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                         </div>
 
                         {/* Resposta do Admin */}
-                        {t.admin_reply ? (
+                        {t.admin_reply && (
                           <div
                             style={{
                               backgroundColor: 'rgba(139, 92, 246, 0.08)',
@@ -1566,7 +1614,8 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                               padding: '10px 14px',
                               borderRadius: '0 10px 10px 0',
                               fontSize: '12.5px',
-                              color: '#E2E8F0'
+                              color: '#E2E8F0',
+                              marginBottom: '10px'
                             }}
                           >
                             <span style={{ fontSize: '11px', fontWeight: 700, color: '#C4B5FD', display: 'block', marginBottom: '3px' }}>
@@ -1574,33 +1623,57 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                             </span>
                             {t.admin_reply}
                           </div>
-                        ) : (
-                          <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                            <input
-                              type="text"
-                              placeholder="Digite uma resposta ao usuário..."
-                              value={replyTextMap[t.id] || ''}
-                              onChange={(e) => setReplyTextMap({ ...replyTextMap, [t.id]: e.target.value })}
-                              style={{
-                                flex: 1,
-                                padding: '9px 12px',
-                                backgroundColor: 'rgba(22, 22, 26, 0.8)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: '10px',
-                                color: '#FFFFFF',
-                                fontSize: '12.5px',
-                                outline: 'none'
-                              }}
-                            />
+                        )}
+
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                          <input
+                            type="text"
+                            placeholder={t.admin_reply ? 'Enviar atualização de resposta...' : 'Digite uma resposta ao usuário...'}
+                            value={replyTextMap[t.id] || ''}
+                            onChange={(e) => setReplyTextMap({ ...replyTextMap, [t.id]: e.target.value })}
+                            style={{
+                              flex: '1 1 200px',
+                              padding: '9px 12px',
+                              backgroundColor: 'rgba(22, 22, 26, 0.8)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '10px',
+                              color: '#FFFFFF',
+                              fontSize: '12.5px',
+                              outline: 'none'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSendTicketReply(t.id, false)}
+                            title="Envia a resposta mantendo o status atual do chamado"
+                            style={{
+                              padding: '9px 14px',
+                              borderRadius: '10px',
+                              backgroundColor: '#8B5CF6',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <Send size={13} />
+                            <span>Responder</span>
+                          </button>
+                          {!isResolved && (
                             <button
                               type="button"
-                              onClick={() => handleSendTicketReply(t.id)}
+                              onClick={() => handleSendTicketReply(t.id, true)}
+                              title="Envia a resposta e finaliza o chamado como resolvido"
                               style={{
-                                padding: '9px 16px',
+                                padding: '9px 14px',
                                 borderRadius: '10px',
-                                backgroundColor: '#8B5CF6',
-                                color: '#FFFFFF',
-                                border: 'none',
+                                backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                                color: '#34D399',
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
                                 fontSize: '12px',
                                 fontWeight: 700,
                                 cursor: 'pointer',
@@ -1609,11 +1682,11 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                                 gap: '6px'
                               }}
                             >
-                              <Send size={13} />
-                              <span>Responder</span>
+                              <CheckCircle2 size={13} />
+                              <span>Responder e Finalizar</span>
                             </button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     );
                   })}
