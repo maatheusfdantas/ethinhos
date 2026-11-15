@@ -380,23 +380,13 @@ export async function handleAuthRoutes(ctx) {
       return jsonResponse({ error: 'Usuário não encontrado.' }, 404, correlationId, request);
     }
 
+    // SEGURANÇA (auditoria 15/11/2026, S1): conta já verificada NÃO recebe sessão por esta rota.
+    // Antes, qualquer código servia aqui e a resposta trazia tokens (entrada sem senha). Para entrar: login com senha.
     if (user.email_verified === 1) {
-      const accessToken = await signJwtEdge({ sub: user.id, username: user.username, role: user.role }, env, 3600);
-      const refreshToken = await signJwtEdge({ sub: user.id, username: user.username, role: user.role, type: 'refresh' }, env, 7 * 24 * 3600);
       return jsonResponse({
         success: true,
         alreadyVerified: true,
-        message: 'Seu e-mail já foi verificado anteriormente!',
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          name: user.name,
-          avatar: user.avatar,
-          role: user.role,
-          permissions: typeof user.permissions === 'string' ? JSON.parse(user.permissions) : user.permissions
-        },
-        auth: { accessToken, refreshToken, expiresIn: 3600 }
+        message: 'Seu e-mail já está confirmado. Entre com sua senha.'
       }, 200, correlationId, request);
     }
 
@@ -533,13 +523,24 @@ export async function handleAuthRoutes(ctx) {
     if (!payload || payload.type !== 'refresh') {
       return jsonResponse({ error: 'Refresh token inválido ou expirado.' }, 401, correlationId, request);
     }
+    // SEGURANÇA (auditoria 15/11/2026, S3): a renovação confere a conta no banco. Conta excluída ou
+    // desativada não renova; papel e @ vêm do estado atual (rebaixar um admin vale na próxima renovação).
+    let current = null;
+    if (storage.mode === 'd1') {
+      current = await storage.db.prepare('SELECT id, username, role, is_active FROM users WHERE id = ?').bind(payload.sub).first();
+    } else {
+      current = storage.store.users.get(payload.sub) || null;
+    }
+    if (!current || current.is_active === 0) {
+      return jsonResponse({ error: 'Sessão encerrada. Entre novamente.' }, 401, correlationId, request);
+    }
     const accessToken = await signJwtEdge(
-      { sub: payload.sub, username: payload.username, role: payload.role },
+      { sub: current.id, username: current.username, role: current.role },
       env,
       3600
     );
     const refreshToken = await signJwtEdge(
-      { sub: payload.sub, username: payload.username, role: payload.role, type: 'refresh' },
+      { sub: current.id, username: current.username, role: current.role, type: 'refresh' },
       env,
       7 * 24 * 3600
     );

@@ -313,10 +313,14 @@ export function LoginScreen({ onLoginSuccess }) {
         return;
       }
 
-      if (data.auth?.accessToken) {
-        sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
-        localStorage.setItem('ethos_access_token', data.auth.accessToken);
+      // E-mail já confirmado: o servidor não devolve sessão; a pessoa entra com a senha.
+      if (!data.auth?.accessToken) {
+        setMode('login');
+        setErrorMessage(data.message || 'Seu e-mail já está confirmado. Entre com sua senha.');
+        return;
       }
+      sessionStorage.setItem('ethos_access_token', data.auth.accessToken);
+      localStorage.setItem('ethos_access_token', data.auth.accessToken);
       if (data.auth?.refreshToken) {
         sessionStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
         localStorage.setItem('ethos_refresh_token', data.auth.refreshToken);
