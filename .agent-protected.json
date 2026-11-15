@@ -1,1 +1,24 @@
-{"dirs":["src/components","functions/api"],"files":["src/App.jsx"]}
+{
+  "descricao": "Arquivos e pastas que não podem ser apagados ou renomeados por agentes sem aprovação registrada (npm run scope:allow-delete).",
+  "dirs": [
+    "src/components",
+    "src/domain",
+    "src/utils",
+    "src/hooks",
+    "src/styles",
+    "functions/api",
+    "cloudflare/migrations",
+    "tests",
+    "public/fonts"
+  ],
+  "files": [
+    "src/App.jsx",
+    "src/main.jsx",
+    "index.html",
+    "package.json",
+    "wrangler.toml",
+    "AGENTS.md",
+    "GEMINI.md",
+    "CLAUDE.md"
+  ]
+}

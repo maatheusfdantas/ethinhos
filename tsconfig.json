@@ -1,0 +1,25 @@
+{
+  // TypeScript gradual: arquivos .ts/.tsx novos sao checados em modo strict;
+  // .js/.jsx legados sao aceitos (allowJs) mas nao checados (checkJs: false).
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["vitest/globals"]
+  },
+  "include": ["src", "functions", "tests"],
+  "exclude": ["node_modules", "dist", "_to_delete", "landing-site"]
+}

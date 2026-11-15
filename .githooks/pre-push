@@ -1,0 +1,5 @@
+#!/bin/sh
+# Antes do push: guard contra origin/main + checagem de tipos e testes.
+node scripts/agent-guard.mjs --range origin/main || exit 1
+npm run --silent typecheck || exit 1
+npm test --silent || exit 1
