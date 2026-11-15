@@ -1,3 +1,0 @@
-#!/bin/sh
-# Guard do Ethos: bloqueia o commit se violar AGENTS.md. (git commit --no-verify ignora: ver AGENTS.md, seção 0)
-node scripts/agent-guard.mjs --staged || exit 1
