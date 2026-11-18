@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import '../styles/espacos.css';
 import {
   User, LayoutGrid, Calendar, TrendingUp, Plus, Settings, LogOut, ShieldAlert, Timer,
-  Dumbbell, Users, CheckCircle2, ShieldOff, LifeBuoy, Menu, StickyNote
+  Dumbbell, Users, CheckCircle2, ShieldOff, LifeBuoy, Menu, StickyNote, Building2, Ticket
 } from 'lucide-react';
 
 /**
@@ -23,9 +24,33 @@ function buildModules(user, userPermissions = {}) {
     { id: 'notes', label: 'Notas', icon: StickyNote, group: 'Corpo e mente', enabled: pages.notes !== false },
     { id: 'telemetry', label: 'Análise de progresso', icon: TrendingUp, group: 'Entender', enabled: true },
     { id: 'social', label: 'Comunidade', icon: Users, group: 'Pessoas', enabled: pages.social !== false && userPermissions.social !== false },
+    { id: 'espacos', label: 'Espaços', icon: Building2, group: 'Pessoas', enabled: true },
     { id: 'profile', label: 'Perfil', icon: User, group: 'Pessoas', enabled: true }
   ];
   return all.filter((m) => m.enabled);
+}
+
+/** Menu do contexto "Meu espaço" (perfil profissional ativo). */
+export function proModules(pro) {
+  return [
+    { id: 'pro-visao', label: 'Visão geral', icon: LayoutGrid, group: null },
+    { id: 'pro-turmas', label: 'Turmas e convites', icon: Ticket, group: 'Pessoas' },
+    { id: 'pro-pessoas', label: pro?.peopleLabel || 'Pessoas', icon: Users, group: 'Pessoas' }
+  ];
+}
+
+/** Seletor Pessoal | Meu espaço (só aparece para quem tem perfil profissional ativo). */
+export function ContextSwitch({ pro, proMode, onToggleProMode }) {
+  if (!pro || pro.status !== 'ativo') return null;
+  return (
+    <>
+      <div className="rx-ctx" role="group" aria-label="Contexto">
+        <button type="button" aria-pressed={!proMode} onClick={() => onToggleProMode?.(false)}>Pessoal</button>
+        <button type="button" aria-pressed={proMode} onClick={() => onToggleProMode?.(true)}>Meu espaço</button>
+      </div>
+      <p className="rx-ctx-note">{proMode ? `${pro.spaceName}, ${pro.modelLabel}` : 'Seu Ethos de sempre'}</p>
+    </>
+  );
 }
 
 export function BrandMark({ size = 28, id = 'rxBrand' }) {
@@ -60,9 +85,13 @@ export function DesktopSidebar({
   onOpenProfile,
   onOpenAuth,
   onOpenSupport,
-  onLogout
+  onLogout,
+  pro = null,
+  proMode = false,
+  onToggleProMode
 }) {
-  const modules = buildModules(user, userPermissions);
+  const inSpace = Boolean(proMode && pro?.status === 'ativo');
+  const modules = inSpace ? proModules(pro) : buildModules(user, userPermissions);
   const groups = [];
   modules.forEach((m) => {
     const last = groups[groups.length - 1];
@@ -76,6 +105,8 @@ export function DesktopSidebar({
         <BrandMark id="rxBrandSide" />
         <span>ethos</span>
       </button>
+
+      <ContextSwitch pro={pro} proMode={inSpace} onToggleProMode={onToggleProMode} />
 
       <nav className="rx-nav" aria-label="Módulos">
         {groups.map((g) => (
@@ -100,7 +131,7 @@ export function DesktopSidebar({
         ))}
       </nav>
 
-      <section className="rx-cats" aria-label="Categorias">
+      {!inSpace && <section className="rx-cats" aria-label="Categorias">
         <h2>Categorias</h2>
         {tags.map((tag) => (
           <button
@@ -121,7 +152,7 @@ export function DesktopSidebar({
             <span>Nova categoria</span>
           </button>
         )}
-      </section>
+      </section>}
 
       <div className="rx-side-foot">
         {isAdmin && (
@@ -163,10 +194,14 @@ export function MobileBottomNav({
   user,
   onOpenSupport,
   onOpenAuth,
-  onLogout
+  onLogout,
+  pro = null,
+  proMode = false,
+  onToggleProMode
 }) {
   const [open, setOpen] = useState(false);
-  const modules = buildModules(user, userPermissions);
+  const inSpace = Boolean(proMode && pro?.status === 'ativo');
+  const modules = inSpace ? proModules(pro) : buildModules(user, userPermissions);
   const go = (id) => { setActiveTab(id); setOpen(false); };
   const tab = (id, label, Icon) => (
     <button type="button" aria-current={activeTab === id ? 'page' : undefined} onClick={() => go(id)}>
@@ -177,6 +212,18 @@ export function MobileBottomNav({
 
   return (
     <>
+      {inSpace ? (
+      <nav className="rx-tabbar" aria-label="Navegação">
+        {tab('pro-visao', 'Visão geral', LayoutGrid)}
+        {tab('pro-turmas', 'Turmas', Ticket)}
+        {tab('pro-pessoas', pro?.peopleLabel || 'Pessoas', Users)}
+        {tab('espacos', 'Espaços', Building2)}
+        <button type="button" aria-expanded={open} onClick={() => setOpen(true)}>
+          <Menu className="rx-i" strokeWidth={1.75} />
+          <span>Menu</span>
+        </button>
+      </nav>
+      ) : (
       <nav className="rx-tabbar" aria-label="Navegação">
         {tab('dashboard', 'Painel', LayoutGrid)}
         {modules.some((m) => m.id === 'habits') ? tab('habits', 'Hábitos', CheckCircle2) : tab('calendar', 'Agenda', Calendar)}
@@ -190,12 +237,14 @@ export function MobileBottomNav({
           <span>Menu</span>
         </button>
       </nav>
+      )}
 
       {open && (
         <div className="rx-msheet" onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}>
           <div role="dialog" aria-modal="true" aria-labelledby="rxMenuTitle">
             <div className="rx-grab" />
             <h2 id="rxMenuTitle">Todos os módulos</h2>
+            <div style={{ margin: '10px 0 4px' }}><ContextSwitch pro={pro} proMode={inSpace} onToggleProMode={(v) => { onToggleProMode?.(v); setOpen(false); }} /></div>
             <div className="rx-mods">
               {modules.map((m) => {
                 const Icon = m.icon;

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../utils/api';
 import { AdminSupportGrant } from './support/AdminSupportGrant';
+import { AdminProfissionais } from './espacos/AdminProfissionais';
 
 /**
  * Floating Ambient Dust Particles
@@ -574,7 +575,8 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
               { id: 'tokens', label: 'Tokens (48h)', icon: KeyRound },
               { id: 'waitlist', label: 'Waitlist', icon: Inbox, badge: stats.waitlistCount },
               { id: 'support', label: 'Suporte', icon: LifeBuoy, badge: stats.pendingTickets > 0 ? stats.pendingTickets : null },
-              { id: 'security', label: 'Auditoria & Logs', icon: Activity }
+              { id: 'security', label: 'Auditoria & Logs', icon: Activity },
+              { id: 'profissionais', label: 'Profissionais', icon: Users }
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeSection === tab.id;
@@ -1703,6 +1705,12 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
         {/* =================================================================== */}
         {/* SEÇÃO 5: LOGS, AUDITORIA & SEGURANÇA                                */}
         {/* =================================================================== */}
+        {activeSection === 'profissionais' && (
+          <div className="rx-body" style={{ borderRadius: 22, padding: '8px 4px', background: 'var(--rx-bg)' }}>
+            <AdminProfissionais showToast={globalToast} />
+          </div>
+        )}
+
         {activeSection === 'security' && (
           <section>
             <div

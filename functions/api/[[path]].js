@@ -22,6 +22,7 @@ import { handleAuthRoutes } from './_routes/auth.js';
 import { handleCommunityRoutes } from './_routes/community.js';
 import { handleSupportAccessRoutes } from './_routes/support-access.js';
 import { handleTreinoRoutes } from './_routes/treino.js';
+import { handleEspacosRoutes } from './_routes/espacos.js';
 import { handleEntriesRoutes } from './_routes/entries';
 import { handleInsightsRoutes } from './_routes/insights.js';
 import { handleIntegrationsRoutes } from './_routes/integrations.js';
@@ -37,7 +38,7 @@ const PUBLIC_HANDLERS = [handleAuthRoutes, handleOAuthRoutes, handleIntegrations
  * Rotas protegidas (depois de authorizeRequest). O núcleo /api/v1 vem primeiro e
  * exige JWT por conta própria (o usuário sai do token, nunca da URL).
  */
-const PROTECTED_HANDLERS = [handleRoutineRoutes, handleEntriesRoutes, handleCommunityRoutes, handleUserRoutes, handleInsightsRoutes, handleSupportAccessRoutes, handleTreinoRoutes, handleAdminRoutes];
+const PROTECTED_HANDLERS = [handleRoutineRoutes, handleEntriesRoutes, handleCommunityRoutes, handleUserRoutes, handleInsightsRoutes, handleSupportAccessRoutes, handleTreinoRoutes, handleEspacosRoutes, handleAdminRoutes];
 
 export async function onRequest(context) {
   const { request, env } = context;

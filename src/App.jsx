@@ -8,6 +8,9 @@ import { BadHabitsTab } from './components/BadHabitsTab';
 import { AddModal } from './components/AddModal';
 import { WorkoutTab } from './components/WorkoutTab'; // eslint-disable-line no-unused-vars -- módulo antigo preservado
 import { TreinoTab } from './components/treino/TreinoTab';
+import { EspacosTab } from './components/espacos/EspacosTab';
+import { ProEspaco } from './components/espacos/ProEspaco';
+import { useProEspaco } from './hooks/useProEspaco';
 import { FocusTab } from './components/FocusTab';
 import { CalendarTab } from './components/CalendarTab';
 import { TelemetryTab } from './components/TelemetryTab';
@@ -113,8 +116,13 @@ export function App() {
   }, [user?.id]);
 
   // Active Navigation Tab (abre direto na aba Calendário ao retornar do Google OAuth)
+  // Link de convite de espaço (?convite=CODIGO): abre Espaços com o código preenchido (nada muda sem confirmar).
+  const [inviteFromUrl] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('convite') || ''; } catch { return ''; }
+  });
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined' && window.location.search.includes('google_auth=')) return 'calendar';
+    if (typeof window !== 'undefined' && window.location.search.includes('convite=')) return 'espacos';
     try {
       const savedTab = localStorage.getItem('ethos_active_tab');
       if (savedTab) return savedTab;
@@ -208,6 +216,22 @@ export function App() {
     workouts,
     setWorkouts
   });
+
+  // Espaços profissionais: perfil da conta (o menu só muda; o servidor confere tudo a cada pedido).
+  const { pro: proInfo } = useProEspaco(user);
+  const [proMode, setProMode] = useState(() => {
+    try { return localStorage.getItem('ethos_pro_mode') === '1'; } catch { return false; }
+  });
+  const toggleProMode = (on) => {
+    setProMode(on);
+    try { localStorage.setItem('ethos_pro_mode', on ? '1' : '0'); } catch { /* sem armazenamento */ }
+    setActiveTab(on ? 'pro-visao' : 'dashboard');
+  };
+  useEffect(() => {
+    // Telas do espaço só existem com perfil ativo e no contexto "Meu espaço".
+    if (proInfo === undefined) return; // ainda carregando
+    if (String(activeTab).startsWith('pro-') && !(proMode && proInfo?.status === 'ativo')) setActiveTab('dashboard');
+  }, [activeTab, proMode, proInfo]);
 
   // Handler: Add new Habit (US01, US19, US20, US39)
   const handleAddHabit = async (newHabit) => {
@@ -495,7 +519,7 @@ export function App() {
     }
   };
 
-  const TAB_TITLES = { dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
+  const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
@@ -543,6 +567,9 @@ export function App() {
           onOpenAuth={() => setShowAuthModal(true)}
           onOpenSupport={() => setShowSupportModal(true)}
           onLogout={handleLogout}
+          pro={proInfo}
+          proMode={proMode}
+          onToggleProMode={toggleProMode}
         />
 
         <div className="rx-col">
@@ -760,6 +787,11 @@ export function App() {
               /></div>
             )}
 
+            {activeTab === 'espacos' && <EspacosTab showToast={showToast} initialCode={inviteFromUrl} />}
+            {proMode && proInfo?.status === 'ativo' && ['pro-visao', 'pro-turmas', 'pro-pessoas'].includes(activeTab) && (
+              <ProEspaco view={activeTab} pro={proInfo} onNavigate={setActiveTab} showToast={showToast} />
+            )}
+
             {activeTab === 'notes' && (
               <div className="rx-sheet-legacy"><NotesTab user={user} setUser={setUser} showToast={showToast} /></div>
             )}
@@ -788,7 +820,7 @@ export function App() {
             )}
 
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
-            {activeTab !== 'dashboard' && activeTab !== 'notes' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && (
+            {activeTab !== 'dashboard' && activeTab !== 'notes' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && activeTab !== 'espacos' && !String(activeTab).startsWith('pro-') && (
               <div className="rx-sheet-dark">
                 {/* TAB 5: TELEMETRIA / ANÁLISE DE PROGRESSO */}
                 {activeTab === 'telemetry' && (
@@ -854,6 +886,9 @@ export function App() {
           onOpenSupport={() => setShowSupportModal(true)}
           onOpenAuth={() => setShowAuthModal(true)}
           onLogout={handleLogout}
+          pro={proInfo}
+          proMode={proMode}
+          onToggleProMode={toggleProMode}
         />
       )}
 

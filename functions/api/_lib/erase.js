@@ -36,6 +36,20 @@ export async function eraseUserData(db, userId) {
   for (const table of USER_TABLES) {
     if (await tableExists(db, table)) stmts.push(db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).bind(userId));
   }
+  // Espaços profissionais (migração 0009): vínculos e turmas da pessoa; se ela é profissional, o espaço inteiro.
+  if (await tableExists(db, 'spaces')) {
+    const own = (await db.prepare('SELECT id FROM spaces WHERE owner_user_id = ?').bind(userId).all()).results || [];
+    for (const s of own) {
+      stmts.push(db.prepare('DELETE FROM group_members WHERE group_id IN (SELECT id FROM space_groups WHERE space_id = ?)').bind(s.id));
+      stmts.push(db.prepare('DELETE FROM space_invites WHERE space_id = ?').bind(s.id));
+      stmts.push(db.prepare('DELETE FROM space_groups WHERE space_id = ?').bind(s.id));
+      stmts.push(db.prepare('DELETE FROM space_links WHERE space_id = ?').bind(s.id));
+      stmts.push(db.prepare('DELETE FROM spaces WHERE id = ?').bind(s.id));
+    }
+    stmts.push(db.prepare('DELETE FROM group_members WHERE client_id = ?').bind(userId));
+    stmts.push(db.prepare('DELETE FROM space_links WHERE client_id = ?').bind(userId));
+    stmts.push(db.prepare('DELETE FROM pro_profiles WHERE user_id = ?').bind(userId));
+  }
   stmts.push(db.prepare('DELETE FROM users WHERE id = ?').bind(userId));
   await db.batch(stmts);
 }
