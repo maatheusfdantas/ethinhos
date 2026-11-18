@@ -6,7 +6,8 @@ import { NotesTab } from './components/NotesTab';
 import { HabitsTab } from './components/HabitsTab';
 import { BadHabitsTab } from './components/BadHabitsTab';
 import { AddModal } from './components/AddModal';
-import { WorkoutTab } from './components/WorkoutTab';
+import { WorkoutTab } from './components/WorkoutTab'; // eslint-disable-line no-unused-vars -- módulo antigo preservado
+import { TreinoTab } from './components/treino/TreinoTab';
 import { FocusTab } from './components/FocusTab';
 import { CalendarTab } from './components/CalendarTab';
 import { TelemetryTab } from './components/TelemetryTab';
@@ -730,13 +731,14 @@ export function App() {
                   </p>
                 </div>
               ) : (
-                <div className="rx-sheet-legacy"><WorkoutTab
+                // Treino redesenhado (proposta 05, aprovada em 18/11/2026). O WorkoutTab antigo continua no código.
+                <TreinoTab
                   workouts={workouts}
                   setWorkouts={setWorkouts}
                   onCompleteWorkout={handleCompleteWorkout}
-                  habits={habits}
-                  setHabits={setHabits}
-                /></div>
+                  showToast={showToast}
+                  user={user}
+                />
               )
             )}
 

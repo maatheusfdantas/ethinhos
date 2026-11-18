@@ -33,7 +33,7 @@ import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 // =====================================================================
 // BIBLIOTECA DE CARDS DE EXERCÍCIOS PARA ESCOLHER E COLOCAR NA FICHA
 // =====================================================================
-const EXERCISE_LIBRARY_GROUPS = [
+export const EXERCISE_LIBRARY_GROUPS = [
   { id: 'all', label: 'Todos', emoji: '🏋️' },
   { id: 'peito', label: 'Peitoral', emoji: '💪' },
   { id: 'costas', label: 'Costas & Dorsal', emoji: '🦅' },
@@ -44,7 +44,7 @@ const EXERCISE_LIBRARY_GROUPS = [
   { id: 'cardio', label: 'Cardio & Funcional', emoji: '🏃' }
 ];
 
-const EXERCISE_LIBRARY_CATALOG = [
+export const EXERCISE_LIBRARY_CATALOG = [
   // PEITORAL
   { id: 'lib_supino_reto', name: 'Supino Reto com Barra', group: 'peito', muscle: 'Peitoral Maior', sets: 4, reps: 10, weightKg: 60, restSec: 90, level: 'Intermediário', desc: 'Exercício clássico composto para força e volume de peitoral.' },
   { id: 'lib_supino_inclinado_halter', name: 'Supino Inclinado com Halteres', group: 'peito', muscle: 'Peitoral Superior', sets: 4, reps: 10, weightKg: 24, restSec: 75, level: 'Intermediário', desc: 'Foco na porção clavicular (superior) com maior amplitude.' },
@@ -108,7 +108,7 @@ function formatWorkoutStopwatch(totalSeconds) {
 // =====================================================================
 // PALETA DE TEMAS ESTILO HEADSPACE (CORES VIBRANTES E ILUSTRAÇÕES)
 // =====================================================================
-const WORKOUT_THEMES = [
+export const WORKOUT_THEMES = [
   {
     id: 'orange',
     bg: '#E86A33',
