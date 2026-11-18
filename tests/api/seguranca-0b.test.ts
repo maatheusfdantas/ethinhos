@@ -54,7 +54,7 @@ describe('S11: bloqueio por IP + conta', () => {
   it('ataque distribuído contra uma conta (50 IPs) também é bloqueado', async () => {
     for (let i = 0; i < 50; i++) await login('distrib', 'errada', `192.0.2.${i + 1}`);
     expect((await login('distrib', 'distrib#Senha-forte1', '192.0.2.200')).status).toBe(429);
-  });
+  }, 60000); // 51 logins com PBKDF2: com a suíte inteira em paralelo passa dos 5 s padrão
 });
 
 describe('S2: códigos de 6 dígitos', () => {

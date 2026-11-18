@@ -5,6 +5,40 @@
 
 import { jsonResponse } from '../_lib/http.js';
 
+// ----------------------------------------------------------------------------
+// Gravação segura (auditoria 15/11/2026: A1, A2, S4, S5).
+// - A sincronização só grava; nunca apaga o que "não veio" na lista. Excluir é sempre uma ação explícita.
+// - Toda gravação confere o dono: um id que pertence a outra conta (ou a uma categoria global) nunca é
+//   alterado. O upsert tem "WHERE <tabela>.user_id = excluded.user_id" como segunda barreira.
+// - As gravações da sincronização vão num único batch (transação), sem estado parcial.
+// ----------------------------------------------------------------------------
+const HABIT_COLS = ['id', 'user_id', 'title', 'category', 'icon_name', 'target', 'current', 'unit', 'effort', 'priority', 'tag_id', 'subclass_id', 'subclass_name', 'tracking_type', 'period_type', 'period_config', 'repeat_days', 'completed', 'completion_style', 'created_at'];
+const EVENT_COLS = ['id', 'user_id', 'title', 'date', 'end_date', 'all_day', 'start_time', 'end_time', 'category', 'subclass_id', 'subclass_name', 'author_name', 'repeat_rule', 'repeat_config', 'reminders', 'buffer_before', 'buffer_after', 'is_floating', 'energy_level', 'meeting_url', 'visibility', 'conflict_policy', 'location', 'notes', 'priority', 'completed', 'created_at'];
+const CATEGORY_COLS = ['id', 'user_id', 'name', 'color', 'bg', 'icon', 'is_shared', 'has_subclasses', 'created_at'];
+const TAG_COLS = ['id', 'user_id', 'name', 'color', 'bg', 'icon', 'is_shared', 'has_subclasses'];
+
+/** INSERT que, se o id já existir, só atualiza quando a linha é da mesma conta. */
+export function ownedUpsertSql(table, cols) {
+  const updates = cols.filter((c) => !['id', 'user_id', 'created_at'].includes(c)).map((c) => `${c} = excluded.${c}`).join(', ');
+  return `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')}) ON CONFLICT(id) DO UPDATE SET ${updates} WHERE ${table}.user_id = excluded.user_id`;
+}
+
+/** Ids (da lista) que já existem e pertencem a outra conta. Consulta em blocos (limite de parâmetros do D1). */
+export async function foreignIds(db, table, ids, userId) {
+  const out = new Set();
+  const unique = [...new Set(ids.filter(Boolean).map(String))];
+  for (let i = 0; i < unique.length; i += 50) {
+    const chunk = unique.slice(i, i + 50);
+    const res = await db.prepare(`SELECT id FROM ${table} WHERE user_id != ? AND id IN (${chunk.map(() => '?').join(',')})`).bind(userId, ...chunk).all();
+    for (const r of res.results || []) out.add(String(r.id));
+  }
+  return out;
+}
+
+async function runBatch(db, stmts) {
+  for (let i = 0; i < stmts.length; i += 80) await db.batch(stmts.slice(i, i + 80));
+}
+
 /** Devolve a Response da rota correspondente, ou null se nenhuma rota deste domínio casar. */
 export async function handleUserRoutes(ctx) {
   const { request, correlationId, pathname, method, body, storage } = ctx;
@@ -189,139 +223,125 @@ export async function handleUserRoutes(ctx) {
     const userId = syncMatch[1];
     const nowIso = new Date().toISOString();
 
+    const skipped = { habits: [], events: [], tags: [] };
     if (storage.mode === 'd1') {
+      const stmts = [];
+
       if (Array.isArray(body.habits)) {
         const validHabits = body.habits.filter(h => h && h.title);
-        if (validHabits.length > 0) {
-          const sentIds = validHabits.map(h => h.id).filter(Boolean);
-          if (sentIds.length > 0) {
-            const placeholders = sentIds.map(() => '?').join(',');
-            await storage.db.prepare(`DELETE FROM habits WHERE user_id = ? AND id NOT IN (${placeholders})`).bind(userId, ...sentIds).run();
-          }
-          for (const h of validHabits) {
-            const trackingType = h.trackingType || (h.completionStyle === 'numeric' || h.completionStyle === 'increment' ? 'counter' : 'done');
-            const periodType = h.periodType || 'day';
-            const periodConfig = typeof h.periodConfig === 'object' ? JSON.stringify(h.periodConfig) : (h.periodConfig || '{}');
-            await storage.db
-              .prepare(
-                `INSERT OR REPLACE INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, subclass_id, subclass_name, tracking_type, period_type, period_config, repeat_days, completed, completion_style, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-              )
-              .bind(
-                h.id || `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                userId,
-                h.title,
-                h.category || 'Geral',
-                h.iconName || h.icon_name || 'CheckCircle2',
-                h.target || 1,
-                h.current || 0,
-                h.unit || 'vezes',
-                h.effort || 'Médio',
-                h.priority || 'Média',
-                h.tagId || h.tag_id || null,
-                h.subclassId || h.subclass_id || null,
-                h.subclassName || h.subclass_name || null,
-                trackingType,
-                periodType,
-                periodConfig,
-                JSON.stringify(h.repeatDays || [1, 2, 3, 4, 5]),
-                h.completed ? 1 : 0,
-                h.completionStyle || h.completion_style || 'quick',
-                h.created_at || nowIso
-              )
-              .run();
-          }
-        } else if (body.clearAllHabits === true) {
-          await storage.db.prepare(`DELETE FROM habits WHERE user_id = ?`).bind(userId).run();
+        const foreign = await foreignIds(storage.db, 'habits', validHabits.map(h => h.id), userId);
+        for (const h of validHabits) {
+          if (h.id && foreign.has(String(h.id))) { skipped.habits.push(h.id); continue; }
+          const trackingType = h.trackingType || (h.completionStyle === 'numeric' || h.completionStyle === 'increment' ? 'counter' : 'done');
+          const periodType = h.periodType || 'day';
+          const periodConfig = typeof h.periodConfig === 'object' ? JSON.stringify(h.periodConfig) : (h.periodConfig || '{}');
+          stmts.push(storage.db.prepare(ownedUpsertSql('habits', HABIT_COLS)).bind(
+            h.id || `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            userId,
+            h.title,
+            h.category || 'Geral',
+            h.iconName || h.icon_name || 'CheckCircle2',
+            h.target || 1,
+            h.current || 0,
+            h.unit || 'vezes',
+            h.effort || 'Médio',
+            h.priority || 'Média',
+            h.tagId || h.tag_id || null,
+            h.subclassId || h.subclass_id || null,
+            h.subclassName || h.subclass_name || null,
+            trackingType,
+            periodType,
+            periodConfig,
+            JSON.stringify(h.repeatDays || [1, 2, 3, 4, 5]),
+            h.completed ? 1 : 0,
+            h.completionStyle || h.completion_style || 'quick',
+            h.created_at || nowIso
+          ));
+        }
+        // Apagar tudo só com o pedido explícito (nunca por lista vazia).
+        if (validHabits.length === 0 && body.clearAllHabits === true) {
+          stmts.push(storage.db.prepare(`DELETE FROM habits WHERE user_id = ?`).bind(userId));
         }
       }
 
       if (Array.isArray(body.events)) {
         const validEvents = body.events.filter(ev => ev && ev.title && ev.date);
-        if (validEvents.length > 0) {
-          const sentIds = validEvents.map(e => e.id).filter(Boolean);
-          if (sentIds.length > 0) {
-            const placeholders = sentIds.map(() => '?').join(',');
-            await storage.db.prepare(`DELETE FROM events WHERE user_id = ? AND id NOT IN (${placeholders})`).bind(userId, ...sentIds).run();
-          }
-          for (const ev of validEvents) {
-            await storage.db
-              .prepare(
-                `INSERT OR REPLACE INTO events (id, user_id, title, date, end_date, all_day, start_time, end_time, category, subclass_id, subclass_name, author_name, repeat_rule, repeat_config, reminders, buffer_before, buffer_after, is_floating, energy_level, meeting_url, visibility, conflict_policy, location, notes, priority, completed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-              )
-              .bind(
-                ev.id || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                userId,
-                ev.title,
-                ev.date,
-                ev.endDate || ev.end_date || ev.date,
-                ev.allDay || ev.all_day ? 1 : 0,
-                ev.startTime || ev.start_time || '09:00',
-                ev.endTime || ev.end_time || '10:00',
-                ev.category || 'Geral',
-                ev.subclassId || ev.subclass_id || null,
-                ev.subclassName || ev.subclass_name || null,
-                ev.authorName || ev.author_name || null,
-                ev.repeat || ev.repeat_rule || 'Nunca',
-                JSON.stringify(ev.repeatConfig || {}),
-                JSON.stringify(ev.reminders || []),
-                Number(ev.bufferBefore) || 0,
-                Number(ev.bufferAfter) || 0,
-                ev.isFloating ? 1 : 0,
-                ev.energyLevel || 'deep_focus',
-                ev.meetingUrl || '',
-                ev.visibility || 'private',
-                ev.conflictPolicy || 'allow',
-                ev.location || '',
-                ev.notes || ev.description || '',
-                ev.priority || 'Média',
-                ev.completed ? 1 : 0,
-                ev.created_at || nowIso
-              )
-              .run();
-          }
-        } else if (body.clearAllEvents === true) {
-          await storage.db.prepare(`DELETE FROM events WHERE user_id = ?`).bind(userId).run();
+        const foreign = await foreignIds(storage.db, 'events', validEvents.map(e => e.id), userId);
+        for (const ev of validEvents) {
+          if (ev.id && foreign.has(String(ev.id))) { skipped.events.push(ev.id); continue; }
+          stmts.push(storage.db.prepare(ownedUpsertSql('events', EVENT_COLS)).bind(
+            ev.id || `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            userId,
+            ev.title,
+            ev.date,
+            ev.endDate || ev.end_date || ev.date,
+            ev.allDay || ev.all_day ? 1 : 0,
+            ev.startTime || ev.start_time || '09:00',
+            ev.endTime || ev.end_time || '10:00',
+            ev.category || 'Geral',
+            ev.subclassId || ev.subclass_id || null,
+            ev.subclassName || ev.subclass_name || null,
+            ev.authorName || ev.author_name || null,
+            ev.repeat || ev.repeat_rule || 'Nunca',
+            JSON.stringify(ev.repeatConfig || {}),
+            JSON.stringify(ev.reminders || []),
+            Number(ev.bufferBefore) || 0,
+            Number(ev.bufferAfter) || 0,
+            ev.isFloating ? 1 : 0,
+            ev.energyLevel || 'deep_focus',
+            ev.meetingUrl || '',
+            ev.visibility || 'private',
+            ev.conflictPolicy || 'allow',
+            ev.location || '',
+            ev.notes || ev.description || '',
+            ev.priority || 'Média',
+            ev.completed ? 1 : 0,
+            ev.created_at || nowIso
+          ));
+        }
+        if (validEvents.length === 0 && body.clearAllEvents === true) {
+          stmts.push(storage.db.prepare(`DELETE FROM events WHERE user_id = ?`).bind(userId));
         }
       }
 
       if (Array.isArray(body.tags)) {
-        await storage.db.prepare(`DELETE FROM categories WHERE user_id = ?`).bind(userId).run();
-        await storage.db.prepare(`DELETE FROM tags WHERE user_id = ?`).bind(userId).run();
-        for (const t of body.tags) {
-          if (!t?.name) continue;
+        // Antes: apagava TODAS as categorias da conta e regravava a lista (tags: [] apagava tudo) e
+        // regravava as categorias globais como se fossem da pessoa. Agora: só grava as da própria conta.
+        const validTags = body.tags.filter(t => t?.name);
+        const ids = validTags.map(t => t.id);
+        const foreign = new Set([...(await foreignIds(storage.db, 'categories', ids, userId)), ...(await foreignIds(storage.db, 'tags', ids, userId))]);
+        for (const t of validTags) {
+          if (t.id && foreign.has(String(t.id))) { skipped.tags.push(t.id); continue; }
           const catId = t.id || `tag_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-          await storage.db
-            .prepare(`INSERT OR REPLACE INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-            .bind(catId, userId, t.name, t.color || '#818cf8', t.bg || 'rgba(129, 140, 248, 0.15)', t.icon || 'Bookmark', t.is_shared ? 1 : 0, t.has_subclasses ? 1 : 0, nowIso)
-            .run();
-          await storage.db
-            .prepare(`INSERT OR REPLACE INTO tags (id, user_id, name, color, bg, icon, is_shared, has_subclasses) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-            .bind(catId, userId, t.name, t.color || '#818cf8', t.bg || 'rgba(129, 140, 248, 0.15)', t.icon || 'Bookmark', t.is_shared ? 1 : 0, t.has_subclasses ? 1 : 0)
-            .run();
-          await storage.db.prepare(`DELETE FROM subclasses WHERE category_id = ?`).bind(catId).run();
+          const color = t.color || '#818cf8';
+          const bg = t.bg || 'rgba(129, 140, 248, 0.15)';
+          stmts.push(storage.db.prepare(ownedUpsertSql('categories', CATEGORY_COLS)).bind(catId, userId, t.name, color, bg, t.icon || 'Bookmark', t.is_shared ? 1 : 0, t.has_subclasses ? 1 : 0, nowIso));
+          stmts.push(storage.db.prepare(ownedUpsertSql('tags', TAG_COLS)).bind(catId, userId, t.name, color, bg, t.icon || 'Bookmark', t.is_shared ? 1 : 0, t.has_subclasses ? 1 : 0));
+          // Subclasses e membros pertencem à categoria; ela é desta conta (conferido acima).
           if (Array.isArray(t.subclasses)) {
+            stmts.push(storage.db.prepare(`DELETE FROM subclasses WHERE category_id = ?`).bind(catId));
             for (const sub of t.subclasses) {
               if (!sub?.name?.trim()) continue;
               const subId = sub.id || `sub_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-              await storage.db
-                .prepare(`INSERT OR REPLACE INTO subclasses (id, category_id, name, priority, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
-                .bind(subId, catId, sub.name.trim(), sub.priority || 'Média', JSON.stringify({ hours: Number(sub.hours || sub.metadata?.hours || 0) }), nowIso)
-                .run();
+              stmts.push(storage.db
+                .prepare(`INSERT INTO subclasses (id, category_id, name, priority, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, priority = excluded.priority, metadata = excluded.metadata WHERE subclasses.category_id = excluded.category_id`)
+                .bind(subId, catId, sub.name.trim(), sub.priority || 'Média', JSON.stringify({ hours: Number(sub.hours || sub.metadata?.hours || 0) }), nowIso));
             }
           }
-          await storage.db.prepare(`DELETE FROM category_members WHERE category_id = ?`).bind(catId).run();
           if (Array.isArray(t.members)) {
+            stmts.push(storage.db.prepare(`DELETE FROM category_members WHERE category_id = ?`).bind(catId));
             for (const mem of t.members) {
               if (!mem?.email?.trim() && !mem?.name?.trim()) continue;
               const memId = mem.id || `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-              await storage.db
-                .prepare(`INSERT OR REPLACE INTO category_members (id, category_id, user_id, member_email, member_name, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-                .bind(memId, catId, mem.user_id || `usr_${(mem.email || mem.name).toLowerCase().replace(/[^a-z0-9]/g, '_')}`, (mem.email || '').trim().toLowerCase(), (mem.name || mem.email?.split('@')[0] || 'Colaborador').trim(), mem.role || 'collaborator', nowIso)
-                .run();
+              stmts.push(storage.db
+                .prepare(`INSERT INTO category_members (id, category_id, user_id, member_email, member_name, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET member_email = excluded.member_email, member_name = excluded.member_name, role = excluded.role WHERE category_members.category_id = excluded.category_id`)
+                .bind(memId, catId, mem.user_id || `usr_${(mem.email || mem.name).toLowerCase().replace(/[^a-z0-9]/g, '_')}`, (mem.email || '').trim().toLowerCase(), (mem.name || mem.email?.split('@')[0] || 'Colaborador').trim(), mem.role || 'collaborator', nowIso));
             }
           }
         }
       }
+
+      if (stmts.length) await runBatch(storage.db, stmts);
 
       if (body.health && typeof body.health === 'object') {
         const syncWater = body.health.waterGlasses !== undefined ? body.health.waterGlasses : (body.health.water !== undefined ? body.health.water : 0);
@@ -382,7 +402,8 @@ export async function handleUserRoutes(ctx) {
       }
     }
 
-    return jsonResponse({ success: true }, 200, correlationId, request);
+    const anySkipped = skipped.habits.length || skipped.events.length || skipped.tags.length;
+    return jsonResponse(anySkipped ? { success: true, skipped } : { success: true }, 200, correlationId, request);
   }
 
   // --------------------------------------------------------------------------
@@ -391,7 +412,9 @@ export async function handleUserRoutes(ctx) {
   const createHabitMatch = pathname.match(/^\/api\/user\/([^/]+)\/habit$/);
   if (createHabitMatch && method === 'POST') {
     const userId = createHabitMatch[1];
-    const habitId = body.id || `hab_${Date.now()}`;
+    let habitId = body.id || `hab_${Date.now()}`;
+    // id de outra conta: nunca sobrescreve; o hábito ganha um id novo.
+    if (storage.mode === 'd1' && (await foreignIds(storage.db, 'habits', [habitId], userId)).size) habitId = `hab_${crypto.randomUUID()}`;
     const trackingType = body.trackingType || (body.completionStyle === 'numeric' || body.completionStyle === 'increment' ? 'counter' : 'done');
     const periodType = body.periodType || 'day';
     const periodConfig = typeof body.periodConfig === 'object' ? JSON.stringify(body.periodConfig) : (body.periodConfig || '{}');
@@ -399,7 +422,7 @@ export async function handleUserRoutes(ctx) {
     if (storage.mode === 'd1') {
       await storage.db
         .prepare(
-          `INSERT OR REPLACE INTO habits (id, user_id, title, category, icon_name, target, current, unit, effort, priority, tag_id, subclass_id, subclass_name, tracking_type, period_type, period_config, repeat_days, completed, completion_style, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ownedUpsertSql('habits', HABIT_COLS)
         )
         .bind(
           habitId,
@@ -451,11 +474,12 @@ export async function handleUserRoutes(ctx) {
   const createEventMatch = pathname.match(/^\/api\/user\/([^/]+)\/event$/);
   if (createEventMatch && method === 'POST') {
     const userId = createEventMatch[1];
-    const eventId = body.id || `ev_${Date.now()}`;
+    let eventId = body.id || `ev_${Date.now()}`;
+    if (storage.mode === 'd1' && (await foreignIds(storage.db, 'events', [eventId], userId)).size) eventId = `ev_${crypto.randomUUID()}`;
     if (storage.mode === 'd1') {
       await storage.db
         .prepare(
-          `INSERT OR REPLACE INTO events (id, user_id, title, date, end_date, all_day, start_time, end_time, category, subclass_id, subclass_name, author_name, repeat_rule, repeat_config, reminders, buffer_before, buffer_after, is_floating, energy_level, meeting_url, visibility, conflict_policy, location, notes, priority, completed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ownedUpsertSql('events', EVENT_COLS)
         )
         .bind(
           eventId,
@@ -610,16 +634,17 @@ export async function handleUserRoutes(ctx) {
   const createTagMatch = pathname.match(/^\/api\/user\/([^/]+)\/tag$/);
   if (createTagMatch && method === 'POST') {
     const userId = createTagMatch[1];
-    const tagId = body.id || `tag_${Date.now()}`;
+    let tagId = body.id || `tag_${Date.now()}`;
+    if (storage.mode === 'd1' && ((await foreignIds(storage.db, 'categories', [tagId], userId)).size || (await foreignIds(storage.db, 'tags', [tagId], userId)).size)) tagId = `tag_${crypto.randomUUID()}`;
     const nowIso = new Date().toISOString();
     if (storage.mode === 'd1') {
       await storage.db
-        .prepare(`INSERT OR REPLACE INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?)`)
-        .bind(tagId, userId, body.name, body.color || '#818cf8', body.bg || 'rgba(129, 140, 248, 0.15)', body.icon || 'Bookmark', nowIso)
+        .prepare(ownedUpsertSql('categories', CATEGORY_COLS))
+        .bind(tagId, userId, body.name, body.color || '#818cf8', body.bg || 'rgba(129, 140, 248, 0.15)', body.icon || 'Bookmark', 0, 0, nowIso)
         .run();
       await storage.db
-        .prepare(`INSERT OR REPLACE INTO tags (id, user_id, name, color, bg, icon) VALUES (?, ?, ?, ?, ?, ?)`)
-        .bind(tagId, userId, body.name, body.color || '#818cf8', body.bg || 'rgba(129, 140, 248, 0.15)', body.icon || 'Bookmark')
+        .prepare(ownedUpsertSql('tags', TAG_COLS))
+        .bind(tagId, userId, body.name, body.color || '#818cf8', body.bg || 'rgba(129, 140, 248, 0.15)', body.icon || 'Bookmark', 0, 0)
         .run();
     }
     return jsonResponse(
@@ -661,6 +686,9 @@ export async function handleUserRoutes(ctx) {
 
     const nowIso = new Date().toISOString();
     if (storage.mode === 'd1') {
+      if ((await foreignIds(storage.db, 'categories', [catId], userId)).size || (await foreignIds(storage.db, 'tags', [catId], userId)).size) {
+        return jsonResponse({ error: 'Esta categoria não pertence à sua conta.' }, 403, correlationId, request);
+      }
       await storage.db
         .prepare(
           `INSERT INTO categories (id, user_id, name, color, bg, icon, is_shared, has_subclasses, created_at)
@@ -671,7 +699,8 @@ export async function handleUserRoutes(ctx) {
              bg = COALESCE(excluded.bg, categories.bg),
              icon = COALESCE(excluded.icon, categories.icon),
              is_shared = excluded.is_shared,
-             has_subclasses = excluded.has_subclasses`
+             has_subclasses = excluded.has_subclasses
+           WHERE categories.user_id = excluded.user_id`
         )
         .bind(
           catId,
@@ -727,8 +756,9 @@ export async function handleUserRoutes(ctx) {
   if (deleteTagMatch && method === 'DELETE') {
     const [, userId, tagId] = deleteTagMatch;
     if (storage.mode === 'd1') {
-      await storage.db.prepare(`DELETE FROM tags WHERE (id = ? OR name = ?) AND (user_id = ? OR user_id = 'global')`).bind(tagId, tagId, userId).run();
-      await storage.db.prepare(`DELETE FROM categories WHERE (id = ? OR name = ?) AND (user_id = ? OR user_id = 'global')`).bind(tagId, tagId, userId).run();
+      // Antes também apagava categorias globais (de todas as contas). Agora só as da própria conta.
+      await storage.db.prepare(`DELETE FROM tags WHERE (id = ? OR name = ?) AND user_id = ?`).bind(tagId, tagId, userId).run();
+      await storage.db.prepare(`DELETE FROM categories WHERE (id = ? OR name = ?) AND user_id = ?`).bind(tagId, tagId, userId).run();
     }
     return jsonResponse({ success: true }, 200, correlationId, request);
   }
