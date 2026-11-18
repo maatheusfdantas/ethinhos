@@ -8,34 +8,57 @@
 // ============================================================================
 export const edgeBruteForceMap = new Map();
 
+// SEGURANÇA (auditoria 15/11/2026, S11). Antes, 5 falhas com (mesmo IP OU mesmo login) travavam a conta
+// para todo mundo: qualquer pessoa conseguia bloquear o login do admin de qualquer lugar.
+// Agora há três limites, numa janela de 15 minutos:
+//  - mesmo IP + mesmo login: 5 falhas (zera quando esse IP entra com sucesso nesse login);
+//  - mesmo IP, qualquer login: 20 falhas (tentativa em massa a partir de um lugar);
+//  - mesmo login, qualquer IP: 50 falhas (ataque distribuído contra uma conta).
+export const LOGIN_LIMITS = { pair: 5, ip: 20, account: 50, windowMs: 15 * 60 * 1000 };
+const LOCKED_MESSAGE = 'Muitas tentativas de login. Tente novamente mais tarde.';
+
+function pruneMemory() {
+  if (edgeBruteForceMap.size < 5000) return;
+  const now = Date.now();
+  for (const [k, v] of edgeBruteForceMap) if (!v.lockUntil || v.lockUntil < now) edgeBruteForceMap.delete(k);
+}
+
 export async function checkBruteForceEdge(storage, ipAddress, loginIdentifier) {
   const key = `${ipAddress}:${loginIdentifier}`;
   const memRecord = edgeBruteForceMap.get(key);
   if (memRecord && memRecord.lockUntil > Date.now()) {
-    return {
-      allowed: false,
-      message: 'Muitas tentativas de login. Tente novamente mais tarde.'
-    };
+    return { allowed: false, message: LOCKED_MESSAGE };
   }
 
   if (storage.mode === 'd1') {
     try {
-      const cutoffIso = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const cutoffIso = new Date(Date.now() - LOGIN_LIMITS.windowMs).toISOString();
+      const lastOk = await storage.db
+        .prepare(
+          `SELECT MAX(created_at) AS t FROM auth_audit_logs
+           WHERE event_type = 'LOGIN_SUCCESS' AND ip_address = ? AND json_extract(metadata, '$.login') = ?`
+        )
+        .bind(ipAddress, loginIdentifier)
+        .first();
+      const pairSince = lastOk?.t && lastOk.t > cutoffIso ? lastOk.t : cutoffIso;
       const row = await storage.db
         .prepare(
-          `SELECT COUNT(*) as failures FROM auth_audit_logs
-           WHERE event_type = 'LOGIN_FAILED'
-             AND (ip_address = ? OR user_id = ?)
-             AND created_at >= ?`
+          `SELECT
+             SUM(CASE WHEN ip_address = ? AND user_id = ? AND created_at > ? THEN 1 ELSE 0 END) AS pair,
+             SUM(CASE WHEN ip_address = ? THEN 1 ELSE 0 END) AS ip,
+             SUM(CASE WHEN user_id = ? THEN 1 ELSE 0 END) AS account
+           FROM auth_audit_logs
+           WHERE event_type = 'LOGIN_FAILED' AND created_at >= ? AND (ip_address = ? OR user_id = ?)`
         )
-        .bind(ipAddress, loginIdentifier, cutoffIso)
+        .bind(ipAddress, loginIdentifier, pairSince, ipAddress, loginIdentifier, cutoffIso, ipAddress, loginIdentifier)
         .first();
 
-      if (row && Number(row.failures) >= 5) {
-        return {
-          allowed: false,
-          message: 'Muitas tentativas de login. Tente novamente mais tarde.'
-        };
+      if (
+        Number(row?.pair || 0) >= LOGIN_LIMITS.pair ||
+        Number(row?.ip || 0) >= LOGIN_LIMITS.ip ||
+        Number(row?.account || 0) >= LOGIN_LIMITS.account
+      ) {
+        return { allowed: false, message: LOCKED_MESSAGE };
       }
     } catch (_e) {}
   }
@@ -45,13 +68,15 @@ export async function checkBruteForceEdge(storage, ipAddress, loginIdentifier) {
 
 export async function recordAuditLogEdge(storage, { eventType, userId = null, ipAddress = '0.0.0.0', userAgent = '', metadata = {}, correlationId }) {
   if (eventType === 'LOGIN_FAILED') {
+    pruneMemory();
     const key = `${ipAddress}:${userId || 'anon'}`;
     const prev = edgeBruteForceMap.get(key) || { count: 0, lockUntil: 0 };
     const nextCount = prev.count + 1;
-    const lockUntil = nextCount >= 5 ? Date.now() + 15 * 60 * 1000 : 0;
+    const lockUntil = nextCount >= LOGIN_LIMITS.pair ? Date.now() + LOGIN_LIMITS.windowMs : 0;
     edgeBruteForceMap.set(key, { count: nextCount, lockUntil });
   } else if (eventType === 'LOGIN_SUCCESS') {
-    edgeBruteForceMap.delete(`${ipAddress}:${userId || 'anon'}`);
+    // As falhas são registradas pelo texto digitado no login (e-mail ou @); o sucesso, pelo id.
+    edgeBruteForceMap.delete(`${ipAddress}:${metadata?.login || userId || 'anon'}`);
   }
 
   if (storage.mode === 'd1') {

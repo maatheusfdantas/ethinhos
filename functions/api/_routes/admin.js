@@ -3,6 +3,7 @@
  * Extraído de functions/api/[[path]].js sem mudança de comportamento (Fase 1).
  */
 
+import { generateCode6 } from '../_lib/codes.js';
 import { recordAuditLogEdge } from '../_lib/audit.js';
 import { hashPasswordEdge } from '../_lib/auth.js';
 import { ALL_PERMS } from '../_lib/constants.js';
@@ -55,7 +56,7 @@ export async function handleAdminRoutes(ctx) {
       return jsonResponse({ error: 'Usuário não encontrado.' }, 404, correlationId, request);
     }
 
-    const rawToken = String(Math.floor(100000 + Math.random() * 900000));
+    const rawToken = generateCode6();
     const tokenHash = await sha256Hex(rawToken);
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const nowIso = new Date().toISOString();

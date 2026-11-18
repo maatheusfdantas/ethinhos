@@ -4,6 +4,7 @@
  */
 
 import { checkBruteForceEdge, recordAuditLogEdge } from '../_lib/audit.js';
+import { CODE_LOCKED_MESSAGE, TOO_MANY_CODES_MESSAGE, generateCode6, invalidateCodes, registerCodeFailure, tooManyCodeRequests } from '../_lib/codes.js';
 import { hashPasswordEdge, signJwtEdge, verifyJwtEdge, verifyPasswordEdge } from '../_lib/auth.js';
 import { ALL_PERMS } from '../_lib/constants.js';
 import { verifyEmailExistsViaAPI } from '../_lib/email-verify.js';
@@ -130,7 +131,7 @@ export async function handleAuthRoutes(ctx) {
       userId: user.id,
       ipAddress: clientIp,
       userAgent,
-      metadata: { username: user.username, role: user.role },
+      metadata: { username: user.username, role: user.role, login },
       correlationId
     });
 
@@ -240,8 +241,12 @@ export async function handleAuthRoutes(ctx) {
       }
       if (existing) {
         if (existing.email_verified === 0) {
+          if (await tooManyCodeRequests(storage, existing.id, 'email_verification')) {
+            return jsonResponse({ error: TOO_MANY_CODES_MESSAGE }, 429, correlationId, request);
+          }
           const nowIso = new Date().toISOString();
-          const rawToken = String(Math.floor(100000 + Math.random() * 900000));
+          await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = \'email_verification\' AND used = 0 AND id NOT LIKE \'tok_48h_%\'').bind(existing.id).run();
+          const rawToken = generateCode6();
           const tokenHash = await sha256Hex(rawToken);
           const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
           await storage.db.prepare(
@@ -308,7 +313,7 @@ export async function handleAuthRoutes(ctx) {
     }
 
     // Gera token de confirmação de e-mail OTP de 6 dígitos
-    const rawToken = String(Math.floor(100000 + Math.random() * 900000));
+    const rawToken = generateCode6();
     const tokenHash = await sha256Hex(rawToken);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
@@ -430,7 +435,8 @@ export async function handleAuthRoutes(ctx) {
     }
 
     if (!validToken) {
-      return jsonResponse({ error: 'Código de verificação incorreto ou já utilizado.' }, 400, correlationId, request);
+      const { locked } = await registerCodeFailure(storage, { userId: user.id, type: 'email_verification', ipAddress: clientIp, userAgent, correlationId });
+      return jsonResponse({ error: locked ? CODE_LOCKED_MESSAGE : 'Código de verificação incorreto ou já utilizado.' }, locked ? 429 : 400, correlationId, request);
     }
 
     await recordAuditLogEdge(storage, {
@@ -487,13 +493,18 @@ export async function handleAuthRoutes(ctx) {
       return jsonResponse({ success: true, alreadyVerified: true, message: 'Seu e-mail já está verificado.' }, 200, correlationId, request);
     }
 
-    const rawToken = String(Math.floor(100000 + Math.random() * 900000));
+    if (await tooManyCodeRequests(storage, user.id, 'email_verification')) {
+      return jsonResponse({ error: TOO_MANY_CODES_MESSAGE }, 429, correlationId, request);
+    }
+    const rawToken = generateCode6();
     const tokenHash = await sha256Hex(rawToken);
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const nowIso = new Date().toISOString();
 
     if (storage.mode === 'd1') {
-      // Preserva tokens anteriores (ex: Token de 48h gerado no Portal Admin)
+      // Preserva o token de 48h gerado no Portal Admin; códigos pedidos antes por e-mail deixam de valer
+      // (auditoria S2: cada reenvio somava mais um código válido).
+      await storage.db.prepare('UPDATE auth_tokens SET used = 1 WHERE user_id = ? AND type = \'email_verification\' AND used = 0 AND id NOT LIKE \'tok_48h_%\'').bind(user.id).run();
       await storage.db.prepare(
         'INSERT INTO auth_tokens (id, user_id, token_hash, type, expires_at, used, created_at) VALUES (?, ?, ?, \'email_verification\', ?, 0, ?)'
       ).bind(`tok_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, user.id, tokenHash, expiresAt, nowIso).run();
@@ -569,8 +580,11 @@ export async function handleAuthRoutes(ctx) {
       return jsonResponse({ error: 'Nenhum usuário encontrado com esta credencial.' }, 404, correlationId, request);
     }
 
+    if (await tooManyCodeRequests(storage, user.id, 'password_reset')) {
+      return jsonResponse({ error: TOO_MANY_CODES_MESSAGE }, 429, correlationId, request);
+    }
     // Gerar token criptográfico de 6 dígitos aleatório
-    const rawToken = String(Math.floor(100000 + Math.random() * 900000));
+    const rawToken = generateCode6();
     const tokenHash = await sha256Hex(rawToken);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
     const nowIso = new Date().toISOString();
@@ -681,11 +695,13 @@ export async function handleAuthRoutes(ctx) {
     }
 
     if (!validToken) {
-      return jsonResponse({ error: 'Código de recuperação inválido ou expirado. Solicite um novo código.' }, 400, correlationId, request);
+      const { locked } = await registerCodeFailure(storage, { userId: user.id, type: 'password_reset', ipAddress: clientIp, userAgent, correlationId });
+      return jsonResponse({ error: locked ? CODE_LOCKED_MESSAGE : 'Código de recuperação inválido ou expirado. Solicite um novo código.' }, locked ? 429 : 400, correlationId, request);
     }
 
     const newHashedPassword = await hashPasswordEdge(newPassword);
     if (storage.mode === 'd1') {
+      await invalidateCodes(storage, user.id, 'password_reset');
       await storage.db.prepare('UPDATE users SET password = ?, reset_token = NULL WHERE id = ?').bind(newHashedPassword, user.id).run();
     } else {
       user.password = newHashedPassword;
