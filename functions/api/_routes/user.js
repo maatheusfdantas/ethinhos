@@ -546,7 +546,7 @@ export async function handleUserRoutes(ctx) {
           `INSERT INTO health (user_id, water_glasses, water_target, glass_ml, water_history, sleep_bed_time, sleep_wake_time, sleep_logged)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(user_id) DO UPDATE SET
-             water_glasses = CASE WHEN excluded.water_glasses IS NOT NULL AND excluded.water_glasses > 0 THEN excluded.water_glasses ELSE health.water_glasses END,
+             water_glasses = CASE WHEN ? = 1 THEN excluded.water_glasses ELSE health.water_glasses END,
              water_target = COALESCE(excluded.water_target, health.water_target),
              glass_ml = COALESCE(excluded.glass_ml, health.glass_ml),
              water_history = CASE WHEN excluded.water_history != '[]' THEN excluded.water_history ELSE health.water_history END,
@@ -556,13 +556,16 @@ export async function handleUserRoutes(ctx) {
         )
         .bind(
           userId,
-          incomingWater,
+          // Auditoria S8: a coluna é NOT NULL (sem água no corpo dava erro 500) e 0 enviado de propósito
+          // precisa valer (antes a água nunca voltava a 0).
+          Number.isFinite(Number(incomingWater)) && incomingWater !== null ? Math.max(0, Math.round(Number(incomingWater))) : 0,
           body.waterTarget || 10,
           body.glassMl || 250,
           JSON.stringify(body.waterHistory || []),
           body.sleep?.bedTime || '23:30',
           body.sleep?.wakeTime || '07:00',
-          body.sleep?.logged ? 1 : 0
+          body.sleep?.logged ? 1 : 0,
+          incomingWater !== null && Number.isFinite(Number(incomingWater)) ? 1 : 0
         )
         .run();
     }
@@ -572,6 +575,9 @@ export async function handleUserRoutes(ctx) {
   const profileMatch = pathname.match(/^\/api\/user\/([^/]+)\/profile$/);
   if (profileMatch && method === 'PUT') {
     const userId = profileMatch[1];
+    // Auditoria S7: pontos e sequência contam no ranking e não podem ser definidos pelo navegador
+    // (nenhuma tela os envia). O Perfil antigo manda a foto como avatarUrl.
+    if (body.avatar === undefined && typeof body.avatarUrl === 'string' && body.avatarUrl) body.avatar = body.avatarUrl;
     if (storage.mode === 'd1') {
       await storage.db
         .prepare(
@@ -588,8 +594,6 @@ export async function handleUserRoutes(ctx) {
              is_public = CASE WHEN ? IS NOT NULL THEN ? ELSE is_public END,
              weight = CASE WHEN ? IS NOT NULL THEN ? ELSE weight END,
              height = CASE WHEN ? IS NOT NULL THEN ? ELSE height END,
-             points = CASE WHEN ? IS NOT NULL THEN ? ELSE points END,
-             streak_days = CASE WHEN ? IS NOT NULL THEN ? ELSE streak_days END,
              page_preferences = CASE WHEN ? IS NOT NULL THEN ? ELSE page_preferences END
            WHERE id = ?`
         )
@@ -617,10 +621,6 @@ export async function handleUserRoutes(ctx) {
           body.weight !== undefined && body.weight !== null ? Number(body.weight) : null,
           body.height !== undefined && body.height !== null ? Number(body.height) : null,
           body.height !== undefined && body.height !== null ? Number(body.height) : null,
-          body.points !== undefined && body.points !== null ? Number(body.points) : null,
-          body.points !== undefined && body.points !== null ? Number(body.points) : null,
-          body.streak_days !== undefined && body.streak_days !== null ? Number(body.streak_days) : null,
-          body.streak_days !== undefined && body.streak_days !== null ? Number(body.streak_days) : null,
           body.pagePreferences ? JSON.stringify(body.pagePreferences) : null,
           body.pagePreferences ? JSON.stringify(body.pagePreferences) : null,
           userId

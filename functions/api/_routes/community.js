@@ -166,16 +166,19 @@ export async function handleCommunityRoutes(ctx) {
     if (storage.mode === 'd1') {
       if (targetUserId) {
         target = await storage.db
-          .prepare(`SELECT id, username, name, avatar, bio FROM users WHERE id = ?`)
+          .prepare(`SELECT id, username, name, avatar, bio, is_public FROM users WHERE id = ?`)
           .bind(targetUserId)
           .first();
       } else if (targetUsername) {
         const cleanU = targetUsername.trim().replace(/^@/, '');
         target = await storage.db
-          .prepare(`SELECT id, username, name, avatar, bio FROM users WHERE LOWER(username) = LOWER(?)`)
+          .prepare(`SELECT id, username, name, avatar, bio, is_public FROM users WHERE LOWER(username) = LOWER(?)`)
           .bind(cleanU)
           .first();
       }
+      // Auditoria S6: perfil privado não expõe a bio para quem ainda não é conexão.
+      if (target && target.is_public === 0) target.bio = '';
+      if (target) delete target.is_public;
     } else {
       if (targetUserId) {
         target = storage.store.users.get(targetUserId) || null;
@@ -296,6 +299,11 @@ export async function handleCommunityRoutes(ctx) {
     const nowIso = new Date().toISOString();
 
     if (storage.mode === 'd1') {
+      // Auditoria S6: só quem RECEBEU o pedido pode aceitar (antes, quem enviou aceitava o próprio pedido).
+      const mine = await storage.db.prepare(`SELECT status FROM friends WHERE user_id = ? AND friend_id = ?`).bind(userId, friendId).first();
+      if (!mine || mine.status !== 'pending_received') {
+        return jsonResponse({ error: 'Não há pedido de conexão desta pessoa para aceitar.' }, 409, correlationId, request);
+      }
       await storage.db
         .prepare(
           `UPDATE friends SET status = 'approved', updated_at = ?

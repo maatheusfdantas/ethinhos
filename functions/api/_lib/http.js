@@ -78,6 +78,13 @@ export function sanitizeObjectEdge(obj) {
   for (const [key, val] of Object.entries(obj)) {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
     if (typeof val === 'string') {
+      // Auditoria S7: fotos em data URL eram cortadas em 1.500 caracteres (imagem corrompida).
+      // Aceita só imagem base64 válida, até ~300 KB; o resto continua com o limite normal.
+      const isAvatarKey = key === 'avatar' || key === 'avatarUrl';
+      if (isAvatarKey && val.length <= 300000 && /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(val)) {
+        cleaned[key] = val;
+        continue;
+      }
       cleaned[key] = key.toLowerCase().includes('password') ? val.slice(0, 256) : sanitizeStringEdge(val, 1500);
     } else if (Array.isArray(val)) {
       cleaned[key] = val.map((item) => (typeof item === 'string' ? sanitizeStringEdge(item, 500) : item));

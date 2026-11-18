@@ -6,6 +6,7 @@ import { recordAuditLogEdge } from '../_lib/audit.js';
 import { authenticateRequestEdge, verifyPasswordEdge } from '../_lib/auth.js';
 import { jsonResponse } from '../_lib/http.js';
 import { normalizeUsername } from '../../../src/domain/credentials.js';
+import { eraseUserData } from '../_lib/erase.js';
 
 export const HEALTH_GOALS = ['perder_peso', 'manter', 'ganhar_massa', 'condicionamento', 'sono', 'outro'];
 export const ACTIVITY_LEVELS = ['sedentario', 'leve', 'moderado', 'intenso'];
@@ -45,11 +46,7 @@ export function parseHealth(body) {
   return { value: out };
 }
 
-const USER_TABLES = [
-  'habits', 'events', 'health', 'tags', 'bad_habit_relapses', 'bad_habits', 'support_tickets', 'auth_tokens',
-  'oauth_identities', 'oauth_login_codes', 'spotify_connections', 'user_health_profile', 'category_members',
-  'routines', 'core_categories', 'commitments', 'entries', 'support_access_grants'
-];
+// A lista de tabelas apagadas na exclusão de conta fica em _lib/erase.js (a mesma do admin).
 
 async function safeAll(db, sql, ...binds) {
   try { return (await db.prepare(sql).bind(...binds).all()).results || []; } catch { return []; }
@@ -126,18 +123,7 @@ export async function handleAccountRoutes(ctx) {
       await recordAuditLogEdge(storage, { eventType: 'ACCOUNT_DELETE_REFUSED', userId, ipAddress: clientIp, userAgent, metadata: {}, correlationId });
       return jsonResponse({ error: 'Senha incorreta.', field: 'password' }, 400, correlationId, request);
     }
-    const categories = await safeAll(db, 'SELECT id FROM categories WHERE user_id = ?', userId);
-    const stmts = [];
-    for (const c of categories) {
-      stmts.push(db.prepare('DELETE FROM subclasses WHERE category_id = ?').bind(c.id));
-      stmts.push(db.prepare('DELETE FROM category_members WHERE category_id = ?').bind(c.id));
-    }
-    stmts.push(db.prepare('DELETE FROM categories WHERE user_id = ?').bind(userId));
-    for (const table of USER_TABLES) {
-      try { await db.prepare(`SELECT 1 FROM ${table} LIMIT 1`).first(); stmts.push(db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).bind(userId)); } catch { /* tabela inexistente neste ambiente */ }
-    }
-    stmts.push(db.prepare('DELETE FROM users WHERE id = ?').bind(userId));
-    await db.batch(stmts);
+    await eraseUserData(db, userId);
     await recordAuditLogEdge(storage, { eventType: 'ACCOUNT_DELETED', userId, ipAddress: clientIp, userAgent, metadata: {}, correlationId });
     return jsonResponse({ success: true }, 200, correlationId, request);
   }

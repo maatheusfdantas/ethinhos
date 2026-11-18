@@ -4,6 +4,7 @@
  */
 
 import { generateCode6 } from '../_lib/codes.js';
+import { eraseUserData } from '../_lib/erase.js';
 import { recordAuditLogEdge } from '../_lib/audit.js';
 import { hashPasswordEdge } from '../_lib/auth.js';
 import { ALL_PERMS } from '../_lib/constants.js';
@@ -201,10 +202,8 @@ export async function handleAdminRoutes(ctx) {
       return jsonResponse({ error: 'A conta administrativa principal não pode ser excluída.' }, 403, correlationId, request);
     }
     if (storage.mode === 'd1') {
-      await storage.db.prepare(`DELETE FROM habits WHERE user_id = ?`).bind(targetId).run();
-      await storage.db.prepare(`DELETE FROM events WHERE user_id = ?`).bind(targetId).run();
-      await storage.db.prepare(`DELETE FROM health WHERE user_id = ?`).bind(targetId).run();
-      await storage.db.prepare(`DELETE FROM users WHERE id = ?`).bind(targetId).run();
+      // Mesma lista da autoexclusão (auditoria S14): sem sobras de Google, Spotify, chamados e amizades.
+      await eraseUserData(storage.db, targetId);
     } else {
       storage.store.users.delete(targetId);
     }
