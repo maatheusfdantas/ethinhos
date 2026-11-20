@@ -1,10 +1,17 @@
 /* src/components/LumoMascot.css */
 .lumo {
+  --lumo-core-scale: 0.8;
+  --lumo-core-opacity: 0.7;
+  --lumo-glow-scale: 0.9;
+  --lumo-ring-opacity: 0.4;
+  --lumo-shard-opacity: 0;
+  --lumo-trail-opacity: 0;
+  --lumo-aura-opacity: 0.25;
+
   position: relative;
   display: grid;
   place-items: center;
   overflow: visible;
-  color-scheme: dark;
 }
 
 .lumo svg {
@@ -13,133 +20,205 @@
   overflow: visible;
 }
 
-/* Estado base */
-.lumo__core {
-  transform-origin: 110px 110px;
+.lumo__aura {
+  transform-origin: 160px 160px;
+  transform: scale(var(--lumo-glow-scale));
+  opacity: var(--lumo-aura-opacity);
   transition:
-    transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lumo__trail {
+  opacity: var(--lumo-trail-opacity);
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lumo__orbit {
+  opacity: 0;
+  transform-origin: 160px 160px;
+  transition:
+    opacity 800ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lumo__orbit.is-visible {
+  opacity: var(--lumo-ring-opacity);
+}
+
+.lumo__orbit--inner {
+  animation: lumo-orbit-clockwise 22s linear infinite;
+}
+
+.lumo__orbit--outer {
+  animation: lumo-orbit-counter-clockwise 17s linear infinite;
+}
+
+.lumo__shards {
+  opacity: var(--lumo-shard-opacity);
+  transition: opacity 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lumo__shard-orbit {
+  transform-origin: 160px 160px;
+}
+
+.lumo__shard-orbit--1 {
+  animation: lumo-orbit-clockwise 13s linear infinite;
+}
+
+.lumo__shard-orbit--2 {
+  animation: lumo-orbit-counter-clockwise 9s linear infinite;
+}
+
+.lumo__shard-orbit--3 {
+  animation: lumo-orbit-clockwise 15s linear infinite;
+}
+
+.lumo__shard-orbit--4 {
+  animation: lumo-orbit-counter-clockwise 11s linear infinite;
+}
+
+.lumo__constellation {
+  opacity: 0;
+  transform-origin: 160px 160px;
+  transform: scale(0.85);
+  transition:
+    opacity 1000ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 1000ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lumo__constellation.is-visible {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .lumo__core-group {
-  transform-origin: 110px 110px;
+  transform-origin: 160px 160px;
+  transform: scale(var(--lumo-core-scale));
+  opacity: var(--lumo-core-opacity);
   transition:
-    transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.lumo__glow {
-  transform-origin: 110px 110px;
-  transition:
-    transform 800ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 800ms cubic-bezier(0.22, 1, 0.36, 1);
+.lumo__core-glow {
+  transform-origin: 160px 160px;
 }
 
-.lumo__ring {
-  transform-origin: 110px 110px;
-}
-
-.lumo__ring--violet {
-  animation: lumo-rotate-violet 16s linear infinite;
-}
-
-.lumo__ring--blue {
-  animation: lumo-rotate-blue 11s linear infinite reverse;
-}
-
-/* Foco */
+/* Foco: energia viva */
 .lumo--focus .lumo__core-group {
-  animation: lumo-core-pulse 3.2s ease-in-out infinite;
+  animation: lumo-core-pulse 3.4s ease-in-out infinite;
 }
 
-.lumo--focus .lumo__ring--violet {
-  animation-duration: 14s;
+.lumo--focus .lumo__core-glow {
+  animation: lumo-core-glow-pulse 3.4s ease-in-out infinite;
 }
 
-.lumo--focus .lumo__ring--blue {
+.lumo--focus .lumo__orbit--inner {
+  animation-duration: 13s;
+}
+
+.lumo--focus .lumo__orbit--outer {
   animation-duration: 9s;
 }
 
-.lumo--focus .lumo__fragment {
-  animation: lumo-fragment-float 5s ease-in-out infinite;
+.lumo--focus .lumo__shard-orbit--1 {
+  animation-duration: 7s;
 }
 
-.lumo--focus .lumo__fragment--2 {
-  animation-delay: -1.2s;
+.lumo--focus .lumo__shard-orbit--2 {
+  animation-duration: 5s;
 }
 
-.lumo--focus .lumo__fragment--3 {
-  animation-delay: -2.4s;
+.lumo--focus .lumo__shard-orbit--3 {
+  animation-duration: 8s;
 }
 
-.lumo--focus .lumo__fragment--4 {
-  animation-delay: -3.6s;
-}
-
-/* Concluído */
-.lumo--completed .lumo__core-group {
-  transform: scale(1.12);
-}
-
-.lumo--completed .lumo__core {
-  opacity: 1;
-}
-
-.lumo--completed .lumo__glow {
-  transform: scale(1.22);
-  opacity: 1;
-}
-
-.lumo--completed .lumo__ring--violet {
+.lumo--focus .lumo__shard-orbit--4 {
   animation-duration: 6s;
 }
 
-.lumo--completed .lumo__ring--blue {
-  animation-duration: 4.5s;
+/* Concluído: forma final */
+.lumo--completed {
+  --lumo-core-scale: 1.18;
+  --lumo-core-opacity: 1;
+  --lumo-glow-scale: 1.35;
+  --lumo-ring-opacity: 1;
+  --lumo-shard-opacity: 1;
+  --lumo-trail-opacity: 1;
+  --lumo-aura-opacity: 1;
 }
 
-.lumo--completed .lumo__fragment {
-  animation: lumo-fragment-burst 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.lumo--completed .lumo__core-group {
+  animation: lumo-completed-burst 1.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.lumo--completed .lumo__fragment--2 {
-  animation-delay: 80ms;
+.lumo--completed .lumo__orbit--inner {
+  animation-duration: 5s;
 }
 
-.lumo--completed .lumo__fragment--3 {
-  animation-delay: 160ms;
+.lumo--completed .lumo__orbit--outer {
+  animation-duration: 3.6s;
 }
 
-.lumo--completed .lumo__fragment--4 {
-  animation-delay: 240ms;
+.lumo--completed .lumo__shard-orbit--1 {
+  animation-duration: 2.4s;
 }
 
-/* Pausa */
-.lumo--paused .lumo__core-group {
-  transform: scale(0.82);
-  opacity: 0.55;
+.lumo--completed .lumo__shard-orbit--2 {
+  animation-duration: 1.8s;
 }
 
-.lumo--paused .lumo__glow {
-  transform: scale(0.85);
-  opacity: 0.35;
+.lumo--completed .lumo__shard-orbit--3 {
+  animation-duration: 2.8s;
 }
 
-.lumo--paused .lumo__ring--violet {
+.lumo--completed .lumo__shard-orbit--4 {
+  animation-duration: 2.1s;
+}
+
+.lumo--completed .lumo__shard {
+  animation: lumo-shard-burst 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Pausa: recolhimento */
+.lumo--paused {
+  --lumo-core-scale: 0.66;
+  --lumo-core-opacity: 0.42;
+  --lumo-glow-scale: 0.72;
+  --lumo-ring-opacity: 0.18;
+  --lumo-shard-opacity: 0.18;
+  --lumo-trail-opacity: 0;
+  --lumo-aura-opacity: 0.14;
+}
+
+.lumo--paused .lumo__orbit--inner {
+  animation-duration: 48s;
+}
+
+.lumo--paused .lumo__orbit--outer {
+  animation-duration: 38s;
+}
+
+.lumo--paused .lumo__shard-orbit--1 {
   animation-duration: 34s;
 }
 
-.lumo--paused .lumo__ring--blue {
-  animation-duration: 26s;
+.lumo--paused .lumo__shard-orbit--2 {
+  animation-duration: 28s;
 }
 
-.lumo--paused .lumo__fragment {
-  animation: lumo-fragment-float 9s ease-in-out infinite;
-  opacity: 0.45;
+.lumo--paused .lumo__shard-orbit--3 {
+  animation-duration: 36s;
+}
+
+.lumo--paused .lumo__shard-orbit--4 {
+  animation-duration: 30s;
 }
 
 /* Keyframes */
-@keyframes lumo-rotate-violet {
+@keyframes lumo-orbit-clockwise {
   from {
     transform: rotate(0deg);
   }
@@ -149,7 +228,7 @@
   }
 }
 
-@keyframes lumo-rotate-blue {
+@keyframes lumo-orbit-counter-clockwise {
   from {
     transform: rotate(0deg);
   }
@@ -162,55 +241,63 @@
 @keyframes lumo-core-pulse {
   0%,
   100% {
+    transform: scale(var(--lumo-core-scale));
+  }
+
+  50% {
+    transform: scale(calc(var(--lumo-core-scale) * 1.07));
+  }
+}
+
+@keyframes lumo-core-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
     transform: scale(1);
   }
 
   50% {
-    transform: scale(1.06);
+    opacity: 0.95;
+    transform: scale(1.14);
   }
 }
 
-@keyframes lumo-fragment-float {
-  0%,
-  100% {
-    opacity: 0.65;
-    transform: translateY(0);
-  }
-
-  50% {
-    opacity: 1;
-    transform: translateY(-4px);
-  }
-}
-
-@keyframes lumo-fragment-burst {
+@keyframes lumo-completed-burst {
   0% {
-    opacity: 0.8;
+    transform: scale(0.85);
+  }
+
+  35% {
+    transform: scale(1.22);
+  }
+
+  100% {
+    transform: scale(1.18);
+  }
+}
+
+@keyframes lumo-shard-burst {
+  0% {
+    opacity: 1;
     transform: scale(1);
   }
 
   45% {
     opacity: 1;
-    transform: scale(1.65);
+    transform: scale(1.7);
   }
 
   100% {
     opacity: 0;
-    transform: scale(2.4);
+    transform: scale(2.6);
   }
 }
 
-/* Acessibilidade */
 @media (prefers-reduced-motion: reduce) {
-  .lumo__ring,
+  .lumo__orbit,
+  .lumo__shard-orbit,
   .lumo__core-group,
-  .lumo__fragment {
+  .lumo__core-glow {
     animation: none !important;
-  }
-
-  .lumo__core-group,
-  .lumo__glow,
-  .lumo__fragment {
-    transition-duration: 200ms;
   }
 }

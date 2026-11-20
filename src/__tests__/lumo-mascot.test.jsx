@@ -16,33 +16,64 @@ vi.mock('../utils/api', () => ({
   }))
 }));
 
-describe('LumoMascot Component', () => {
-  it('renderiza com os estados focus, paused e completed', () => {
-    const { rerender } = render(<LumoMascot status="focus" size={200} />);
+describe('LumoMascot Component 2.0 (Progress & Layers)', () => {
+  it('renderiza com os estados idle, focus, paused e completed e aplica variáveis de energia', () => {
+    const { rerender } = render(<LumoMascot progress={0} status="idle" size={280} />);
     let mascot = screen.getByRole('img');
-    expect(mascot).toHaveClass('lumo--focus');
-    expect(mascot).toHaveStyle({ width: '200px', height: '200px' });
+    expect(mascot).toHaveClass('lumo--idle');
+    expect(mascot).toHaveAttribute('aria-label', expect.stringContaining('0%'));
 
-    rerender(<LumoMascot status="paused" size={240} />);
+    rerender(<LumoMascot progress={50} status="focus" size={280} />);
     mascot = screen.getByRole('img');
-    expect(mascot).toHaveClass('lumo--paused');
+    expect(mascot).toHaveClass('lumo--focus');
+    expect(mascot).toHaveAttribute('aria-label', expect.stringContaining('50%'));
 
-    rerender(<LumoMascot status="completed" size={240} />);
+    rerender(<LumoMascot progress={100} status="completed" size={280} />);
     mascot = screen.getByRole('img');
     expect(mascot).toHaveClass('lumo--completed');
+    expect(mascot).toHaveAttribute('aria-label', expect.stringContaining('100%'));
+
+    rerender(<LumoMascot progress={25} status="paused" size={280} />);
+    mascot = screen.getByRole('img');
+    expect(mascot).toHaveClass('lumo--paused');
   });
 
-  it('renderiza elementos filhos envolvidos pelo mascote', () => {
+  it('ativa as camadas visuais progressivamente conforme o progresso aumenta', () => {
+    // 10% - nenhuma camada orbital deve ter is-visible
+    const { container, rerender } = render(<LumoMascot progress={10} status="focus" />);
+    expect(container.querySelector('.lumo__orbit--inner.is-visible')).toBeNull();
+    expect(container.querySelector('.lumo__shards.is-visible')).toBeNull();
+    expect(container.querySelector('.lumo__constellation.is-visible')).toBeNull();
+
+    // 20% - anel interno visível (>= 15%)
+    rerender(<LumoMascot progress={20} status="focus" />);
+    expect(container.querySelector('.lumo__orbit--inner.is-visible')).not.toBeNull();
+    expect(container.querySelector('.lumo__shards.is-visible')).toBeNull();
+
+    // 30% - shards visíveis (>= 25%)
+    rerender(<LumoMascot progress={30} status="focus" />);
+    expect(container.querySelector('.lumo__shards.is-visible')).not.toBeNull();
+
+    // 45% - anel externo visível (>= 40%)
+    rerender(<LumoMascot progress={45} status="focus" />);
+    expect(container.querySelector('.lumo__orbit--outer.is-visible')).not.toBeNull();
+
+    // 85% - constelação visível (>= 80%)
+    rerender(<LumoMascot progress={85} status="focus" />);
+    expect(container.querySelector('.lumo__constellation.is-visible')).not.toBeNull();
+  });
+
+  it('renderiza elementos filhos centralizados', () => {
     render(
-      <LumoMascot status="focus" size={260}>
-        <span data-testid="timer-display">25:00</span>
+      <LumoMascot progress={50} status="focus" size={300}>
+        <span data-testid="timer-display">12:30</span>
       </LumoMascot>
     );
 
-    expect(screen.getByTestId('timer-display')).toHaveTextContent('25:00');
+    expect(screen.getByTestId('timer-display')).toHaveTextContent('12:30');
   });
 
-  it('renderiza o card Pomodo com timer interativo na aba Teste do Admin', async () => {
+  it('renderiza o card Pomodo com reatividade ao timer e slider de progresso na aba Teste', async () => {
     render(<AdminPortalTab />);
 
     // Navega para a aba Teste
@@ -52,18 +83,21 @@ describe('LumoMascot Component', () => {
     // O card Pomodo deve estar visível
     expect(screen.getByTestId('pomodo-card')).toBeInTheDocument();
     expect(screen.getByText(/^Pomodo$/i)).toBeInTheDocument();
-    expect(screen.getByText(/25:00/)).toBeInTheDocument();
 
-    // Testa seletor rápido de estados (Pausa e Concluído)
-    const pausaBtn = screen.getByRole('button', { name: /pausa/i });
-    fireEvent.click(pausaBtn);
-    expect(screen.getByText(/Em Pausa/i)).toBeInTheDocument();
+    // Slider de teste de energia
+    const slider = screen.getByRole('slider', { name: /ajustar energia do lumo/i });
+    expect(slider).toBeInTheDocument();
 
+    // Altera o slider para 85% (constelação ativa)
+    fireEvent.change(slider, { target: { value: '85' } });
+    expect(screen.getByText(/✦ Constelação Ativa/i)).toBeInTheDocument();
+
+    // Testa seletor rápido de Concluído
     const conclBtn = screen.getByRole('button', { name: /concluído/i });
     fireEvent.click(conclBtn);
     expect(screen.getByText(/Finalizado/i)).toBeInTheDocument();
 
-    // Testa botão 25m reset
+    // Testa reset para 25m
     const resetBtn = screen.getByRole('button', { name: /25m/i });
     fireEvent.click(resetBtn);
     expect(screen.getByText(/25:00/)).toBeInTheDocument();

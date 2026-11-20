@@ -99,12 +99,14 @@ function AmbientDust({ count = 28 }) {
 
 /**
  * Card Pomodo com Mascote Lumo integrado
- * Simulação interativa do timer nos estados focus, paused e completed
+ * Simulação interativa do timer com energia e camadas progressivas (0-100%)
  */
 function PomodoCard() {
-  const [status, setStatus] = useState('focus');
-  const [seconds, setSeconds] = useState(25 * 60);
+  const TOTAL_SECONDS = 25 * 60;
+  const [status, setStatus] = useState('focus'); // 'idle' | 'focus' | 'paused' | 'completed'
+  const [seconds, setSeconds] = useState(TOTAL_SECONDS);
   const [isRunning, setIsRunning] = useState(false);
+  const [manualProgress, setManualProgress] = useState(null);
 
   useEffect(() => {
     let timer = null;
@@ -114,6 +116,7 @@ function PomodoCard() {
           if (prev <= 1) {
             setIsRunning(false);
             setStatus('completed');
+            setManualProgress(100);
             return 0;
           }
           return prev - 1;
@@ -125,9 +128,16 @@ function PomodoCard() {
     };
   }, [isRunning, seconds]);
 
+  const elapsed = TOTAL_SECONDS - seconds;
+  const timerProgress = Math.min(100, Math.max(0, (elapsed / TOTAL_SECONDS) * 100));
+  const activeProgress = manualProgress !== null
+    ? manualProgress
+    : (status === 'completed' ? 100 : (status === 'idle' ? 0 : timerProgress));
+
   const handleTogglePlay = () => {
+    setManualProgress(null);
     if (status === 'completed') {
-      setSeconds(25 * 60);
+      setSeconds(TOTAL_SECONDS);
       setStatus('focus');
       setIsRunning(true);
       return;
@@ -142,12 +152,14 @@ function PomodoCard() {
   };
 
   const handleReset = (mins = 25) => {
+    setManualProgress(null);
     setIsRunning(false);
     setSeconds(mins * 60);
-    setStatus('focus');
+    setStatus('idle');
   };
 
   const handleForceComplete = () => {
+    setManualProgress(100);
     setIsRunning(false);
     setSeconds(0);
     setStatus('completed');
@@ -157,12 +169,17 @@ function PomodoCard() {
     setStatus(newStatus);
     if (newStatus === 'focus') {
       setIsRunning(true);
-      if (seconds === 0) setSeconds(25 * 60);
+      if (seconds === 0) setSeconds(TOTAL_SECONDS);
     } else if (newStatus === 'paused') {
       setIsRunning(false);
     } else if (newStatus === 'completed') {
       setIsRunning(false);
       setSeconds(0);
+      setManualProgress(100);
+    } else if (newStatus === 'idle') {
+      setIsRunning(false);
+      setSeconds(TOTAL_SECONDS);
+      setManualProgress(0);
     }
   };
 
@@ -182,25 +199,25 @@ function PomodoCard() {
         boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(124, 92, 255, 0.12)',
         borderRadius: '24px',
         padding: '36px 28px',
-        maxWidth: '760px',
+        maxWidth: '780px',
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center'
       }}
     >
-      <div style={{ textAlign: 'center', marginBottom: '24px', width: '100%' }}>
+      <div style={{ textAlign: 'center', marginBottom: '20px', width: '100%' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', backgroundColor: 'rgba(124, 92, 255, 0.14)', border: '1px solid rgba(124, 92, 255, 0.3)', marginBottom: '10px' }}>
           <Sparkles size={13} color="#C4B5FD" />
           <span style={{ fontSize: '11px', fontWeight: 700, color: '#C4B5FD', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Laboratório Experimental
+            Laboratório Experimental — Mascote Lumo 2.0
           </span>
         </div>
         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em' }}>
           Pomodo
         </h2>
         <p style={{ fontSize: '13px', color: '#9CA3AF', margin: '6px 0 0' }}>
-          Simulação do mascote Lumo orbitando em volta do cronômetro de foco.
+          A intensidade e as camadas orbitais do Lumo crescem conforme o foco avança (0% a 100%).
         </p>
       </div>
 
@@ -213,13 +230,16 @@ function PomodoCard() {
           borderRadius: '999px',
           backgroundColor: 'rgba(255, 255, 255, 0.05)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
-          marginBottom: '28px'
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          justifyContent: 'center'
         }}
       >
         {[
+          { id: 'idle', label: '💤 Idle (0%)' },
           { id: 'focus', label: '🔥 Foco' },
           { id: 'paused', label: '⏸️ Pausa' },
-          { id: 'completed', label: '✨ Concluído' }
+          { id: 'completed', label: '✨ Concluído (100%)' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -242,6 +262,34 @@ function PomodoCard() {
         ))}
       </div>
 
+      {/* Slider Interativo de Teste de Energia / Progresso */}
+      <div style={{ width: '100%', maxWidth: '440px', margin: '0 auto 16px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#9CA3AF', marginBottom: '6px' }}>
+          <span>Progresso de Energia: <strong style={{ color: '#FFFFFF' }}>{Math.round(activeProgress)}%</strong></span>
+          <span style={{ color: '#7FE7FF', fontWeight: 600 }}>
+            {activeProgress >= 80 ? '✦ Constelação Ativa' : activeProgress >= 55 ? '〰 Rastro Ativo' : activeProgress >= 40 ? '◎ Anéis Duplos' : activeProgress >= 25 ? '• Shards Ativos' : activeProgress >= 15 ? '○ Anel Interno' : 'Núcleo Base'}
+          </span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={Math.round(activeProgress)}
+          onChange={(e) => setManualProgress(Number(e.target.value))}
+          aria-label="Ajustar energia do Lumo"
+          style={{ width: '100%', accentColor: '#7C5CFF', cursor: 'pointer' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9.5px', color: '#6B7280', marginTop: '2px' }}>
+          <span>0%</span>
+          <span>15%</span>
+          <span>25%</span>
+          <span>40%</span>
+          <span>55%</span>
+          <span>80%</span>
+          <span>100%</span>
+        </div>
+      </div>
+
       {/* Timer com o Mascote Lumo em volta */}
       <div
         style={{
@@ -249,12 +297,12 @@ function PomodoCard() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '12px 0 28px',
-          width: '280px',
-          height: '280px'
+          margin: '12px 0 24px',
+          width: '320px',
+          height: '320px'
         }}
       >
-        <LumoMascot status={status} size={280}>
+        <LumoMascot progress={activeProgress} status={status} size={320}>
           <div
             style={{
               display: 'flex',
@@ -263,7 +311,7 @@ function PomodoCard() {
               justifyContent: 'center',
               userSelect: 'none',
               textAlign: 'center',
-              background: 'radial-gradient(circle, rgba(15, 15, 20, 0.82) 40%, transparent 80%)',
+              background: 'radial-gradient(circle, rgba(12, 12, 16, 0.88) 45%, transparent 80%)',
               padding: '16px 24px',
               borderRadius: '50%'
             }}
@@ -309,7 +357,10 @@ function PomodoCard() {
                     : '#9CA3AF'
               }}
             >
-              {status === 'focus' ? 'Foco' : status === 'completed' ? 'Finalizado' : 'Em Pausa'}
+              {status === 'focus' ? 'Foco' : status === 'completed' ? 'Finalizado' : status === 'idle' ? 'Em Espera' : 'Em Pausa'}
+            </span>
+            <span style={{ fontSize: '10px', color: '#6B7280', marginTop: '4px' }}>
+              {Math.round(activeProgress)}% concluído
             </span>
           </div>
         </LumoMascot>
@@ -385,7 +436,7 @@ function PomodoCard() {
         </button>
       </div>
 
-      {/* Amostras dos 3 estados individuais conforme solicitado pelo usuário */}
+      {/* Amostras da evolução progressiva das camadas do Mascote */}
       <div
         style={{
           width: '100%',
@@ -394,40 +445,43 @@ function PomodoCard() {
         }}
       >
         <div style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', marginBottom: '16px' }}>
-          Estados Nativos do Mascote Lumo
+          Aparecimento Progressivo das Camadas (0% a 100%)
         </div>
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '16px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: '14px',
             width: '100%'
           }}
         >
           {[
-            { st: 'focus', title: 'Foco', desc: 'Anéis rápidos, pulso & partículas flutuando' },
-            { st: 'paused', title: 'Pausa', desc: 'Rotação lenta & brilho reduzido' },
-            { st: 'completed', title: 'Concluído', desc: 'Expansão + explosão de fragmentos' }
+            { st: 'idle', p: 0, title: 'Início (0%)', desc: 'Núcleo base' },
+            { st: 'focus', p: 20, title: '15% — Anel Interno', desc: 'Anel violeta ativo' },
+            { st: 'focus', p: 45, title: '40% — Anéis Duplos', desc: 'Anel azul e shards' },
+            { st: 'focus', p: 65, title: '55% — Rastro', desc: 'Rastro luminoso' },
+            { st: 'focus', p: 85, title: '80% — Constelação', desc: 'Constelação geométrica' },
+            { st: 'completed', p: 100, title: '100% — Concluído', desc: 'Forma final com burst' }
           ].map((item) => (
             <div
-              key={item.st}
+              key={item.title}
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.03)',
                 border: '1px solid rgba(255, 255, 255, 0.06)',
                 borderRadius: '16px',
-                padding: '16px',
+                padding: '14px 10px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 textAlign: 'center'
               }}
             >
-              <LumoMascot status={item.st} size={150} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', marginTop: '10px' }}>
+              <LumoMascot progress={item.p} status={item.st} size={140} />
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#FFFFFF', marginTop: '8px' }}>
                 {item.title}
               </div>
-              <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+              <span style={{ fontSize: '10.5px', color: '#6B7280', marginTop: '2px' }}>
                 {item.desc}
               </span>
             </div>
