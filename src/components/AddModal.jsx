@@ -36,6 +36,8 @@ import {
   ChevronUp
 } from 'lucide-react';
 
+// Só paleta de cores para categorias do próprio usuário que não têm cor definida.
+// NÃO são categorias: nunca aparecem quando o usuário não tem categorias (antes apareciam como "fantasmas").
 const DEFAULT_TAG_STYLES = [
   { name: 'Faculdade', color: '#7C6FEF' },
   { name: 'Trabalho',  color: '#00C2D1' },
@@ -69,6 +71,7 @@ export function AddModal({
   onAddHabit, 
   onAddEvent, 
   tags = [],
+  onCreateCategory,
   friends = [],
   initialMode = 'event'
 }) {
@@ -108,7 +111,7 @@ export function AddModal({
   const [targetUnit, setTargetUnit] = useState('vezes');
 
   // Categoria, Sub-classe, Prioridade e Esforço
-  const [selectedCategory, setSelectedCategory] = useState(tags[0]?.name || 'Faculdade');
+  const [selectedCategory, setSelectedCategory] = useState(tags[0]?.name || 'Geral');
   const [selectedSubclassName, setSelectedSubclassName] = useState('');
   const [effort, setEffort] = useState('Médio');
   const [priority, setPriority] = useState('Média');
@@ -122,7 +125,7 @@ export function AddModal({
   const [eventEndDate, setEventEndDate] = useState(todayStr);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
-  const [eventCategory, setEventCategory] = useState(tags[0]?.name || 'Faculdade');
+  const [eventCategory, setEventCategory] = useState(tags[0]?.name || 'Geral');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [reminder, setReminder] = useState('15 min antes');
@@ -345,14 +348,12 @@ export function AddModal({
 
   if (!isOpen || typeof document === 'undefined') return null;
 
-  const categoryList = tags.length > 0
-    ? tags.map((t, i) => ({
-        name: t.name,
-        color: t.color || DEFAULT_TAG_STYLES[i % DEFAULT_TAG_STYLES.length].color,
-        has_subclasses: t.has_subclasses,
-        subclasses: t.subclasses || []
-      }))
-    : DEFAULT_TAG_STYLES;
+  const categoryList = tags.map((t, i) => ({
+    name: t.name,
+    color: t.color || DEFAULT_TAG_STYLES[i % DEFAULT_TAG_STYLES.length].color,
+    has_subclasses: t.has_subclasses,
+    subclasses: t.subclasses || []
+  }));
 
   return createPortal(
     <div
@@ -505,6 +506,7 @@ export function AddModal({
                     type="text"
                     placeholder="Ex: Reunião de Planejamento, Prova de Redes..."
                     value={eventTitle}
+                    maxLength={120}
                     onChange={(e) => setEventTitle(e.target.value)}
                     autoFocus
                     required
@@ -641,6 +643,12 @@ export function AddModal({
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5B75', marginBottom: '5px' }}>
                     Categoria / Tema
                   </label>
+                  {categoryList.length === 0 && (
+                    <div className="am-nocat" role="note">
+                      <span>Você ainda não tem categorias. Este registro fica como <b>Sem categoria</b>.</span>
+                      {onCreateCategory && <button type="button" onClick={onCreateCategory}>Criar categoria</button>}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {categoryList.map((cat) => {
                       const isSel = eventCategory === cat.name;
@@ -1080,6 +1088,7 @@ export function AddModal({
                 type="text"
                 placeholder="Ex: Ler 20 páginas, Meditação, Beber água..."
                 value={habitTitle}
+                maxLength={120}
                 onChange={(e) => setHabitTitle(e.target.value)}
                 autoFocus
                 required
@@ -1597,6 +1606,12 @@ export function AddModal({
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#5A5B75', marginBottom: '4px' }}>
                     Categoria / Tema
                   </label>
+                  {categoryList.length === 0 && (
+                    <div className="am-nocat" role="note">
+                      <span>Você ainda não tem categorias. Este registro fica como <b>Sem categoria</b>.</span>
+                      {onCreateCategory && <button type="button" onClick={onCreateCategory}>Criar categoria</button>}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                     {categoryList.map((cat) => {
                       const isSel = selectedCategory === cat.name;

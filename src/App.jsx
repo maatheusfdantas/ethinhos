@@ -905,6 +905,7 @@ export function App() {
         tags={tags}
         friends={friends}
         onAddTag={handleAddTag}
+        onCreateCategory={() => { setShowAddModal(false); handleOpenCreateCategory(); }}
       />
 
       <CategoryConfigModal

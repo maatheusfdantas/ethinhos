@@ -478,3 +478,7 @@ body.rx-body {
 .asg-sec h4 { margin: 0 0 4px; font-size: 14px; color: var(--rx-lavender); }
 .asg-sec ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
 .asg-close { margin-top: 14px; min-height: 42px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--rx-line-2); background: transparent; color: var(--rx-ink); font: 560 14px var(--rx-font); cursor: pointer; }
+
+/* Criação sem categorias: aviso no lugar das antigas categorias de exemplo */
+.am-nocat { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: #F3F1FB; border: 1px dashed #C9C7DD; color: #3A3C58; font-size: 13px; margin-bottom: 6px; }
+.am-nocat button { min-height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: var(--rx-grad); color: #0C1020; font: 650 13px var(--rx-font); cursor: pointer; }
