@@ -183,21 +183,23 @@
 .bm figure { margin: 0; text-align: center; }
 .bm figcaption { font-size: 12.5px; color: var(--rx-ink-3); margin-top: 2px; }
 .bm svg { width: 100%; max-width: 160px; height: auto; display: block; margin: 0 auto; overflow: visible; }
-.bm .sil, .bm-mini .sil { fill: var(--rx-card-2); stroke: var(--rx-line-2); stroke-width: 1; }
-.bm .r { fill: var(--rx-wash); stroke: var(--rx-line-2); stroke-width: .8; outline: none; }
+.bm .sil, .bm-mini .sil { fill: var(--rx-bg-2); stroke: none; }
+.bm .sil-line, .bm-mini .sil-line { fill: none; stroke: var(--rx-ink-2); stroke-opacity: .7; stroke-width: 2.6; }
+.bm .r { fill: var(--rx-ink-3); fill-opacity: .32; stroke: var(--rx-bg); stroke-width: 1.4; stroke-linejoin: round; outline: none; transition: fill .2s; }
 .bm .r[role="button"] { cursor: pointer; }
-.bm .r.l1 { fill: var(--rx-blue-wash); stroke: var(--rx-blue); stroke-dasharray: 2 1.5; }
-.bm .r.l2 { fill: var(--rx-violet); stroke: var(--rx-lavender); }
-.bm .r:focus-visible, .bm .r.hl { stroke: var(--rx-ink); stroke-width: 1.8; }
-.bm-mini .r { fill: var(--rx-wash); stroke: none; }
-.bm-mini .r.l1 { fill: var(--rx-blue); opacity: .55; }
-.bm-mini .r.l2 { fill: var(--rx-violet); }
+.bm .r.l1 { fill: var(--rx-amber); fill-opacity: 1; }
+.bm .r.l2 { fill: var(--rx-violet); fill-opacity: 1; }
+.bm .r:focus-visible, .bm .r.hl { stroke: var(--rx-ink); stroke-width: 2.4; }
+@media (prefers-reduced-motion: reduce) { .bm .r { transition: none; } }
+.bm-mini .r { fill: var(--rx-ink-3); fill-opacity: .32; stroke: var(--rx-bg); stroke-width: 2; }
+.bm-mini .r.l1 { fill: var(--rx-amber); fill-opacity: 1; }
+.bm-mini .r.l2 { fill: var(--rx-violet); fill-opacity: 1; }
 .bm-box h3 { margin: 0; font-size: 16px; font-weight: 620; }
 .bm-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--rx-ink-2); margin-top: 10px; }
-.bm-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--rx-line-2); }
+.bm-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--rx-line-2); }
 .bm-legend .k2 { background: var(--rx-violet); }
-.bm-legend .k1 { background: var(--rx-blue-wash); border: 1px dashed var(--rx-blue); }
-.bm-legend .k0 { background: var(--rx-wash); }
+.bm-legend .k1 { background: var(--rx-amber); }
+.bm-legend .k0 { background: var(--rx-ink-3); opacity: .45; }
 .bm-tip { margin-top: 10px; min-height: 54px; padding: 10px 12px; border-radius: 12px; background: var(--rx-wash); font-size: 13.5px; color: var(--rx-ink-2); }
 .bm-tip b { color: var(--rx-ink); }
 /* Editor da ficha */

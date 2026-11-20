@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
-import { aggregateMuscles, BACK, FRONT, MUSCLES } from './musculos';
+import { aggregateMuscles, BACK, FRONT, MUSCLES, SIL_HALF } from './musculos';
 import '../../styles/treino.css';
 
-const SIL = (
+const MIRROR = 'translate(200,0) scale(-1,1)';
+// Contorno embaixo e preenchimento por cima: assim a costura do meio (x = 100) não aparece.
+const Silhueta = () => (
   <>
-    <circle className="sil" cx="60" cy="17" r="11" />
-    <rect className="sil" x="54" y="27" width="12" height="9" rx="3" />
-    <rect className="sil" x="31" y="36" width="58" height="102" rx="16" />
-    <rect className="sil" x="13" y="42" width="17" height="86" rx="8.5" />
-    <rect className="sil" x="90" y="42" width="17" height="86" rx="8.5" />
-    <rect className="sil" x="36" y="132" width="23" height="122" rx="11" />
-    <rect className="sil" x="61" y="132" width="23" height="122" rx="11" />
+    <path className="sil-line" d={SIL_HALF} /><path className="sil-line" d={SIL_HALF} transform={MIRROR} />
+    <path className="sil" d={SIL_HALF} /><path className="sil" d={SIL_HALF} transform={MIRROR} />
   </>
 );
 
-function Region({ r, lv, active, interactive, onPick }) {
-  const [k, kind] = r;
+function Region({ r, lv, active, interactive, onPick, mirror }) {
+  const [k, d] = r;
   const props = {
     className: `r l${lv}${active ? ' hl' : ''}`,
     ...(interactive ? {
@@ -25,18 +22,16 @@ function Region({ r, lv, active, interactive, onPick }) {
       onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(k); } }
     } : {})
   };
-  if (kind === 'e') return <ellipse {...props} cx={r[2]} cy={r[3]} rx={r[4]} ry={r[5]} />;
-  if (kind === 'r') return <rect {...props} x={r[2]} y={r[3]} width={r[4]} height={r[5]} rx="6" />;
-  return <polygon {...props} points={r[2]} />;
+  return <path {...props} d={d} transform={mirror ? MIRROR : undefined} />;
 }
 
 function Corpo({ agg, side, hover, interactive, onPick, label }) {
   const regions = side === 'front' ? FRONT : BACK;
   return (
     <figure>
-      <svg viewBox="0 0 120 262" aria-label={label}>
-        {SIL}
-        {regions.map((r, i) => <Region key={`${r[0]}-${i}`} r={r} lv={agg[r[0]]?.lv || 0} active={hover === r[0]} interactive={interactive} onPick={onPick} />)}
+      <svg viewBox="0 0 200 420" aria-label={label}>
+        <Silhueta />
+        {[false, true].map((mirror) => regions.map((r) => <Region key={`${r[0]}-${mirror}`} r={r} mirror={mirror} lv={agg[r[0]]?.lv || 0} active={hover === r[0]} interactive={interactive} onPick={onPick} />))}
       </svg>
       <figcaption>{side === 'front' ? 'Frente' : 'Costas'}</figcaption>
     </figure>
@@ -62,7 +57,7 @@ export function MapaCorporal({ exercises = [], semMusculos = 0 }) {
         <Corpo agg={agg} side="front" hover={hover} interactive onPick={setHover} label="Frente do corpo" />
         <Corpo agg={agg} side="back" hover={hover} interactive onPick={setHover} label="Costas" />
       </div>
-      <div className="bm-legend"><span><i className="k2" />Principal</span><span><i className="k1" />Secundário (tracejado)</span><span><i className="k0" />Não trabalhado</span></div>
+      <div className="bm-legend"><span><i className="k2" />Principal</span><span><i className="k1" />Secundário</span><span><i className="k0" />Não trabalhado</span></div>
       <div className="bm-tip" aria-live="polite">
         {!hover ? 'Toque ou passe o mouse num músculo para ver os exercícios relacionados.' : h ? (
           <><b>{MUSCLES[hover]}</b>: {h.lv === 2 ? 'principal' : 'secundário'} nesta ficha.<br />{h.ex.map((x) => `${x.name} (${x.lv === 2 ? 'principal' : 'secundário'})`).join(', ')}</>
@@ -81,9 +76,9 @@ export function CorpoExercicio({ exercise, thumb = false }) {
     const backOnly = (exercise?.primary || []).length > 0 && exercise.primary.every((k) => BACK.some((b) => b[0] === k) && !FRONT.some((f) => f[0] === k));
     const regions = backOnly ? BACK : FRONT;
     return (
-      <svg className="bm-mini" viewBox="0 0 120 262" width="30" height="40" aria-hidden="true">
-        {SIL}
-        {regions.map((r, i) => <Region key={i} r={r} lv={agg[r[0]]?.lv || 0} />)}
+      <svg className="bm-mini" viewBox="0 0 200 420" width="22" height="44" aria-hidden="true">
+        <Silhueta />
+        {[false, true].map((mirror) => regions.map((r) => <Region key={`${r[0]}-${mirror}`} r={r} mirror={mirror} lv={agg[r[0]]?.lv || 0} />))}
       </svg>
     );
   }
