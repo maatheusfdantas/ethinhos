@@ -33,6 +33,7 @@ export async function handleCommunityRoutes(ctx) {
                AND id != ?
                AND is_public = 1
                AND is_active = 1
+               AND COALESCE(role, 'user') != 'admin'
              LIMIT 20`
           )
           .bind(term, term, currentUserId)
@@ -46,6 +47,7 @@ export async function handleCommunityRoutes(ctx) {
              WHERE id != ?
                AND is_public = 1
                AND is_active = 1
+               AND COALESCE(role, 'user') != 'admin'
              ORDER BY streak_days DESC, points DESC
              LIMIT 15`
           )
@@ -71,7 +73,7 @@ export async function handleCommunityRoutes(ctx) {
       // Fallback em memória
       const allUsers = Array.from(storage.store.users.values());
       let filtered = allUsers.filter(
-        (u) => u.id !== currentUserId && (u.is_public ?? 1) === 1 && (u.is_active ?? 1) === 1
+        (u) => u.id !== currentUserId && (u.is_public ?? 1) === 1 && (u.is_active ?? 1) === 1 && u.role !== 'admin'
       );
       if (q) {
         const qLower = q.toLowerCase();
@@ -123,7 +125,7 @@ export async function handleCommunityRoutes(ctx) {
                   COALESCE(u.points, 0) AS points
            FROM friends f
            LEFT JOIN users u ON u.id = f.friend_id
-           WHERE f.user_id = ?
+           WHERE f.user_id = ? AND COALESCE(u.role, 'user') != 'admin'
            ORDER BY f.created_at DESC`
         )
         .bind(userId)
@@ -166,19 +168,22 @@ export async function handleCommunityRoutes(ctx) {
     if (storage.mode === 'd1') {
       if (targetUserId) {
         target = await storage.db
-          .prepare(`SELECT id, username, name, avatar, bio, is_public FROM users WHERE id = ?`)
+          .prepare(`SELECT id, username, name, avatar, bio, is_public, role FROM users WHERE id = ?`)
           .bind(targetUserId)
           .first();
       } else if (targetUsername) {
         const cleanU = targetUsername.trim().replace(/^@/, '');
         target = await storage.db
-          .prepare(`SELECT id, username, name, avatar, bio, is_public FROM users WHERE LOWER(username) = LOWER(?)`)
+          .prepare(`SELECT id, username, name, avatar, bio, is_public, role FROM users WHERE LOWER(username) = LOWER(?)`)
           .bind(cleanU)
           .first();
       }
       // Auditoria S6: perfil privado não expõe a bio para quem ainda não é conexão.
       if (target && target.is_public === 0) target.bio = '';
       if (target) delete target.is_public;
+      // Correção D (20/11/2026): contas de administrador não entram em amizades.
+      if (target && target.role === 'admin') target = null;
+      if (target) delete target.role;
     } else {
       if (targetUserId) {
         target = storage.store.users.get(targetUserId) || null;
@@ -186,6 +191,7 @@ export async function handleCommunityRoutes(ctx) {
         const cleanU = targetUsername.trim().replace(/^@/, '').toLowerCase();
         target = Array.from(storage.store.users.values()).find((u) => (u.username || '').toLowerCase() === cleanU) || null;
       }
+      if (target && target.role === 'admin') target = null;
     }
 
     if (!target) {

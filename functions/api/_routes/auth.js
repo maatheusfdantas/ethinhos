@@ -11,6 +11,7 @@ import { verifyEmailExistsViaAPI } from '../_lib/email-verify.js';
 import { maskEmailEdge, sendPasswordResetEmailEdge, sendVerificationEmailEdge, sha256Hex } from '../_lib/email.js';
 import { jsonResponse } from '../_lib/http.js';
 import { normalizeUsername, passwordProblem, usernameProblem } from '../../../src/domain/credentials.js';
+import { validateEmail, validatePersonName } from '../../../src/domain/validation.js';
 
 /** Devolve a Response da rota correspondente, ou null se nenhuma rota deste domínio casar. */
 export async function handleAuthRoutes(ctx) {
@@ -191,10 +192,14 @@ export async function handleAuthRoutes(ctx) {
   }
 
   if (pathname === '/api/auth/register' && method === 'POST') {
-    const { name, email, username, password } = body;
+    let { name, email } = body;
+    const { username, password } = body;
     if (!name || !email || !password || !username) {
       return jsonResponse({ error: 'Preencha nome, e-mail, @ e senha.' }, 400, correlationId, request);
     }
+    // Correção C: nome só com letras; e-mail com formato válido e sem espaços (validação no servidor).
+    { const c = validatePersonName(name); if (c.error) return jsonResponse({ error: c.error, field: 'name' }, 400, correlationId, request); name = c.value; }
+    { const c = validateEmail(email); if (c.error) return jsonResponse({ error: c.error, field: 'email' }, 400, correlationId, request); email = c.value; }
 
     const usernameIssue = usernameProblem(username);
     if (usernameIssue) {

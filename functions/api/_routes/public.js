@@ -3,6 +3,7 @@
  * Extraído de functions/api/[[path]].js sem mudança de comportamento (Fase 1).
  */
 
+import { validateEmail, validatePersonName, validatePhone } from '../../../src/domain/validation.js';
 import { recordAuditLogEdge } from '../_lib/audit.js';
 import { authenticateRequestEdge } from '../_lib/auth.js';
 import { edgeFallbackMemory } from '../_lib/db.js';
@@ -26,14 +27,19 @@ export async function handlePublicRoutes(ctx) {
     if (!name || !email || !phone) {
       return jsonResponse({ error: 'Informe nome, e-mail e número de telefone para entrar na lista de espera.' }, 400, correlationId, request);
     }
+    // Correção C: cada campo com a sua regra (o telefone é guardado só com dígitos).
+    { const c = validatePersonName(body.name); if (c.error) return jsonResponse({ error: c.error, field: 'name' }, 400, correlationId, request); }
+    { const c = validateEmail(body.email); if (c.error) return jsonResponse({ error: c.error, field: 'email' }, 400, correlationId, request); }
+    const phoneCheck = validatePhone(body.phone, { required: true });
+    if (phoneCheck.error) return jsonResponse({ error: phoneCheck.error, field: 'phone' }, 400, correlationId, request);
 
     const entryId = `wl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const nowIso = new Date().toISOString();
     const entry = {
       id: entryId,
-      name,
-      email,
-      phone,
+      name: validatePersonName(body.name).value,
+      email: validateEmail(body.email).value,
+      phone: phoneCheck.value,
       interest,
       source,
       status: 'pendente',
@@ -47,7 +53,7 @@ export async function handlePublicRoutes(ctx) {
           .run();
         await storage.db
           .prepare(`INSERT INTO waitlist (id, name, email, phone, interest, source, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pendente', ?)`)
-          .bind(entryId, name, email, phone, interest, source, nowIso)
+          .bind(entryId, entry.name, entry.email, entry.phone, interest, source, nowIso)
           .run();
       } catch (e) {
         edgeFallbackMemory.waitlist.unshift(entry);

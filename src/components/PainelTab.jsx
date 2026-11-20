@@ -3,6 +3,7 @@ import { Check, Minus, Plus, Droplets, Moon, Timer, Dumbbell, ChevronDown, Calen
 import { isEventForDate } from '../services/storage';
 import { ProgressMeter } from './rx/ProgressMeter';
 import { DustCanvas } from './rx/DustCanvas';
+import { withWaterToday } from '../utils/healthDay';
 
 /**
  * Painel principal (direção roxo + azul).
@@ -128,7 +129,9 @@ export function PainelTab({
     }
   };
 
-  const saveHealth = (nextHealth) => {
+  const saveHealth = (rawHealth) => {
+    // Toda gravação leva o dia de hoje: o valor de água vale só para este dia (correção A).
+    const nextHealth = withWaterToday(rawHealth);
     setHealth(nextHealth);
     if (user) api(`/api/user/${user.id}/health`, 'POST', nextHealth);
   };

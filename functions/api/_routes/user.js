@@ -4,6 +4,53 @@
  */
 
 import { jsonResponse } from '../_lib/http.js';
+import { validateDate, validateHexColor, validateNumber, validatePersonName, validateText, validateTime } from '../../../src/domain/validation.js';
+
+// ----------------------------------------------------------------------------
+// Validação no servidor (correção C, 20/11/2026). Devolve a mensagem do primeiro problema ou null,
+// e normaliza o item (texto limpo, números dentro do limite). Não altera dados já gravados.
+// ----------------------------------------------------------------------------
+export function checkHabit(h) {
+  const t = validateText(h.title, { label: 'O título do hábito', max: 120, required: true });
+  if (t.error) return t.error;
+  h.title = t.value;
+  for (const [k, label, max] of [['target', 'A meta', 100000], ['current', 'O progresso', 100000]]) {
+    if (h[k] !== undefined && h[k] !== null && h[k] !== '') {
+      const n = validateNumber(h[k], { label, min: 0, max });
+      if (n.error) return n.error;
+      h[k] = n.value;
+    }
+  }
+  if (h.repeatDays !== undefined) {
+    if (!Array.isArray(h.repeatDays) || h.repeatDays.some((d) => !Number.isInteger(Number(d)) || Number(d) < 0 || Number(d) > 6)) return 'Dias da semana inválidos.';
+    h.repeatDays = [...new Set(h.repeatDays.map(Number))];
+  }
+  if (h.unit !== undefined) h.unit = validateText(h.unit, { max: 30 }).value || 'vezes';
+  if (h.category !== undefined) h.category = validateText(h.category, { max: 60 }).value || 'Geral';
+  return null;
+}
+
+export function checkEvent(ev) {
+  const t = validateText(ev.title, { label: 'O título do evento', max: 120, required: true });
+  if (t.error) return t.error;
+  ev.title = t.value;
+  const d = validateDate(ev.date, { label: 'A data do evento' });
+  if (d.error) return d.error;
+  const end = ev.endDate || ev.end_date;
+  if (end) {
+    const e = validateDate(end, { label: 'A data de término' });
+    if (e.error) return e.error;
+    if (end < ev.date) return 'A data de término não pode ser antes do início.';
+  }
+  for (const k of ['startTime', 'start_time', 'endTime', 'end_time']) {
+    if (ev[k]) { const c = validateTime(ev[k]); if (c.error) return c.error; }
+  }
+  if (ev.location !== undefined) ev.location = validateText(ev.location, { max: 200 }).value;
+  if (ev.notes !== undefined) ev.notes = validateText(ev.notes, { max: 2000, multiline: true }).value;
+  if (ev.description !== undefined) ev.description = validateText(ev.description, { max: 2000, multiline: true }).value;
+  if (ev.category !== undefined) ev.category = validateText(ev.category, { max: 60 }).value || 'Geral';
+  return null;
+}
 
 // ----------------------------------------------------------------------------
 // Gravação segura (auditoria 15/11/2026: A1, A2, S4, S5).
@@ -160,6 +207,8 @@ export async function handleUserRoutes(ctx) {
           health: healthRow
             ? {
                 waterGlasses: healthRow.water_glasses,
+                // Dia do valor de água (correção A). NULL = linha antiga: o app trata como "não é de hoje".
+                waterDate: healthRow.water_date || null,
                 waterTarget: healthRow.water_target || 10,
                 glassMl: healthRow.glass_ml || 250,
                 waterHistory: JSON.parse(healthRow.water_history || '[]'),
@@ -224,11 +273,12 @@ export async function handleUserRoutes(ctx) {
     const nowIso = new Date().toISOString();
 
     const skipped = { habits: [], events: [], tags: [] };
+    const invalid = { habits: [], events: [], tags: [] };
     if (storage.mode === 'd1') {
       const stmts = [];
 
       if (Array.isArray(body.habits)) {
-        const validHabits = body.habits.filter(h => h && h.title);
+        const validHabits = body.habits.filter(h => h && h.title).filter(h => { const err = checkHabit(h); if (err) { invalid.habits.push(h.id || null); return false; } return true; });
         const foreign = await foreignIds(storage.db, 'habits', validHabits.map(h => h.id), userId);
         for (const h of validHabits) {
           if (h.id && foreign.has(String(h.id))) { skipped.habits.push(h.id); continue; }
@@ -265,7 +315,7 @@ export async function handleUserRoutes(ctx) {
       }
 
       if (Array.isArray(body.events)) {
-        const validEvents = body.events.filter(ev => ev && ev.title && ev.date);
+        const validEvents = body.events.filter(ev => ev && ev.title && ev.date).filter(ev => { const err = checkEvent(ev); if (err) { invalid.events.push(ev.id || null); return false; } return true; });
         const foreign = await foreignIds(storage.db, 'events', validEvents.map(e => e.id), userId);
         for (const ev of validEvents) {
           if (ev.id && foreign.has(String(ev.id))) { skipped.events.push(ev.id); continue; }
@@ -307,7 +357,7 @@ export async function handleUserRoutes(ctx) {
       if (Array.isArray(body.tags)) {
         // Antes: apagava TODAS as categorias da conta e regravava a lista (tags: [] apagava tudo) e
         // regravava as categorias globais como se fossem da pessoa. Agora: só grava as da própria conta.
-        const validTags = body.tags.filter(t => t?.name);
+        const validTags = body.tags.filter(t => t?.name).filter(t => { const n = validateText(t.name, { max: 40, required: true }); if (n.error) { invalid.tags.push(t.id || null); return false; } t.name = n.value; if (t.color && validateHexColor(t.color).error) t.color = undefined; return true; });
         const ids = validTags.map(t => t.id);
         const foreign = new Set([...(await foreignIds(storage.db, 'categories', ids, userId)), ...(await foreignIds(storage.db, 'tags', ids, userId))]);
         for (const t of validTags) {
@@ -369,6 +419,10 @@ export async function handleUserRoutes(ctx) {
             body.health.sleep?.logged ? 1 : 0
           )
           .run();
+        const syncDate = String(body.health.waterDate || '');
+        if (Number(syncWater) > 0 && /^\d{4}-\d{2}-\d{2}$/.test(syncDate)) {
+          try { await storage.db.prepare('UPDATE health SET water_date = ? WHERE user_id = ?').bind(syncDate, userId).run(); } catch (_e) { /* migração 0010 ainda não aplicada */ }
+        }
       }
 
       if (body.workouts !== undefined || body.badHabits !== undefined || body.postIts !== undefined || body.activeTrack !== undefined || body.weight !== undefined || body.height !== undefined) {
@@ -403,7 +457,8 @@ export async function handleUserRoutes(ctx) {
     }
 
     const anySkipped = skipped.habits.length || skipped.events.length || skipped.tags.length;
-    return jsonResponse(anySkipped ? { success: true, skipped } : { success: true }, 200, correlationId, request);
+    const anyInvalid = invalid.habits.length || invalid.events.length || invalid.tags.length;
+    return jsonResponse({ success: true, ...(anySkipped ? { skipped } : {}), ...(anyInvalid ? { invalid } : {}) }, 200, correlationId, request);
   }
 
   // --------------------------------------------------------------------------
@@ -412,6 +467,7 @@ export async function handleUserRoutes(ctx) {
   const createHabitMatch = pathname.match(/^\/api\/user\/([^/]+)\/habit$/);
   if (createHabitMatch && method === 'POST') {
     const userId = createHabitMatch[1];
+    { const err = checkHabit(body); if (err) return jsonResponse({ error: err }, 400, correlationId, request); }
     let habitId = body.id || `hab_${Date.now()}`;
     // id de outra conta: nunca sobrescreve; o hábito ganha um id novo.
     if (storage.mode === 'd1' && (await foreignIds(storage.db, 'habits', [habitId], userId)).size) habitId = `hab_${crypto.randomUUID()}`;
@@ -474,6 +530,7 @@ export async function handleUserRoutes(ctx) {
   const createEventMatch = pathname.match(/^\/api\/user\/([^/]+)\/event$/);
   if (createEventMatch && method === 'POST') {
     const userId = createEventMatch[1];
+    { const err = checkEvent(body); if (err) return jsonResponse({ error: err }, 400, correlationId, request); }
     let eventId = body.id || `ev_${Date.now()}`;
     if (storage.mode === 'd1' && (await foreignIds(storage.db, 'events', [eventId], userId)).size) eventId = `ev_${crypto.randomUUID()}`;
     if (storage.mode === 'd1') {
@@ -539,6 +596,19 @@ export async function handleUserRoutes(ctx) {
   const healthMatch = pathname.match(/^\/api\/user\/([^/]+)\/health$/);
   if (healthMatch && method === 'POST') {
     const userId = healthMatch[1];
+    // Correção C: limites reais de água e horários válidos.
+    for (const [k, label, min, max, unit] of [['waterGlasses', 'A quantidade de copos', 0, 50, 'copos'], ['water', 'A quantidade de copos', 0, 50, 'copos'], ['waterTarget', 'A meta de água', 1, 50, 'copos'], ['glassMl', 'O tamanho do copo', 50, 2000, 'ml']]) {
+      if (body[k] !== undefined && body[k] !== null) {
+        const c = validateNumber(body[k], { label, min, max, integer: true, unit });
+        if (c.error) return jsonResponse({ error: c.error, field: k }, 400, correlationId, request);
+        body[k] = c.value;
+      }
+    }
+    if (body.sleep && typeof body.sleep === 'object') {
+      for (const k of ['bedTime', 'wakeTime']) {
+        if (body.sleep[k] && validateTime(body.sleep[k]).error) return jsonResponse({ error: 'Horário de sono inválido (use HH:MM).', field: k }, 400, correlationId, request);
+      }
+    }
     if (storage.mode === 'd1') {
       const incomingWater = body.waterGlasses !== undefined ? body.waterGlasses : (body.water !== undefined ? body.water : null);
       await storage.db
@@ -568,6 +638,10 @@ export async function handleUserRoutes(ctx) {
           incomingWater !== null && Number.isFinite(Number(incomingWater)) ? 1 : 0
         )
         .run();
+      const waterDate = String(body.waterDate || '');
+      if (incomingWater !== null && Number.isFinite(Number(incomingWater)) && /^\d{4}-\d{2}-\d{2}$/.test(waterDate)) {
+        try { await storage.db.prepare('UPDATE health SET water_date = ? WHERE user_id = ?').bind(waterDate, userId).run(); } catch (_e) { /* migração 0010 ainda não aplicada */ }
+      }
     }
     return jsonResponse({ success: true }, 200, correlationId, request);
   }
@@ -575,6 +649,17 @@ export async function handleUserRoutes(ctx) {
   const profileMatch = pathname.match(/^\/api\/user\/([^/]+)\/profile$/);
   if (profileMatch && method === 'PUT') {
     const userId = profileMatch[1];
+    // Correção C: nome só com letras; bio como texto limpo. Dados já gravados não são alterados.
+    if (body.name !== undefined && body.name !== null && body.name !== '') {
+      const c = validatePersonName(body.name);
+      if (c.error) return jsonResponse({ error: c.error, field: 'name' }, 400, correlationId, request);
+      body.name = c.value;
+    }
+    if (body.bio !== undefined && body.bio !== null) {
+      const c = validateText(body.bio, { label: 'A bio', max: 280, multiline: true });
+      if (c.error) return jsonResponse({ error: c.error, field: 'bio' }, 400, correlationId, request);
+      body.bio = c.value;
+    }
     // Auditoria S7: pontos e sequência contam no ranking e não podem ser definidos pelo navegador
     // (nenhuma tela os envia). O Perfil antigo manda a foto como avatarUrl.
     if (body.avatar === undefined && typeof body.avatarUrl === 'string' && body.avatarUrl) body.avatar = body.avatarUrl;
@@ -634,6 +719,8 @@ export async function handleUserRoutes(ctx) {
   const createTagMatch = pathname.match(/^\/api\/user\/([^/]+)\/tag$/);
   if (createTagMatch && method === 'POST') {
     const userId = createTagMatch[1];
+    { const c = validateText(body.name, { label: 'O nome da categoria', max: 40, required: true }); if (c.error) return jsonResponse({ error: c.error, field: 'name' }, 400, correlationId, request); body.name = c.value; }
+    if (body.color && validateHexColor(body.color).error) return jsonResponse({ error: 'Cor inválida.', field: 'color' }, 400, correlationId, request);
     let tagId = body.id || `tag_${Date.now()}`;
     if (storage.mode === 'd1' && ((await foreignIds(storage.db, 'categories', [tagId], userId)).size || (await foreignIds(storage.db, 'tags', [tagId], userId)).size)) tagId = `tag_${crypto.randomUUID()}`;
     const nowIso = new Date().toISOString();

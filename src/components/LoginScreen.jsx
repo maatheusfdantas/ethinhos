@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, AlertCircle, Circle } from 'lucide-react';
 import { normalizeUsername, passwordChecklist, passwordProblem, usernameProblem } from '../domain/credentials';
+import { validateEmail, validatePersonName } from '../domain/validation';
 import { oauthErrorMessage, takeOAuthReturn } from '../utils/oauthMessages';
 import { DustCanvas } from './rx/DustCanvas';
 import { BrandMark } from './Nav';
@@ -224,7 +225,11 @@ export function LoginScreen({ onLoginSuccess }) {
     e.preventDefault();
     setErrorMessage('');
     const errs = {};
-    if (!regName.trim()) errs.name = 'Informe seu nome.';
+    // Correção C: mesmas regras do servidor, avisadas antes de enviar.
+    const nameCheck = validatePersonName(regName);
+    if (nameCheck.error) errs.name = nameCheck.error;
+    const emailCheckLocal = validateEmail(regEmail);
+    if (emailCheckLocal.error) errs.email = emailCheckLocal.error;
     const uProblem = usernameProblem(regUsername);
     if (uProblem) errs.username = uProblem;
     else if (usernameCheck.status === 'invalid') errs.username = usernameCheck.message;
@@ -247,8 +252,8 @@ export function LoginScreen({ onLoginSuccess }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: regName.trim(),
-          email: regEmail.trim(),
+          name: validatePersonName(regName).value,
+          email: validateEmail(regEmail).value,
           username: normalizeUsername(regUsername),
           password: regPassword,
           passwordConfirm: regPasswordConfirm
@@ -531,7 +536,7 @@ export function LoginScreen({ onLoginSuccess }) {
             <form onSubmit={handleRegisterSubmit} noValidate>
               <div className="rx-field">
                 <label htmlFor="rxName">Nome</label>
-                <input id="rxName" type="text" autoComplete="name" value={regName} onChange={(e) => { setRegName(e.target.value); clearErr('name'); }} placeholder="Como quer ser chamado" required aria-invalid={!!fieldErrors.name} />
+                <input id="rxName" type="text" autoComplete="name" value={regName} onChange={(e) => { setRegName(e.target.value); clearErr('name'); }} placeholder="Como quer ser chamado" required maxLength={80} aria-invalid={!!fieldErrors.name} />
                 {fieldError('name')}
               </div>
               <div className="rx-field">

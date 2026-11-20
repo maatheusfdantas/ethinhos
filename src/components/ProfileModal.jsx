@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { todayLocal } from '../utils/healthDay';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -175,6 +176,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               waterGlasses: health?.waterGlasses ?? health?.water ?? 0,
+              waterDate: todayLocal(),
               waterTarget: dailyWaterIdealGlasses,
               sleep: health?.sleep,
               glassMl: health?.glassMl ?? 250

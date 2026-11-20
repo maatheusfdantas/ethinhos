@@ -83,8 +83,15 @@ export function CalendarTab({
   onAddEvent,
   onDeleteEvent,
   onSwitchTab,
-  showToast
+  showToast,
+  tags = []
 }) {
+  // Categorias de verdade: só as da própria conta. A lista EVENT_CATEGORIES fica apenas como paleta de cores
+  // (antes ela aparecia como se fossem categorias da pessoa, mesmo sem ela ter criado nenhuma).
+  const userCategories = useMemo(
+    () => (Array.isArray(tags) ? tags : []).filter((t) => t?.name).map((t, i) => ({ name: t.name, dotColor: t.color || EVENT_CATEGORIES[i % EVENT_CATEGORIES.length].dotColor })),
+    [tags]
+  );
   const approvedFriends = useMemo(() => {
     return Array.isArray(friends) ? friends.filter((f) => f.status === 'approved') : [];
   }, [friends]);
@@ -109,7 +116,7 @@ export function CalendarTab({
   const [evEndDate, setEvEndDate] = useState(() => toISODate(new Date()));
   const [evStartTime, setEvStartTime] = useState('09:00');
   const [evEndTime, setEvEndTime] = useState('10:00');
-  const [evCategory, setEvCategory] = useState('Faculdade');
+  const [evCategory, setEvCategory] = useState('');
   const [evCustomColor, setEvCustomColor] = useState('');
   const [showMoreCategories, setShowMoreCategories] = useState(false);
   const [evLocation, setEvLocation] = useState('');
@@ -208,7 +215,7 @@ export function CalendarTab({
     setEvEndDate(dateStr);
     setEvStartTime('09:00');
     setEvEndTime('10:00');
-    setEvCategory('Faculdade');
+    setEvCategory(userCategories[0]?.name || '');
     setEvCustomColor('');
     setShowMoreCategories(false);
     setEvLocation('');
@@ -228,7 +235,7 @@ export function CalendarTab({
     setEvEndDate(ev.endDate || ev.date || toISODate(cursorDate));
     setEvStartTime(ev.startTime || '09:00');
     setEvEndTime(ev.endTime || '10:00');
-    setEvCategory(ev.category || 'Trabalho');
+    setEvCategory(ev.category || '');
     setEvCustomColor(ev.customColor || '');
     setShowMoreCategories(false);
     setEvLocation(ev.location || '');
@@ -1393,6 +1400,7 @@ export function CalendarTab({
                       type="text"
                       placeholder="Ex: Reunião de Planejamento"
                       value={evTitle}
+                      maxLength={120}
                       onChange={(e) => setEvTitle(e.target.value)}
                       autoFocus
                       required
@@ -1569,8 +1577,13 @@ export function CalendarTab({
                       </label>
                     </div>
 
+                    {userCategories.length === 0 && (
+                      <p data-testid="cal-sem-categoria" style={{ margin: '0 0 6px', fontSize: '12px', color: '#5B5D7A' }}>
+                        Você ainda não tem categorias. O evento fica sem categoria; crie uma em “Nova categoria” no menu.
+                      </p>
+                    )}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {EVENT_CATEGORIES.map((cat) => {
+                      {userCategories.map((cat) => {
                         const isSelected = evCategory === cat.name;
                         const dotColor = cat.dotColor || '#7C6FEF';
                         return (

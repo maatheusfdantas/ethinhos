@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../utils/api';
+import { normalizeHealthForToday, todayLocal } from '../utils/healthDay';
 
 /**
  * useUserSync
@@ -101,14 +102,14 @@ export function useUserSync({
     const localEvents = readLocal('events', []);
     const localTags = readLocal('tags', []);
     const localWorkouts = readLocal('workouts', []);
-    const localHealth = {
+    const localHealth = normalizeHealthForToday({
       waterGlasses: 0,
       waterTarget: 10,
       glassMl: 250,
       waterHistory: [],
       sleep: { bedTime: '23:30', wakeTime: '07:00', targetHours: 8, logged: false },
       ...readLocal('health', {})
-    };
+    });
 
     // 1. Cache local para a tela aparecer na hora
     setHabits(localHabits);
@@ -144,10 +145,12 @@ export function useUserSync({
       }
 
       const mergedWorkouts = serverWorkouts.length > 0 ? serverWorkouts : localWorkouts;
-      const mergedHealth =
+      // Água vale só para o dia em que foi registrada (correção A): valor de outro dia começa em 0.
+      const mergedHealth = normalizeHealthForToday(
         data.health && (data.health.waterGlasses > 0 || data.health.sleep?.logged || data.health.waterTarget !== 10)
           ? data.health
-          : localHealth;
+          : localHealth
+      );
 
       snapshotRef.current = { habits: toSnapshot(serverHabits), events: toSnapshot(serverEvents), tags: toSnapshot(serverTags) };
       setHabits(serverHabits);
@@ -245,6 +248,19 @@ export function useUserSync({
       }
     })();
   };
+
+  // Virada do dia com o app aberto: a água do dia novo começa em 0 (correção A).
+  useEffect(() => {
+    let day = todayLocal();
+    const t = setInterval(() => {
+      const now = todayLocal();
+      if (now !== day) {
+        day = now;
+        setHealth((h) => normalizeHealthForToday(h, now));
+      }
+    }, 60000);
+    return () => clearInterval(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Carrega ao alterar o usuário logado
   useEffect(() => {

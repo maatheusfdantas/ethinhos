@@ -67,6 +67,8 @@ export function sanitizeStringEdge(value, maxLength = 500) {
     .replace(/<\s*iframe[^>]*>[\s\S]*?<\s*\/\s*iframe\s*>/gi, '')
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    // Correção C: tira a tag inteira (antes só tirava < e >, e <b>Oi</b> virava bOi/b).
+    .replace(/<\/?[a-zA-Z!][^>]*>/g, '')
     .replace(/[<>]/g, '')
     .trim()
     .slice(0, maxLength);

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Droplets, Scale, CheckCircle2, Sparkles, GlassWater } from 'lucide-react';
 import { calculateDailyWaterTarget } from '../../utils/biometricsAndAnalytics';
 import { apiFetch } from '../../utils/api';
+import { todayLocal } from '../../utils/healthDay';
 
 /**
  * ProfileBiometricsCard
@@ -89,6 +90,7 @@ export default function ProfileBiometricsCard({
             method: 'POST',
             body: JSON.stringify({
               waterGlasses: updatedHealth.waterGlasses,
+              waterDate: todayLocal(),
               waterTarget: targetGlasses,
               glassMl: gMl || 250,
               sleep: updatedHealth.sleep
