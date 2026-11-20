@@ -219,6 +219,9 @@ export function App() {
 
   // Espaços profissionais: perfil da conta (o menu só muda; o servidor confere tudo a cada pedido).
   const { pro: proInfo } = useProEspaco(user);
+  // Abrir uma pessoa ou turma a partir de outra tela do espaço (as abas são recriadas a cada troca).
+  const [proNav, setProNav] = useState(null);
+  const proNavigate = (tab, params = null) => { setProNav(params); setActiveTab(tab); };
   const [proMode, setProMode] = useState(() => {
     try { return localStorage.getItem('ethos_pro_mode') === '1'; } catch { return false; }
   });
@@ -519,7 +522,7 @@ export function App() {
     }
   };
 
-  const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
+  const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', 'pro-conteudo': proInfo?.model === 'nutri' ? 'Planos alimentares' : 'Fichas e programas', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
@@ -788,8 +791,8 @@ export function App() {
             )}
 
             {activeTab === 'espacos' && <EspacosTab showToast={showToast} initialCode={inviteFromUrl} />}
-            {proMode && proInfo?.status === 'ativo' && ['pro-visao', 'pro-turmas', 'pro-pessoas'].includes(activeTab) && (
-              <ProEspaco view={activeTab} pro={proInfo} onNavigate={setActiveTab} showToast={showToast} />
+            {proMode && proInfo?.status === 'ativo' && ['pro-visao', 'pro-turmas', 'pro-pessoas', 'pro-conteudo'].includes(activeTab) && (
+              <ProEspaco view={activeTab} pro={proInfo} onNavigate={proNavigate} navParams={proNav} showToast={showToast} />
             )}
 
             {activeTab === 'notes' && (

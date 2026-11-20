@@ -1,30 +1,46 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Copy, Lock, Plus, Ticket, User, Users } from 'lucide-react';
+import { Copy, Lock, Plus, Ticket, User } from 'lucide-react';
 import { espacosApi, fmtDate, fmtUntil, initialsOf } from './espacosApi';
+import { AtribuirDialog } from './AtribuirDialog';
+import { ProIndividual } from './ProIndividual';
+import { ProConteudo } from './ProConteudo';
 import '../../styles/espacos.css';
 
 /**
- * Meu espaço (profissional): visão geral, turmas e convites, pessoas.
- * O servidor confere o perfil ativo e o vínculo a cada pedido; esta tela só mostra o que ele devolve.
+ * Meu espaço (profissional), em três níveis (docs/11, seção 8):
+ * 1. Espaço: visão geral só com o que pede ação; cada número abre a lista.
+ * 2. Turma: participantes, atribuições (Personal) e, nos lotes seguintes, agenda e avisos.
+ * 3. Área individual: acompanhamento restrito de uma pessoa.
+ * O servidor confere perfil ativo, modelo e vínculo a cada pedido; esta tela só mostra o que ele devolve.
+ * `extensions` permite aos outros lotes (agenda, alimentação, clínica) acrescentar abas e telas.
  */
-export function ProEspaco({ view = 'pro-visao', pro, onNavigate, showToast }) {
+export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = null, showToast, extensions = {} }) {
   const [meu, setMeu] = useState(null);
   const [pessoas, setPessoas] = useState(null);
-  const [sel, setSel] = useState('');
+  const [visao, setVisao] = useState(null);
+  const [bloco, setBloco] = useState('');
+  const [sel, setSel] = useState(navParams?.turmaId || '');
   const [turma, setTurma] = useState(null);
+  const [turmaTab, setTurmaTab] = useState('Participantes');
+  const [turmaAtrib, setTurmaAtrib] = useState(null);
+  const [pessoaSel, setPessoaSel] = useState(view === 'pro-pessoas' && navParams?.linkId ? { linkId: navParams.linkId, tab: navParams.tab || null } : null);
   const [nova, setNova] = useState(null);
-  const [code, setCode] = useState(null); // { code, expiresAt, title }
+  const [code, setCode] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [atribuir, setAtribuir] = useState(null);
   const [busy, setBusy] = useState(false);
   const toast = (m) => showToast?.(m);
+  const model = meu?.pro?.model || pro?.model;
   const peopleLabel = meu?.pro?.peopleLabel || pro?.peopleLabel || 'Pessoas';
 
   const load = useCallback(async () => {
     try {
-      const [m, p] = await Promise.all([espacosApi.meu(), espacosApi.pessoas()]);
+      const [m, p, v] = await Promise.all([espacosApi.meu(), espacosApi.pessoas(), espacosApi.visao().catch(() => null)]);
       setMeu(m);
       setPessoas(p.pessoas || []);
+      setVisao(v);
       setSel((s) => s || m.turmas?.[0]?.id || '');
+      setBloco((b) => b || v?.blocos?.[0]?.key || '');
     } catch (e) {
       toast(e.message);
     }
@@ -32,14 +48,15 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, showToast }) {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (!sel) { setTurma(null); return; }
+    if (!sel) { setTurma(null); setTurmaAtrib(null); return; }
     let alive = true;
     espacosApi.turma(sel).then((r) => alive && setTurma(r), () => alive && setTurma(null));
+    if (model === 'personal') espacosApi.atribuicoesTurma(sel).then((r) => alive && setTurmaAtrib(r.atribuicoes || []), () => alive && setTurmaAtrib([]));
     return () => { alive = false; };
-  }, [sel, meu]);
+  }, [sel, meu, model]);
 
   const act = async (fn, ok) => {
-    if (busy) return;
+    if (busy) return null;
     setBusy(true);
     try {
       const r = await fn();
@@ -54,12 +71,23 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, showToast }) {
     }
   };
 
+  const openPessoa = (linkId, tab = null) => {
+    setPessoaSel({ linkId, tab });
+    if (view !== 'pro-pessoas') onNavigate?.('pro-pessoas', { linkId, tab });
+  };
+
   if (!meu) return <div className="es"><p className="es-sub">Carregando seu espaço…</p></div>;
   if (!meu.pro || meu.pro.status !== 'ativo') {
     return <div className="es"><section className="es-card" style={{ maxWidth: 560 }}><div className="es-empty"><h3>Espaço indisponível</h3><p>{meu.pro?.status === 'suspenso' ? 'Seu espaço está suspenso. Fale com o suporte do Ethos.' : 'Esta conta não tem modo profissional.'}</p></div></section></div>;
   }
   const turmas = meu.turmas || [];
   const g = turmas.find((t) => t.id === sel);
+  const ext = extensions;
+
+  const individual = async () => {
+    const r = await act(() => espacosApi.conviteIndividual());
+    if (r) setCode({ ...r, kind: 'individual', title: 'Convite individual' });
+  };
 
   const codeDialog = code && (
     <div className="rx-overlay" onClick={() => setCode(null)}>
@@ -94,24 +122,33 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, showToast }) {
       <form className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="es-nova-t" onClick={(e) => e.stopPropagation()} onSubmit={async (e) => {
         e.preventDefault();
         const r = await act(() => espacosApi.criarTurma(nova), 'Turma criada.');
-        if (r?.turma) { setSel(r.turma.id); setNova(null); onNavigate?.('pro-turmas'); }
+        if (r?.turma) { setSel(r.turma.id); setNova(null); if (view !== 'pro-turmas') onNavigate?.('pro-turmas', { turmaId: r.turma.id }); }
       }}>
         <h2 id="es-nova-t">Nova turma</h2>
         <p>Turmas organizam grupos. Quem participa não vê os outros participantes.</p>
-        <div className="es-field"><label htmlFor="es-tn">Nome da turma</label><input id="es-tn" className="es-input" value={nova.name} onChange={(e) => setNova({ ...nova, name: e.target.value })} /></div>
-        <div className="es-field"><label htmlFor="es-td">Descrição <span style={{ color: 'var(--rx-ink-3)', fontWeight: 450 }}>(opcional)</span></label><input id="es-td" className="es-input" placeholder="Ex.: terças e quintas, 18:30" value={nova.description} onChange={(e) => setNova({ ...nova, description: e.target.value })} /></div>
+        <div className="es-field"><label htmlFor="es-tn">Nome da turma</label><input id="es-tn" className="es-input" maxLength={80} value={nova.name} onChange={(e) => setNova({ ...nova, name: e.target.value })} /></div>
+        <div className="es-field"><label htmlFor="es-td">Descrição <span style={{ color: 'var(--rx-ink-3)', fontWeight: 450 }}>(opcional)</span></label><input id="es-td" className="es-input" maxLength={240} placeholder="Ex.: terças e quintas, 18:30" value={nova.description} onChange={(e) => setNova({ ...nova, description: e.target.value })} /></div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" className="rx-btn ghost" onClick={() => setNova(null)}>Cancelar</button><button type="submit" className="rx-btn" disabled={busy}>Criar turma</button></div>
       </form>
     </div>
   );
 
-  const individual = async () => {
-    const r = await act(() => espacosApi.conviteIndividual());
-    if (r) setCode({ ...r, kind: 'individual', title: 'Convite individual' });
+  const itemAction = (b, it) => {
+    if (b.action === 'atribuir') return <button type="button" className="rx-btn tiny" onClick={() => setAtribuir({ linkIds: [it.linkId], alvo: it.name })}>Atribuir</button>;
+    if (b.action === 'abrir' && it.linkId) return <button type="button" className="rx-btn ghost tiny" onClick={() => openPessoa(it.linkId, model === 'personal' ? 'Registros' : 'Registros')}>Abrir</button>;
+    if (b.action === 'plano' && it.linkId) return <button type="button" className="rx-btn tiny" onClick={() => openPessoa(it.linkId, 'Plano')}>Abrir plano</button>;
+    if (ext.visaoAction) return ext.visaoAction(b, it, { reload: load, toast, onNavigate });
+    return null;
   };
 
   let body;
-  if (view === 'pro-turmas') {
+  if (view === 'pro-conteudo') {
+    body = model === 'personal' ? <ProConteudo toast={toast} /> : ext.conteudo ? ext.conteudo({ toast }) : <div className="es-empty"><p>Nada por aqui para este modelo.</p></div>;
+  } else if (view === 'pro-pessoas' && pessoaSel) {
+    body = <ProIndividual key={pessoaSel.linkId} linkId={pessoaSel.linkId} pro={meu.pro} toast={toast} extraTabs={ext.individualTabs ? ext.individualTabs(meu.pro) : []} onBack={() => { setPessoaSel(null); onNavigate?.('pro-pessoas', null); load(); }} initialTab={pessoaSel.tab} />;
+  } else if (view === 'pro-turmas') {
+    const turmaTabs = ['Participantes', ...(model === 'personal' ? ['Atribuições'] : []), ...(ext.turmaTabs ? ext.turmaTabs(meu.pro).map((t) => t.label) : [])];
+    const extTurma = ext.turmaTabs ? ext.turmaTabs(meu.pro).find((t) => t.label === turmaTab) : null;
     body = (
       <>
         <div className="es-head"><div><h1>Turmas e convites</h1><p>Turmas organizam grupos. Quem participa de uma turma não vê os outros participantes.</p></div>
@@ -130,29 +167,47 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, showToast }) {
             </section>
             {g && (
               <div className="es-stack">
-                <article className="es-card">
-                  <h2>{g.name} <span className={`rx-pill ${g.status === 'ativa' ? 'es-pill-on' : ''}`}>{g.status === 'ativa' ? 'Ativa' : 'Rascunho'}</span></h2>
-                  {g.description && <p className="es-sub">{g.description}</p>}
-                  <hr className="es-sep" />
-                  <h3>Convite da turma</h3>
-                  {g.inviteId ? (
-                    <div className="es-row"><div className="grow"><b>Código válido até {fmtUntil(g.inviteUntil)}</b><small>Pode ser usado por várias pessoas. Para ver o código de novo, gere um novo (o anterior deixa de valer).</small></div>
-                      <button type="button" className="rx-btn ghost tiny" onClick={async () => { const r = await act(() => espacosApi.gerarConvite(g.id)); if (r) setCode({ ...r, kind: 'turma', title: `Código da turma ${g.name}` }); }}>Gerar novo</button>
-                      <button type="button" className="es-danger" onClick={() => setConfirm({ title: 'Revogar o código?', text: 'Ninguém mais entra com ele. Quem já entrou continua na turma.', button: 'Revogar código', ok: 'Código revogado.', run: () => espacosApi.revogar(g.inviteId) })}>Revogar</button></div>
-                  ) : g.status === 'ativa' ? (
-                    <div className="es-row"><div className="grow"><small>Nenhum código válido agora.</small></div><button type="button" className="rx-btn tiny" onClick={async () => { const r = await act(() => espacosApi.gerarConvite(g.id)); if (r) setCode({ ...r, kind: 'turma', title: `Código da turma ${g.name}` }); }}><Ticket size={15} />Gerar código de 24 h</button></div>
-                  ) : (
-                    <div className="es-row"><div className="grow"><small>Ative a turma para gerar convites.</small></div><button type="button" className="rx-btn tiny" onClick={() => act(() => espacosApi.editarTurma(g.id, { status: 'ativa' }), 'Turma ativada.')}>Ativar turma</button></div>
-                  )}
-                  <hr className="es-sep" />
-                  <h3>Participantes ({turma?.membros?.length ?? g.members})</h3>
-                  {turma?.membros?.length ? turma.membros.map((m) => (
-                    <div className="es-row" key={m.memberId}><span className="es-avatar">{initialsOf(m.name)}</span><div className="grow"><b>{m.name}</b><small>@{m.username}, desde {fmtDate(m.since)}</small></div>
-                      <button type="button" className="rx-btn ghost tiny" onClick={() => setConfirm({ title: `Remover ${m.name} da turma?`, text: 'O vínculo com você continua e os registros não são apagados.', button: 'Remover da turma', ok: 'Pessoa removida da turma.', run: () => espacosApi.removerMembro(g.id, m.memberId) })}>Remover</button></div>
-                  )) : <p className="es-sub">Ninguém ainda.</p>}
-                  <hr className="es-sep" />
-                  <button type="button" className="es-danger" onClick={() => setConfirm({ title: `Arquivar ${g.name}?`, text: 'A turma sai da lista e os códigos deixam de valer. Vínculos e registros continuam.', button: 'Arquivar turma', ok: 'Turma arquivada.', run: async () => { await espacosApi.editarTurma(g.id, { status: 'arquivada' }); setSel(''); } })}>Arquivar turma</button>
-                </article>
+                <div className="es-head" style={{ marginBottom: 0 }}><div><h1 style={{ fontSize: 28 }}>{g.name}</h1><p>{g.description || 'Sem descrição'}. {g.members} participantes.</p></div></div>
+                <div className="es-tabs-row" role="group" aria-label="Seções da turma">
+                  {turmaTabs.map((t) => <button key={t} type="button" aria-pressed={t === turmaTab} onClick={() => setTurmaTab(t)}>{t}</button>)}
+                </div>
+                {turmaTab === 'Participantes' && (
+                  <article className="es-card">
+                    <h3>Convite da turma</h3>
+                    {g.inviteId ? (
+                      <div className="es-row"><div className="grow"><b>Código válido até {fmtUntil(g.inviteUntil)}</b><small>Pode ser usado por várias pessoas. Para ver o código de novo, gere um novo (o anterior deixa de valer).</small></div>
+                        <button type="button" className="rx-btn ghost tiny" onClick={async () => { const r = await act(() => espacosApi.gerarConvite(g.id)); if (r) setCode({ ...r, kind: 'turma', title: `Código da turma ${g.name}` }); }}>Gerar novo</button>
+                        <button type="button" className="es-danger" onClick={() => setConfirm({ title: 'Revogar o código?', text: 'Ninguém mais entra com ele. Quem já entrou continua na turma.', button: 'Revogar código', ok: 'Código revogado.', run: () => espacosApi.revogar(g.inviteId) })}>Revogar</button></div>
+                    ) : g.status === 'ativa' ? (
+                      <div className="es-row"><div className="grow"><small>Nenhum código válido agora.</small></div><button type="button" className="rx-btn tiny" onClick={async () => { const r = await act(() => espacosApi.gerarConvite(g.id)); if (r) setCode({ ...r, kind: 'turma', title: `Código da turma ${g.name}` }); }}><Ticket size={15} />Gerar código de 24 h</button></div>
+                    ) : (
+                      <div className="es-row"><div className="grow"><small>Ative a turma para gerar convites.</small></div><button type="button" className="rx-btn tiny" onClick={() => act(() => espacosApi.editarTurma(g.id, { status: 'ativa' }), 'Turma ativada.')}>Ativar turma</button></div>
+                    )}
+                    <hr className="es-sep" />
+                    <h3>Participantes ({turma?.membros?.length ?? g.members})</h3>
+                    {turma?.membros?.length ? turma.membros.map((m) => {
+                      const p = (pessoas || []).find((x) => x.username === m.username);
+                      return (
+                        <div className="es-row" key={m.memberId}><span className="es-avatar">{initialsOf(m.name)}</span><div className="grow"><b>{m.name}</b><small>@{m.username}, desde {fmtDate(m.since)}</small></div>
+                          {p && <button type="button" className="rx-btn ghost tiny" onClick={() => openPessoa(p.linkId)}>Área individual</button>}
+                          <button type="button" className="rx-btn ghost tiny" onClick={() => setConfirm({ title: `Remover ${m.name} da turma?`, text: 'O vínculo com você continua e os registros não são apagados. O que veio desta turma fica com a pessoa, encerrado.', button: 'Remover da turma', ok: 'Pessoa removida da turma.', run: () => espacosApi.removerMembro(g.id, m.memberId) })}>Remover</button></div>
+                      );
+                    }) : <p className="es-sub">Ninguém ainda. Gere o código e envie às pessoas.</p>}
+                    <p className="es-sub">Só você vê esta lista.</p>
+                    <hr className="es-sep" />
+                    <button type="button" className="es-danger" onClick={() => setConfirm({ title: `Arquivar ${g.name}?`, text: 'A turma sai da lista e os códigos deixam de valer. Vínculos e registros continuam.', button: 'Arquivar turma', ok: 'Turma arquivada.', run: async () => { await espacosApi.editarTurma(g.id, { status: 'arquivada' }); setSel(''); } })}>Arquivar turma</button>
+                  </article>
+                )}
+                {turmaTab === 'Atribuições' && (
+                  <article className="es-card">
+                    <h2>Atribuído a esta turma <button type="button" className="rx-btn tiny" onClick={() => setAtribuir({ groupId: g.id, alvo: `a turma ${g.name}` })}><Plus size={15} />Atribuir ficha</button></h2>
+                    {turmaAtrib === null ? <p className="es-sub">Carregando…</p> : turmaAtrib.length === 0 ? <div className="es-empty"><p>Nada atribuído a esta turma ainda.</p></div> : turmaAtrib.map((a) => (
+                      <div className="es-row" key={a.templateId}><div className="grow"><b>{a.name}</b><small>versão {a.version}, {a.people} {a.people === 1 ? 'pessoa' : 'pessoas'}{a.adapted ? `, ${a.adapted} ${a.adapted === 1 ? 'adaptada' : 'adaptadas'}` : ''}, desde {fmtDate(a.since)}</small></div></div>
+                    ))}
+                    <p className="es-sub">Atribuir à turma cria uma cópia por pessoa. Adaptar a de alguém não muda os colegas. Quem entra depois não recebe sozinho: atribua de novo (quem já tem não recebe duplicado).</p>
+                  </article>
+                )}
+                {extTurma && extTurma.render({ turma: g, pro: meu.pro, toast, reload: load })}
               </div>
             )}
           </div>
@@ -162,7 +217,7 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, showToast }) {
   } else if (view === 'pro-pessoas') {
     body = (
       <>
-        <div className="es-head"><div><h1>{peopleLabel}</h1><p>{pessoas?.length || 0} com vínculo ativo. Você vê só o que atribuir e os registros disso.</p></div>
+        <div className="es-head"><div><h1>{peopleLabel}</h1><p>{pessoas?.length || 0} com vínculo ativo. Abra a área individual para planejar e acompanhar.</p></div>
           <div className="acts"><button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={individual}><User size={16} />Convite individual</button></div></div>
         <article className="es-card">
           {!pessoas?.length ? <div className="es-empty"><h3>Ninguém ainda</h3><p>As pessoas aparecem aqui quando entram com um código de turma ou com um convite individual.</p></div> : (
@@ -174,7 +229,7 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, showToast }) {
                     <td className="wide"><span style={{ display: 'inline-flex', gap: 10, alignItems: 'center' }}><span className="es-avatar">{initialsOf(p.name)}</span><span><b>{p.name}</b><br /><small style={{ color: 'var(--rx-ink-3)' }}>@{p.username}</small></span></span></td>
                     <td data-l="Turmas">{p.turmas.length ? p.turmas.join(', ') : 'Sem turma'}</td>
                     <td data-l="Desde">{fmtDate(p.since)}</td>
-                    <td><button type="button" className="es-danger" onClick={() => setConfirm({ title: `Encerrar vínculo com ${p.name}?`, text: 'Você perde o acesso aos registros desta pessoa na hora. Ela continua com tudo o que recebeu. Nada é apagado.', button: 'Encerrar vínculo', ok: 'Vínculo encerrado.', run: () => espacosApi.encerrarPessoa(p.linkId) })}>Encerrar</button></td>
+                    <td><button type="button" className="rx-btn tiny" onClick={() => openPessoa(p.linkId)}>Área individual</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -185,31 +240,49 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, showToast }) {
       </>
     );
   } else {
+    const blocos = visao?.blocos || [];
+    const b = blocos.find((x) => x.key === bloco) || blocos[0];
     body = (
       <>
-        <div className="es-head"><div><h1>{meu.pro.spaceName}</h1><p>{meu.pro.modelLabel}. Aqui aparecem só pessoas com vínculo ativo e o que você atribuir a elas.</p></div>
+        <div className="es-head"><div><h1>{meu.pro.spaceName}</h1><p>{meu.pro.modelLabel}. O que pede sua atenção hoje: cada número abre a lista correspondente.</p></div>
           <div className="acts"><button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={individual}><User size={16} />Convite individual</button><button type="button" className="rx-btn" onClick={() => onNavigate?.('pro-turmas')}><Ticket size={16} />Turmas e convites</button></div></div>
-        <div className="rx-strip" style={{ marginTop: 0 }}>
-          <div className="rx-seg"><h3><Users size={16} />{peopleLabel} ativos</h3><div className="v">{meu.pessoas.total}</div><p>{meu.pessoas.ultimos7dias} entraram nos últimos 7 dias.</p></div>
-          <div className="rx-seg"><h3><Ticket size={16} />Turmas ativas</h3><div className="v">{turmas.filter((t) => t.status === 'ativa').length}</div><p>{turmas.filter((t) => t.inviteId).length} com código válido agora.</p></div>
-          <div className="rx-seg"><h3><User size={16} />Participações</h3><div className="v">{turmas.reduce((a, t) => a + t.members, 0)}</div><p>Somando todas as turmas.</p></div>
-          <div className="rx-seg"><h3><Lock size={16} />Privacidade</h3><div className="v" style={{ fontSize: 22 }}>Só o atribuído</div><p>Nada pessoal das pessoas aparece aqui.</p></div>
-        </div>
-        <div className="es-grid" style={{ marginTop: 28 }}>
-          <article className="es-card">
-            <h2>Turmas</h2>
-            {turmas.length === 0 ? <div className="es-empty"><p>Nenhuma turma ainda.</p><button type="button" className="rx-btn" onClick={() => setNova({ name: '', description: '' })}><Plus size={16} />Criar turma</button></div> : turmas.map((t) => (
-              <div className="es-row" key={t.id}><div className="grow"><b>{t.name}</b><small>{t.members} pessoas{t.inviteId ? `, código válido até ${fmtUntil(t.inviteUntil)}` : ''}</small></div><button type="button" className="rx-btn ghost tiny" onClick={() => { setSel(t.id); onNavigate?.('pro-turmas'); }}>Abrir</button></div>
+        {blocos.length > 0 ? (
+          <div className="es-act" role="group" aria-label="Ações">
+            {blocos.map((x) => (
+              <button key={x.key} type="button" aria-pressed={b?.key === x.key} onClick={() => setBloco(x.key)}>
+                <span className="n">{x.items.length}</span><span className="l">{x.label}</span>
+              </button>
             ))}
+          </div>
+        ) : <div className="es-note">Nada pedindo ação agora.</div>}
+        <div className="es-grid" style={{ marginTop: 24 }}>
+          <article className="es-card">
+            {b ? (
+              <>
+                <h2>{b.label} <span className="rx-pill">{b.items.length}</span></h2>
+                {b.items.length === 0 ? <div className="es-empty"><p>{b.key === 'registros_novos' ? 'Nenhum registro novo desde a sua última visita.' : b.key === 'sem_atribuicao' ? 'Todo mundo tem treino atribuído.' : 'Nada aqui agora.'}</p></div> : b.items.map((it, i) => (
+                  <div className="es-row" key={`${b.key}-${i}`}><span className="es-avatar">{initialsOf(it.name)}</span><div className="grow"><b>{it.name}</b><small>{it.detail}{it.at ? `, ${fmtUntil(it.at)}` : ''}</small></div>{itemAction(b, it)}</div>
+                ))}
+                {b.key === 'registros_novos' && b.items.length > 0 && <button type="button" className="rx-btn ghost tiny" style={{ marginTop: 10 }} onClick={async () => { await act(() => espacosApi.visto(), 'Marcado como visto.'); }}>Já vi tudo</button>}
+              </>
+            ) : <div className="es-empty"><h3>Comece pelas turmas</h3><p>Crie uma turma e gere um código para as pessoas entrarem.</p><button type="button" className="rx-btn" onClick={() => setNova({ name: '', description: '' })}><Plus size={16} />Criar turma</button></div>}
           </article>
           <aside className="rx-rail">
-            <section className="summary"><h2>Próximos passos</h2><p className="rx-sub">Atribuição de treinos e planos, agenda com convites e avisos chegam nos próximos lotes.</p></section>
-            <section><h2>Seu Ethos pessoal</h2><p className="rx-sub">Seus hábitos e sua agenda continuam no contexto Pessoal. Dados das pessoas nunca aparecem lá.</p></section>
+            <section className="summary"><h2>Turmas</h2>
+              {turmas.length === 0 ? <p className="rx-sub">Nenhuma turma ainda.</p> : <ul className="rx-list">{turmas.map((t) => <li key={t.id}><span className="ic violet"><Ticket size={16} /></span><div><b>{t.name}</b><p>{t.members} pessoas{t.inviteId ? `, código válido até ${fmtUntil(t.inviteUntil)}` : ''}</p></div></li>)}</ul>}
+            </section>
+            <section><h2>{peopleLabel}</h2><p className="rx-sub">{visao?.pessoas ?? pessoas?.length ?? 0} com vínculo ativo.</p></section>
+            <section><h2>Privacidade</h2><p className="rx-sub">{model === 'personal' ? 'Personal não acessa alimentação.' : model === 'nutri' ? 'Nutricionista não acessa treinos.' : 'Clínica não acessa treinos nem alimentação.'} Hábitos, notas, saúde e agenda pessoal das pessoas nunca aparecem aqui.</p></section>
           </aside>
         </div>
       </>
     );
   }
 
-  return <div className="es">{body}{codeDialog}{confirmDialog}{novaDialog}</div>;
+  return (
+    <div className="es">
+      {body}{codeDialog}{confirmDialog}{novaDialog}
+      {atribuir && <AtribuirDialog groupId={atribuir.groupId || null} linkIds={atribuir.linkIds || null} alvo={atribuir.alvo} toast={toast} onClose={() => setAtribuir(null)} onDone={() => { setAtribuir(null); load(); if (sel) espacosApi.atribuicoesTurma(sel).then((r) => setTurmaAtrib(r.atribuicoes || []), () => {}); }} />}
+    </div>
+  );
 }

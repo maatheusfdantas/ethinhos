@@ -28,7 +28,10 @@ export const treinoApi = {
   descartar: (id) => req(`/api/treino/sessoes/${encodeURIComponent(id)}`, { method: 'DELETE', body: {} }),
   historico: (limit = 60) => req(`/api/treino/historico?limit=${limit}`),
   ultimas: (keys) => req(`/api/treino/ultimas?keys=${encodeURIComponent(keys.join(','))}`),
-  progresso: (key) => req(`/api/treino/progresso?key=${encodeURIComponent(key)}`)
+  progresso: (key) => req(`/api/treino/progresso?key=${encodeURIComponent(key)}`),
+  // Fichas atribuídas por um profissional (lote D2)
+  atribuidos: () => req('/api/treino/atribuidos'),
+  editarAtribuido: (id, content) => req(`/api/treino/atribuidos/${encodeURIComponent(id)}`, { method: 'PUT', body: { content } })
 };
 
 export const newSessionId = () => `sess_${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2, 12)}`}`;

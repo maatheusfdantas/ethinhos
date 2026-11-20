@@ -74,3 +74,37 @@
   .es-table.resp td[data-l]::before { content: attr(data-l) ': '; color: var(--rx-ink-3); font-size: 12.5px; }
   .es-table.resp td.wide { grid-column: 1 / -1; }
 }
+
+/* Três níveis (lote D2): abas, indicadores de ação, semana, listas de escolha */
+.es-tabs-row { display: flex; gap: 4px; padding: 4px; border-radius: 13px; background: var(--rx-bg-2); border: 1px solid var(--rx-line); margin-bottom: 18px; overflow-x: auto; }
+.es-tabs-row button { height: 36px; padding: 0 14px; border-radius: 9px; border: 0; background: none; color: var(--rx-ink-2); font: 580 14px var(--rx-font); white-space: nowrap; cursor: pointer; }
+.es-tabs-row button[aria-pressed="true"] { background: var(--rx-violet-wash); color: var(--rx-ink); box-shadow: inset 0 0 0 1px var(--rx-line-2); }
+.es-act { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.es-act button { text-align: left; padding: 16px 18px; border-radius: 18px; background: var(--rx-card); border: 1px solid var(--rx-line); box-shadow: var(--rx-shadow); color: var(--rx-ink); cursor: pointer; font-family: var(--rx-font); display: flex; flex-direction: column; gap: 4px; }
+.es-act button:hover { border-color: var(--rx-lavender); }
+.es-act button[aria-pressed="true"] { border-color: var(--rx-violet); box-shadow: 0 0 0 3px var(--rx-violet-wash); }
+.es-act .n { font-size: 30px; font-weight: 650; letter-spacing: -.03em; line-height: 1.1; }
+.es-act .l { font-size: 14px; color: var(--rx-ink-2); }
+.es-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.es-day { padding: 10px 6px; border-radius: 12px; background: var(--rx-wash); text-align: center; font-size: 12.5px; color: var(--rx-ink-3); min-width: 0; }
+.es-day b { display: block; font-size: 13px; color: var(--rx-ink-2); }
+.es-day i { display: block; height: 6px; border-radius: 99px; margin: 8px 4px 6px; background: var(--rx-card-2); }
+.es-day.done i { background: var(--rx-grad); }
+.es-day.part i { background: linear-gradient(90deg, var(--rx-violet) 50%, var(--rx-card-2) 50%); }
+.es-day.today { box-shadow: inset 0 0 0 1px var(--rx-violet); background: var(--rx-violet-wash); }
+.es-day small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.es-radio { display: flex; flex-direction: column; gap: 6px; }
+.es-radio label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rx-line); cursor: pointer; font-size: 14.5px; }
+.es-radio label:has(input:checked) { border-color: var(--rx-violet); background: var(--rx-violet-wash); }
+.es-radio input { accent-color: #A78BFA; margin-top: 3px; }
+.es-radio small { display: block; color: var(--rx-ink-3); font-size: 13px; }
+.es-switch { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: var(--rx-ink-2); background: none; border: 0; padding: 6px 0; text-align: left; cursor: pointer; font-family: var(--rx-font); }
+.es-switch .knob { width: 40px; height: 24px; border-radius: 99px; background: var(--rx-card-2); border: 1px solid var(--rx-line-2); position: relative; flex: none; transition: background .2s; }
+.es-switch .knob::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--rx-ink-2); transition: transform .2s; }
+.es-switch[aria-checked="true"] .knob { background: var(--rx-grad); border-color: transparent; }
+.es-switch[aria-checked="true"] .knob::after { transform: translateX(16px); background: var(--rx-on-accent); }
+.es-counts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.es-count { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; border-radius: 12px; background: var(--rx-wash); font-size: 13.5px; color: var(--rx-ink-2); }
+.es-count b { font-size: 17px; color: var(--rx-ink); font-weight: 650; }
+.es-count.in { background: var(--rx-violet-wash); }
+@media (max-width: 900px) { .es-act { grid-template-columns: 1fr 1fr; } .es-week { gap: 4px; } .es-day small { display: none; } }

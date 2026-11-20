@@ -18,6 +18,8 @@ async function req(url, { method = 'GET', body } = {}) {
   return json;
 }
 
+const enc = encodeURIComponent;
+
 export const espacosApi = {
   meu: () => req('/api/espacos/meu'),
   meus: () => req('/api/espacos/meus'),
@@ -34,6 +36,25 @@ export const espacosApi = {
   revogar: (inviteId) => req(`/api/espacos/convites/${encodeURIComponent(inviteId)}`, { method: 'DELETE', body: {} }),
   pessoas: () => req('/api/espacos/pessoas'),
   encerrarPessoa: (linkId) => req(`/api/espacos/pessoas/${encodeURIComponent(linkId)}`, { method: 'DELETE', body: {} }),
+  // Lote D2: visão geral com ações, fichas com versões, atribuição e acompanhamento
+  visao: () => req('/api/espacos/visao'),
+  visto: () => req('/api/espacos/visao/visto', { method: 'POST', body: {} }),
+  fichas: () => req('/api/espacos/fichas'),
+  ficha: (id) => req(`/api/espacos/fichas/${enc(id)}`),
+  criarFicha: (body) => req('/api/espacos/fichas', { method: 'POST', body }),
+  editarFicha: (id, body) => req(`/api/espacos/fichas/${enc(id)}`, { method: 'PUT', body }),
+  novaVersao: (id, content) => req(`/api/espacos/fichas/${enc(id)}/versoes`, { method: 'POST', body: { content } }),
+  levarVersao: (id, assignmentIds) => req(`/api/espacos/fichas/${enc(id)}/atualizar`, { method: 'POST', body: { assignmentIds } }),
+  atribuir: (body) => req('/api/espacos/atribuir', { method: 'POST', body }),
+  atribuicoesTurma: (id) => req(`/api/espacos/turmas/${enc(id)}/atribuicoes`),
+  acompanhamento: (linkId) => req(`/api/espacos/pessoas/${enc(linkId)}/acompanhamento`),
+  adaptar: (id, content, note) => req(`/api/espacos/atribuicoes/${enc(id)}`, { method: 'PUT', body: { content, note } }),
+  permissao: (id, allowClientEdit) => req(`/api/espacos/atribuicoes/${enc(id)}/permissao`, { method: 'PUT', body: { allowClientEdit } }),
+  encerrarAtribuicao: (id) => req(`/api/espacos/atribuicoes/${enc(id)}`, { method: 'DELETE', body: {} }),
+  sessao: (id) => req(`/api/espacos/sessoes/${enc(id)}`),
+  config: (body) => req('/api/espacos/config', { method: 'PUT', body }),
+  atribuidos: () => req('/api/treino/atribuidos'),
+  editarAtribuido: (id, content) => req(`/api/treino/atribuidos/${enc(id)}`, { method: 'PUT', body: { content } }),
   adminLista: () => req('/api/admin/profissionais'),
   adminBusca: (q) => req(`/api/admin/profissionais/busca?q=${encodeURIComponent(q)}`),
   adminAtivar: (body) => req('/api/admin/profissionais', { method: 'POST', body }),

@@ -82,22 +82,32 @@ export async function handleTreinoRoutes(ctx) {
     if (pathname === '/api/treino/sessoes' && method === 'POST') {
       const id = String(body.id || '');
       if (!ID_RE.test(id)) return reply({ error: 'Identificador de sessão inválido.' }, 400);
-      const name = String(body.name || '').trim().slice(0, 120);
-      if (!name) return reply({ error: 'Informe o nome do treino.' }, 400);
       const existing = await db.prepare('SELECT * FROM workout_sessions WHERE id = ?').bind(id).first();
       if (existing) {
         if (existing.user_id !== userId) return reply({ error: 'Identificador já usado.' }, 409);
         return reply({ session: sessionOut(existing, await setsOf(id)), resumed: true });
       }
+      // Ficha atribuída por um profissional (lote D2): o conteúdo vem da cópia da pessoa no servidor,
+      // nunca do navegador, e a sessão guarda de qual atribuição veio (o profissional acompanha só essas).
+      let assignment = null;
+      if (body.assignmentId) {
+        assignment = await db.prepare(
+          "SELECT a.* FROM assignments a JOIN space_links l ON l.id = a.link_id WHERE a.id = ? AND a.client_id = ? AND a.status = 'ativa' AND l.status = 'ativo'"
+        ).bind(String(body.assignmentId), userId).first();
+        if (!assignment) return reply({ error: 'Esta ficha do profissional não está mais disponível.' }, 404);
+      }
+      const name = assignment ? assignment.name : String(body.name || '').trim().slice(0, 120);
+      if (!name) return reply({ error: 'Informe o nome do treino.' }, 400);
       const open = await db.prepare("SELECT * FROM workout_sessions WHERE user_id = ? AND status = 'em_andamento' ORDER BY started_at DESC LIMIT 1").bind(userId).first();
       if (open) return reply({ session: sessionOut(open, await setsOf(open.id)), resumed: true, message: 'Você já tem um treino em andamento.' });
-      const content = body.content && typeof body.content === 'object' ? body.content : {};
+      let content = body.content && typeof body.content === 'object' ? body.content : {};
+      if (assignment) { try { content = JSON.parse(assignment.content_json); } catch { content = {}; } }
       const contentJson = JSON.stringify(content);
       if (contentJson.length > 60000) return reply({ error: 'Ficha grande demais.' }, 413);
       await db.prepare(
         `INSERT INTO workout_sessions (id, user_id, workout_ref, assignment_id, name, content_json, planned_sets, status, started_at, paused_ms, created_at, updated_at)
-         VALUES (?, ?, ?, NULL, ?, ?, ?, 'em_andamento', ?, 0, ?, ?)`
-      ).bind(id, userId, body.workoutRef ? String(body.workoutRef).slice(0, 80) : null, name, contentJson, plannedFrom(content), nowIso, nowIso, nowIso).run();
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'em_andamento', ?, 0, ?, ?)`
+      ).bind(id, userId, assignment ? null : body.workoutRef ? String(body.workoutRef).slice(0, 80) : null, assignment ? assignment.id : null, name, contentJson, plannedFrom(content), nowIso, nowIso, nowIso).run();
       return reply({ session: sessionOut(await own(id), []) }, 201);
     }
 

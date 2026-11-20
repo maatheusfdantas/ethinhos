@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BookOpen, Calendar, CheckCircle2, Clock, Dumbbell, History, Info, Pencil, Play, Plus, Trash2, X } from 'lucide-react';
 import { EXERCISE_LIBRARY_CATALOG, EXERCISE_LIBRARY_GROUPS, WORKOUT_THEMES } from '../WorkoutTab';
 import { TreinoAtivo, TreinoResumo } from './TreinoAtivo';
+import { DoSeuPersonal } from './DoSeuPersonal';
 import { fmtKg, newSessionId, treinoApi } from './treinoApi';
 import '../../styles/treino.css';
 
@@ -36,6 +37,7 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
   const [progressKey, setProgressKey] = useState('');
   const [progress, setProgress] = useState([]);
   const [starting, setStarting] = useState(false);
+  const [atribuidos, setAtribuidos] = useState([]);
   const toast = (m) => (showToast ? showToast(m) : undefined);
   const userId = user?.id;
 
@@ -44,6 +46,8 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
       const [h, o] = await Promise.all([treinoApi.historico(60), treinoApi.aberta()]);
       setHistory({ sessions: h.sessions || [], exercises: h.exercises || [], loaded: true, error: '' });
       setOpen(o.session || null);
+      // "Do seu personal": se a parte dos espaços ainda não existir no servidor, a seção só não aparece.
+      treinoApi.atribuidos().then((r) => setAtribuidos(r.atribuidos || []), () => setAtribuidos([]));
     } catch (e) {
       setHistory({ sessions: [], exercises: [], loaded: true, error: e?.code === 'treino_indisponivel' ? 'O histórico de treinos ainda não está disponível.' : 'Não foi possível carregar o histórico agora.' });
     }
@@ -76,6 +80,30 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
     } catch {
       setSuggestions({});
     }
+  };
+
+  // Ficha do profissional: o conteúdo vem da cópia no servidor (o navegador manda só o id da atribuição).
+  const startAssignment = async (a) => {
+    if (starting) return;
+    setStarting(true);
+    try {
+      const r = await treinoApi.iniciar({ id: newSessionId(), assignmentId: a.id });
+      if (r.resumed && r.session?.assignmentId !== a.id) toast(r.message || 'Você já tem um treino em andamento. Ele foi retomado.');
+      await loadSuggestions(r.session.content.exercises || []);
+      setActive(r.session);
+      setOpen(r.session);
+      go('ativo');
+    } catch (e) {
+      toast(e?.message || 'Não foi possível iniciar o treino. Confira a conexão.');
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const copyAssignment = (a) => {
+    const copy = { id: `wo_${Date.now()}`, name: `${a.name} (cópia)`, subtitle: `Copiada da ficha de ${a.proName}`, theme: 'blue', scheduledDays: [], scheduledTime: '18:30', exercises: a.content.exercises.map((e) => ({ ...e, id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` })) };
+    setWorkouts((prev) => [...prev, copy]);
+    toast(`${a.name} foi copiada para as suas fichas. A ficha do profissional continua igual.`);
   };
 
   const startWorkout = async (w) => {
@@ -338,7 +366,7 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
     );
   } else {
     // home
-    if (own.length === 0) {
+    if (own.length === 0 && atribuidos.length === 0) {
       body = (
         <>
           <div className="tr-head"><div><h1>Treino</h1><p>Monte fichas com os exercícios da biblioteca e registre cada sessão.</p></div></div>
@@ -380,7 +408,9 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
           </div>
           <div className="tr-grid" style={{ marginTop: 28 }}>
             <section>
-              <h2 className="tr-section-title">Suas fichas</h2>
+              <DoSeuPersonal atribuidos={atribuidos} onStart={startAssignment} onCopy={copyAssignment} onChanged={loadServer} toast={toast} starting={starting} />
+              <h2 className="tr-section-title" style={{ marginTop: atribuidos.length ? 28 : 0 }}>Suas fichas</h2>
+              {own.length === 0 && <p className="tr-sub" style={{ marginBottom: 12 }}>Você ainda não tem fichas próprias. Crie uma ou copie uma ficha do seu personal.</p>}
               <div className="tr-cards">
                 {own.map((w) => (
                   <article className="tr-card" key={w.id} style={{ '--acc': accentOf(w) }}>

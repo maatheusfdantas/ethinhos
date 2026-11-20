@@ -264,13 +264,23 @@ export function TreinoResumo({ session, onBack }) {
           <div><dt>Situação</dt><dd style={{ fontSize: 18, marginTop: 6 }}>{full ? 'Concluída' : 'Incompleta'}</dd></div>
         </dl>
         <table className="tr-table resp" style={{ marginTop: 18 }}>
-          <thead><tr><th>Exercício</th><th>Séries</th><th>Volume (carga × reps)</th></tr></thead>
+          <thead><tr><th>Exercício</th><th>Planejado</th><th>Realizado</th><th>Volume</th></tr></thead>
           <tbody>
             {exercises.map((e) => {
-              const d = sets.filter((s) => s.exerciseKey === e.id);
+              const d = sets.filter((s) => s.exerciseKey === e.id).sort((x, y) => x.setNo - y.setNo);
               const m = metricOf(e);
+              const planned = Math.max(1, Number(e.sets) || 1);
+              const plano = m === 'tempo' ? `${planned} × ${e.reps} s` : m === 'kg' ? `${planned} × ${e.reps}, ${fmtKg(e.weightKg)} kg` : `${planned} × ${e.reps}`;
+              const feito = d.map((s) => (m === 'tempo' ? `${s.seconds} s` : m === 'kg' ? `${fmtKg(s.weightKg)} kg × ${s.reps}` : `${s.reps}`)).join(', ');
               const vol = m === 'tempo' ? `${d.reduce((a, s) => a + (s.seconds || 0), 0)} s` : m === 'kg' ? `${fmtKg(d.reduce((a, s) => a + (s.weightKg || 0) * (s.reps || 0), 0))} kg` : `${d.reduce((a, s) => a + (s.reps || 0), 0)} reps`;
-              return <tr key={e.id}><td className="wide">{e.name}</td><td className="tr-num" data-l="Séries">{d.length} de {Math.max(1, Number(e.sets) || 1)}</td><td className="tr-num" data-l="Volume">{d.length ? vol : '—'}</td></tr>;
+              return (
+                <tr key={e.id}>
+                  <td className="wide">{e.name}</td>
+                  <td className="tr-num" data-l="Planejado">{plano}</td>
+                  <td className="tr-num" data-l="Realizado" style={{ color: d.length < planned ? 'var(--rx-amber)' : undefined }}>{d.length ? `${d.length} de ${planned}: ${feito}` : 'não feito'}</td>
+                  <td className="tr-num" data-l="Volume">{d.length ? vol : '—'}</td>
+                </tr>
+              );
             })}
           </tbody>
         </table>

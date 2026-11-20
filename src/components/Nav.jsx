@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import '../styles/espacos.css';
 import {
   User, LayoutGrid, Calendar, TrendingUp, Plus, Settings, LogOut, ShieldAlert, Timer,
-  Dumbbell, Users, CheckCircle2, ShieldOff, LifeBuoy, Menu, StickyNote, Building2, Ticket
+  Dumbbell, Users, CheckCircle2, ShieldOff, LifeBuoy, Menu, StickyNote, Building2, Ticket, ClipboardList, Utensils
 } from 'lucide-react';
 
 /**
@@ -35,7 +35,9 @@ export function proModules(pro) {
   return [
     { id: 'pro-visao', label: 'Visão geral', icon: LayoutGrid, group: null },
     { id: 'pro-turmas', label: 'Turmas e convites', icon: Ticket, group: 'Pessoas' },
-    { id: 'pro-pessoas', label: pro?.peopleLabel || 'Pessoas', icon: Users, group: 'Pessoas' }
+    { id: 'pro-pessoas', label: pro?.peopleLabel || 'Pessoas', icon: Users, group: 'Pessoas' },
+    ...(pro?.model === 'personal' ? [{ id: 'pro-conteudo', label: 'Fichas e programas', icon: ClipboardList, group: 'Conteúdo' }] : []),
+    ...(pro?.model === 'nutri' ? [{ id: 'pro-conteudo', label: 'Planos alimentares', icon: Utensils, group: 'Conteúdo' }] : [])
   ];
 }
 

@@ -12,6 +12,7 @@
 import { recordAuditLogEdge } from '../_lib/audit.js';
 import { sha256Hex } from '../_lib/email.js';
 import { jsonResponse } from '../_lib/http.js';
+import { endAssignments } from '../_lib/espacos-acesso.js';
 
 export const MODELS = { personal: 'Personal', nutri: 'Nutricionista', clinica: 'Organização Clínica' };
 const PEOPLE_LABEL = { personal: 'Alunos', nutri: 'Pacientes', clinica: 'Pessoas' };
@@ -218,8 +219,11 @@ export async function handleEspacosRoutes(ctx) {
     }
     const leaveGroup = pathname.match(/^\/api\/espacos\/meus\/turmas\/([^/]+)$/);
     if (leaveGroup && method === 'DELETE') {
+      const m = await db.prepare("SELECT group_id FROM group_members WHERE id = ? AND client_id = ? AND status = 'ativa'").bind(leaveGroup[1], me).first();
       const r = await db.prepare("UPDATE group_members SET status = 'saiu', left_at = ? WHERE id = ? AND client_id = ? AND status = 'ativa'").bind(nowIso, leaveGroup[1], me).run();
       if (!r?.meta?.changes) return reply({ error: 'Participação não encontrada.' }, 404);
+      // O que veio da turma fica com a pessoa, encerrado (só leitura). O vínculo continua.
+      if (m) await endAssignments(db, { clientId: me, groupId: m.group_id, reason: 'saiu da turma' });
       return reply({ success: true });
     }
     const endMine = pathname.match(/^\/api\/espacos\/meus\/([^/]+)$/);
@@ -227,6 +231,7 @@ export async function handleEspacosRoutes(ctx) {
       const r = await db.prepare("UPDATE space_links SET status = 'encerrado', ended_at = ?, ended_by = ? WHERE id = ? AND client_id = ? AND status = 'ativo'").bind(nowIso, me, endMine[1], me).run();
       if (!r?.meta?.changes) return reply({ error: 'Vínculo não encontrado.' }, 404);
       await db.prepare("UPDATE group_members SET status = 'saiu', left_at = ? WHERE link_id = ? AND status = 'ativa'").bind(nowIso, endMine[1]).run();
+      await endAssignments(db, { linkId: endMine[1], reason: 'vínculo encerrado' });
       await audit('SPACE_LINK_ENDED', { by: 'pessoa' });
       return reply({ success: true });
     }
@@ -298,8 +303,10 @@ export async function handleEspacosRoutes(ctx) {
         return reply({ code, expiresAt }, 201);
       }
       if (sub === '/membros' && turma[3] && method === 'DELETE') {
+        const mm = await db.prepare("SELECT client_id FROM group_members WHERE id = ? AND group_id = ? AND status = 'ativa'").bind(turma[3], g.id).first();
         const r = await db.prepare("UPDATE group_members SET status = 'removida', left_at = ? WHERE id = ? AND group_id = ? AND status = 'ativa'").bind(nowIso, turma[3], g.id).run();
         if (!r?.meta?.changes) return reply({ error: 'Participante não encontrado.' }, 404);
+        if (mm) await endAssignments(db, { clientId: mm.client_id, groupId: g.id, reason: 'removida da turma' });
         return reply({ success: true });
       }
       return reply({ error: 'Rota não encontrada.' }, 404);
@@ -338,6 +345,7 @@ export async function handleEspacosRoutes(ctx) {
       const r = await db.prepare("UPDATE space_links SET status = 'encerrado', ended_at = ?, ended_by = ? WHERE id = ? AND space_id = ? AND status = 'ativo'").bind(nowIso, me, endLink[1], pro.space_id).run();
       if (!r?.meta?.changes) return reply({ error: 'Vínculo não encontrado.' }, 404);
       await db.prepare("UPDATE group_members SET status = 'removida', left_at = ? WHERE link_id = ? AND status = 'ativa'").bind(nowIso, endLink[1]).run();
+      await endAssignments(db, { linkId: endLink[1], reason: 'vínculo encerrado' });
       await audit('SPACE_LINK_ENDED', { by: 'profissional' });
       return reply({ success: true });
     }
