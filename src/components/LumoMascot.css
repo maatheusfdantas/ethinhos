@@ -1,42 +1,218 @@
 /* src/components/LumoMascot.css */
+/* Mascote Lumo Cósmico 2.1 — Estilo Oficial Ethos (Roxo + Azul Cósmico) */
+
 .lumo {
   --lumo-core-scale: 0.8;
   --lumo-core-opacity: 0.7;
   --lumo-glow-scale: 0.9;
   --lumo-ring-opacity: 0.4;
   --lumo-shard-opacity: 0;
-  --lumo-trail-opacity: 0;
+  --lumo-trail-opacity: 0.3;
   --lumo-aura-opacity: 0.25;
 
   position: relative;
   display: grid;
   place-items: center;
   overflow: visible;
+  color-scheme: dark;
 }
 
 .lumo svg {
   width: 100%;
   height: 100%;
   overflow: visible;
+  display: block;
 }
 
-.lumo__aura {
-  transform-origin: 160px 160px;
-  transform: scale(var(--lumo-glow-scale));
-  opacity: var(--lumo-aura-opacity);
+/* ========================================================================= */
+/* 1. Céu Cósmico & Nebulosas                                                */
+/* ========================================================================= */
+
+.lumo__cosmos {
+  pointer-events: none;
+}
+
+.lumo__nebula {
+  transform-origin: center;
+  animation: lumo-nebula-breathe 8s ease-in-out infinite alternate;
+}
+
+.lumo__nebula--violet {
+  animation-duration: 9s;
+}
+
+.lumo__nebula--blue {
+  animation-duration: 11s;
+  animation-delay: -3s;
+}
+
+@keyframes lumo-nebula-breathe {
+  0% {
+    opacity: 0.08;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 0.16;
+    transform: scale(1.08);
+  }
+}
+
+/* ========================================================================= */
+/* 2. Asteroides Flutuando pelo Espaço                                        */
+/* ========================================================================= */
+
+.lumo__asteroids {
+  pointer-events: none;
+}
+
+.lumo__asteroid--1 {
+  transform-origin: 290px 75px;
+  animation: lumo-asteroid-drift-1 20s ease-in-out infinite alternate;
+}
+
+.lumo__asteroid--2 {
+  transform-origin: 65px 285px;
+  animation: lumo-asteroid-drift-2 24s ease-in-out infinite alternate;
+}
+
+.lumo__asteroid--3 {
+  transform-origin: 310px 290px;
+  animation: lumo-asteroid-drift-3 28s ease-in-out infinite alternate;
+}
+
+@keyframes lumo-asteroid-drift-1 {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-18px, 14px) rotate(85deg);
+  }
+  100% {
+    transform: translate(-32px, 6px) rotate(170deg);
+  }
+}
+
+@keyframes lumo-asteroid-drift-2 {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(16px, -12px) rotate(-70deg);
+  }
+  100% {
+    transform: translate(28px, -20px) rotate(-140deg);
+  }
+}
+
+@keyframes lumo-asteroid-drift-3 {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    transform: translate(-22px, -15px) rotate(120deg);
+  }
+}
+
+/* ========================================================================= */
+/* 3. Estrelas Cadentes (Shooting Stars)                                     */
+/* ========================================================================= */
+
+.lumo__shooting-stars {
+  pointer-events: none;
+}
+
+.lumo__shooting-star {
+  opacity: 0;
+}
+
+.lumo__shooting-star--1 {
+  transform: translate(320px, 40px) rotate(4deg);
+  animation: lumo-shooting-streak-1 8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.lumo__shooting-star--2 {
+  transform: translate(280px, 240px) rotate(-12deg);
+  animation: lumo-shooting-streak-2 11s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation-delay: 3.5s;
+}
+
+.lumo__shooting-star--3 {
+  transform: translate(120px, 45px) rotate(18deg);
+  animation: lumo-shooting-streak-3 14s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  animation-delay: 7s;
+}
+
+@keyframes lumo-shooting-streak-1 {
+  0%, 78% {
+    opacity: 0;
+    transform: translate(330px, 35px) scale(0.4);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(260px, 75px) scale(1);
+  }
+  84% {
+    opacity: 0.9;
+    transform: translate(150px, 140px) scale(0.9);
+  }
+  87%, 100% {
+    opacity: 0;
+    transform: translate(60px, 195px) scale(0.3);
+  }
+}
+
+@keyframes lumo-shooting-streak-2 {
+  0%, 82% {
+    opacity: 0;
+    transform: translate(310px, 220px) scale(0.4);
+  }
+  84% {
+    opacity: 1;
+    transform: translate(220px, 275px) scale(1);
+  }
+  88% {
+    opacity: 0.85;
+    transform: translate(120px, 335px) scale(0.85);
+  }
+  91%, 100% {
+    opacity: 0;
+    transform: translate(40px, 385px) scale(0.3);
+  }
+}
+
+@keyframes lumo-shooting-streak-3 {
+  0%, 85% {
+    opacity: 0;
+    transform: translate(140px, 30px) scale(0.4);
+  }
+  87% {
+    opacity: 1;
+    transform: translate(90px, 85px) scale(1);
+  }
+  90% {
+    opacity: 0.8;
+    transform: translate(20px, 155px) scale(0.8);
+  }
+  93%, 100% {
+    opacity: 0;
+    transform: translate(-30px, 205px) scale(0.2);
+  }
+}
+
+/* ========================================================================= */
+/* 4. Sistema Orbital ao Redor do Timer                                       */
+/* ========================================================================= */
+
+.lumo__progress-arc {
   transition:
-    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.lumo__trail {
-  opacity: var(--lumo-trail-opacity);
-  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+    stroke-dashoffset 650ms cubic-bezier(0.16, 1, 0.3, 1),
+    stroke 400ms ease;
+  filter: drop-shadow(0 0 6px rgba(124, 92, 255, 0.45));
 }
 
 .lumo__orbit {
   opacity: 0;
-  transform-origin: 160px 160px;
+  transform-origin: 180px 180px;
   transition:
     opacity 800ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -47,11 +223,11 @@
 }
 
 .lumo__orbit--inner {
-  animation: lumo-orbit-clockwise 22s linear infinite;
+  animation: lumo-orbit-cw 22s linear infinite;
 }
 
 .lumo__orbit--outer {
-  animation: lumo-orbit-counter-clockwise 17s linear infinite;
+  animation: lumo-orbit-ccw 17s linear infinite;
 }
 
 .lumo__shards {
@@ -60,244 +236,262 @@
 }
 
 .lumo__shard-orbit {
-  transform-origin: 160px 160px;
+  transform-origin: 180px 180px;
 }
 
 .lumo__shard-orbit--1 {
-  animation: lumo-orbit-clockwise 13s linear infinite;
+  animation: lumo-orbit-cw 13s linear infinite;
 }
 
 .lumo__shard-orbit--2 {
-  animation: lumo-orbit-counter-clockwise 9s linear infinite;
+  animation: lumo-orbit-ccw 9s linear infinite;
 }
 
 .lumo__shard-orbit--3 {
-  animation: lumo-orbit-clockwise 15s linear infinite;
+  animation: lumo-orbit-cw 15s linear infinite;
 }
 
 .lumo__shard-orbit--4 {
-  animation: lumo-orbit-counter-clockwise 11s linear infinite;
+  animation: lumo-orbit-ccw 11s linear infinite;
 }
 
 .lumo__constellation {
   opacity: 0;
-  transform-origin: 160px 160px;
-  transform: scale(0.85);
+  transform-origin: 180px 180px;
+  transform: scale(0.9);
   transition:
     opacity 1000ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 1000ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .lumo__constellation.is-visible {
-  opacity: 1;
+  opacity: 0.85;
   transform: scale(1);
 }
 
+/* ========================================================================= */
+/* 5. O Mascote Lumo Orbitando ao Redor do Timer                             */
+/* ========================================================================= */
+
+.lumo__orbital-carrier {
+  transform-origin: 180px 180px;
+  animation: lumo-orbit-cw 14s linear infinite;
+  transition: opacity 600ms ease;
+}
+
+.lumo__tail {
+  transition: opacity 700ms ease;
+  filter: drop-shadow(0 0 8px rgba(127, 231, 255, 0.6));
+}
+
+.lumo__sprite {
+  transform-origin: 0 0;
+}
+
+/* O Momento de Brilho Cósmico (Flare): Brilha intenso e volta ao normal */
+.lumo__flare {
+  transform-origin: 0 0;
+  animation: lumo-flare-cycle 4.5s ease-in-out infinite;
+  transition: opacity 400ms ease;
+}
+
 .lumo__core-group {
-  transform-origin: 160px 160px;
-  transform: scale(var(--lumo-core-scale));
-  opacity: var(--lumo-core-opacity);
-  transition:
-    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: 0 0;
+  animation: lumo-core-pulse 4.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(127, 231, 255, 0.85));
 }
 
-.lumo__core-glow {
-  transform-origin: 160px 160px;
+.lumo__spark--1 {
+  animation: lumo-spark-float 3s ease-in-out infinite alternate;
 }
 
-/* Foco: energia viva */
+.lumo__spark--2 {
+  animation: lumo-spark-float 3.6s ease-in-out infinite alternate-reverse;
+}
+
+/* Ciclo do Flare: Brilha intensamente no ápice e retorna suavemente */
+@keyframes lumo-flare-cycle {
+  0%, 46% {
+    transform: scale(0.9);
+    opacity: 0.45;
+    filter: drop-shadow(0 0 8px rgba(127, 231, 255, 0.5));
+  }
+  58% {
+    transform: scale(1.3);
+    opacity: 0.85;
+    filter: drop-shadow(0 0 16px rgba(127, 231, 255, 0.95)) drop-shadow(0 0 28px rgba(124, 92, 255, 0.7));
+  }
+  68% {
+    /* PICO DE BRILHO MÁXIMO DO LUMO */
+    transform: scale(1.85);
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 20px rgba(255, 255, 255, 1))
+      drop-shadow(0 0 38px rgba(127, 231, 255, 1))
+      drop-shadow(0 0 58px rgba(124, 92, 255, 0.95));
+  }
+  78% {
+    transform: scale(1.25);
+    opacity: 0.75;
+    filter: drop-shadow(0 0 14px rgba(127, 231, 255, 0.8));
+  }
+  90%, 100% {
+    transform: scale(0.9);
+    opacity: 0.45;
+    filter: drop-shadow(0 0 8px rgba(127, 231, 255, 0.5));
+  }
+}
+
+@keyframes lumo-core-pulse {
+  0%, 46% {
+    transform: scale(var(--lumo-core-scale));
+    opacity: var(--lumo-core-opacity);
+  }
+  68% {
+    transform: scale(calc(var(--lumo-core-scale) * 1.3));
+    opacity: 1;
+  }
+  90%, 100% {
+    transform: scale(var(--lumo-core-scale));
+    opacity: var(--lumo-core-opacity);
+  }
+}
+
+@keyframes lumo-spark-float {
+  0% {
+    transform: translate(0, 0) scale(0.9);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(3px, -4px) scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* ========================================================================= */
+/* 6. Variações por Estado (Focus, Completed, Paused, Idle)                  */
+/* ========================================================================= */
+
+/* Foco: Órbita mais fluida, flare mais ritmado */
+.lumo--focus .lumo__orbital-carrier {
+  animation-duration: 12s;
+}
+
+.lumo--focus .lumo__flare {
+  animation-duration: 3.8s;
+}
+
 .lumo--focus .lumo__core-group {
-  animation: lumo-core-pulse 3.4s ease-in-out infinite;
+  animation-duration: 3.8s;
 }
 
-.lumo--focus .lumo__core-glow {
-  animation: lumo-core-glow-pulse 3.4s ease-in-out infinite;
-}
-
-.lumo--focus .lumo__orbit--inner {
-  animation-duration: 13s;
-}
-
-.lumo--focus .lumo__orbit--outer {
-  animation-duration: 9s;
-}
-
-.lumo--focus .lumo__shard-orbit--1 {
-  animation-duration: 7s;
-}
-
-.lumo--focus .lumo__shard-orbit--2 {
-  animation-duration: 5s;
-}
-
-.lumo--focus .lumo__shard-orbit--3 {
-  animation-duration: 8s;
-}
-
-.lumo--focus .lumo__shard-orbit--4 {
-  animation-duration: 6s;
-}
-
-/* Concluído: forma final */
+/* Concluído: Órbita rápida e explosão triunfal */
 .lumo--completed {
-  --lumo-core-scale: 1.18;
+  --lumo-core-scale: 1.25;
   --lumo-core-opacity: 1;
-  --lumo-glow-scale: 1.35;
+  --lumo-glow-scale: 1.4;
   --lumo-ring-opacity: 1;
   --lumo-shard-opacity: 1;
   --lumo-trail-opacity: 1;
   --lumo-aura-opacity: 1;
 }
 
-.lumo--completed .lumo__core-group {
-  animation: lumo-completed-burst 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+.lumo--completed .lumo__orbital-carrier {
+  animation-duration: 6s;
 }
 
-.lumo--completed .lumo__orbit--inner {
-  animation-duration: 5s;
+.lumo--completed .lumo__flare {
+  animation: lumo-completed-burst 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
-.lumo--completed .lumo__orbit--outer {
-  animation-duration: 3.6s;
+@keyframes lumo-completed-burst {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(2.2);
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 24px rgba(255, 255, 255, 1))
+      drop-shadow(0 0 44px rgba(196, 181, 253, 1))
+      drop-shadow(0 0 68px rgba(124, 92, 255, 1));
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
 }
 
-.lumo--completed .lumo__shard-orbit--1 {
-  animation-duration: 2.4s;
-}
-
-.lumo--completed .lumo__shard-orbit--2 {
-  animation-duration: 1.8s;
-}
-
-.lumo--completed .lumo__shard-orbit--3 {
-  animation-duration: 2.8s;
-}
-
-.lumo--completed .lumo__shard-orbit--4 {
-  animation-duration: 2.1s;
-}
-
-.lumo--completed .lumo__shard {
-  animation: lumo-shard-burst 1.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Pausa: recolhimento */
+/* Pausa: Desacelera a órbita e diminui intensidade */
 .lumo--paused {
-  --lumo-core-scale: 0.66;
-  --lumo-core-opacity: 0.42;
-  --lumo-glow-scale: 0.72;
-  --lumo-ring-opacity: 0.18;
-  --lumo-shard-opacity: 0.18;
-  --lumo-trail-opacity: 0;
-  --lumo-aura-opacity: 0.14;
+  --lumo-trail-opacity: 0.15;
 }
 
-.lumo--paused .lumo__orbit--inner {
-  animation-duration: 48s;
-}
-
-.lumo--paused .lumo__orbit--outer {
+.lumo--paused .lumo__orbital-carrier {
   animation-duration: 38s;
+  opacity: 0.55;
 }
 
-.lumo--paused .lumo__shard-orbit--1 {
-  animation-duration: 34s;
+.lumo--paused .lumo__flare {
+  animation-duration: 8s;
+  opacity: 0.3;
 }
 
-.lumo--paused .lumo__shard-orbit--2 {
-  animation-duration: 28s;
+.lumo--paused .lumo__core-group {
+  opacity: 0.45;
 }
 
-.lumo--paused .lumo__shard-orbit--3 {
-  animation-duration: 36s;
+/* Idle: Movimento calmo e sereno */
+.lumo--idle .lumo__orbital-carrier {
+  animation-duration: 20s;
+  opacity: 0.75;
 }
 
-.lumo--paused .lumo__shard-orbit--4 {
-  animation-duration: 30s;
-}
+/* ========================================================================= */
+/* 7. Keyframes Básicos de Rotação                                           */
+/* ========================================================================= */
 
-/* Keyframes */
-@keyframes lumo-orbit-clockwise {
+@keyframes lumo-orbit-cw {
   from {
     transform: rotate(0deg);
   }
-
   to {
     transform: rotate(360deg);
   }
 }
 
-@keyframes lumo-orbit-counter-clockwise {
+@keyframes lumo-orbit-ccw {
   from {
     transform: rotate(0deg);
   }
-
   to {
     transform: rotate(-360deg);
   }
 }
 
-@keyframes lumo-core-pulse {
-  0%,
-  100% {
-    transform: scale(var(--lumo-core-scale));
-  }
-
-  50% {
-    transform: scale(calc(var(--lumo-core-scale) * 1.07));
-  }
-}
-
-@keyframes lumo-core-glow-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.95;
-    transform: scale(1.14);
-  }
-}
-
-@keyframes lumo-completed-burst {
-  0% {
-    transform: scale(0.85);
-  }
-
-  35% {
-    transform: scale(1.22);
-  }
-
-  100% {
-    transform: scale(1.18);
-  }
-}
-
-@keyframes lumo-shard-burst {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-
-  45% {
-    opacity: 1;
-    transform: scale(1.7);
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(2.6);
-  }
-}
+/* ========================================================================= */
+/* 8. Acessibilidade (Motion Reduction)                                      */
+/* ========================================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-  .lumo__orbit,
+  .lumo__orbital-carrier,
+  .lumo__orbit--inner,
+  .lumo__orbit--outer,
   .lumo__shard-orbit,
+  .lumo__flare,
   .lumo__core-group,
-  .lumo__core-glow {
+  .lumo__asteroid--1,
+  .lumo__asteroid--2,
+  .lumo__asteroid--3,
+  .lumo__shooting-star--1,
+  .lumo__shooting-star--2,
+  .lumo__shooting-star--3,
+  .lumo__nebula {
     animation: none !important;
+  }
+
+  .lumo__orbital-carrier {
+    transform: rotate(45deg);
   }
 }

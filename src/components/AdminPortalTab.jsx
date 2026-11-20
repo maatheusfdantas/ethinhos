@@ -217,7 +217,7 @@ function PomodoCard() {
           Pomodo
         </h2>
         <p style={{ fontSize: '13px', color: '#9CA3AF', margin: '6px 0 0' }}>
-          A intensidade e as camadas orbitais do Lumo crescem conforme o foco avança (0% a 100%).
+          Lumo orbita ao redor do cronômetro com brilho pulsante, estrelas cadentes e asteroides em segundo plano.
         </p>
       </div>
 
@@ -290,7 +290,7 @@ function PomodoCard() {
         </div>
       </div>
 
-      {/* Timer com o Mascote Lumo em volta */}
+      {/* Timer com o Mascote Lumo orbitando ao redor */}
       <div
         style={{
           position: 'relative',
@@ -298,11 +298,12 @@ function PomodoCard() {
           alignItems: 'center',
           justifyContent: 'center',
           margin: '12px 0 24px',
-          width: '320px',
-          height: '320px'
+          width: '360px',
+          height: '360px',
+          maxWidth: '100%'
         }}
       >
-        <LumoMascot progress={activeProgress} status={status} size={320}>
+        <LumoMascot progress={activeProgress} status={status} size={360}>
           <div
             style={{
               display: 'flex',
@@ -311,9 +312,10 @@ function PomodoCard() {
               justifyContent: 'center',
               userSelect: 'none',
               textAlign: 'center',
-              background: 'radial-gradient(circle, rgba(12, 12, 16, 0.88) 45%, transparent 80%)',
-              padding: '16px 24px',
-              borderRadius: '50%'
+              background: 'radial-gradient(circle, rgba(12, 12, 16, 0.92) 50%, transparent 80%)',
+              padding: '20px 28px',
+              borderRadius: '50%',
+              zIndex: 10
             }}
           >
             <span

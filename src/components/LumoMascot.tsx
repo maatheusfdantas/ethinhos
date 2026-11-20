@@ -18,28 +18,33 @@ const clamp = (value: number, min: number, max: number) =>
 export function LumoMascot({
   progress = 0,
   status = 'focus',
-  size = 280,
+  size = 360,
   className = '',
   children
 }: LumoMascotProps) {
   const p = clamp(progress, 0, 100);
 
-  // A intensidade cresce conforme o Pomodoro avança
+  // Intensidade cósmica proporcional ao progresso
   const energy = status === 'paused' ? 0.25 : p / 100;
-  const coreScale = 0.72 + energy * 0.42;
-  const coreOpacity = 0.55 + energy * 0.45;
-  const glowScale = 0.7 + energy * 0.65;
-  const ringOpacity = 0.25 + energy * 0.75;
+  const coreScale = 0.8 + energy * 0.4;
+  const coreOpacity = 0.6 + energy * 0.4;
+  const glowScale = 0.8 + energy * 0.6;
+  const ringOpacity = 0.3 + energy * 0.7;
   const shardOpacity = energy < 0.15 ? 0 : 0.35 + energy * 0.65;
-  const trailOpacity = energy < 0.3 ? 0 : (energy - 0.3) * 1.25;
-  const auraOpacity = 0.18 + energy * 0.72;
+  const trailOpacity = energy < 0.2 ? 0.2 : 0.4 + (energy - 0.2) * 0.75;
+  const auraOpacity = 0.2 + energy * 0.7;
 
-  // Aparecimento progressivo das camadas
+  // Camadas progressivas de foco
   const showInnerRing = p >= 15;
-  const showOuterRing = p >= 40;
   const showShards = p >= 25;
+  const showOuterRing = p >= 40;
   const showTrail = p >= 55;
   const showConstellation = p >= 80;
+
+  // Circunferência da órbita principal (R = 126)
+  const orbitRadius = 126;
+  const orbitCircumference = 2 * Math.PI * orbitRadius;
+  const progressOffset = orbitCircumference - (p / 100) * orbitCircumference;
 
   return (
     <div
@@ -61,173 +66,333 @@ export function LumoMascot({
       role="img"
       aria-label={`Lumo com ${Math.round(p)}% de energia de foco`}
     >
-      <svg viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 360 360" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="lumoCore" cx="50%" cy="50%" r="50%">
+          {/* Gradiente da aura e flare do Lumo */}
+          <radialGradient id="lumoFlareGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+            <stop offset="25%" stopColor="#7FE7FF" stopOpacity="0.85" />
+            <stop offset="55%" stopColor="#4F8DFF" stopOpacity="0.45" />
+            <stop offset="85%" stopColor="#7C5CFF" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#7C5CFF" stopOpacity="0" />
+          </radialGradient>
+
+          {/* Núcleo brilhante compacto */}
+          <radialGradient id="lumoCoreGrad" cx="40%" cy="35%" r="65%">
             <stop offset="0%" stopColor="#FFFFFF" />
-            <stop offset="18%" stopColor="#F4F8FF" />
-            <stop offset="42%" stopColor="#7FE7FF" />
-            <stop offset="72%" stopColor="#4F8DFF" />
-            <stop offset="100%" stopColor="#7C5CFF" stopOpacity="0" />
+            <stop offset="35%" stopColor="#E0F7FF" />
+            <stop offset="70%" stopColor="#7FE7FF" />
+            <stop offset="100%" stopColor="#4F8DFF" />
           </radialGradient>
 
-          <radialGradient id="lumoAura" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#7FE7FF" stopOpacity="0.38" />
-            <stop offset="45%" stopColor="#4F8DFF" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#7C5CFF" stopOpacity="0" />
-          </radialGradient>
-
-          <linearGradient id="lumoViolet" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#A78BFF" />
-            <stop offset="55%" stopColor="#7C5CFF" />
-            <stop offset="100%" stopColor="#7C5CFF" stopOpacity="0" />
+          {/* Gradiente do rastro da órbita / cometa */}
+          <linearGradient id="lumoTailGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#7C5CFF" stopOpacity="0" />
+            <stop offset="40%" stopColor="#4F8DFF" stopOpacity="0.35" />
+            <stop offset="80%" stopColor="#7FE7FF" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#FFFFFF" stopOpacity="1" />
           </linearGradient>
 
-          <linearGradient id="lumoBlue" x1="1" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7FE7FF" />
-            <stop offset="55%" stopColor="#4F8DFF" />
-            <stop offset="100%" stopColor="#4F8DFF" stopOpacity="0" />
+          {/* Gradiente de progresso circular (Padrão Ethos Roxo -> Azul) */}
+          <linearGradient id="lumoProgressGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#C4B5FD" />
+            <stop offset="50%" stopColor="#8B5CF6" />
+            <stop offset="100%" stopColor="#38BDF8" />
           </linearGradient>
 
-          <linearGradient id="lumoTrail" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#7FE7FF" stopOpacity="0" />
-            <stop offset="45%" stopColor="#7FE7FF" />
-            <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+          {/* Gradiente de asteroides */}
+          <linearGradient id="asteroidGrad1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#3B3558" stopOpacity="0.8" />
+            <stop offset="60%" stopColor="#211C38" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#120F24" stopOpacity="0.5" />
           </linearGradient>
 
-          <filter id="lumoBlurSmall" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="4" />
+          <linearGradient id="asteroidGrad2" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#4C3D6E" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#18152B" stopOpacity="0.4" />
+          </linearGradient>
+
+          {/* Filtros de blur cósmico */}
+          <filter id="lumoBlurSmall" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" />
           </filter>
-
-          <filter id="lumoBlurLarge" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur stdDeviation="12" />
+          <filter id="lumoBlurGlow" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation="8" />
+          </filter>
+          <filter id="lumoBlurNebula" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="20" />
           </filter>
         </defs>
 
-        {/* Aura externa */}
-        <circle
-          className="lumo__aura"
-          cx="160"
-          cy="160"
-          r="118"
-          fill="url(#lumoAura)"
-          filter="url(#lumoBlurLarge)"
-        />
-
-        {/* Rastro orbital */}
-        <g className="lumo__trail" opacity={trailOpacity}>
-          <path
-            d="M42 176 C 72 84, 186 44, 272 108"
-            stroke="url(#lumoTrail)"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M52 210 C 96 132, 204 92, 284 146"
-            stroke="url(#lumoTrail)"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            opacity="0.65"
-          />
-        </g>
-
-        {/* Anel interno */}
-        <g className={`lumo__orbit lumo__orbit--inner ${showInnerRing ? 'is-visible' : ''}`}>
-          <ellipse
-            cx="160"
-            cy="160"
-            rx="94"
-            ry="34"
-            stroke="url(#lumoViolet)"
-            strokeWidth="2.6"
-            strokeLinecap="round"
-            transform="rotate(-28 160 160)"
-          />
-        </g>
-
-        {/* Anel externo */}
-        <g className={`lumo__orbit lumo__orbit--outer ${showOuterRing ? 'is-visible' : ''}`}>
-          <ellipse
-            cx="160"
-            cy="160"
-            rx="122"
-            ry="44"
-            stroke="url(#lumoBlue)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            transform="rotate(34 160 160)"
-          />
-        </g>
-
-        {/* Fragmentos orbitais */}
-        <g className={`lumo__shards ${showShards ? 'is-visible' : ''}`}>
-          <g className="lumo__shard-orbit lumo__shard-orbit--1">
-            <circle cx="160" cy="52" r="4.2" fill="#7FE7FF" filter="url(#lumoBlurSmall)" />
-            <circle cx="160" cy="52" r="1.8" fill="#FFFFFF" />
-          </g>
-
-          <g className="lumo__shard-orbit lumo__shard-orbit--2">
-            <circle cx="268" cy="160" r="3.4" fill="#7FE7FF" filter="url(#lumoBlurSmall)" />
-            <circle cx="268" cy="160" r="1.4" fill="#FFFFFF" />
-          </g>
-
-          <g className="lumo__shard-orbit lumo__shard-orbit--3">
-            <circle cx="160" cy="268" r="3.8" fill="#7FE7FF" filter="url(#lumoBlurSmall)" />
-            <circle cx="160" cy="268" r="1.6" fill="#FFFFFF" />
-          </g>
-
-          <g className="lumo__shard-orbit lumo__shard-orbit--4">
-            <circle cx="52" cy="160" r="3" fill="#7FE7FF" filter="url(#lumoBlurSmall)" />
-            <circle cx="52" cy="160" r="1.2" fill="#FFFFFF" />
-          </g>
-        </g>
-
-        {/* Constelação final */}
-        <g className={`lumo__constellation ${showConstellation ? 'is-visible' : ''}`}>
-          <path
-            d="M88 104 L160 60 L232 104 L268 176 L160 252 L52 176 Z"
-            stroke="#7FE7FF"
-            strokeWidth="1"
-            strokeLinejoin="round"
-            opacity="0.35"
-          />
-          <circle cx="88" cy="104" r="2.4" fill="#7FE7FF" />
-          <circle cx="160" cy="60" r="2.4" fill="#7FE7FF" />
-          <circle cx="232" cy="104" r="2.4" fill="#7FE7FF" />
-          <circle cx="268" cy="176" r="2.4" fill="#7FE7FF" />
-          <circle cx="160" cy="252" r="2.4" fill="#7FE7FF" />
-          <circle cx="52" cy="176" r="2.4" fill="#7FE7FF" />
-        </g>
-
-        {/* Núcleo */}
-        <g className="lumo__core-group">
+        {/* 1. Nebulosa cósmica de fundo */}
+        <g className="lumo__cosmos">
           <circle
-            className="lumo__core-glow"
-            cx="160"
-            cy="160"
-            r="46"
-            fill="url(#lumoAura)"
-            filter="url(#lumoBlurLarge)"
+            className="lumo__nebula lumo__nebula--violet"
+            cx="270"
+            cy="90"
+            r="80"
+            fill="#7C5CFF"
+            opacity="0.12"
+            filter="url(#lumoBlurNebula)"
           />
           <circle
-            className="lumo__core"
-            cx="160"
-            cy="160"
-            r="30"
-            fill="url(#lumoCore)"
+            className="lumo__nebula lumo__nebula--blue"
+            cx="90"
+            cy="270"
+            r="85"
+            fill="#38BDF8"
+            opacity="0.09"
+            filter="url(#lumoBlurNebula)"
           />
+
+          {/* Micro-estrelas fixas no céu cósmico */}
+          <circle cx="58" cy="84" r="1" fill="#FFFFFF" opacity="0.45" />
+          <circle cx="92" cy="52" r="1.3" fill="#C4B5FD" opacity="0.6" />
+          <circle cx="310" cy="74" r="1.2" fill="#7FE7FF" opacity="0.5" />
+          <circle cx="328" cy="148" r="0.8" fill="#FFFFFF" opacity="0.4" />
+          <circle cx="42" cy="226" r="1.1" fill="#FFFFFF" opacity="0.5" />
+          <circle cx="76" cy="312" r="1.4" fill="#C4B5FD" opacity="0.65" />
+          <circle cx="294" cy="288" r="1" fill="#7FE7FF" opacity="0.45" />
+          <circle cx="332" cy="242" r="1.2" fill="#FFFFFF" opacity="0.5" />
+        </g>
+
+        {/* 2. Asteroides flutuando / passando pelo espaço */}
+        <g className="lumo__asteroids">
+          {/* Asteroide 1 (superior direito) */}
+          <g className="lumo__asteroid lumo__asteroid--1">
+            <path
+              d="M14 2 C18 6, 20 12, 17 18 C14 24, 7 26, 2 23 C-3 20, -4 14, -1 8 C2 2, 8 -1, 14 2 Z"
+              fill="url(#asteroidGrad1)"
+              stroke="rgba(167, 139, 250, 0.25)"
+              strokeWidth="0.8"
+            />
+            {/* Crateras */}
+            <circle cx="5" cy="10" r="1.8" fill="#120F24" opacity="0.7" />
+            <circle cx="12" cy="15" r="1.2" fill="#120F24" opacity="0.6" />
+          </g>
+
+          {/* Asteroide 2 (inferior esquerdo) */}
+          <g className="lumo__asteroid lumo__asteroid--2">
+            <path
+              d="M10 0 C15 3, 17 8, 14 13 C11 18, 5 19, 1 16 C-3 13, -3 7, 0 3 C3 0, 7 -2, 10 0 Z"
+              fill="url(#asteroidGrad2)"
+              stroke="rgba(127, 231, 255, 0.2)"
+              strokeWidth="0.7"
+            />
+            <circle cx="5" cy="8" r="1.4" fill="#0C0A17" opacity="0.6" />
+          </g>
+
+          {/* Asteroide 3 (micro-rocha distante) */}
+          <g className="lumo__asteroid lumo__asteroid--3">
+            <path
+              d="M6 1 C9 3, 10 7, 8 10 C6 13, 2 13, 0 11 C-2 9, -1 5, 1 3 C2 1, 4 0, 6 1 Z"
+              fill="#26213B"
+              opacity="0.45"
+            />
+          </g>
+        </g>
+
+        {/* 3. Estrelas cadentes cruzando o céu */}
+        <g className="lumo__shooting-stars">
+          <g className="lumo__shooting-star lumo__shooting-star--1">
+            <line x1="0" y1="0" x2="-48" y2="-28" stroke="url(#lumoTailGrad)" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="0" cy="0" r="2.2" fill="#FFFFFF" filter="url(#lumoBlurSmall)" />
+            <circle cx="0" cy="0" r="1.2" fill="#FFFFFF" />
+          </g>
+
+          <g className="lumo__shooting-star lumo__shooting-star--2">
+            <line x1="0" y1="0" x2="-36" y2="-22" stroke="url(#lumoTailGrad)" strokeWidth="1.4" strokeLinecap="round" />
+            <circle cx="0" cy="0" r="1.8" fill="#FFFFFF" filter="url(#lumoBlurSmall)" />
+            <circle cx="0" cy="0" r="1" fill="#FFFFFF" />
+          </g>
+
+          <g className="lumo__shooting-star lumo__shooting-star--3">
+            <line x1="0" y1="0" x2="-54" y2="-32" stroke="url(#lumoTailGrad)" strokeWidth="1.6" strokeLinecap="round" />
+            <circle cx="0" cy="0" r="2" fill="#FFFFFF" filter="url(#lumoBlurSmall)" />
+            <circle cx="0" cy="0" r="1.1" fill="#FFFFFF" />
+          </g>
+        </g>
+
+        {/* 4. Trilhas e anéis orbitais ao redor do timer central */}
+        <g className="lumo__orbit-system">
+          {/* Anel guia base (pontilhado suave cósmico) */}
           <circle
-            className="lumo__core-highlight"
-            cx="151"
-            cy="150"
-            r="8"
-            fill="#FFFFFF"
+            cx="180"
+            cy="180"
+            r={orbitRadius}
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.08)"
+            strokeWidth="1.5"
+            strokeDasharray="2 6"
           />
+
+          {/* Barra de progresso circular real do foco */}
+          <circle
+            className="lumo__progress-arc"
+            cx="180"
+            cy="180"
+            r={orbitRadius}
+            fill="none"
+            stroke="url(#lumoProgressGrad)"
+            strokeWidth="3.2"
+            strokeLinecap="round"
+            strokeDasharray={orbitCircumference}
+            strokeDashoffset={progressOffset}
+            transform="rotate(-90 180 180)"
+          />
+
+          {/* Anel interno secundário (>= 15%) */}
+          <g className={`lumo__orbit lumo__orbit--inner ${showInnerRing ? 'is-visible' : ''}`}>
+            <ellipse
+              cx="180"
+              cy="180"
+              rx="106"
+              ry="42"
+              fill="none"
+              stroke="rgba(167, 139, 250, 0.5)"
+              strokeWidth="1.6"
+              strokeDasharray="4 8"
+              transform="rotate(-26 180 180)"
+            />
+          </g>
+
+          {/* Anel externo secundário (>= 40%) */}
+          <g className={`lumo__orbit lumo__orbit--outer ${showOuterRing ? 'is-visible' : ''}`}>
+            <ellipse
+              cx="180"
+              cy="180"
+              rx="148"
+              ry="58"
+              fill="none"
+              stroke="rgba(56, 189, 248, 0.45)"
+              strokeWidth="1.8"
+              transform="rotate(34 180 180)"
+            />
+          </g>
+
+          {/* Fragmentos orbitais dançantes (>= 25%) */}
+          <g className={`lumo__shards ${showShards ? 'is-visible' : ''}`}>
+            <g className="lumo__shard-orbit lumo__shard-orbit--1">
+              <circle cx="180" cy="58" r="3.2" fill="#7FE7FF" filter="url(#lumoBlurSmall)" />
+              <circle cx="180" cy="58" r="1.5" fill="#FFFFFF" />
+            </g>
+            <g className="lumo__shard-orbit lumo__shard-orbit--2">
+              <circle cx="298" cy="180" r="2.8" fill="#C4B5FD" filter="url(#lumoBlurSmall)" />
+              <circle cx="298" cy="180" r="1.2" fill="#FFFFFF" />
+            </g>
+            <g className="lumo__shard-orbit lumo__shard-orbit--3">
+              <circle cx="180" cy="302" r="3" fill="#7FE7FF" filter="url(#lumoBlurSmall)" />
+              <circle cx="180" cy="302" r="1.4" fill="#FFFFFF" />
+            </g>
+            <g className="lumo__shard-orbit lumo__shard-orbit--4">
+              <circle cx="62" cy="180" r="2.6" fill="#C4B5FD" filter="url(#lumoBlurSmall)" />
+              <circle cx="62" cy="180" r="1.1" fill="#FFFFFF" />
+            </g>
+          </g>
+
+          {/* Constelação geométrica (>= 80%) */}
+          <g className={`lumo__constellation ${showConstellation ? 'is-visible' : ''}`}>
+            <path
+              d="M98 116 L180 72 L262 116 L302 188 L180 274 L58 188 Z"
+              stroke="#7FE7FF"
+              strokeWidth="1"
+              strokeLinejoin="round"
+              opacity="0.35"
+            />
+            <circle cx="98" cy="116" r="2.2" fill="#7FE7FF" />
+            <circle cx="180" cy="72" r="2.2" fill="#7FE7FF" />
+            <circle cx="262" cy="116" r="2.2" fill="#7FE7FF" />
+            <circle cx="302" cy="188" r="2.2" fill="#7FE7FF" />
+            <circle cx="180" cy="274" r="2.2" fill="#7FE7FF" />
+            <circle cx="58" cy="188" r="2.2" fill="#7FE7FF" />
+          </g>
+        </g>
+
+        {/* 5. O Mascote Lumo Orbitando ao Redor do Timer com Flare Periódico */}
+        <g className="lumo__orbital-carrier">
+          {/* Rastro orbital luminoso do Lumo que se estende para trás */}
+          <path
+            className={`lumo__tail ${showTrail ? 'is-visible' : ''}`}
+            d="M136 68 A126 126 0 0 1 180 54"
+            fill="none"
+            stroke="url(#lumoTailGrad)"
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity={trailOpacity}
+          />
+
+          {/* Entidade do Lumo situada exatamente sobre o raio da órbita (180, 54) */}
+          <g className="lumo__sprite" transform="translate(180, 54)">
+            {/* Aura periódica de flare (pulsa forte e volta ao normal) */}
+            <circle
+              className="lumo__flare"
+              cx="0"
+              cy="0"
+              r="26"
+              fill="url(#lumoFlareGrad)"
+              filter="url(#lumoBlurGlow)"
+            />
+
+            {/* Núcleo cintilante do Lumo */}
+            <g className="lumo__core-group">
+              {/* Brilho imediato */}
+              <circle
+                className="lumo__core-glow"
+                cx="0"
+                cy="0"
+                r="16"
+                fill="#7FE7FF"
+                opacity="0.75"
+                filter="url(#lumoBlurSmall)"
+              />
+              {/* Corpo de plasma do mascote */}
+              <circle
+                className="lumo__core"
+                cx="0"
+                cy="0"
+                r="10"
+                fill="url(#lumoCoreGrad)"
+              />
+              {/* Ponto de consciência / brilho estelar */}
+              <circle
+                className="lumo__core-highlight"
+                cx="-2.5"
+                cy="-2.8"
+                r="3.2"
+                fill="#FFFFFF"
+              />
+              <circle
+                cx="2.8"
+                cy="2.5"
+                r="1.4"
+                fill="#FFFFFF"
+                opacity="0.8"
+              />
+            </g>
+
+            {/* Satélites de poeira do Lumo */}
+            <circle
+              className="lumo__spark lumo__spark--1"
+              cx="12"
+              cy="-6"
+              r="1.6"
+              fill="#FFFFFF"
+            />
+            <circle
+              className="lumo__spark lumo__spark--2"
+              cx="-10"
+              cy="8"
+              r="1.2"
+              fill="#7FE7FF"
+            />
+          </g>
         </g>
       </svg>
 
+      {/* Conteúdo central (Timer / Relógio) limpo, legível e desimpedido */}
       {children && (
         <div
+          className="lumo__center-slot"
           style={{
             position: 'absolute',
             inset: 0,
@@ -236,7 +401,7 @@ export function LumoMascot({
             alignItems: 'center',
             justifyContent: 'center',
             pointerEvents: 'auto',
-            zIndex: 2
+            zIndex: 10
           }}
         >
           {children}

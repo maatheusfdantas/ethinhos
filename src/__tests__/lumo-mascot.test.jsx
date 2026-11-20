@@ -16,7 +16,7 @@ vi.mock('../utils/api', () => ({
   }))
 }));
 
-describe('LumoMascot Component 2.0 (Progress & Layers)', () => {
+describe('LumoMascot Component 2.1 (Orbital & Cosmic Elements)', () => {
   it('renderiza com os estados idle, focus, paused e completed e aplica variáveis de energia', () => {
     const { rerender } = render(<LumoMascot progress={0} status="idle" size={280} />);
     let mascot = screen.getByRole('img');
@@ -39,7 +39,7 @@ describe('LumoMascot Component 2.0 (Progress & Layers)', () => {
   });
 
   it('ativa as camadas visuais progressivamente conforme o progresso aumenta', () => {
-    // 10% - nenhuma camada orbital deve ter is-visible
+    // 10% - nenhuma camada orbital secundária deve ter is-visible
     const { container, rerender } = render(<LumoMascot progress={10} status="focus" />);
     expect(container.querySelector('.lumo__orbit--inner.is-visible')).toBeNull();
     expect(container.querySelector('.lumo__shards.is-visible')).toBeNull();
@@ -61,6 +61,26 @@ describe('LumoMascot Component 2.0 (Progress & Layers)', () => {
     // 85% - constelação visível (>= 80%)
     rerender(<LumoMascot progress={85} status="focus" />);
     expect(container.querySelector('.lumo__constellation.is-visible')).not.toBeNull();
+  });
+
+  it('renderiza o sistema cósmico com asteroides, estrelas cadentes, carrier orbital e flare', () => {
+    const { container } = render(<LumoMascot progress={50} status="focus" size={360} />);
+
+    // Asteroides
+    expect(container.querySelector('.lumo__asteroid--1')).not.toBeNull();
+    expect(container.querySelector('.lumo__asteroid--2')).not.toBeNull();
+    expect(container.querySelector('.lumo__asteroid--3')).not.toBeNull();
+
+    // Estrelas cadentes
+    expect(container.querySelector('.lumo__shooting-star--1')).not.toBeNull();
+    expect(container.querySelector('.lumo__shooting-star--2')).not.toBeNull();
+    expect(container.querySelector('.lumo__shooting-star--3')).not.toBeNull();
+
+    // Carrier orbital do Lumo (orbitando o timer)
+    expect(container.querySelector('.lumo__orbital-carrier')).not.toBeNull();
+    expect(container.querySelector('.lumo__flare')).not.toBeNull();
+    expect(container.querySelector('.lumo__core-group')).not.toBeNull();
+    expect(container.querySelector('.lumo__progress-arc')).not.toBeNull();
   });
 
   it('renderiza elementos filhos centralizados', () => {
