@@ -38,7 +38,9 @@ export function cleanWorkoutContent(content) {
       id, name: name.value, muscle: validateText(e?.muscle, { max: 60 }).value || '',
       sets: sets.value, reps: reps.value, weightKg: Math.round(weightKg.value * 10) / 10, restSec: restSec.value,
       showWeight: e?.showWeight !== false, showRestTimer: e?.showRestTimer !== false,
-      note: validateText(e?.note, { max: 200 }).value || ''
+      note: validateText(e?.note, { max: 200 }).value || '',
+      // Proposta 07: referência ao exercício da biblioteca (fe_*) ou personalizado (pz_*), para o mapa corporal.
+      ...(/^(fe|pz)_[A-Za-z0-9_-]{1,90}$/.test(String(e?.libraryId || '')) ? { libraryId: String(e.libraryId) } : {})
     });
   }
   return { value: { exercises } };

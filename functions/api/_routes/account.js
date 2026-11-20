@@ -123,7 +123,7 @@ export async function handleAccountRoutes(ctx) {
       await recordAuditLogEdge(storage, { eventType: 'ACCOUNT_DELETE_REFUSED', userId, ipAddress: clientIp, userAgent, metadata: {}, correlationId });
       return jsonResponse({ error: 'Senha incorreta.', field: 'password' }, 400, correlationId, request);
     }
-    await eraseUserData(db, userId);
+    await eraseUserData(db, userId, { midia: env?.MIDIA });
     await recordAuditLogEdge(storage, { eventType: 'ACCOUNT_DELETED', userId, ipAddress: clientIp, userAgent, metadata: {}, correlationId });
     return jsonResponse({ success: true }, 200, correlationId, request);
   }

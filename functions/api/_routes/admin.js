@@ -203,7 +203,7 @@ export async function handleAdminRoutes(ctx) {
     }
     if (storage.mode === 'd1') {
       // Mesma lista da autoexclusão (auditoria S14): sem sobras de Google, Spotify, chamados e amizades.
-      await eraseUserData(storage.db, targetId);
+      await eraseUserData(storage.db, targetId, { midia: env?.MIDIA });
     } else {
       storage.store.users.delete(targetId);
     }

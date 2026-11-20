@@ -207,13 +207,27 @@ export async function handleEspacosRoutes(ctx) {
          WHERE l.client_id = ? AND l.status = 'ativo' ORDER BY l.started_at`
       ).bind(me).all()).results || [];
       const groups = (await db.prepare(
-        `SELECT m.id, m.link_id, m.joined_at, g.name, g.description FROM group_members m JOIN space_groups g ON g.id = m.group_id
+        `SELECT m.id, m.link_id, m.group_id, m.joined_at, g.name, g.description FROM group_members m JOIN space_groups g ON g.id = m.group_id
          WHERE m.client_id = ? AND m.status = 'ativa' ORDER BY m.joined_at`
       ).bind(me).all()).results || [];
+      // Proposta 07: dados do card da turma (foto, capa, treino atribuído e novidades). Sem as tabelas, o card fica simples.
+      const extra = async (sql, ...args) => { try { return (await db.prepare(sql).bind(...args).all()).results || []; } catch (e) { if (/no such table/i.test(String(e?.message || e))) return []; throw e; } };
+      const spaceIds = links.map((l) => l.space_id);
+      const media = spaceIds.length ? await extra(`SELECT space_id, group_id, kind, media_key FROM space_media WHERE space_id IN (${spaceIds.map(() => '?').join(',')})`, ...spaceIds) : [];
+      const trein = await extra("SELECT space_id, group_key, name, updated_at FROM assignments WHERE client_id = ? AND status = 'ativa' ORDER BY updated_at DESC", me);
+      const avisosNovos = await extra("SELECT p.space_id, COUNT(*) AS n FROM space_post_recipients r JOIN space_posts p ON p.id = r.post_id WHERE r.user_id = ? AND r.read_at IS NULL AND p.status = 'publicado' GROUP BY p.space_id", me);
+      const notifs = await extra('SELECT space_id, COUNT(*) AS n FROM notifications WHERE user_id = ? AND read_at IS NULL GROUP BY space_id', me);
+      const murl = (k) => (k ? `/api/midia/${k}` : null);
       return reply({
         espacos: links.map((l) => ({
           linkId: l.id, spaceName: l.space_name, model: l.model, modelLabel: MODELS[l.model], proName: l.pro_name, since: l.started_at, proSuspended: l.pro_status !== 'ativo',
-          turmas: groups.filter((g) => g.link_id === l.id).map((g) => ({ memberId: g.id, name: g.name, description: g.description, since: g.joined_at }))
+          fotoUrl: murl(media.find((x) => x.space_id === l.space_id && x.kind === 'foto' && !x.group_id)?.media_key),
+          avisosNovos: Number(avisosNovos.find((x) => x.space_id === l.space_id)?.n || 0),
+          notificacoes: Number(notifs.find((x) => x.space_id === l.space_id)?.n || 0),
+          turmas: groups.filter((g) => g.link_id === l.id).map((g) => {
+            const t = trein.find((a) => a.space_id === l.space_id && a.group_key === g.group_id) || trein.find((a) => a.space_id === l.space_id);
+            return { memberId: g.id, name: g.name, description: g.description, since: g.joined_at, capaUrl: murl(media.find((x) => x.space_id === l.space_id && x.kind === 'capa' && x.group_id === g.group_id)?.media_key), treino: t ? t.name : null };
+          })
         }))
       });
     }

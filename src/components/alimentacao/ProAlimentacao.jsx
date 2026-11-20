@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useUnsavedGuard } from '../../hooks/useUnsavedGuard';
 import { ChevronLeft, ChevronRight, Eye, Plus, Utensils } from 'lucide-react';
 import { alimentacaoApi, fmtDia } from './alimentacaoApi';
 import { PlanoEditor } from './PlanoEditor';
@@ -64,6 +65,9 @@ export function ProPlano({ linkId, pessoa, toast }) {
   const [confirm, setConfirm] = useState(null);
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState('');
+  // Proposta 07: sair do plano com alteração não salva pergunta antes.
+  const salvarRef = useRef(null);
+  useUnsavedGuard(dirty, { label: 'o plano alimentar', onSave: async () => Boolean(await salvarRef.current?.()) });
 
   const load = useCallback(async () => {
     try {
@@ -117,6 +121,7 @@ export function ProPlano({ linkId, pessoa, toast }) {
   const publicado = p.currentVersion > 0;
   const next = p.currentVersion + 1;
   const salvar = () => run(async () => { const r = await alimentacaoApi.salvarRascunho(p.id, name, draft); setDraft(r.content); setDirty(false); return r; }, 'Rascunho salvo.');
+  salvarRef.current = salvar;
 
   return (
     <div className="es-grid">
@@ -269,6 +274,20 @@ export function PlanosModelo({ toast }) {
   const [list, setList] = useState(null);
   const [edit, setEdit] = useState(null);
   const [busy, setBusy] = useState(false);
+  const modeloDirty = Boolean(edit) && JSON.stringify({ name: edit.name, content: edit.content }) !== edit.initial;
+  const salvarModelo = async () => {
+    setBusy(true);
+    try {
+      if (edit.id) await alimentacaoApi.salvarModelo(edit.id, edit.name, edit.content);
+      else await alimentacaoApi.criarModelo(edit.name, edit.content);
+      toast?.('Modelo salvo.');
+      setEdit(null);
+      load();
+      return true;
+    } catch (e) { toast?.(e.message); return false; } finally { setBusy(false); }
+  };
+  const guard = useUnsavedGuard(modeloDirty, { label: edit?.name ? `o modelo ${edit.name}` : 'o modelo novo', onSave: salvarModelo });
+  const abrir = (e) => setEdit({ ...e, initial: JSON.stringify({ name: e.name, content: e.content }) });
   const load = useCallback(async () => {
     try { setList((await alimentacaoApi.modelos()).modelos || []); } catch (e) { setList([]); toast?.(e.message); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -282,17 +301,9 @@ export function PlanosModelo({ toast }) {
           <div className="es-field"><label htmlFor="pm-n">Nome do modelo</label><input id="pm-n" className="es-input" maxLength={80} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></div>
           <PlanoEditor value={edit.content} onChange={(content) => setEdit({ ...edit, content })} idPrefix="pm" />
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
-            <button type="button" className="rx-btn ghost" onClick={() => setEdit(null)}>Cancelar</button>
-            <button type="button" className="rx-btn" disabled={busy || !edit.name.trim()} onClick={async () => {
-              setBusy(true);
-              try {
-                if (edit.id) await alimentacaoApi.salvarModelo(edit.id, edit.name, edit.content);
-                else await alimentacaoApi.criarModelo(edit.name, edit.content);
-                toast?.('Modelo salvo.');
-                setEdit(null);
-                load();
-              } catch (e) { toast?.(e.message); } finally { setBusy(false); }
-            }}>Salvar modelo</button>
+            <span className="es-sub" role="status" style={{ marginRight: 'auto', alignSelf: 'center' }}>{modeloDirty ? 'Alterações não salvas.' : ''}</span>
+            <button type="button" className="rx-btn ghost" onClick={() => guard.confirm(() => setEdit(null))}>{modeloDirty ? 'Cancelar' : 'Fechar'}</button>
+            <button type="button" className="rx-btn" disabled={busy || !edit.name.trim() || !modeloDirty} onClick={salvarModelo}>{edit.id ? 'Salvar alterações' : 'Salvar modelo'}</button>
           </div>
         </article>
       </>
@@ -301,14 +312,14 @@ export function PlanosModelo({ toast }) {
   return (
     <>
       <div className="es-head"><div><h1>Planos alimentares</h1><p>Modelos de plano para reaproveitar. Cada paciente recebe uma cópia própria, que você ajusta na área individual.</p></div>
-        <div className="acts"><button type="button" className="rx-btn" onClick={() => setEdit({ id: null, name: '', content: starterContent() })}><Plus size={16} />Novo modelo</button></div></div>
+        <div className="acts"><button type="button" className="rx-btn" onClick={() => abrir({ id: null, name: '', content: starterContent() })}><Plus size={16} />Novo modelo</button></div></div>
       <article className="es-card">
         {list === null ? <p className="es-sub">Carregando…</p> : list.length === 0 ? (
-          <div className="es-empty"><h3>Nenhum modelo ainda</h3><p>Monte um plano base (refeições, opções e substituições) para começar os planos dos pacientes mais rápido.</p><button type="button" className="rx-btn" onClick={() => setEdit({ id: null, name: '', content: starterContent() })}><Plus size={16} />Criar modelo</button></div>
+          <div className="es-empty"><h3>Nenhum modelo ainda</h3><p>Monte um plano base (refeições, opções e substituições) para começar os planos dos pacientes mais rápido.</p><button type="button" className="rx-btn" onClick={() => abrir({ id: null, name: '', content: starterContent() })}><Plus size={16} />Criar modelo</button></div>
         ) : list.map((m) => (
           <div className="es-row" key={m.id}><span className="es-avatar"><Utensils size={15} /></span><div className="grow"><b>{m.name}</b><small>{contentSummary(m.content)}</small></div>
             <span className="rx-pill">versão {m.version}</span>
-            <button type="button" className="rx-btn ghost tiny" onClick={() => setEdit({ id: m.id, name: m.name, content: m.content })}>Editar</button>
+            <button type="button" className="rx-btn ghost tiny" onClick={() => abrir({ id: m.id, name: m.name, content: m.content })}>Editar</button>
             <button type="button" className="rx-btn ghost tiny" onClick={async () => { try { await alimentacaoApi.arquivarModelo(m.id); toast?.('Modelo arquivado.'); load(); } catch (e) { toast?.(e.message); } }}>Arquivar</button>
           </div>
         ))}

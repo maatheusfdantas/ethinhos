@@ -1,0 +1,268 @@
+# Curadoria da biblioteca de exercícios do Ethos, versão 1.
+# Formato: id da origem | nome em português | instrução curta | ajuste opcional (p=músculos principais; s=secundários)
+# Origem da estrutura (ids, músculos, equipamento, nível, tipo e nome em inglês): Free Exercise DB (Unlicense, domínio público),
+# github.com/yuhonas/free-exercise-db, commit f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5.
+# Nomes e instruções em português escritos pelo Ethos (sem copiar textos de outras bases). Status: pendente de revisão humana.
+# Peito
+Barbell_Bench_Press_-_Medium_Grip|Supino reto com barra|Deite no banco, desça a barra até o meio do peito e empurre até estender os braços.
+Barbell_Incline_Bench_Press_-_Medium_Grip|Supino inclinado com barra|No banco inclinado, desça a barra até a parte alta do peito e empurre de volta.
+Decline_Barbell_Bench_Press|Supino declinado com barra|No banco declinado, desça a barra até a parte baixa do peito e empurre.
+Dumbbell_Bench_Press|Supino reto com halteres|Deitado, desça os halteres ao lado do peito e empurre juntando-os no alto.
+Incline_Dumbbell_Press|Supino inclinado com halteres|Banco a 30–45°, desça os halteres ao lado do peito e empurre.
+Decline_Dumbbell_Bench_Press|Supino declinado com halteres|No banco declinado, desça os halteres até o peito e empurre.
+Dumbbell_Bench_Press_with_Neutral_Grip|Supino com halteres e pegada neutra|Com as palmas voltadas uma para a outra, desça os halteres e empurre.
+Close-Grip_Barbell_Bench_Press|Supino fechado com barra|Mãos na largura dos ombros, desça a barra com os cotovelos junto ao corpo e empurre.
+Wide-Grip_Barbell_Bench_Press|Supino reto com pegada aberta|Mãos bem afastadas, desça a barra até o peito e empurre.
+Smith_Machine_Bench_Press|Supino reto no Smith|Na máquina Smith, desça a barra até o peito e empurre.
+Smith_Machine_Incline_Bench_Press|Supino inclinado no Smith|No banco inclinado sob o Smith, desça a barra até a parte alta do peito e empurre.
+Machine_Bench_Press|Supino na máquina|Sentado na máquina, empurre as alças para frente e volte controlando.
+Leverage_Chest_Press|Supino articulado|Na máquina articulada, empurre as alças até estender os braços e volte devagar.
+Leverage_Incline_Chest_Press|Supino inclinado articulado|Na máquina inclinada, empurre as alças para cima e volte controlando.
+Dumbbell_Flyes|Crucifixo reto com halteres|Deitado, abra os braços levemente flexionados e junte os halteres acima do peito.
+Incline_Dumbbell_Flyes|Crucifixo inclinado com halteres|No banco inclinado, abra os braços em arco e feche acima do peito.
+Decline_Dumbbell_Flyes|Crucifixo declinado com halteres|No banco declinado, abra os braços em arco e feche acima do peito.
+Butterfly|Crucifixo na máquina (peck deck)|Sentado, junte os braços à frente do peito e volte controlando.
+Cable_Crossover|Crossover na polia alta|Em pé entre as polias, puxe as alças para baixo e para frente até se cruzarem.
+Low_Cable_Crossover|Crossover na polia baixa|Puxe as alças de baixo para cima até a altura do peito.
+Flat_Bench_Cable_Flyes|Crucifixo na polia deitado|Deitado entre as polias, abra os braços e junte acima do peito.
+Incline_Cable_Flye|Crucifixo inclinado na polia|No banco inclinado entre as polias, abra os braços e junte acima do peito.
+Cable_Chest_Press|Supino em pé na polia|De costas para a polia, empurre as alças à frente do peito.
+Pushups|Flexão de braços|Corpo alinhado, desça o peito até perto do chão e empurre.
+Push-Up_Wide|Flexão com mãos afastadas|Mãos além da linha dos ombros, desça e empurre mantendo o corpo reto.
+Incline_Push-Up|Flexão inclinada (mãos elevadas)|Mãos num banco, desça o peito até ele e empurre.
+Decline_Push-Up|Flexão declinada (pés elevados)|Pés num banco, desça o peito até perto do chão e empurre.
+Push-Ups_-_Close_Triceps_Position|Flexão fechada|Mãos próximas sob o peito, desça com os cotovelos junto ao corpo e empurre.
+Dips_-_Chest_Version|Paralelas para peito|Tronco inclinado à frente, desça entre as barras e empurre.
+Bent-Arm_Dumbbell_Pullover|Pullover com halter|Deitado, leve o halter para trás da cabeça com os braços levemente flexionados e volte.
+Dumbbell_Floor_Press|Supino no chão com halteres|Deitado no chão, desça até os cotovelos tocarem o chão e empurre.
+# Costas
+Pullups|Barra fixa (pegada pronada)|Pendurado na barra, puxe o corpo até o queixo passar a barra e desça devagar.
+Chin-Up|Barra fixa supinada|Com as palmas voltadas para você, puxe o corpo até o queixo passar a barra.
+Band_Assisted_Pull-Up|Barra fixa com elástico|Com o elástico ajudando, puxe o corpo até o queixo passar a barra.
+Wide-Grip_Lat_Pulldown|Puxada frontal aberta|Pegada aberta, puxe a barra até a parte alta do peito e volte controlando.
+Close-Grip_Front_Lat_Pulldown|Puxada frontal fechada|Pegada fechada, puxe a barra até o peito e volte controlando.
+Underhand_Cable_Pulldowns|Puxada supinada|Palmas voltadas para você, puxe a barra até o peito.
+V-Bar_Pulldown|Puxada com triângulo|Puxe o triângulo até o peito com o tronco levemente inclinado para trás.
+One_Arm_Lat_Pulldown|Puxada unilateral|Puxe a alça com um braço até a altura do ombro e volte devagar.
+Full_Range-Of-Motion_Lat_Pulldown|Puxada com amplitude completa|Puxe a barra até o peito e deixe os braços estenderem por completo na volta.
+Straight-Arm_Pulldown|Pulldown com braços estendidos|Braços quase retos, leve a barra da altura dos olhos até as coxas.
+Rope_Straight-Arm_Pulldown|Pulldown com corda e braços estendidos|Com a corda, leve as mãos da altura dos olhos até as coxas com braços quase retos.
+Bent_Over_Barbell_Row|Remada curvada com barra|Tronco inclinado e coluna neutra, puxe a barra até o abdômen.
+Reverse_Grip_Bent-Over_Rows|Remada curvada supinada|Pegada supinada, puxe a barra até o abdômen com o tronco inclinado.
+Bent_Over_Two-Dumbbell_Row|Remada curvada com halteres|Tronco inclinado, puxe os halteres até a cintura.
+One-Arm_Dumbbell_Row|Remada unilateral com halter (serrote)|Apoiado no banco, puxe o halter até a cintura e desça devagar.
+Seated_Cable_Rows|Remada sentada na polia|Coluna ereta, puxe a alça até o abdômen e volte controlando.
+Seated_One-arm_Cable_Pulley_Rows|Remada sentada unilateral na polia|Puxe a alça com um braço até a cintura, sem girar o tronco.
+T-Bar_Row_with_Handle|Remada cavalinho (barra T)|Tronco inclinado, puxe a barra T até o peito.
+Lying_T-Bar_Row|Remada cavalinho apoiada|Peito apoiado no aparelho, puxe as alças até o peito.
+Leverage_High_Row|Remada alta articulada|Na máquina, puxe as alças para trás na altura do peito.
+Leverage_Iso_Row|Remada articulada|Na máquina, puxe as alças até a cintura e volte devagar.
+Smith_Machine_Bent_Over_Row|Remada curvada no Smith|Tronco inclinado, puxe a barra do Smith até o abdômen.
+Inverted_Row|Remada invertida|Sob uma barra baixa, puxe o peito até a barra com o corpo reto.
+Dumbbell_Incline_Row|Remada com halteres no banco inclinado|Peito apoiado no banco inclinado, puxe os halteres até a cintura.
+One-Arm_Kettlebell_Row|Remada unilateral com kettlebell|Apoiado, puxe o kettlebell até a cintura.
+Alternating_Renegade_Row|Remada renegada|Em prancha sobre halteres, puxe um de cada vez até a cintura.
+Hyperextensions_Back_Extensions|Hiperextensão lombar|No banco romano, desça o tronco e suba até alinhar com as pernas.
+Superman|Super-homem|Deitado de bruços, eleve braços e pernas ao mesmo tempo e segure.
+Barbell_Deadlift|Levantamento terra|Barra junto às canelas, coluna neutra, levante empurrando o chão com as pernas.
+Sumo_Deadlift|Levantamento terra sumô|Pés bem afastados, mãos por dentro das pernas, levante com a coluna neutra.
+Trap_Bar_Deadlift|Levantamento terra com barra hexagonal|Dentro da barra, levante empurrando o chão com a coluna neutra.
+Rack_Pulls|Levantamento terra parcial (rack pull)|Com a barra apoiada no rack na altura dos joelhos, levante até ficar ereto.
+Good_Morning|Bom dia (good morning) com barra|Barra nas costas, incline o tronco à frente com joelhos levemente flexionados e volte.
+Barbell_Shrug|Encolhimento com barra|Braços estendidos, suba os ombros em direção às orelhas e desça.
+Dumbbell_Shrug|Encolhimento com halteres|Halteres ao lado do corpo, suba os ombros e desça devagar.
+Cable_Shrugs|Encolhimento na polia|Segurando a barra da polia baixa, suba os ombros e desça.
+Face_Pull|Face pull na polia|Corda na polia alta, puxe em direção ao rosto abrindo os cotovelos.|p=deltoide_posterior;s=dorso_medio,trapezio
+Band_Pull_Apart|Abertura com elástico|Braços estendidos à frente, afaste as mãos esticando o elástico.|p=deltoide_posterior;s=dorso_medio,trapezio
+Pull_Through|Pull through na polia|De costas para a polia baixa, leve o quadril à frente puxando a corda entre as pernas.
+# Ombros
+Barbell_Shoulder_Press|Desenvolvimento com barra|Sentado ou em pé, empurre a barra da altura dos ombros para cima.
+Standing_Military_Press|Desenvolvimento militar em pé|Em pé, empurre a barra dos ombros acima da cabeça.
+Seated_Barbell_Military_Press|Desenvolvimento militar sentado|Sentado, empurre a barra da frente dos ombros para cima.
+Dumbbell_Shoulder_Press|Desenvolvimento com halteres|Halteres na altura dos ombros, empurre para cima e desça devagar.
+Seated_Dumbbell_Press|Desenvolvimento sentado com halteres|Sentado com apoio, empurre os halteres para cima.
+Arnold_Dumbbell_Press|Desenvolvimento Arnold|Comece com as palmas para você e gire-as para frente enquanto empurra.
+Machine_Shoulder_Military_Press|Desenvolvimento na máquina|Sentado, empurre as alças para cima e volte controlando.
+Leverage_Shoulder_Press|Desenvolvimento articulado|Na máquina articulada, empurre as alças para cima.
+Smith_Machine_Overhead_Shoulder_Press|Desenvolvimento no Smith|Sentado sob o Smith, empurre a barra para cima.
+Cable_Shoulder_Press|Desenvolvimento na polia|Entre as polias, empurre as alças da altura dos ombros para cima.
+Side_Lateral_Raise|Elevação lateral com halteres|Braços levemente flexionados, eleve os halteres até a altura dos ombros.
+Seated_Side_Lateral_Raise|Elevação lateral sentado|Sentado, eleve os halteres lateralmente até a altura dos ombros.
+Cable_Seated_Lateral_Raise|Elevação lateral na polia|Puxe a alça da polia baixa lateralmente até a altura do ombro.
+Lateral_Raise_-_With_Bands|Elevação lateral com elástico|Pisando no elástico, eleve os braços lateralmente.
+One-Arm_Side_Laterals|Elevação lateral unilateral|Eleve um halter de cada vez lateralmente até a altura do ombro.
+Front_Dumbbell_Raise|Elevação frontal com halteres|Eleve os halteres à frente até a altura dos ombros.
+Front_Plate_Raise|Elevação frontal com anilha|Segurando a anilha, eleve-a à frente até a altura dos olhos.
+Front_Cable_Raise|Elevação frontal na polia|De costas para a polia, eleve a alça à frente até a altura do ombro.
+Upright_Barbell_Row|Remada alta com barra|Puxe a barra rente ao corpo até a altura do peito, com os cotovelos para cima.|p=deltoide_lateral;s=trapezio,biceps
+Standing_Dumbbell_Upright_Row|Remada alta com halteres|Puxe os halteres rente ao corpo até a altura do peito.|p=deltoide_lateral;s=trapezio,biceps
+Upright_Cable_Row|Remada alta na polia|Puxe a barra da polia baixa até a altura do peito.|p=deltoide_lateral;s=trapezio,biceps
+Reverse_Flyes|Crucifixo invertido com halteres|Tronco inclinado, abra os braços para os lados até a altura dos ombros.
+Reverse_Machine_Flyes|Crucifixo invertido na máquina|De frente para o peck deck, abra os braços para trás.
+Cable_Rear_Delt_Fly|Crucifixo invertido na polia|Cruze os cabos e abra os braços para trás na altura dos ombros.
+Seated_Bent-Over_Rear_Delt_Raise|Elevação posterior sentado|Sentado com o tronco inclinado, eleve os halteres para os lados.
+Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench|Elevação posterior com a cabeça apoiada|Testa apoiada no banco, eleve os halteres para os lados.
+Barbell_Rear_Delt_Row|Remada para deltoide posterior|Tronco inclinado, puxe a barra até o peito com os cotovelos abertos.
+External_Rotation_with_Cable|Rotação externa na polia|Cotovelo junto ao corpo, gire o antebraço para fora.|p=deltoide_posterior
+External_Rotation_with_Band|Rotação externa com elástico|Cotovelo junto ao corpo, afaste a mão do abdômen esticando o elástico.|p=deltoide_posterior
+Dumbbell_Scaption|Elevação em Y (scaption)|Eleve os halteres à frente em diagonal, formando um Y.
+Two-Arm_Kettlebell_Military_Press|Desenvolvimento com dois kettlebells|Empurre os kettlebells dos ombros para cima.
+Handstand_Push-Ups|Flexão em parada de mão|Em parada de mão apoiada na parede, desça a cabeça até perto do chão e empurre.
+# Bíceps
+Barbell_Curl|Rosca direta com barra|Cotovelos junto ao corpo, suba a barra sem balançar e desça devagar.
+EZ-Bar_Curl|Rosca com barra W|Com a barra W, suba até a altura do peito e desça controlando.
+Close-Grip_EZ_Bar_Curl|Rosca fechada com barra W|Pegada fechada na barra W, suba e desça devagar.
+Wide-Grip_Standing_Barbell_Curl|Rosca direta com pegada aberta|Mãos afastadas, suba a barra e desça controlando.
+Dumbbell_Bicep_Curl|Rosca direta com halteres|Suba os halteres girando as palmas para cima e desça devagar.
+Dumbbell_Alternate_Bicep_Curl|Rosca alternada com halteres|Suba um halter de cada vez, girando a palma para cima.
+Hammer_Curls|Rosca martelo|Palmas voltadas uma para a outra, suba os halteres e desça.
+Alternate_Hammer_Curl|Rosca martelo alternada|Pegada neutra, suba um halter de cada vez.
+Cross_Body_Hammer_Curl|Rosca martelo cruzada|Leve o halter em direção ao ombro oposto, com pegada neutra.
+Incline_Dumbbell_Curl|Rosca no banco inclinado|Recostado no banco inclinado, suba os halteres sem mover os ombros.
+Concentration_Curls|Rosca concentrada|Sentado, cotovelo apoiado na coxa, suba o halter devagar.
+Preacher_Curl|Rosca Scott com barra|Braços apoiados no banco Scott, suba a barra e desça até quase estender.
+One_Arm_Dumbbell_Preacher_Curl|Rosca Scott unilateral|No banco Scott, suba um halter de cada vez.
+Machine_Preacher_Curls|Rosca Scott na máquina|Na máquina Scott, suba as alças e desça devagar.
+Machine_Bicep_Curl|Rosca na máquina|Na máquina, flexione os cotovelos e volte controlando.
+Standing_Biceps_Cable_Curl|Rosca na polia baixa|De frente para a polia, suba a barra até o peito.
+Cable_Hammer_Curls_-_Rope_Attachment|Rosca martelo na polia com corda|Com a corda, suba as mãos em pegada neutra.
+Overhead_Cable_Curl|Rosca na polia alta|Braços abertos na altura dos ombros, traga as alças até a cabeça.
+Spider_Curl|Rosca spider|Peito apoiado no banco inclinado, suba a barra com os braços pendurados.
+Reverse_Barbell_Curl|Rosca inversa com barra|Palmas para baixo, suba a barra até o peito.
+Zottman_Curl|Rosca Zottman|Suba com as palmas para cima e desça com as palmas para baixo.
+# Tríceps
+Triceps_Pushdown|Tríceps na polia (barra)|Cotovelos parados ao lado do corpo, estenda os braços empurrando a barra.
+Triceps_Pushdown_-_Rope_Attachment|Tríceps na polia com corda|Estenda os braços abrindo a corda no final.
+Triceps_Pushdown_-_V-Bar_Attachment|Tríceps na polia com barra V|Estenda os braços empurrando a barra V para baixo.
+Reverse_Grip_Triceps_Pushdown|Tríceps na polia com pegada invertida|Palmas para cima, estenda os braços sem mover os cotovelos.
+Triceps_Overhead_Extension_with_Rope|Tríceps francês na polia com corda|De costas para a polia, estenda a corda acima da cabeça.
+Cable_Rope_Overhead_Triceps_Extension|Extensão de tríceps acima da cabeça na polia|Estenda a corda para frente e para cima com os cotovelos fixos.
+Standing_Dumbbell_Triceps_Extension|Tríceps francês com halter|Halter acima da cabeça, desça atrás da nuca e estenda.
+Dumbbell_One-Arm_Triceps_Extension|Tríceps francês unilateral|Com um halter acima da cabeça, desça atrás da nuca e estenda.
+EZ-Bar_Skullcrusher|Tríceps testa com barra W|Deitado, desça a barra até a testa e estenda os braços.
+Lying_Triceps_Press|Tríceps testa com barra|Deitado, flexione os cotovelos levando a barra até a testa e estenda.
+Lying_Dumbbell_Tricep_Extension|Tríceps testa com halteres|Deitado, desça os halteres ao lado da cabeça e estenda.
+Tricep_Dumbbell_Kickback|Tríceps coice com halter|Tronco inclinado, estenda o braço para trás com o cotovelo fixo.
+Bench_Dips|Mergulho no banco|Mãos no banco atrás do corpo, desça flexionando os cotovelos e suba.
+Dips_-_Triceps_Version|Paralelas para tríceps|Tronco ereto, desça entre as barras e estenda os braços.
+Machine_Triceps_Extension|Tríceps na máquina|Na máquina, estenda os braços e volte devagar.
+Dip_Machine|Paralela na máquina|Na máquina, empurre as alças para baixo até estender os braços.
+JM_Press|JM press|Deitado, desça a barra em direção ao queixo com os cotovelos à frente e empurre.
+Close-Grip_EZ-Bar_Press|Supino fechado com barra W|Deitado, desça a barra W até o peito com os cotovelos junto ao corpo e empurre.
+Standing_Overhead_Barbell_Triceps_Extension|Tríceps francês com barra em pé|Barra acima da cabeça, desça atrás da nuca e estenda.
+# Antebraço
+Palms-Up_Barbell_Wrist_Curl_Over_A_Bench|Flexão de punho com barra|Antebraços apoiados, suba a barra flexionando os punhos.
+Palms-Down_Wrist_Curl_Over_A_Bench|Extensão de punho com barra|Palmas para baixo, eleve a barra estendendo os punhos.
+Seated_Dumbbell_Palms-Up_Wrist_Curl|Flexão de punho com halteres|Sentado, antebraços nas coxas, suba os halteres com os punhos.
+Wrist_Roller|Rolo de punho|Braços à frente, enrole a corda girando o rolo com os punhos.
+# Pernas: quadríceps
+Barbell_Squat|Agachamento livre com barra|Barra no trapézio, desça empurrando o quadril para trás e suba com o tronco firme.
+Barbell_Full_Squat|Agachamento profundo com barra|Desça até as coxas passarem da linha dos joelhos e suba.
+Front_Barbell_Squat|Agachamento frontal|Barra apoiada à frente dos ombros, desça com o tronco ereto e suba.
+Box_Squat|Agachamento no caixote|Desça até sentar no caixote e suba sem embalar.
+Wide_Stance_Barbell_Squat|Agachamento com base aberta|Pés afastados, desça com os joelhos na direção dos pés e suba.
+Smith_Machine_Squat|Agachamento no Smith|Sob a barra do Smith, desça controlando e suba.
+Goblet_Squat|Agachamento goblet|Segurando o halter junto ao peito, desça entre as pernas e suba.
+Dumbbell_Squat|Agachamento com halteres|Halteres ao lado do corpo, desça e suba com o tronco firme.
+Bodyweight_Squat|Agachamento livre (peso corporal)|Desça como se fosse sentar e suba empurrando o chão.
+Plie_Dumbbell_Squat|Agachamento sumô com halter|Base aberta e pés para fora, desça com o halter entre as pernas.
+Hack_Squat|Agachamento hack|Na máquina hack, desça até cerca de 90° e empurre.
+Leg_Press|Leg press 45°|Pés na largura do quadril, desça até cerca de 90° e empurre sem travar os joelhos.
+Narrow_Stance_Leg_Press|Leg press com pés juntos|Pés próximos na plataforma, desça e empurre.
+Leg_Extensions|Cadeira extensora|Sentado, estenda os joelhos e desça devagar.
+Single-Leg_Leg_Extension|Cadeira extensora unilateral|Estenda um joelho de cada vez.
+Weighted_Sissy_Squat|Agachamento sissy|Incline o tronco para trás e flexione os joelhos levando-os à frente.
+Barbell_Lunge|Afundo com barra|Dê um passo à frente e desça até os dois joelhos chegarem perto de 90°.
+Dumbbell_Lunges|Afundo com halteres|Com halteres, dê um passo à frente e desça.
+Bodyweight_Walking_Lunge|Avanço caminhando|Dê passos longos descendo o joelho de trás até perto do chão.
+Barbell_Walking_Lunge|Avanço caminhando com barra|Com a barra nas costas, avance descendo o joelho de trás.
+Dumbbell_Rear_Lunge|Afundo para trás com halteres|Dê um passo para trás e desça o joelho até perto do chão.
+Split_Squat_with_Dumbbells|Agachamento búlgaro com halteres|Pé de trás apoiado no banco, desça com o tronco firme.
+Split_Squats|Agachamento afundo estático|Pernas afastadas, desça e suba sem mover os pés.
+Dumbbell_Step_Ups|Subida no banco com halteres|Suba no banco com uma perna e desça controlando.
+Barbell_Step_Ups|Subida no banco com barra|Com a barra nas costas, suba no banco com uma perna.
+Freehand_Jump_Squat|Agachamento com salto|Desça no agachamento e salte; aterrisse suave.
+Zercher_Squats|Agachamento Zercher|Barra apoiada nos antebraços, desça e suba com o tronco ereto.
+Kettlebell_Pistol_Squat|Agachamento unilateral (pistol) com kettlebell|Em uma perna, desça com a outra estendida à frente.
+# Pernas: posteriores
+Romanian_Deadlift|Levantamento terra romeno|Joelhos levemente flexionados, desça a barra rente às pernas e volte.
+Stiff-Legged_Barbell_Deadlift|Stiff com barra|Pernas quase retas, desça a barra até onde mantiver a coluna neutra.
+Stiff-Legged_Dumbbell_Deadlift|Stiff com halteres|Com halteres, incline o tronco com as pernas quase retas e volte.
+Smith_Machine_Stiff-Legged_Deadlift|Stiff no Smith|No Smith, desça a barra rente às pernas e volte.
+Lying_Leg_Curls|Mesa flexora|Deitado de bruços, flexione os joelhos levando o rolo aos glúteos.
+Seated_Leg_Curl|Cadeira flexora|Sentado, flexione os joelhos puxando o rolo para baixo.
+Standing_Leg_Curl|Flexora em pé|Em pé na máquina, flexione um joelho de cada vez.
+Glute_Ham_Raise|Flexão nórdica no glute-ham|No aparelho, desça o tronco à frente e volte usando os posteriores.
+Natural_Glute_Ham_Raise|Flexão nórdica|Ajoelhado com os pés presos, desça o tronco à frente devagar.
+Ball_Leg_Curl|Flexora na bola suíça|Deitado com os pés na bola, eleve o quadril e puxe a bola em sua direção.
+Kettlebell_One-Legged_Deadlift|Terra unilateral com kettlebell|Em uma perna, incline o tronco e volte mantendo o quadril alinhado.
+# Glúteos, abdutores e adutores
+Barbell_Hip_Thrust|Elevação pélvica com barra|Costas apoiadas no banco, suba o quadril até alinhar com o tronco.
+Barbell_Glute_Bridge|Ponte de glúteos com barra|Deitado no chão, eleve o quadril com a barra sobre ele.
+Single_Leg_Glute_Bridge|Ponte de glúteos unilateral|Deitado, eleve o quadril apoiado em uma perna.
+Butt_Lift_Bridge|Ponte de glúteos|Deitado com os joelhos flexionados, eleve o quadril e desça.
+Glute_Kickback|Coice de glúteo|Em quatro apoios, estenda uma perna para trás e para cima.
+One-Legged_Cable_Kickback|Coice de glúteo na polia|Com a tornozeleira na polia, estenda a perna para trás.
+Smith_Machine_Hip_Raise|Elevação pélvica no Smith|Deitado sob o Smith, eleve o quadril empurrando a barra.
+Thigh_Abductor|Cadeira abdutora|Sentado, afaste as pernas contra a resistência.
+Thigh_Adductor|Cadeira adutora|Sentado, aproxime as pernas contra a resistência.
+Cable_Hip_Adduction|Adução de quadril na polia|Com a tornozeleira, traga a perna para a frente da outra.
+Monster_Walk|Caminhada lateral com elástico|Com o elástico nas pernas, dê passos laterais mantendo a tensão.
+Side_Leg_Raises|Abdução de quadril deitado|Deitado de lado, eleve a perna de cima e desça.
+Reverse_Hyperextension|Hiperextensão reversa|Tronco apoiado, eleve as pernas para trás até alinhar.
+# Panturrilhas
+Standing_Calf_Raises|Panturrilha em pé na máquina|Ponta dos pés na plataforma, suba o máximo e desça alongando.
+Seated_Calf_Raise|Panturrilha sentado|Sentado, eleve os calcanhares e desça devagar.
+Calf_Press_On_The_Leg_Press_Machine|Panturrilha no leg press|Ponta dos pés na plataforma, estenda os tornozelos.
+Smith_Machine_Calf_Raise|Panturrilha no Smith|Sob o Smith, eleve os calcanhares em um degrau.
+Standing_Dumbbell_Calf_Raise|Panturrilha em pé com halteres|Com halteres, eleve os calcanhares num degrau.
+Donkey_Calf_Raises|Panturrilha burrinho|Tronco inclinado, eleve os calcanhares.
+# Core
+Plank|Prancha|Apoie antebraços e pontas dos pés com o corpo alinhado pelo tempo combinado.
+Side_Bridge|Prancha lateral|De lado, apoie antebraço e pés e mantenha o quadril elevado.|p=obliquos;s=abdomen
+Crunches|Abdominal supra|Deitado, eleve os ombros do chão contraindo o abdômen.
+Cable_Crunch|Abdominal na polia|Ajoelhado, flexione o tronco puxando a corda.
+Ab_Crunch_Machine|Abdominal na máquina|Na máquina, flexione o tronco e volte devagar.
+Reverse_Crunch|Abdominal infra|Deitado, leve os joelhos ao peito tirando o quadril do chão.
+Hanging_Leg_Raise|Elevação de pernas na barra|Pendurado, eleve as pernas até a altura do quadril.
+Knee_Hip_Raise_On_Parallel_Bars|Elevação de joelhos nas paralelas|Apoiado nas paralelas, eleve os joelhos ao peito.
+Flat_Bench_Lying_Leg_Raise|Elevação de pernas no banco|Deitado no banco, eleve as pernas estendidas e desça devagar.
+Russian_Twist|Giro russo|Sentado com o tronco inclinado, gire de um lado ao outro.|p=obliquos;s=abdomen
+Cable_Russian_Twists|Giro na polia|Em pé, gire o tronco levando a alça de um lado ao outro.|p=obliquos;s=abdomen
+Standing_Cable_Wood_Chop|Lenhador na polia|Puxe a alça na diagonal, de cima para baixo, girando o tronco.|p=obliquos;s=abdomen
+Pallof_Press|Pallof press|De lado para a polia, empurre a alça à frente sem deixar o tronco girar.|p=obliquos;s=abdomen
+Oblique_Crunches_-_On_The_Floor|Abdominal oblíquo|Deitado de lado, eleve o tronco em direção ao quadril.|p=obliquos
+Dumbbell_Side_Bend|Flexão lateral com halter|Em pé, incline o tronco para o lado do halter e volte.|p=obliquos
+Ab_Roller|Roda abdominal|Ajoelhado, role a roda à frente mantendo o abdômen firme e volte.
+Barbell_Ab_Rollout_-_On_Knees|Rollout com barra ajoelhado|Ajoelhado, role a barra à frente e volte com o abdômen firme.
+Dead_Bug|Dead bug|Deitado, estenda braço e perna opostos sem tirar a lombar do chão.
+Mountain_Climbers|Escalador|Em prancha alta, leve os joelhos ao peito alternando rápido.
+Sit-Up|Abdominal completo|Deitado com os joelhos flexionados, suba o tronco até sentar.
+Decline_Crunch|Abdominal no banco declinado|No banco declinado, eleve o tronco contraindo o abdômen.
+Exercise_Ball_Crunch|Abdominal na bola suíça|Lombar apoiada na bola, flexione o tronco.
+# Cardio e condicionamento
+Running_Treadmill|Corrida na esteira|Corra na esteira no ritmo combinado.
+Walking_Treadmill|Caminhada na esteira|Caminhe na esteira com passada natural.
+Bicycling_Stationary|Bicicleta ergométrica|Pedale no ritmo e na carga combinados.
+Elliptical_Trainer|Elíptico|Movimente braços e pernas no elíptico em ritmo constante.
+Rowing_Stationary|Remo ergômetro|Empurre com as pernas e puxe a alça até o abdômen, em sequência.
+Stairmaster|Escada (simulador de degraus)|Suba os degraus da máquina em ritmo constante.
+Rope_Jumping|Pular corda|Salte com os dois pés, girando a corda com os punhos.
+Battling_Ropes|Corda naval|Movimente as cordas em ondas alternadas com o tronco firme.
+Box_Jump_Multiple_Response|Salto no caixote|Salte sobre o caixote e aterrisse suave com os joelhos flexionados.
+One-Arm_Kettlebell_Swings|Swing com kettlebell|Leve o kettlebell entre as pernas e projete o quadril à frente para balançá-lo.
+Kettlebell_Turkish_Get-Up_Squat_style|Levantamento turco (turkish get-up)|Do chão até em pé, com o kettlebell sempre acima da cabeça.
+Kettlebell_Thruster|Thruster com kettlebell|Agache e, ao subir, empurre o kettlebell acima da cabeça.
+Clean_and_Press|Arremesso e desenvolvimento|Leve a barra do chão aos ombros e empurre acima da cabeça.
+Power_Clean|Power clean|Puxe a barra do chão aos ombros num movimento explosivo.
+Overhead_Slam|Arremesso de medicine ball no chão|Eleve a bola acima da cabeça e arremesse contra o chão.
+# Alongamento e mobilidade
+Hamstring_Stretch|Alongamento de posteriores|Deitado, eleve uma perna estendida até sentir alongar atrás da coxa.
+Quad_Stretch|Alongamento de quadríceps|Em pé, segure o pé atrás levando o calcanhar ao glúteo.
+Calf_Stretch_Hands_Against_Wall|Alongamento de panturrilha na parede|Mãos na parede, perna de trás estendida com o calcanhar no chão.
+Childs_Pose|Postura da criança|Sentado sobre os calcanhares, leve o tronco à frente com os braços estendidos.
+Cat_Stretch|Alongamento gato|Em quatro apoios, arredonde a coluna para cima e volte.
+Kneeling_Hip_Flexor|Alongamento de flexores do quadril|Ajoelhado em afundo, leve o quadril à frente.
+Triceps_Stretch|Alongamento de tríceps|Leve a mão às costas por cima do ombro e puxe o cotovelo com a outra mão.
+Worlds_Greatest_Stretch|Alongamento completo de mobilidade|Em afundo, apoie a mão no chão e gire o tronco abrindo o outro braço.
+Inchworm|Lagarta (inchworm)|Em pé, caminhe com as mãos até a prancha e volte.

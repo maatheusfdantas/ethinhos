@@ -15,6 +15,7 @@ import { usePendencias } from './hooks/usePendencias';
 import { PendenciasBell, PendenciasDrawer } from './components/pendencias/Pendencias';
 import { AlimentacaoTab } from './components/alimentacao/AlimentacaoTab';
 import { useMealPlans } from './hooks/useAlimentacao';
+import { requestLeave, UnsavedHost } from './hooks/useUnsavedGuard';
 import { FocusTab } from './components/FocusTab';
 import { CalendarTab } from './components/CalendarTab';
 import { TelemetryTab } from './components/TelemetryTab';
@@ -557,7 +558,9 @@ export function App() {
           showToast={showToast}
           onSwitchToApp={() => setActiveTab('dashboard')}
         />
-        <Toast toast={toast} onDismiss={() => setToast(null)} />
+        {/* Proposta 07: pergunta antes de sair com alterações não salvas */}
+      <UnsavedHost />
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
       </div>
     );
   }
@@ -567,7 +570,7 @@ export function App() {
       <div key={`boot-${bootKey}`} className="rx-app">
         <DesktopSidebar
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={(t) => requestLeave(() => setActiveTab(t))}
           onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
           isAdmin={isAdmin}
           userPermissions={permissions}
@@ -581,7 +584,7 @@ export function App() {
           onLogout={handleLogout}
           pro={proInfo}
           proMode={proMode}
-          onToggleProMode={toggleProMode}
+          onToggleProMode={(v) => requestLeave(() => toggleProMode(v))}
           hasMealPlan={meal.hasMealPlan}
         />
 
@@ -805,7 +808,7 @@ export function App() {
               /></div>
             )}
 
-            {activeTab === 'espacos' && <EspacosTab showToast={showToast} initialCode={inviteFromUrl} />}
+            {activeTab === 'espacos' && <EspacosTab showToast={showToast} initialCode={inviteFromUrl} onOpenTab={(t) => requestLeave(() => setActiveTab(t))} />}
             {activeTab === 'alimentacao' && <AlimentacaoTab showToast={showToast} />}
             {proMode && proInfo?.status === 'ativo' && ['pro-visao', 'pro-turmas', 'pro-pessoas', 'pro-conteudo', 'pro-agenda', 'pro-tarefas'].includes(activeTab) && (
               <ProEspaco view={activeTab} pro={proInfo} onNavigate={proNavigate} navParams={proNav} showToast={showToast} />
@@ -897,7 +900,7 @@ export function App() {
       {activeTab !== 'admin' && (
         <MobileBottomNav
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={(t) => requestLeave(() => setActiveTab(t))}
           onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
           isAdmin={isAdmin}
           userPermissions={permissions}
@@ -907,7 +910,7 @@ export function App() {
           onLogout={handleLogout}
           pro={proInfo}
           proMode={proMode}
-          onToggleProMode={toggleProMode}
+          onToggleProMode={(v) => requestLeave(() => toggleProMode(v))}
           hasMealPlan={meal.hasMealPlan}
         />
       )}
@@ -915,6 +918,8 @@ export function App() {
       <PendenciasDrawer open={pendOpen} onClose={() => setPendOpen(false)} data={pend.data} onChanged={pend.refresh} toast={showToast} onOpenTab={(t) => { setPendOpen(false); setActiveTab(t); }} />
 
       {/* DISCREET TOAST NOTIFICATION (WITH UNDO / CTRL+Z) */}
+      {/* Proposta 07: pergunta antes de sair com alterações não salvas */}
+      <UnsavedHost />
       <Toast toast={toast} onDismiss={() => setToast(null)} />
 
       {/* MODAL OVERLAYS */}

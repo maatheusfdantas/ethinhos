@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CalendarPlus, Megaphone, MessageSquare } from 'lucide-react';
+import { useUnsavedGuard } from '../../hooks/useUnsavedGuard';
 import { espacosApi, fmtUntil, initialsOf } from './espacosApi';
 
 const localTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo'; } catch { return 'America/Sao_Paulo'; } };
@@ -39,6 +40,8 @@ export function EventosPanel({ groupId = null, linkId = null, fixedLabel = null,
   const [quando, setQuando] = useState('futuros');
   const [list, setList] = useState(null);
   const [novo, setNovo] = useState(null);
+  const novoDirty = Boolean(novo) && ['title', 'body', 'description', 'location'].some((k) => String(novo[k] || '').trim());
+  const guardNovo = useUnsavedGuard(novoDirty, { label: novo?.body !== undefined ? 'o aviso novo' : 'o evento novo' });
   const [det, setDet] = useState(null);
   const [mudar, setMudar] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -101,7 +104,7 @@ export function EventosPanel({ groupId = null, linkId = null, fixedLabel = null,
       <p className="es-sub" style={{ marginTop: 8 }}>Mudar data ou horário pede nova confirmação. Convites sem resposta deixam de pedir ação quando o evento começa. Presença é marcada depois.</p>
 
       {novo && (
-        <div className="rx-overlay" onClick={() => setNovo(null)}>
+        <div className="rx-overlay" onClick={() => guardNovo.confirm(() => setNovo(null))}>
           <div className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="ev-n" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
             <h2 id="ev-n">Novo evento</h2>
             <p>Os convidados recebem uma pendência. O evento só entra na agenda de quem aceitar.</p>
@@ -115,7 +118,7 @@ export function EventosPanel({ groupId = null, linkId = null, fixedLabel = null,
             <div className="es-field"><label htmlFor="ev-x">Detalhes (opcional)</label><textarea id="ev-x" className="es-input" style={{ height: 70, paddingTop: 10 }} maxLength={1000} value={novo.description} onChange={(e) => setNovo({ ...novo, description: e.target.value })} /></div>
             <Destinatarios value={novo} onChange={setNovo} fixed={fixedLabel} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" className="rx-btn ghost" onClick={() => setNovo(null)}>Cancelar</button>
+              <button type="button" className="rx-btn ghost" onClick={() => guardNovo.confirm(() => setNovo(null))}>Cancelar</button>
               <button type="button" className="rx-btn" disabled={busy || !novo.title.trim()} onClick={criar}>Enviar convites</button>
             </div>
           </div>
@@ -183,6 +186,8 @@ export function EventosPanel({ groupId = null, linkId = null, fixedLabel = null,
 export function AvisosPanel({ groupId = null, linkId = null, fixedLabel = null, toast }) {
   const [list, setList] = useState(null);
   const [novo, setNovo] = useState(null);
+  const novoDirty = Boolean(novo) && ['title', 'body', 'description', 'location'].some((k) => String(novo[k] || '').trim());
+  const guardNovo = useUnsavedGuard(novoDirty, { label: novo?.body !== undefined ? 'o aviso novo' : 'o evento novo' });
   const [det, setDet] = useState(null);
   const [thread, setThread] = useState(null);
   const [resposta, setResposta] = useState('');
@@ -208,7 +213,7 @@ export function AvisosPanel({ groupId = null, linkId = null, fixedLabel = null, 
       <p className="es-sub" style={{ marginTop: 8 }}>Os destinatários são fixados na publicação. Cada pessoa vê só a própria conversa com você. Sem chat e sem confirmação de leitura obrigatória.</p>
 
       {novo && (
-        <div className="rx-overlay" onClick={() => setNovo(null)}>
+        <div className="rx-overlay" onClick={() => guardNovo.confirm(() => setNovo(null))}>
           <div className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="av-n" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
             <h2 id="av-n">Novo aviso</h2>
             <p>Chega como pendência para quem receber.</p>
@@ -217,7 +222,7 @@ export function AvisosPanel({ groupId = null, linkId = null, fixedLabel = null, 
             <Destinatarios value={novo} onChange={setNovo} fixed={fixedLabel} />
             <label className="es-check"><input type="checkbox" checked={novo.allowComments} onChange={(e) => setNovo({ ...novo, allowComments: e.target.checked })} /><span>Permitir comentários privados</span></label>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" className="rx-btn ghost" onClick={() => setNovo(null)}>Cancelar</button>
+              <button type="button" className="rx-btn ghost" onClick={() => guardNovo.confirm(() => setNovo(null))}>Cancelar</button>
               <button type="button" className="rx-btn" disabled={busy || !novo.title.trim() || !novo.body.trim()} onClick={async () => {
                 setBusy(true);
                 try { const r = await espacosApi.criarAviso(novo); toast?.(`Aviso publicado para ${r.destinatarios} ${r.destinatarios === 1 ? 'pessoa' : 'pessoas'}.`); setNovo(null); load(); } catch (e) { toast?.(e.message); } finally { setBusy(false); }

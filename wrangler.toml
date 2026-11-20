@@ -16,3 +16,8 @@ database_name = "ethos-db"
 database_id = "3c7da96b-92c2-4d9b-8f1a-48bee2493535"
 migrations_dir = "cloudflare/migrations"
 
+
+# Proposta 07: foto do profissional e capa das turmas (Cloudflare R2). Sem o bucket, o envio responde 503.
+[[r2_buckets]]
+binding = "MIDIA"
+bucket_name = "ethos-midia"

@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Lock, Plus } from 'lucide-react';
 import { espacosApi, fmtDate } from './espacosApi';
 import { AtribuirDialog } from './AtribuirDialog';
 import { FichaEditor, normalizeFicha, resumoExercicio } from './FichaEditor';
+import { requestLeave, useUnsavedGuard } from '../../hooks/useUnsavedGuard';
 
 const DAY = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const local = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -25,6 +26,9 @@ export function ProIndividual({ linkId, pro, onBack, toast, extraTabs = [], init
   const [erro, setErro] = useState('');
   const [atribuir, setAtribuir] = useState(false);
   const [adaptar, setAdaptar] = useState(null);
+  const adaptDirty = Boolean(adaptar) && JSON.stringify([normalizeFicha(adaptar.content), adaptar.note]) !== adaptar.initial;
+  const salvarAdaptacao = async () => { try { await espacosApi.adaptar(adaptar.id, normalizeFicha(adaptar.content), adaptar.note); setAdaptar(null); toast?.('Versão desta pessoa salva.'); await load(); return true; } catch (e) { toast?.(e.message); return false; } };
+  const guard = useUnsavedGuard(adaptDirty, { label: adaptar ? `a adaptação de ${adaptar.name}` : '', onSave: salvarAdaptacao });
   const [sessao, setSessao] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -73,11 +77,11 @@ export function ProIndividual({ linkId, pro, onBack, toast, extraTabs = [], init
 
   return (
     <div className="es">
-      <button type="button" className="rx-btn ghost tiny" onClick={onBack} style={{ marginBottom: 14 }}><ArrowLeft size={15} />{pro?.peopleLabel || 'Pessoas'}</button>
+      <button type="button" className="rx-btn ghost tiny" onClick={() => requestLeave(() => onBack?.())} style={{ marginBottom: 14 }}><ArrowLeft size={15} />{pro?.peopleLabel || 'Pessoas'}</button>
       <div className="es-head"><div><h1>{pessoa.name}</h1><p>Área individual de acompanhamento. Não é a conta da pessoa: mostra só o que vocês compartilham. Vínculo desde {fmtDate(pessoa.since)}.</p></div>
         {isPersonal && <div className="acts"><button type="button" className="rx-btn" onClick={() => setAtribuir(true)}><Plus size={16} />Atribuir ficha</button></div>}</div>
       <div className="es-tabs-row" role="group" aria-label="Seções da área individual">
-        {tabs.map((t) => <button key={t} type="button" aria-pressed={t === tab} onClick={() => setTab(t)}>{t}</button>)}
+        {tabs.map((t) => <button key={t} type="button" aria-pressed={t === tab} onClick={() => requestLeave(() => setTab(t))}>{t}</button>)}
       </div>
 
       {isPersonal && tab === 'Planejamento' && (
@@ -98,7 +102,7 @@ export function ProIndividual({ linkId, pro, onBack, toast, extraTabs = [], init
                   <option value="sim">Pessoa pode editar a cópia</option>
                   <option value="nao">Só registra na sessão</option>
                 </select>
-                <button type="button" className="rx-btn ghost tiny" onClick={() => setAdaptar({ id: a.id, name: a.name, content: JSON.parse(JSON.stringify(a.content)), note: '' })}>Adaptar</button>
+                <button type="button" className="rx-btn ghost tiny" onClick={() => setAdaptar({ id: a.id, name: a.name, content: JSON.parse(JSON.stringify(a.content)), note: '', initial: JSON.stringify([normalizeFicha(a.content), '']) })}>Adaptar</button>
                 <button type="button" className="es-danger" style={{ height: 34 }} onClick={() => setConfirm({ title: `Encerrar ${a.name}?`, text: 'A ficha sai de “Do seu personal” e fica no histórico da pessoa, só para leitura. As sessões feitas continuam.', button: 'Encerrar ficha', run: () => espacosApi.encerrarAtribuicao(a.id), ok: 'Ficha encerrada.' })}>Encerrar</button>
               </div>
             </div>
@@ -146,15 +150,15 @@ export function ProIndividual({ linkId, pro, onBack, toast, extraTabs = [], init
       {atribuir && <AtribuirDialog linkIds={[linkId]} alvo={pessoa.name} toast={toast} onClose={() => setAtribuir(false)} onDone={() => { setAtribuir(false); load(); }} />}
 
       {adaptar && (
-        <div className="rx-overlay" onClick={() => setAdaptar(null)}>
-          <div className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="adp-t" style={{ maxWidth: 820 }} onClick={(e) => e.stopPropagation()}>
+        <div className="rx-overlay" onClick={() => guard.confirm(() => setAdaptar(null))}>
+          <div className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="adp-t" style={{ maxWidth: 1080, maxHeight: '92vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <h2 id="adp-t">Adaptar {adaptar.name} para {pessoa.name}</h2>
             <p>Cria uma versão só desta pessoa. As cópias dos colegas não mudam. Sessões já feitas também não.</p>
-            <FichaEditor value={adaptar.content} onChange={(content) => setAdaptar({ ...adaptar, content })} />
+            <FichaEditor value={adaptar.content} onChange={(content) => setAdaptar({ ...adaptar, content })} fichaName={adaptar.name} escopo="espaco" toast={toast} />
             <div className="es-field" style={{ marginTop: 12 }}><label htmlFor="adp-n">Motivo (opcional, fica no histórico)</label><input id="adp-n" className="es-input" maxLength={200} value={adaptar.note} onChange={(e) => setAdaptar({ ...adaptar, note: e.target.value })} /></div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" className="rx-btn ghost" onClick={() => setAdaptar(null)}>Cancelar</button>
-              <button type="button" className="rx-btn" disabled={busy} onClick={() => run(async () => { await espacosApi.adaptar(adaptar.id, normalizeFicha(adaptar.content), adaptar.note); setAdaptar(null); }, 'Versão desta pessoa salva.')}>Salvar versão de {pessoa.name.split(' ')[0]}</button>
+              <button type="button" className="rx-btn ghost" onClick={() => guard.confirm(() => setAdaptar(null))}>Cancelar</button>
+              <button type="button" className="rx-btn" disabled={busy || !adaptDirty} onClick={salvarAdaptacao}>Salvar versão de {pessoa.name.split(' ')[0]}</button>
             </div>
           </div>
         </div>

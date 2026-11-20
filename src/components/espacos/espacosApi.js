@@ -84,6 +84,16 @@ export const espacosApi = {
   tarefas: (status = 'abertas') => req(`/api/espacos/tarefas?status=${encodeURIComponent(status)}`),
   criarTarefa: (body) => req('/api/espacos/tarefas', { method: 'POST', body }),
   editarTarefa: (id, body) => req(`/api/espacos/tarefas/${encodeURIComponent(id)}`, { method: 'PUT', body }),
+  // Proposta 07: tela da turma (aluno), foto/capa (profissional) e denúncias de imagem (admin)
+  minhaTurma: (memberId) => req(`/api/espacos/meus/turmas/${encodeURIComponent(memberId)}`),
+  denunciarImagem: (memberId, kind, reason) => req(`/api/espacos/meus/turmas/${encodeURIComponent(memberId)}/denunciar`, { method: 'POST', body: { kind, reason } }),
+  midia: () => req('/api/espacos/midia'),
+  enviarFoto: (dataUrl) => req('/api/espacos/midia/foto', { method: 'PUT', body: { dataUrl } }),
+  removerFoto: () => req('/api/espacos/midia/foto', { method: 'DELETE', body: {} }),
+  enviarCapa: (groupId, dataUrl) => req(`/api/espacos/turmas/${encodeURIComponent(groupId)}/capa`, { method: 'PUT', body: { dataUrl } }),
+  removerCapa: (groupId) => req(`/api/espacos/turmas/${encodeURIComponent(groupId)}/capa`, { method: 'DELETE', body: {} }),
+  denunciasMidia: () => req('/api/admin/midia/denuncias'),
+  resolverDenuncia: (key, acao) => req(`/api/admin/midia/denuncias/${encodeURIComponent(key)}`, { method: 'POST', body: { acao } }),
   arquivarTarefa: (id) => req(`/api/espacos/tarefas/${encodeURIComponent(id)}`, { method: 'DELETE', body: {} })
 };
 

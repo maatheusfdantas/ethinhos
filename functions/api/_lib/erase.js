@@ -21,7 +21,8 @@ async function tableExists(db, table) {
 }
 
 /** Monta e executa, num único batch, a exclusão de tudo o que pertence à conta. */
-export async function eraseUserData(db, userId) {
+export async function eraseUserData(db, userId, { midia = null } = {}) {
+  const mediaKeys = [];
   const stmts = [];
   let categories = [];
   try {
@@ -68,6 +69,18 @@ export async function eraseUserData(db, userId) {
       stmts.push(db.prepare('DELETE FROM meal_plans WHERE client_id = ?').bind(userId));
       for (const s of own) stmts.push(db.prepare('DELETE FROM meal_templates WHERE space_id = ?').bind(s.id));
     }
+    // Proposta 07 (migração 0015): personalizados, correções de nome, imagens e denúncias.
+    if (await tableExists(db, 'exercise_custom')) {
+      stmts.push(db.prepare("DELETE FROM exercise_custom WHERE owner_kind = 'pessoa' AND owner_id = ?").bind(userId));
+      stmts.push(db.prepare('DELETE FROM space_media_reports WHERE reporter_id = ?').bind(userId));
+      for (const s of own) {
+        stmts.push(db.prepare("DELETE FROM exercise_custom WHERE owner_kind = 'espaco' AND owner_id = ?").bind(s.id));
+        stmts.push(db.prepare('DELETE FROM exercise_name_fix WHERE space_id = ?').bind(s.id));
+        for (const m of (await db.prepare('SELECT media_key FROM space_media WHERE space_id = ?').bind(s.id).all()).results || []) mediaKeys.push(m.media_key);
+        stmts.push(db.prepare('DELETE FROM space_media WHERE space_id = ?').bind(s.id));
+        stmts.push(db.prepare('DELETE FROM space_media_reports WHERE space_id = ?').bind(s.id));
+      }
+    }
     // Pendências administrativas (migração 0014): são do espaço da Clínica que exclui a conta.
     if (await tableExists(db, 'space_tasks')) {
       for (const s of own) stmts.push(db.prepare('DELETE FROM space_tasks WHERE space_id = ?').bind(s.id));
@@ -78,4 +91,6 @@ export async function eraseUserData(db, userId) {
   }
   stmts.push(db.prepare('DELETE FROM users WHERE id = ?').bind(userId));
   await db.batch(stmts);
+  // Arquivos no R2 só depois do banco: se falhar, sobra arquivo sem uso, nunca referência quebrada.
+  for (const k of mediaKeys) { try { await midia?.delete(k); } catch { /* segue */ } }
 }

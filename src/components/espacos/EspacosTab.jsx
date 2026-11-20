@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Eye, Lock, ShieldCheck, Ticket } from 'lucide-react';
+import { Eye, Lock, ShieldCheck } from 'lucide-react';
 import { espacosApi, fmtDate, initialsOf } from './espacosApi';
 import { AvisosRecebidos } from './AvisosRecebidos';
+import { TurmaAluno, TurmaCard } from './TurmaAluno';
 import '../../styles/espacos.css';
 
 /**
  * Espaços (pessoa): profissionais que acompanham você, entrar com código e sair.
  * Abrir um link ou digitar o código não muda nada: só a confirmação (com maioridade) cria o vínculo.
  */
-export function EspacosTab({ showToast, initialCode = '' }) {
+export function EspacosTab({ showToast, initialCode = '', onOpenTab }) {
+  const [turmaAberta, setTurmaAberta] = useState(null);
   const [data, setData] = useState({ loaded: false, espacos: [], error: '' });
   const [code, setCode] = useState(initialCode);
   const [codeErr, setCodeErr] = useState('');
@@ -74,6 +76,9 @@ export function EspacosTab({ showToast, initialCode = '' }) {
     }
   };
 
+  // Proposta 07: tela da turma (treinos, avisos, eventos aceitos e notificações; nunca a lista de colegas).
+  if (turmaAberta) return <TurmaAluno memberId={turmaAberta} onBack={() => { setTurmaAberta(null); load(); }} onOpenTab={onOpenTab} toast={toast} />;
+
   return (
     <div className="es">
       <div className="es-head"><div><h1>Espaços</h1><p>Profissionais que acompanham você no Ethos. Cada um vê só o que atribuir e os registros disso.</p></div></div>
@@ -87,17 +92,15 @@ export function EspacosTab({ showToast, initialCode = '' }) {
             <article className="es-card" key={s.linkId}>
               <h2>
                 <span style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <span className="es-avatar on">{initialsOf(s.proName)}</span>
+                  <span className="es-avatar on" style={{ overflow: 'hidden' }}>{s.fotoUrl ? <img src={s.fotoUrl} alt={`Foto de ${s.proName}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initialsOf(s.proName)}</span>
                   <span>{s.spaceName}<span className="es-sub" style={{ display: 'block', fontWeight: 450, margin: 0 }}>{s.proName}, {s.modelLabel}. Vínculo desde {fmtDate(s.since)}</span></span>
                 </span>
                 <span className={`rx-pill ${s.proSuspended ? 'es-pill-off' : 'es-pill-on'}`}>{s.proSuspended ? 'Pausado pelo Ethos' : 'Ativo'}</span>
               </h2>
               {s.turmas.length > 0 && <hr className="es-sep" />}
               {s.turmas.map((t) => (
-                <div className="es-row" key={t.memberId}>
-                  <span className="es-avatar"><Ticket size={15} /></span>
-                  <div className="grow"><b>{t.name}</b><small>Turma{t.description ? `, ${t.description}` : ''}</small></div>
-                  <button type="button" className="rx-btn ghost tiny" onClick={() => setConfirm({ type: 'turma', id: t.memberId, name: t.name })}>Sair da turma</button>
+                <div key={t.memberId} style={{ marginBottom: 12 }}>
+                  <TurmaCard espaco={s} turma={t} onOpen={() => setTurmaAberta(t.memberId)} onLeave={() => setConfirm({ type: 'turma', id: t.memberId, name: t.name })} />
                 </div>
               ))}
               <div className="es-share">

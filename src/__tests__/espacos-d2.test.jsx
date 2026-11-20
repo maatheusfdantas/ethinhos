@@ -14,6 +14,8 @@ vi.mock('../utils/api', () => ({
     const ok = (json, status = 200) => ({ ok: status < 400, status, json: async () => json });
     if (url === '/api/espacos/fichas') return ok({ fichas: [{ id: 'tpl1', name: 'Treino A', status: 'ativa', version: 2, content: { exercises: [] }, activeAssignments: 1 }], config: {} });
     if (url === '/api/espacos/atribuir') return body.preview ? ok({ previa: { ficha: 'Treino A', version: 2, total: 2, novos: 1, pessoas: [{ name: 'Lia', already: true, adapted: true }, { name: 'Bruno', already: false, adapted: false }] } }) : ok({ created: 1, skipped: 1 }, 201);
+    if (url === '/api/espacos/meu') return ok({ pro: { model: 'personal' }, turmas: [{ id: 'g1', name: 'Força', status: 'ativa', members: 2 }] });
+    if (url === '/api/espacos/pessoas') return ok({ pessoas: [{ linkId: 'lnk1', name: 'Lia', username: 'lia' }, { linkId: 'lnk2', name: 'Bruno', username: 'bruno' }] });
     if (url === '/api/espacos/pessoas/lnk1/acompanhamento') return ok({ pessoa: { linkId: 'lnk1', name: 'Lia Moreira', username: 'lia', since: '2026-11-03T00:00:00Z' }, atribuicoes: [{ id: 'a1', name: 'Treino A', templateVersion: 2, adapted: true, allowClientEdit: null, status: 'ativa', content: { exercises: [{ id: 'e1', name: 'Agachamento', sets: 2, reps: 8, weightKg: 40 }] } }], sessoes: [{ id: 's1', name: 'Treino A', status: 'incompleta', startedAt: '2026-11-19T21:00:00Z', elapsedMs: 1800000, plannedSets: 2, doneSets: 1 }], config: { allowClientEdit: false } });
     if (url === '/api/espacos/sessoes/s1') return ok({ sessao: { name: 'Treino A', status: 'incompleta', startedAt: '2026-11-19T21:00:00Z', elapsedMs: 1800000, content: { exercises: [{ id: 'e1', name: 'Agachamento', sets: 2, reps: 8, weightKg: 40 }] }, sets: [{ exerciseKey: 'e1', setNo: 1, metric: 'kg', weightKg: 42.5, reps: 8 }] } });
     return ok({});
@@ -26,17 +28,31 @@ const { DoSeuPersonal } = await import('../components/treino/DoSeuPersonal');
 
 beforeEach(() => { calls.length = 0; });
 
-describe('Atribuir', () => {
+describe('Atribuir (3 passos: destino, revisar, confirmar)', () => {
   it('mostra quem recebe (e quem já tem, adaptada) antes de confirmar', async () => {
     const done = vi.fn();
-    render(<AtribuirDialog groupId="g1" alvo="a turma Força" onClose={() => {}} onDone={done} toast={() => {}} />);
+    render(<AtribuirDialog groupId="g1" onClose={() => {}} onDone={done} toast={() => {}} />);
+    await screen.findByRole('option', { name: /Força/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Revisar destinatários' }));
     const previa = await screen.findByTestId('atr-previa');
     expect(previa).toHaveTextContent('1 de 2');
     expect(previa).toHaveTextContent('Lia: já tem, adaptada (não muda)');
     expect(calls.filter((c) => c.url === '/api/espacos/atribuir' && !c.body.preview)).toHaveLength(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Atribuir a 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(calls.filter((c) => c.url === '/api/espacos/atribuir' && !c.body.preview)).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar para 1' }));
     await waitFor(() => expect(done).toHaveBeenCalled());
     expect(calls.find((c) => c.url === '/api/espacos/atribuir' && !c.body.preview).body).toEqual({ templateId: 'tpl1', groupId: 'g1' });
+  });
+  it('alunos selecionados: envia só para quem foi marcado', async () => {
+    render(<AtribuirDialog onClose={() => {}} onDone={() => {}} toast={() => {}} />);
+    await screen.findByRole('option', { name: /Força/ });
+    fireEvent.click(screen.getByLabelText(/Alunos selecionados/));
+    expect(screen.getByRole('button', { name: 'Revisar destinatários' })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText(/^Bruno/));
+    fireEvent.click(screen.getByRole('button', { name: 'Revisar destinatários' }));
+    await screen.findByTestId('atr-previa');
+    expect(calls.find((c) => c.url === '/api/espacos/atribuir').body).toEqual({ templateId: 'tpl1', linkIds: ['lnk2'], preview: true });
   });
 });
 

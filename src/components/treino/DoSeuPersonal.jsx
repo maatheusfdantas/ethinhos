@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Building2, Copy, Eye, Pencil, Play } from 'lucide-react';
 import { FichaEditor, normalizeFicha, resumoExercicio } from '../espacos/FichaEditor';
 import { treinoApi } from './treinoApi';
+import { useUnsavedGuard } from '../../hooks/useUnsavedGuard';
 
 /**
  * "Do seu personal" (lote D2): fichas atribuídas por um profissional.
@@ -12,6 +13,9 @@ export function DoSeuPersonal({ atribuidos = [], onStart, onCopy, onChanged, toa
   const [ver, setVer] = useState(null);
   const [editar, setEditar] = useState(null);
   const [busy, setBusy] = useState(false);
+  const editDirty = Boolean(editar) && JSON.stringify(normalizeFicha(editar.content)) !== editar.initial;
+  const salvarEdicao = async () => { setBusy(true); try { await treinoApi.editarAtribuido(editar.id, normalizeFicha(editar.content)); toast?.('Sua cópia foi salva.'); setEditar(null); onChanged?.(); return true; } catch (e) { toast?.(e.message); return false; } finally { setBusy(false); } };
+  const guard = useUnsavedGuard(editDirty, { label: editar ? `a sua cópia de ${editar.name}` : '', onSave: salvarEdicao });
   const ativas = atribuidos.filter((a) => a.status === 'ativa');
   const encerradas = atribuidos.filter((a) => a.status !== 'ativa');
   if (!atribuidos.length) return null;
@@ -33,7 +37,7 @@ export function DoSeuPersonal({ atribuidos = [], onStart, onCopy, onChanged, toa
       <div className="acts">
         {a.status === 'ativa' && <button type="button" className="rx-btn tiny" disabled={starting} onClick={() => onStart(a)}><Play size={15} />Iniciar treino</button>}
         <button type="button" className="rx-btn ghost tiny" onClick={() => setVer(a)}><Eye size={15} />Ver ficha</button>
-        {a.canEdit && <button type="button" className="rx-btn ghost tiny" onClick={() => setEditar({ ...a, content: JSON.parse(JSON.stringify(a.content)) })}><Pencil size={15} />Editar</button>}
+        {a.canEdit && <button type="button" className="rx-btn ghost tiny" onClick={() => setEditar({ ...a, content: JSON.parse(JSON.stringify(a.content)), initial: JSON.stringify(normalizeFicha(a.content)) })}><Pencil size={15} />Editar</button>}
         <span className="grow" />
         <button type="button" className="tr-x" title="Copiar para minhas fichas" aria-label={`Copiar ${a.name} para minhas fichas`} onClick={() => onCopy(a)}><Copy size={16} /></button>
       </div>
@@ -64,17 +68,14 @@ export function DoSeuPersonal({ atribuidos = [], onStart, onCopy, onChanged, toa
       )}
 
       {editar && (
-        <div className="rx-overlay" onClick={() => setEditar(null)}>
-          <div className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="dsp-e" style={{ maxWidth: 820 }} onClick={(e) => e.stopPropagation()}>
+        <div className="rx-overlay" onClick={() => guard.confirm(() => setEditar(null))}>
+          <div className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="dsp-e" style={{ maxWidth: 1080, maxHeight: '92vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <h2 id="dsp-e">Editar {editar.name}</h2>
             <p>O profissional liberou a edição da sua cópia. Ele vê que a ficha foi ajustada por você.</p>
-            <FichaEditor value={editar.content} onChange={(content) => setEditar({ ...editar, content })} />
+            <FichaEditor value={editar.content} onChange={(content) => setEditar({ ...editar, content })} fichaName={editar.name} escopo="pessoa" toast={toast} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
-              <button type="button" className="rx-btn ghost" onClick={() => setEditar(null)}>Cancelar</button>
-              <button type="button" className="rx-btn" disabled={busy} onClick={async () => {
-                setBusy(true);
-                try { await treinoApi.editarAtribuido(editar.id, normalizeFicha(editar.content)); toast?.('Sua cópia foi salva.'); setEditar(null); onChanged?.(); } catch (e) { toast?.(e.message); } finally { setBusy(false); }
-              }}>Salvar minha cópia</button>
+              <button type="button" className="rx-btn ghost" onClick={() => guard.confirm(() => setEditar(null))}>Cancelar</button>
+              <button type="button" className="rx-btn" disabled={busy || !editDirty} onClick={salvarEdicao}>Salvar alterações</button>
             </div>
           </div>
         </div>

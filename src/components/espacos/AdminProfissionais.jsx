@@ -127,6 +127,7 @@ export function AdminProfissionais({ showToast }) {
         </aside>
       </div>
 
+      <DenunciasMidia toast={showToast} />
       {confirm && (
         <div className="rx-overlay" onClick={() => setConfirm(null)}>
           <div className="rx-dialog" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
@@ -148,5 +149,27 @@ export function AdminProfissionais({ showToast }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Proposta 07: denúncias de imagem (capa ou foto) feitas por participantes. O admin vê só a imagem denunciada. */
+function DenunciasMidia({ toast }) {
+  const [list, setList] = useState(null);
+  const load = useCallback(() => espacosApi.denunciasMidia().then((r) => setList(r.denuncias || []), () => setList([])), []);
+  useEffect(() => { load(); }, [load]);
+  if (!list || list.length === 0) return <section className="es-card" style={{ marginTop: 20 }}><h2>Denúncias de imagem</h2><p className="es-sub">{list ? 'Nenhuma denúncia aberta.' : 'Carregando…'}</p></section>;
+  return (
+    <section className="es-card" style={{ marginTop: 20 }}>
+      <h2>Denúncias de imagem <span className="rx-pill">{list.length}</span></h2>
+      {list.map((d) => (
+        <div className="es-row" key={d.mediaKey} style={{ alignItems: 'flex-start' }}>
+          {d.url ? <img src={d.url} alt={d.kind === 'capa' ? 'Capa denunciada' : 'Foto denunciada'} style={{ width: d.kind === 'capa' ? 160 : 56, height: 56, objectFit: 'cover', borderRadius: 10 }} /> : <span className="es-avatar">?</span>}
+          <div className="grow"><b>{d.kind === 'capa' ? 'Capa de turma' : d.kind === 'foto' ? 'Foto do profissional' : 'Imagem já removida'}, {d.spaceName || 'espaço removido'}</b>
+            <small>{d.total} {d.total === 1 ? 'denúncia' : 'denúncias'}, a última em {fmtUntil(d.last)}{d.reasons.length ? `: ${d.reasons.join('; ')}` : ''}</small></div>
+          <button type="button" className="es-danger" onClick={async () => { try { await espacosApi.resolverDenuncia(d.mediaKey, 'remover'); toast?.('Imagem removida.'); load(); } catch (e) { toast?.(e.message); } }}>Remover imagem</button>
+          <button type="button" className="rx-btn ghost tiny" onClick={async () => { try { await espacosApi.resolverDenuncia(d.mediaKey, 'ignorar'); toast?.('Denúncia arquivada.'); load(); } catch (e) { toast?.(e.message); } }}>Manter</button>
+        </div>
+      ))}
+    </section>
   );
 }

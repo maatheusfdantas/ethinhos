@@ -129,3 +129,26 @@
 .es-task .rx-check { width: 38px; height: 38px; }
 .es-task .rx-check svg { width: 19px; height: 19px; }
 .es-task .rx-check[aria-pressed="true"] { background: var(--rx-grad); border-color: transparent; color: var(--rx-on-accent); }
+
+/* Proposta 07: etapas da atribuição */
+.es-steps { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 16px; padding: 0; }
+.es-steps li { padding: 4px 12px; border-radius: 99px; background: var(--rx-wash); font-size: 13px; color: var(--rx-ink-3); }
+.es-steps li[aria-current="step"] { background: var(--rx-violet-wash); color: var(--rx-ink); font-weight: 600; }
+
+/* Proposta 07 (decisão 5): card da turma com capa retangular e foto redonda do profissional */
+.tc-card { border-radius: 20px; overflow: hidden; background: var(--rx-card); border: 1px solid var(--rx-line); box-shadow: var(--rx-shadow); }
+.tc-top { position: relative; }
+.tc-cover { aspect-ratio: 4 / 1; min-height: 96px; max-height: 190px; width: 100%; background-size: cover; background-position: center; background-color: var(--rx-bg-2); background-image: radial-gradient(120% 140% at 0% 0%, var(--rx-violet-wash), transparent 60%), radial-gradient(90% 120% at 100% 100%, var(--rx-blue-wash), transparent 60%); }
+.tc-top.small .tc-cover { max-height: 130px; }
+.tc-avatar { position: absolute; left: 20px; bottom: -34px; width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; font: 700 22px var(--rx-font); color: var(--rx-on-accent); background: var(--rx-grad); border: 4px solid var(--rx-card); }
+.tc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.tc-in { padding: 44px 20px 18px; display: grid; gap: 10px; }
+.tc-in h3 { margin: 0; font-size: 19px; font-weight: 640; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tc-cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.tc-cells > div { padding: 10px 12px; border-radius: 12px; background: var(--rx-wash); font-size: 13.5px; color: var(--rx-ink-2); }
+.tc-cells b { display: block; color: var(--rx-ink); font-size: 14.5px; }
+.tc-edit { margin-top: 6px; }
+.tc-edit h3 { margin: 0 0 8px; font-size: 16px; }
+.tc-edit .tc-in { display: none; }
+.tc-edit .tc-card { margin-bottom: 40px; overflow: visible; }
+.tc-edit .tc-cover { border-radius: 16px; }

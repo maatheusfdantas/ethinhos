@@ -7,6 +7,7 @@ import { ProConteudo } from './ProConteudo';
 import { AvisosPanel, EventosPanel, ProAgendaPage } from './ProAgenda';
 import { PlanosModelo, ProPlano, ProRegistrosAlimentacao, TurmaPlanos } from '../alimentacao/ProAlimentacao';
 import { TarefasPage } from './ProTarefas';
+import { AparenciaTurma } from './TurmaAluno';
 import '../../styles/espacos.css';
 
 /**
@@ -217,6 +218,8 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
                     ) : (
                       <div className="es-row"><div className="grow"><small>Ative a turma para gerar convites.</small></div><button type="button" className="rx-btn tiny" onClick={() => act(() => espacosApi.editarTurma(g.id, { status: 'ativa' }), 'Turma ativada.')}>Ativar turma</button></div>
                     )}
+                    <hr className="es-sep" />
+                    <AparenciaTurma turma={g} toast={toast} />
                     <hr className="es-sep" />
                     <h3>Participantes ({turma?.membros?.length ?? g.members})</h3>
                     {turma?.membros?.length ? turma.membros.map((m) => {
