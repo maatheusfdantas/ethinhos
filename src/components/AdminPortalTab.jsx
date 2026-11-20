@@ -22,6 +22,8 @@ import {
   UserCheck,
   Sparkles,
   ArrowRight,
+  ArrowLeft,
+  FlaskConical,
   X
 } from 'lucide-react';
 import { apiFetch } from '../utils/api';
@@ -102,7 +104,8 @@ function AmbientDust({ count = 28 }) {
  */
 export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: globalToast }) {
   // Seções da Governança Administrativa
-  const [activeSection, setActiveSection] = useState('users'); // 'users' | 'tokens' | 'waitlist' | 'support' | 'security'
+  const [activeSection, setActiveSection] = useState('users'); // 'users' | 'tokens' | 'waitlist' | 'support' | 'security' | 'profissionais' | 'teste'
+  const [previousSection, setPreviousSection] = useState('users');
 
   // Estados principais
   const [users, setUsers] = useState([]);
@@ -576,7 +579,8 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
               { id: 'waitlist', label: 'Waitlist', icon: Inbox, badge: stats.waitlistCount },
               { id: 'support', label: 'Suporte', icon: LifeBuoy, badge: stats.pendingTickets > 0 ? stats.pendingTickets : null },
               { id: 'security', label: 'Auditoria & Logs', icon: Activity },
-              { id: 'profissionais', label: 'Profissionais', icon: Users }
+              { id: 'profissionais', label: 'Profissionais', icon: Users },
+              { id: 'teste', label: 'Teste', icon: FlaskConical }
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeSection === tab.id;
@@ -584,7 +588,12 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveSection(tab.id)}
+                  onClick={() => {
+                    if (activeSection !== 'teste') {
+                      setPreviousSection(activeSection);
+                    }
+                    setActiveSection(tab.id);
+                  }}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -702,94 +711,96 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
       {/* Conteúdo Central */}
       <main style={{ maxWidth: '1240px', margin: '28px auto 0', padding: '0 24px', position: 'relative', zIndex: 1 }}>
         {/* Banner de Estatísticas Executivas (Bento Grid) */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px',
-            marginBottom: '32px'
-          }}
-        >
-          {[
-            {
-              label: 'Total de Contas',
-              value: stats.totalUsers,
-              subtext: `${stats.activeUsers} contas ativas`,
-              icon: Users,
-              accent: '#8B5CF6'
-            },
-            {
-              label: 'Usuários Ativos',
-              value: stats.activeUsers,
-              subtext: `${Math.round((stats.activeUsers / Math.max(1, stats.totalUsers)) * 100)}% de retenção`,
-              icon: UserCheck,
-              accent: '#10B981'
-            },
-            {
-              label: 'Assinaturas Premium',
-              value: stats.proUsers,
-              subtext: 'Pro & Enterprise',
-              icon: Sparkles,
-              accent: '#F59E0B'
-            },
-            {
-              label: 'Pessoas na Waitlist',
-              value: stats.waitlistCount,
-              subtext: 'Cadastros da landing page',
-              icon: Inbox,
-              accent: '#EC4899'
-            },
-            {
-              label: 'Chamados Pendentes',
-              value: stats.pendingTickets,
-              subtext: 'Suporte & Dúvidas',
-              icon: LifeBuoy,
-              accent: stats.pendingTickets > 0 ? '#F87171' : '#38BDF8'
-            }
-          ].map((stat, idx) => {
-            const Icon = stat.icon;
-            return (
-              <div
-                key={idx}
-                style={{
-                  backgroundColor: 'rgba(22, 22, 26, 0.7)',
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '20px',
-                  padding: '20px',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {stat.label}
-                  </span>
-                  <div
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '10px',
-                      backgroundColor: `${stat.accent}18`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: stat.accent
-                    }}
-                  >
-                    <Icon size={16} />
+        {activeSection !== 'teste' && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '16px',
+              marginBottom: '32px'
+            }}
+          >
+            {[
+              {
+                label: 'Total de Contas',
+                value: stats.totalUsers,
+                subtext: `${stats.activeUsers} contas ativas`,
+                icon: Users,
+                accent: '#8B5CF6'
+              },
+              {
+                label: 'Usuários Ativos',
+                value: stats.activeUsers,
+                subtext: `${Math.round((stats.activeUsers / Math.max(1, stats.totalUsers)) * 100)}% de retenção`,
+                icon: UserCheck,
+                accent: '#10B981'
+              },
+              {
+                label: 'Assinaturas Premium',
+                value: stats.proUsers,
+                subtext: 'Pro & Enterprise',
+                icon: Sparkles,
+                accent: '#F59E0B'
+              },
+              {
+                label: 'Pessoas na Waitlist',
+                value: stats.waitlistCount,
+                subtext: 'Cadastros da landing page',
+                icon: Inbox,
+                accent: '#EC4899'
+              },
+              {
+                label: 'Chamados Pendentes',
+                value: stats.pendingTickets,
+                subtext: 'Suporte & Dúvidas',
+                icon: LifeBuoy,
+                accent: stats.pendingTickets > 0 ? '#F87171' : '#38BDF8'
+              }
+            ].map((stat, idx) => {
+              const Icon = stat.icon;
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    backgroundColor: 'rgba(22, 22, 26, 0.7)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '20px',
+                    padding: '20px',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {stat.label}
+                    </span>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '10px',
+                        backgroundColor: `${stat.accent}18`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: stat.accent
+                      }}
+                    >
+                      <Icon size={16} />
+                    </div>
                   </div>
+                  <div style={{ fontSize: '26px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
+                    {stat.value}
+                  </div>
+                  <span style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px', display: 'block' }}>
+                    {stat.subtext}
+                  </span>
                 </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-                  {stat.value}
-                </div>
-                <span style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px', display: 'block' }}>
-                  {stat.subtext}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* =================================================================== */}
         {/* SEÇÃO 1: USUÁRIOS & CONTROLE DE ACESSO                              */}
@@ -1824,6 +1835,39 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                 </table>
               </div>
             </div>
+          </section>
+        )}
+
+        {/* =================================================================== */}
+        {/* SEÇÃO 6: ABA TESTE                                                 */}
+        {/* =================================================================== */}
+        {activeSection === 'teste' && (
+          <section
+            style={{
+              padding: '24px 0'
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveSection(previousSection || 'users')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 20px',
+                borderRadius: '999px',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
+              <ArrowLeft size={16} />
+              <span>Voltar</span>
+            </button>
           </section>
         )}
       </main>
