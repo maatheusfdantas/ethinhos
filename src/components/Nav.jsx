@@ -40,7 +40,9 @@ export function proModules(pro) {
     { id: 'pro-pessoas', label: pro?.peopleLabel || 'Pessoas', icon: Users, group: 'Pessoas' },
     ...(pro?.model === 'personal' ? [{ id: 'pro-conteudo', label: 'Fichas e programas', icon: ClipboardList, group: 'Conteúdo' }] : []),
     ...(pro?.model === 'nutri' ? [{ id: 'pro-conteudo', label: 'Planos alimentares', icon: Utensils, group: 'Conteúdo' }] : []),
-    { id: 'pro-agenda', label: 'Agenda e avisos', icon: Calendar, group: 'Comunicação' }
+    { id: 'pro-agenda', label: 'Agenda e avisos', icon: Calendar, group: 'Comunicação' },
+    // Lote F: a Clínica cuida só da organização (sem conteúdo de treino ou alimentação).
+    ...(pro?.model === 'clinica' ? [{ id: 'pro-tarefas', label: 'Pendências administrativas', icon: ClipboardList, group: 'Organização' }] : [])
   ];
 }
 

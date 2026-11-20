@@ -68,6 +68,10 @@ export async function eraseUserData(db, userId) {
       stmts.push(db.prepare('DELETE FROM meal_plans WHERE client_id = ?').bind(userId));
       for (const s of own) stmts.push(db.prepare('DELETE FROM meal_templates WHERE space_id = ?').bind(s.id));
     }
+    // Pendências administrativas (migração 0014): são do espaço da Clínica que exclui a conta.
+    if (await tableExists(db, 'space_tasks')) {
+      for (const s of own) stmts.push(db.prepare('DELETE FROM space_tasks WHERE space_id = ?').bind(s.id));
+    }
     stmts.push(db.prepare('DELETE FROM group_members WHERE client_id = ?').bind(userId));
     stmts.push(db.prepare('DELETE FROM space_links WHERE client_id = ?').bind(userId));
     stmts.push(db.prepare('DELETE FROM pro_profiles WHERE user_id = ?').bind(userId));

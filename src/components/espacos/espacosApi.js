@@ -79,7 +79,12 @@ export const espacosApi = {
   adminLista: () => req('/api/admin/profissionais'),
   adminBusca: (q) => req(`/api/admin/profissionais/busca?q=${encodeURIComponent(q)}`),
   adminAtivar: (body) => req('/api/admin/profissionais', { method: 'POST', body }),
-  adminAlterar: (userId, body) => req(`/api/admin/profissionais/${encodeURIComponent(userId)}`, { method: 'PUT', body })
+  adminAlterar: (userId, body) => req(`/api/admin/profissionais/${encodeURIComponent(userId)}`, { method: 'PUT', body }),
+  // Lote F (Clínica): pendências administrativas
+  tarefas: (status = 'abertas') => req(`/api/espacos/tarefas?status=${encodeURIComponent(status)}`),
+  criarTarefa: (body) => req('/api/espacos/tarefas', { method: 'POST', body }),
+  editarTarefa: (id, body) => req(`/api/espacos/tarefas/${encodeURIComponent(id)}`, { method: 'PUT', body }),
+  arquivarTarefa: (id) => req(`/api/espacos/tarefas/${encodeURIComponent(id)}`, { method: 'DELETE', body: {} })
 };
 
 export const MODEL_OPTIONS = [

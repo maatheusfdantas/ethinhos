@@ -7,6 +7,9 @@
 import { isMissingTable, PEOPLE_LABEL, MODEL_LABEL, requirePro } from '../_lib/espacos-acesso.js';
 import { jsonResponse } from '../_lib/http.js';
 
+/** Data AAAA-MM-DD (ou ISO) como DD/MM/AAAA nos textos da visão geral. */
+const br = (d) => { const [y, m, dd] = String(d || '').slice(0, 10).split('-'); return y && m && dd ? `${dd}/${m}/${y}` : String(d || ''); };
+
 async function safe(fn) {
   try {
     return await fn();
@@ -53,7 +56,7 @@ export async function handleEspacosVisaoRoutes(ctx) {
            AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.link_id = l.id AND a.status = 'ativa')
          ORDER BY l.started_at DESC LIMIT 50`
       ).bind(pro.space_id).all()).results || []);
-      if (sem) blocks.push({ key: 'sem_atribuicao', label: 'Sem treino atribuído', action: 'atribuir', items: sem.map((r) => ({ linkId: r.link_id, name: r.name, detail: `vínculo desde ${r.started_at.slice(0, 10)}` })) });
+      if (sem) blocks.push({ key: 'sem_atribuicao', label: 'Sem treino atribuído', action: 'atribuir', items: sem.map((r) => ({ linkId: r.link_id, name: r.name, detail: `vínculo desde ${br(r.started_at)}` })) });
       const novos = await safe(async () => (await db.prepare(
         `SELECT s.id, s.name, s.status, s.ended_at, s.planned_sets, l.id AS link_id, u.name AS person,
                 (SELECT COUNT(*) FROM workout_sets t WHERE t.session_id = s.id) AS done_sets
@@ -73,7 +76,7 @@ export async function handleEspacosVisaoRoutes(ctx) {
            AND NOT EXISTS (SELECT 1 FROM meal_plans p WHERE p.link_id = l.id AND p.status = 'publicado')
          ORDER BY l.started_at DESC LIMIT 50`
       ).bind(pro.space_id).all()).results || []);
-      if (sem) blocks.push({ key: 'sem_plano', label: 'Sem plano publicado', action: 'plano', items: sem.map((r) => ({ linkId: r.link_id, name: r.name, detail: r.rascunho ? `rascunho, ainda não publicado (editado em ${r.rascunho.slice(0, 10)})` : `vínculo desde ${r.started_at.slice(0, 10)}` })) });
+      if (sem) blocks.push({ key: 'sem_plano', label: 'Sem plano publicado', action: 'plano', items: sem.map((r) => ({ linkId: r.link_id, name: r.name, detail: r.rascunho ? `rascunho, ainda não publicado (editado em ${br(r.rascunho)})` : `vínculo desde ${br(r.started_at)}` })) });
       const novos = await safe(async () => (await db.prepare(
         `SELECT p.link_id, u.name, COUNT(*) AS n, MAX(g.updated_at) AS last
          FROM meal_logs g JOIN meal_plans p ON p.id = g.plan_id JOIN space_links l ON l.id = p.link_id JOIN users u ON u.id = g.client_id
@@ -88,7 +91,7 @@ export async function handleEspacosVisaoRoutes(ctx) {
            WHERE p.space_id = ? AND l.status = 'ativo' AND p.status = 'publicado' AND p.ends_on IS NOT NULL AND p.ends_on <= ? ORDER BY p.ends_on LIMIT 50`
         ).bind(pro.space_id, limit).all()).results || [];
       });
-      if (vence) blocks.push({ key: 'plano_termina', label: 'Plano termina em 7 dias', action: 'plano', items: vence.map((r) => ({ linkId: r.link_id, name: r.name, detail: `${r.plan}, ${r.ends_on < nowIso.slice(0, 10) ? 'terminou' : 'termina'} em ${r.ends_on}` })) });
+      if (vence) blocks.push({ key: 'plano_termina', label: 'Plano termina em 7 dias', action: 'plano', items: vence.map((r) => ({ linkId: r.link_id, name: r.name, detail: `${r.plan}, ${r.ends_on < nowIso.slice(0, 10) ? 'terminou' : 'termina'} em ${br(r.ends_on)}` })) });
     }
 
     // Agenda (lote C): convites sem resposta de eventos futuros e próximos eventos
@@ -109,7 +112,13 @@ export async function handleEspacosVisaoRoutes(ctx) {
     // Clínica (lote F): pendências administrativas abertas
     if (pro.model === 'clinica') {
       const tarefas = await safe(async () => (await db.prepare("SELECT id, title, due_on FROM space_tasks WHERE space_id = ? AND status = 'aberta' ORDER BY COALESCE(due_on, '9999') LIMIT 50").bind(pro.space_id).all()).results || []);
-      if (tarefas) blocks.push({ key: 'tarefas', label: 'Pendências administrativas', action: 'tarefa', items: tarefas.map((r) => ({ taskId: r.id, name: r.title, detail: r.due_on ? `até ${r.due_on}` : 'sem prazo' })) });
+      if (tarefas) blocks.push({ key: 'tarefas', label: 'Pendências administrativas', action: 'tarefa', items: tarefas.map((r) => ({ taskId: r.id, name: r.title, detail: r.due_on ? `até ${br(r.due_on)}` : 'sem prazo' })) });
+      // Pessoas que entraram nos últimos 30 dias (prévia 06): só nome e data de entrada.
+      const novas = (await db.prepare(
+        `SELECT l.id AS link_id, u.name, l.started_at FROM space_links l JOIN users u ON u.id = l.client_id
+         WHERE l.space_id = ? AND l.status = 'ativo' AND l.started_at > ? ORDER BY l.started_at DESC LIMIT 50`
+      ).bind(pro.space_id, new Date(Date.now() - 30 * 86400000).toISOString()).all()).results || [];
+      blocks.push({ key: 'pessoas_novas', label: 'Pessoas novas', action: 'abrir', items: novas.map((r) => ({ linkId: r.link_id, name: r.name, detail: `entrou em ${br(r.started_at)}` })) });
     }
 
     return reply({

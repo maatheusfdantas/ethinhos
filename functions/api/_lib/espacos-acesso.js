@@ -6,7 +6,8 @@
  */
 export const MODEL_LABEL = { personal: 'Personal', nutri: 'Nutricionista', clinica: 'Organização Clínica' };
 export const PEOPLE_LABEL = { personal: 'Alunos', nutri: 'Pacientes', clinica: 'Pessoas' };
-export const MODEL_AREAS = { personal: ['treino'], nutri: ['alimentacao'], clinica: [] };
+// Clínica: só organização. "tarefas" são as pendências administrativas internas (lote F), sem dado clínico.
+export const MODEL_AREAS = { personal: ['treino'], nutri: ['alimentacao'], clinica: ['tarefas'] };
 
 export async function proOf(db, userId) {
   return db
@@ -24,7 +25,7 @@ export async function requirePro(db, userId, area = null) {
   if (!pro) return { status: 403, error: 'Você não tem um espaço profissional.' };
   if (pro.status !== 'ativo') return { status: 403, error: 'Seu espaço está suspenso. Fale com o suporte do Ethos.' };
   if (area && !(MODEL_AREAS[pro.model] || []).includes(area)) {
-    const what = area === 'treino' ? 'treinos' : area === 'alimentacao' ? 'alimentação' : area;
+    const what = area === 'treino' ? 'treinos' : area === 'alimentacao' ? 'alimentação' : area === 'tarefas' ? 'pendências administrativas' : area;
     return { status: 403, error: `O modelo ${MODEL_LABEL[pro.model]} não acessa ${what}.` };
   }
   return { pro };

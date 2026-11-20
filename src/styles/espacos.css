@@ -124,3 +124,8 @@
 .es-banner { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 10px 12px 10px 14px; border-radius: 14px; background: var(--rx-blue-wash); border: 1px solid rgba(96, 165, 250, .25); font-size: 14.5px; color: var(--rx-ink); }
 .es-banner svg { color: var(--rx-blue); flex: none; }
 .es-banner .grow { flex: 1; min-width: 0; }
+
+/* Lote F: pendências administrativas (Clínica) */
+.es-task .rx-check { width: 38px; height: 38px; }
+.es-task .rx-check svg { width: 19px; height: 19px; }
+.es-task .rx-check[aria-pressed="true"] { background: var(--rx-grad); border-color: transparent; color: var(--rx-on-accent); }

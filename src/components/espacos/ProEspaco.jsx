@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Copy, Lock, Plus, Ticket, User } from 'lucide-react';
+import { Calendar, ClipboardList, Copy, Lock, Plus, Ticket, User } from 'lucide-react';
 import { espacosApi, fmtDate, fmtUntil, initialsOf } from './espacosApi';
 import { AtribuirDialog } from './AtribuirDialog';
 import { ProIndividual } from './ProIndividual';
 import { ProConteudo } from './ProConteudo';
 import { AvisosPanel, EventosPanel, ProAgendaPage } from './ProAgenda';
 import { PlanosModelo, ProPlano, ProRegistrosAlimentacao, TurmaPlanos } from '../alimentacao/ProAlimentacao';
+import { TarefasPage } from './ProTarefas';
 import '../../styles/espacos.css';
 
 /**
@@ -107,6 +108,8 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
     visaoAction: (b, it, h) => {
       if (b.action === 'lembrar' && it.eventId && it.inviteId) return <button type="button" className="rx-btn ghost tiny" onClick={async () => { try { await espacosApi.lembrar(it.eventId, it.inviteId); toast(`Lembrete enviado a ${it.name}.`); } catch (e) { toast(e.message); } }}>Lembrar</button>;
       if (b.action === 'agenda') return <button type="button" className="rx-btn ghost tiny" onClick={() => onNavigate?.('pro-agenda')}>Agenda</button>;
+      // Lote F: concluir a pendência administrativa direto da visão geral
+      if (b.action === 'tarefa' && it.taskId) return <button type="button" className="rx-btn ghost tiny" onClick={async () => { try { await espacosApi.editarTarefa(it.taskId, { status: 'concluida' }); toast('Tarefa concluída.'); h?.reload?.(); } catch (e) { toast(e.message); } }}>Concluir</button>;
       return extensions.visaoAction ? extensions.visaoAction(b, it, h) : null;
     }
   };
@@ -171,6 +174,8 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
   let body;
   if (view === 'pro-agenda') {
     body = <ProAgendaPage toast={toast} pro={meu.pro} />;
+  } else if (view === 'pro-tarefas') {
+    body = model === 'clinica' ? <TarefasPage pro={meu.pro} toast={toast} /> : <div className="es-empty"><p>Nada por aqui para este modelo.</p></div>;
   } else if (view === 'pro-conteudo') {
     body = model === 'personal' ? <ProConteudo toast={toast} /> : ext.conteudo ? ext.conteudo({ toast }) : <div className="es-empty"><p>Nada por aqui para este modelo.</p></div>;
   } else if (view === 'pro-pessoas' && pessoaSel) {
@@ -290,7 +295,7 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
               <>
                 <h2>{b.label} <span className="rx-pill">{b.items.length}</span></h2>
                 {b.items.length === 0 ? <div className="es-empty"><p>{b.key === 'registros_novos' ? 'Nenhum registro novo desde a sua última visita.' : b.key === 'sem_atribuicao' ? 'Todo mundo tem treino atribuído.' : 'Nada aqui agora.'}</p></div> : b.items.map((it, i) => (
-                  <div className="es-row" key={`${b.key}-${i}`}><span className="es-avatar">{initialsOf(it.name)}</span><div className="grow"><b>{it.name}</b><small>{it.detail}{it.at ? `, ${fmtUntil(it.at)}` : ''}</small></div>{itemAction(b, it)}</div>
+                  <div className="es-row" key={`${b.key}-${i}`}><span className="es-avatar">{it.taskId ? <ClipboardList size={15} /> : b.key === 'proximos_eventos' ? <Calendar size={15} /> : initialsOf(it.name)}</span><div className="grow"><b>{it.name}</b><small>{it.detail}{it.at ? `, ${fmtUntil(it.at)}` : ''}</small></div>{itemAction(b, it)}</div>
                 ))}
                 {b.key === 'registros_novos' && b.items.length > 0 && <button type="button" className="rx-btn ghost tiny" style={{ marginTop: 10 }} onClick={async () => { await act(() => espacosApi.visto(), 'Marcado como visto.'); }}>Já vi tudo</button>}
               </>

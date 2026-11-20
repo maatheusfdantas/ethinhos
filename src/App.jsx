@@ -531,7 +531,7 @@ export function App() {
     }
   };
 
-  const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', 'pro-conteudo': proInfo?.model === 'nutri' ? 'Planos alimentares' : 'Fichas e programas', 'pro-agenda': 'Agenda e avisos', alimentacao: 'Alimentação', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
+  const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', 'pro-conteudo': proInfo?.model === 'nutri' ? 'Planos alimentares' : 'Fichas e programas', 'pro-agenda': 'Agenda e avisos', 'pro-tarefas': 'Pendências administrativas', alimentacao: 'Alimentação', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
@@ -807,7 +807,7 @@ export function App() {
 
             {activeTab === 'espacos' && <EspacosTab showToast={showToast} initialCode={inviteFromUrl} />}
             {activeTab === 'alimentacao' && <AlimentacaoTab showToast={showToast} />}
-            {proMode && proInfo?.status === 'ativo' && ['pro-visao', 'pro-turmas', 'pro-pessoas', 'pro-conteudo', 'pro-agenda'].includes(activeTab) && (
+            {proMode && proInfo?.status === 'ativo' && ['pro-visao', 'pro-turmas', 'pro-pessoas', 'pro-conteudo', 'pro-agenda', 'pro-tarefas'].includes(activeTab) && (
               <ProEspaco view={activeTab} pro={proInfo} onNavigate={proNavigate} navParams={proNav} showToast={showToast} />
             )}
 

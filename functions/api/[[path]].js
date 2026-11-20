@@ -27,6 +27,7 @@ import { handleEspacosTreinoRoutes } from './_routes/espacos-treino.js';
 import { handleEspacosVisaoRoutes } from './_routes/espacos-visao.js';
 import { handleEspacosAgendaRoutes } from './_routes/espacos-agenda.js';
 import { handleAlimentacaoRoutes } from './_routes/alimentacao.js';
+import { handleEspacosTarefasRoutes } from './_routes/espacos-tarefas.js';
 import { handleEntriesRoutes } from './_routes/entries';
 import { handleInsightsRoutes } from './_routes/insights.js';
 import { handleIntegrationsRoutes } from './_routes/integrations.js';
@@ -42,7 +43,7 @@ const PUBLIC_HANDLERS = [handleAuthRoutes, handleOAuthRoutes, handleIntegrations
  * Rotas protegidas (depois de authorizeRequest). O núcleo /api/v1 vem primeiro e
  * exige JWT por conta própria (o usuário sai do token, nunca da URL).
  */
-const PROTECTED_HANDLERS = [handleRoutineRoutes, handleEntriesRoutes, handleCommunityRoutes, handleUserRoutes, handleInsightsRoutes, handleSupportAccessRoutes, handleEspacosTreinoRoutes, handleEspacosVisaoRoutes, handleEspacosAgendaRoutes, handleAlimentacaoRoutes, handleTreinoRoutes, handleEspacosRoutes, handleAdminRoutes];
+const PROTECTED_HANDLERS = [handleRoutineRoutes, handleEntriesRoutes, handleCommunityRoutes, handleUserRoutes, handleInsightsRoutes, handleSupportAccessRoutes, handleEspacosTreinoRoutes, handleEspacosVisaoRoutes, handleEspacosAgendaRoutes, handleEspacosTarefasRoutes, handleAlimentacaoRoutes, handleTreinoRoutes, handleEspacosRoutes, handleAdminRoutes];
 
 export async function onRequest(context) {
   const { request, env } = context;
