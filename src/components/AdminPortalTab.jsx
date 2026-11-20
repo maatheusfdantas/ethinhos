@@ -217,7 +217,7 @@ function PomodoCard() {
           Pomodo
         </h2>
         <p style={{ fontSize: '13px', color: '#9CA3AF', margin: '6px 0 0' }}>
-          Lumo orbita ao redor do cronômetro com brilho pulsante, estrelas cadentes e asteroides em segundo plano.
+          Lumo orbita ao redor do cronômetro com brilho pulsante e asteroides em segundo plano.
         </p>
       </div>
 

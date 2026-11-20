@@ -192,28 +192,7 @@ export function LumoMascot({
           </g>
         </g>
 
-        {/* 3. Estrelas cadentes cruzando o céu */}
-        <g className="lumo__shooting-stars">
-          <g className="lumo__shooting-star lumo__shooting-star--1">
-            <line x1="0" y1="0" x2="-48" y2="-28" stroke="url(#lumoTailGrad)" strokeWidth="1.8" strokeLinecap="round" />
-            <circle cx="0" cy="0" r="2.2" fill="#FFFFFF" filter="url(#lumoBlurSmall)" />
-            <circle cx="0" cy="0" r="1.2" fill="#FFFFFF" />
-          </g>
-
-          <g className="lumo__shooting-star lumo__shooting-star--2">
-            <line x1="0" y1="0" x2="-36" y2="-22" stroke="url(#lumoTailGrad)" strokeWidth="1.4" strokeLinecap="round" />
-            <circle cx="0" cy="0" r="1.8" fill="#FFFFFF" filter="url(#lumoBlurSmall)" />
-            <circle cx="0" cy="0" r="1" fill="#FFFFFF" />
-          </g>
-
-          <g className="lumo__shooting-star lumo__shooting-star--3">
-            <line x1="0" y1="0" x2="-54" y2="-32" stroke="url(#lumoTailGrad)" strokeWidth="1.6" strokeLinecap="round" />
-            <circle cx="0" cy="0" r="2" fill="#FFFFFF" filter="url(#lumoBlurSmall)" />
-            <circle cx="0" cy="0" r="1.1" fill="#FFFFFF" />
-          </g>
-        </g>
-
-        {/* 4. Trilhas e anéis orbitais ao redor do timer central */}
+        {/* 3. Trilhas e anéis orbitais ao redor do timer central */}
         <g className="lumo__orbit-system">
           {/* Anel guia base (pontilhado suave cósmico) */}
           <circle

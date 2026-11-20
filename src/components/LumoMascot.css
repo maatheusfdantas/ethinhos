@@ -114,93 +114,7 @@
 }
 
 /* ========================================================================= */
-/* 3. Estrelas Cadentes (Shooting Stars)                                     */
-/* ========================================================================= */
-
-.lumo__shooting-stars {
-  pointer-events: none;
-}
-
-.lumo__shooting-star {
-  opacity: 0;
-}
-
-.lumo__shooting-star--1 {
-  transform: translate(320px, 40px) rotate(4deg);
-  animation: lumo-shooting-streak-1 8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-}
-
-.lumo__shooting-star--2 {
-  transform: translate(280px, 240px) rotate(-12deg);
-  animation: lumo-shooting-streak-2 11s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-  animation-delay: 3.5s;
-}
-
-.lumo__shooting-star--3 {
-  transform: translate(120px, 45px) rotate(18deg);
-  animation: lumo-shooting-streak-3 14s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-  animation-delay: 7s;
-}
-
-@keyframes lumo-shooting-streak-1 {
-  0%, 78% {
-    opacity: 0;
-    transform: translate(330px, 35px) scale(0.4);
-  }
-  80% {
-    opacity: 1;
-    transform: translate(260px, 75px) scale(1);
-  }
-  84% {
-    opacity: 0.9;
-    transform: translate(150px, 140px) scale(0.9);
-  }
-  87%, 100% {
-    opacity: 0;
-    transform: translate(60px, 195px) scale(0.3);
-  }
-}
-
-@keyframes lumo-shooting-streak-2 {
-  0%, 82% {
-    opacity: 0;
-    transform: translate(310px, 220px) scale(0.4);
-  }
-  84% {
-    opacity: 1;
-    transform: translate(220px, 275px) scale(1);
-  }
-  88% {
-    opacity: 0.85;
-    transform: translate(120px, 335px) scale(0.85);
-  }
-  91%, 100% {
-    opacity: 0;
-    transform: translate(40px, 385px) scale(0.3);
-  }
-}
-
-@keyframes lumo-shooting-streak-3 {
-  0%, 85% {
-    opacity: 0;
-    transform: translate(140px, 30px) scale(0.4);
-  }
-  87% {
-    opacity: 1;
-    transform: translate(90px, 85px) scale(1);
-  }
-  90% {
-    opacity: 0.8;
-    transform: translate(20px, 155px) scale(0.8);
-  }
-  93%, 100% {
-    opacity: 0;
-    transform: translate(-30px, 205px) scale(0.2);
-  }
-}
-
-/* ========================================================================= */
-/* 4. Sistema Orbital ao Redor do Timer                                       */
+/* 3. Sistema Orbital ao Redor do Timer                                       */
 /* ========================================================================= */
 
 .lumo__progress-arc {
@@ -484,9 +398,6 @@
   .lumo__asteroid--1,
   .lumo__asteroid--2,
   .lumo__asteroid--3,
-  .lumo__shooting-star--1,
-  .lumo__shooting-star--2,
-  .lumo__shooting-star--3,
   .lumo__nebula {
     animation: none !important;
   }

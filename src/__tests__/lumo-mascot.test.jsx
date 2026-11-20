@@ -63,7 +63,7 @@ describe('LumoMascot Component 2.1 (Orbital & Cosmic Elements)', () => {
     expect(container.querySelector('.lumo__constellation.is-visible')).not.toBeNull();
   });
 
-  it('renderiza o sistema cósmico com asteroides, estrelas cadentes, carrier orbital e flare', () => {
+  it('renderiza o sistema cósmico com asteroides, carrier orbital e flare, sem estrelas cadentes', () => {
     const { container } = render(<LumoMascot progress={50} status="focus" size={360} />);
 
     // Asteroides
@@ -71,10 +71,9 @@ describe('LumoMascot Component 2.1 (Orbital & Cosmic Elements)', () => {
     expect(container.querySelector('.lumo__asteroid--2')).not.toBeNull();
     expect(container.querySelector('.lumo__asteroid--3')).not.toBeNull();
 
-    // Estrelas cadentes
-    expect(container.querySelector('.lumo__shooting-star--1')).not.toBeNull();
-    expect(container.querySelector('.lumo__shooting-star--2')).not.toBeNull();
-    expect(container.querySelector('.lumo__shooting-star--3')).not.toBeNull();
+    // Estrelas cadentes não devem estar presentes
+    expect(container.querySelector('.lumo__shooting-stars')).toBeNull();
+    expect(container.querySelector('.lumo__shooting-star--1')).toBeNull();
 
     // Carrier orbital do Lumo (orbitando o timer)
     expect(container.querySelector('.lumo__orbital-carrier')).not.toBeNull();
