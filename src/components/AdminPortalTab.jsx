@@ -24,11 +24,15 @@ import {
   ArrowRight,
   ArrowLeft,
   FlaskConical,
+  Play,
+  Pause,
+  RotateCcw,
   X
 } from 'lucide-react';
 import { apiFetch } from '../utils/api';
 import { AdminSupportGrant } from './support/AdminSupportGrant';
 import { AdminProfissionais } from './espacos/AdminProfissionais';
+import { LumoMascot } from './LumoMascot';
 
 /**
  * Floating Ambient Dust Particles
@@ -89,6 +93,347 @@ function AmbientDust({ count = 28 }) {
           }}
         />
       ))}
+    </div>
+  );
+}
+
+/**
+ * Card Pomodo com Mascote Lumo integrado
+ * Simulação interativa do timer nos estados focus, paused e completed
+ */
+function PomodoCard() {
+  const [status, setStatus] = useState('focus');
+  const [seconds, setSeconds] = useState(25 * 60);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    let timer = null;
+    if (isRunning && seconds > 0) {
+      timer = setInterval(() => {
+        setSeconds((prev) => {
+          if (prev <= 1) {
+            setIsRunning(false);
+            setStatus('completed');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isRunning, seconds]);
+
+  const handleTogglePlay = () => {
+    if (status === 'completed') {
+      setSeconds(25 * 60);
+      setStatus('focus');
+      setIsRunning(true);
+      return;
+    }
+    if (isRunning) {
+      setIsRunning(false);
+      setStatus('paused');
+    } else {
+      setIsRunning(true);
+      setStatus('focus');
+    }
+  };
+
+  const handleReset = (mins = 25) => {
+    setIsRunning(false);
+    setSeconds(mins * 60);
+    setStatus('focus');
+  };
+
+  const handleForceComplete = () => {
+    setIsRunning(false);
+    setSeconds(0);
+    setStatus('completed');
+  };
+
+  const handleSelectStatus = (newStatus) => {
+    setStatus(newStatus);
+    if (newStatus === 'focus') {
+      setIsRunning(true);
+      if (seconds === 0) setSeconds(25 * 60);
+    } else if (newStatus === 'paused') {
+      setIsRunning(false);
+    } else if (newStatus === 'completed') {
+      setIsRunning(false);
+      setSeconds(0);
+    }
+  };
+
+  const formatTime = (totalSec) => {
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  return (
+    <div
+      data-testid="pomodo-card"
+      style={{
+        backgroundColor: 'rgba(22, 22, 26, 0.85)',
+        backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(124, 92, 255, 0.25)',
+        boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(124, 92, 255, 0.12)',
+        borderRadius: '24px',
+        padding: '36px 28px',
+        maxWidth: '760px',
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}
+    >
+      <div style={{ textAlign: 'center', marginBottom: '24px', width: '100%' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', backgroundColor: 'rgba(124, 92, 255, 0.14)', border: '1px solid rgba(124, 92, 255, 0.3)', marginBottom: '10px' }}>
+          <Sparkles size={13} color="#C4B5FD" />
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#C4B5FD', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Laboratório Experimental
+          </span>
+        </div>
+        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em' }}>
+          Pomodo
+        </h2>
+        <p style={{ fontSize: '13px', color: '#9CA3AF', margin: '6px 0 0' }}>
+          Simulação do mascote Lumo orbitando em volta do cronômetro de foco.
+        </p>
+      </div>
+
+      {/* Seletor Rápido de Estados */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '8px',
+          padding: '4px',
+          borderRadius: '999px',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          marginBottom: '28px'
+        }}
+      >
+        {[
+          { id: 'focus', label: '🔥 Foco' },
+          { id: 'paused', label: '⏸️ Pausa' },
+          { id: 'completed', label: '✨ Concluído' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => handleSelectStatus(tab.id)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '999px',
+              border: 'none',
+              fontSize: '12px',
+              fontWeight: status === tab.id ? 700 : 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              backgroundColor: status === tab.id ? '#7C5CFF' : 'transparent',
+              color: status === tab.id ? '#FFFFFF' : '#9CA3AF'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Timer com o Mascote Lumo em volta */}
+      <div
+        style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '12px 0 28px',
+          width: '280px',
+          height: '280px'
+        }}
+      >
+        <LumoMascot status={status} size={280}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              userSelect: 'none',
+              textAlign: 'center',
+              background: 'radial-gradient(circle, rgba(15, 15, 20, 0.82) 40%, transparent 80%)',
+              padding: '16px 24px',
+              borderRadius: '50%'
+            }}
+          >
+            <span
+              style={{
+                fontSize: '44px',
+                fontWeight: 800,
+                color: '#FFFFFF',
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+                fontVariantNumeric: 'tabular-nums',
+                textShadow:
+                  status === 'focus'
+                    ? '0 0 24px rgba(127, 231, 255, 0.7), 0 0 48px rgba(79, 141, 255, 0.4)'
+                    : status === 'completed'
+                    ? '0 0 32px rgba(124, 92, 255, 0.9), 0 0 60px rgba(127, 231, 255, 0.6)'
+                    : 'none'
+              }}
+            >
+              {formatTime(seconds)}
+            </span>
+            <span
+              style={{
+                marginTop: '6px',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                backgroundColor:
+                  status === 'focus'
+                    ? 'rgba(127, 231, 255, 0.15)'
+                    : status === 'completed'
+                    ? 'rgba(124, 92, 255, 0.25)'
+                    : 'rgba(255, 255, 255, 0.08)',
+                color:
+                  status === 'focus'
+                    ? '#7FE7FF'
+                    : status === 'completed'
+                    ? '#C4B5FD'
+                    : '#9CA3AF'
+              }}
+            >
+              {status === 'focus' ? 'Foco' : status === 'completed' ? 'Finalizado' : 'Em Pausa'}
+            </span>
+          </div>
+        </LumoMascot>
+      </div>
+
+      {/* Controles do Timer */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+        <button
+          type="button"
+          onClick={handleTogglePlay}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '11px 24px',
+            borderRadius: '999px',
+            backgroundColor: isRunning ? 'rgba(239, 68, 68, 0.2)' : '#7C5CFF',
+            border: isRunning ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
+            color: '#FFFFFF',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: isRunning ? 'none' : '0 8px 24px -4px rgba(124, 92, 255, 0.5)',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {isRunning ? <Pause size={15} /> : <Play size={15} fill="#FFFFFF" />}
+          <span>{isRunning ? 'Pausar' : status === 'completed' ? 'Reiniciar e Focar' : 'Iniciar'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleReset(25)}
+          title="Resetar para 25 min"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '10px 18px',
+            borderRadius: '999px',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            color: '#D1D5DB',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          <RotateCcw size={13} />
+          <span>25m</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleForceComplete}
+          title="Simular conclusão imediata"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '10px 18px',
+            borderRadius: '999px',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            color: '#D1D5DB',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          <Check size={13} />
+          <span>Concluir</span>
+        </button>
+      </div>
+
+      {/* Amostras dos 3 estados individuais conforme solicitado pelo usuário */}
+      <div
+        style={{
+          width: '100%',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          paddingTop: '24px'
+        }}
+      >
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', marginBottom: '16px' }}>
+          Estados Nativos do Mascote Lumo
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '16px',
+            width: '100%'
+          }}
+        >
+          {[
+            { st: 'focus', title: 'Foco', desc: 'Anéis rápidos, pulso & partículas flutuando' },
+            { st: 'paused', title: 'Pausa', desc: 'Rotação lenta & brilho reduzido' },
+            { st: 'completed', title: 'Concluído', desc: 'Expansão + explosão de fragmentos' }
+          ].map((item) => (
+            <div
+              key={item.st}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                borderRadius: '16px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center'
+              }}
+            >
+              <LumoMascot status={item.st} size={150} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', marginTop: '10px' }}>
+                {item.title}
+              </div>
+              <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+                {item.desc}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1847,27 +2192,31 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
               padding: '24px 0'
             }}
           >
-            <button
-              type="button"
-              onClick={() => setActiveSection(previousSection || 'users')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                borderRadius: '999px',
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.14)',
-                color: '#FFFFFF',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-              }}
-            >
-              <ArrowLeft size={16} />
-              <span>Voltar</span>
-            </button>
+            <div style={{ marginBottom: '20px' }}>
+              <button
+                type="button"
+                onClick={() => setActiveSection(previousSection || 'users')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 20px',
+                  borderRadius: '999px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  color: '#FFFFFF',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                <ArrowLeft size={16} />
+                <span>Voltar</span>
+              </button>
+            </div>
+
+            <PomodoCard />
           </section>
         )}
       </main>

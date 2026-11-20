@@ -1,0 +1,216 @@
+/* src/components/LumoMascot.css */
+.lumo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  color-scheme: dark;
+}
+
+.lumo svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Estado base */
+.lumo__core {
+  transform-origin: 110px 110px;
+  transition:
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lumo__core-group {
+  transform-origin: 110px 110px;
+  transition:
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lumo__glow {
+  transform-origin: 110px 110px;
+  transition:
+    transform 800ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lumo__ring {
+  transform-origin: 110px 110px;
+}
+
+.lumo__ring--violet {
+  animation: lumo-rotate-violet 16s linear infinite;
+}
+
+.lumo__ring--blue {
+  animation: lumo-rotate-blue 11s linear infinite reverse;
+}
+
+/* Foco */
+.lumo--focus .lumo__core-group {
+  animation: lumo-core-pulse 3.2s ease-in-out infinite;
+}
+
+.lumo--focus .lumo__ring--violet {
+  animation-duration: 14s;
+}
+
+.lumo--focus .lumo__ring--blue {
+  animation-duration: 9s;
+}
+
+.lumo--focus .lumo__fragment {
+  animation: lumo-fragment-float 5s ease-in-out infinite;
+}
+
+.lumo--focus .lumo__fragment--2 {
+  animation-delay: -1.2s;
+}
+
+.lumo--focus .lumo__fragment--3 {
+  animation-delay: -2.4s;
+}
+
+.lumo--focus .lumo__fragment--4 {
+  animation-delay: -3.6s;
+}
+
+/* Concluído */
+.lumo--completed .lumo__core-group {
+  transform: scale(1.12);
+}
+
+.lumo--completed .lumo__core {
+  opacity: 1;
+}
+
+.lumo--completed .lumo__glow {
+  transform: scale(1.22);
+  opacity: 1;
+}
+
+.lumo--completed .lumo__ring--violet {
+  animation-duration: 6s;
+}
+
+.lumo--completed .lumo__ring--blue {
+  animation-duration: 4.5s;
+}
+
+.lumo--completed .lumo__fragment {
+  animation: lumo-fragment-burst 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.lumo--completed .lumo__fragment--2 {
+  animation-delay: 80ms;
+}
+
+.lumo--completed .lumo__fragment--3 {
+  animation-delay: 160ms;
+}
+
+.lumo--completed .lumo__fragment--4 {
+  animation-delay: 240ms;
+}
+
+/* Pausa */
+.lumo--paused .lumo__core-group {
+  transform: scale(0.82);
+  opacity: 0.55;
+}
+
+.lumo--paused .lumo__glow {
+  transform: scale(0.85);
+  opacity: 0.35;
+}
+
+.lumo--paused .lumo__ring--violet {
+  animation-duration: 34s;
+}
+
+.lumo--paused .lumo__ring--blue {
+  animation-duration: 26s;
+}
+
+.lumo--paused .lumo__fragment {
+  animation: lumo-fragment-float 9s ease-in-out infinite;
+  opacity: 0.45;
+}
+
+/* Keyframes */
+@keyframes lumo-rotate-violet {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lumo-rotate-blue {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes lumo-core-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes lumo-fragment-float {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes lumo-fragment-burst {
+  0% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.65);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* Acessibilidade */
+@media (prefers-reduced-motion: reduce) {
+  .lumo__ring,
+  .lumo__core-group,
+  .lumo__fragment {
+    animation: none !important;
+  }
+
+  .lumo__core-group,
+  .lumo__glow,
+  .lumo__fragment {
+    transition-duration: 200ms;
+  }
+}
