@@ -13,6 +13,8 @@ import { ProEspaco } from './components/espacos/ProEspaco';
 import { useProEspaco } from './hooks/useProEspaco';
 import { usePendencias } from './hooks/usePendencias';
 import { PendenciasBell, PendenciasDrawer } from './components/pendencias/Pendencias';
+import { AlimentacaoTab } from './components/alimentacao/AlimentacaoTab';
+import { useMealPlans } from './hooks/useAlimentacao';
 import { FocusTab } from './components/FocusTab';
 import { CalendarTab } from './components/CalendarTab';
 import { TelemetryTab } from './components/TelemetryTab';
@@ -227,6 +229,8 @@ export function App() {
   // Pendências dos espaços (convites, avisos) e eventos aceitos, só para leitura na Agenda e no Painel.
   const pend = usePendencias(user);
   const [pendOpen, setPendOpen] = useState(false);
+  // Alimentação (lote E): a aba aparece só quando existe plano publicado para a pessoa.
+  const meal = useMealPlans(user, pend.data.total);
   const [proMode, setProMode] = useState(() => {
     try { return localStorage.getItem('ethos_pro_mode') === '1'; } catch { return false; }
   });
@@ -527,7 +531,7 @@ export function App() {
     }
   };
 
-  const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', 'pro-conteudo': proInfo?.model === 'nutri' ? 'Planos alimentares' : 'Fichas e programas', 'pro-agenda': 'Agenda e avisos', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
+  const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', 'pro-conteudo': proInfo?.model === 'nutri' ? 'Planos alimentares' : 'Fichas e programas', 'pro-agenda': 'Agenda e avisos', alimentacao: 'Alimentação', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
@@ -578,6 +582,7 @@ export function App() {
           pro={proInfo}
           proMode={proMode}
           onToggleProMode={toggleProMode}
+          hasMealPlan={meal.hasMealPlan}
         />
 
         <div className="rx-col">
@@ -801,6 +806,7 @@ export function App() {
             )}
 
             {activeTab === 'espacos' && <EspacosTab showToast={showToast} initialCode={inviteFromUrl} />}
+            {activeTab === 'alimentacao' && <AlimentacaoTab showToast={showToast} />}
             {proMode && proInfo?.status === 'ativo' && ['pro-visao', 'pro-turmas', 'pro-pessoas', 'pro-conteudo', 'pro-agenda'].includes(activeTab) && (
               <ProEspaco view={activeTab} pro={proInfo} onNavigate={proNavigate} navParams={proNav} showToast={showToast} />
             )}
@@ -833,7 +839,7 @@ export function App() {
             )}
 
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
-            {activeTab !== 'dashboard' && activeTab !== 'notes' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && activeTab !== 'espacos' && !String(activeTab).startsWith('pro-') && (
+            {activeTab !== 'dashboard' && activeTab !== 'notes' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && activeTab !== 'espacos' && activeTab !== 'alimentacao' && !String(activeTab).startsWith('pro-') && (
               <div className="rx-sheet-dark">
                 {/* TAB 5: TELEMETRIA / ANÁLISE DE PROGRESSO */}
                 {activeTab === 'telemetry' && (
@@ -902,10 +908,11 @@ export function App() {
           pro={proInfo}
           proMode={proMode}
           onToggleProMode={toggleProMode}
+          hasMealPlan={meal.hasMealPlan}
         />
       )}
 
-      <PendenciasDrawer open={pendOpen} onClose={() => setPendOpen(false)} data={pend.data} onChanged={pend.refresh} toast={showToast} />
+      <PendenciasDrawer open={pendOpen} onClose={() => setPendOpen(false)} data={pend.data} onChanged={pend.refresh} toast={showToast} onOpenTab={(t) => { setPendOpen(false); setActiveTab(t); }} />
 
       {/* DISCREET TOAST NOTIFICATION (WITH UNDO / CTRL+Z) */}
       <Toast toast={toast} onDismiss={() => setToast(null)} />

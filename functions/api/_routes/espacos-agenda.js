@@ -98,9 +98,19 @@ export async function handleEspacosAgendaRoutes(ctx) {
            FROM notifications n LEFT JOIN spaces s ON s.id = n.space_id
            LEFT JOIN space_events e ON e.id = n.ref_id AND n.type IN ('evento_cancelado', 'evento_texto')
            LEFT JOIN space_posts p ON p.id = n.ref_id AND n.type = 'comentario'
-           WHERE n.user_id = ? AND n.read_at IS NULL AND n.type IN ('evento_cancelado', 'evento_texto', 'comentario')
+           WHERE n.user_id = ? AND n.read_at IS NULL AND n.type IN ('evento_cancelado', 'evento_texto', 'comentario', 'plano_publicado')
            ORDER BY n.created_at DESC LIMIT 50`
         ).bind(me).all()).results || [];
+        // Lote E: nome do plano alimentar publicado (consulta à parte: sem a migração 0013, só fica sem título).
+        const planIds = outras.filter((o) => o.type === 'plano_publicado').map((o) => o.ref_id);
+        if (planIds.length) {
+          try {
+            const names = (await db.prepare(`SELECT id, name FROM meal_plans WHERE client_id = ? AND id IN (${planIds.map(() => '?').join(',')})`).bind(me, ...planIds).all()).results || [];
+            for (const o of outras) if (o.type === 'plano_publicado') o.post_title = names.find((x) => x.id === o.ref_id)?.name || 'Plano alimentar';
+          } catch (e) {
+            if (!isMissingTable(e)) throw e;
+          }
+        }
         return reply({
           convites: convites.map((c) => ({ inviteId: c.id, eventId: c.event_id, title: c.title, description: c.description, location: c.location, startsAt: c.starts_at, endsAt: c.ends_at, spaceName: c.space_name, proName: c.pro_name, changed: c.answered_version !== null && c.answered_version < c.version, lembrete: Boolean(c.lembrete_at) })),
           avisos: avisos.map((a) => ({ postId: a.id, title: a.title, createdAt: a.created_at, spaceName: a.space_name, proName: a.pro_name })),

@@ -80,7 +80,7 @@ export function ProIndividual({ linkId, pro, onBack, toast, extraTabs = [], init
         {tabs.map((t) => <button key={t} type="button" aria-pressed={t === tab} onClick={() => setTab(t)}>{t}</button>)}
       </div>
 
-      {tab === 'Planejamento' && (
+      {isPersonal && tab === 'Planejamento' && (
         <article className="es-card">
           <h2>Fichas atribuídas</h2>
           {ativas.length === 0 && <div className="es-empty"><h3>Nada atribuído ainda</h3><p>Atribua uma ficha: ela aparece em “Do seu personal”, no Treino da pessoa.</p><button type="button" className="rx-btn" onClick={() => setAtribuir(true)}><Plus size={16} />Atribuir ficha</button></div>}
@@ -107,7 +107,8 @@ export function ProIndividual({ linkId, pro, onBack, toast, extraTabs = [], init
         </article>
       )}
 
-      {tab === 'Registros' && (
+      {/* Registros de treino só no Personal; a Nutricionista tem a própria aba "Registros" (lote E, via extraTabs). */}
+      {isPersonal && tab === 'Registros' && (
         <div className="es-stack">
           <article className="es-card">
             <h2>Esta semana</h2>

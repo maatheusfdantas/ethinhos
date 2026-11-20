@@ -66,12 +66,14 @@ export async function handleEspacosVisaoRoutes(ctx) {
 
     if (pro.model === 'nutri') {
       const sem = await safe(async () => (await db.prepare(
-        `SELECT l.id AS link_id, u.name, l.started_at FROM space_links l JOIN users u ON u.id = l.client_id
+        `SELECT l.id AS link_id, u.name, l.started_at,
+                (SELECT p.draft_updated_at FROM meal_plans p WHERE p.link_id = l.id AND p.status = 'rascunho') AS rascunho
+         FROM space_links l JOIN users u ON u.id = l.client_id
          WHERE l.space_id = ? AND l.status = 'ativo'
            AND NOT EXISTS (SELECT 1 FROM meal_plans p WHERE p.link_id = l.id AND p.status = 'publicado')
          ORDER BY l.started_at DESC LIMIT 50`
       ).bind(pro.space_id).all()).results || []);
-      if (sem) blocks.push({ key: 'sem_plano', label: 'Sem plano publicado', action: 'plano', items: sem.map((r) => ({ linkId: r.link_id, name: r.name, detail: `vínculo desde ${r.started_at.slice(0, 10)}` })) });
+      if (sem) blocks.push({ key: 'sem_plano', label: 'Sem plano publicado', action: 'plano', items: sem.map((r) => ({ linkId: r.link_id, name: r.name, detail: r.rascunho ? `rascunho, ainda não publicado (editado em ${r.rascunho.slice(0, 10)})` : `vínculo desde ${r.started_at.slice(0, 10)}` })) });
       const novos = await safe(async () => (await db.prepare(
         `SELECT p.link_id, u.name, COUNT(*) AS n, MAX(g.updated_at) AS last
          FROM meal_logs g JOIN meal_plans p ON p.id = g.plan_id JOIN space_links l ON l.id = p.link_id JOIN users u ON u.id = g.client_id
@@ -86,7 +88,7 @@ export async function handleEspacosVisaoRoutes(ctx) {
            WHERE p.space_id = ? AND l.status = 'ativo' AND p.status = 'publicado' AND p.ends_on IS NOT NULL AND p.ends_on <= ? ORDER BY p.ends_on LIMIT 50`
         ).bind(pro.space_id, limit).all()).results || [];
       });
-      if (vence) blocks.push({ key: 'plano_termina', label: 'Plano termina em 7 dias', action: 'plano', items: vence.map((r) => ({ linkId: r.link_id, name: r.name, detail: `${r.plan}, termina em ${r.ends_on}` })) });
+      if (vence) blocks.push({ key: 'plano_termina', label: 'Plano termina em 7 dias', action: 'plano', items: vence.map((r) => ({ linkId: r.link_id, name: r.name, detail: `${r.plan}, ${r.ends_on < nowIso.slice(0, 10) ? 'terminou' : 'termina'} em ${r.ends_on}` })) });
     }
 
     // Agenda (lote C): convites sem resposta de eventos futuros e próximos eventos

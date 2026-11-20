@@ -1,0 +1,49 @@
+/* Alimentação (lote E): mesmas formas da prévia 04 aprovada; só tokens --rx-* existentes. */
+
+/* Pessoa: opções da refeição, substituições e semana */
+.al-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
+.al-opt { padding: 14px; border-radius: 14px; background: var(--rx-wash); border: 1px solid var(--rx-line); }
+.al-opt h4 { margin: 0 0 6px; font-size: 14.5px; font-weight: 620; color: var(--rx-ink); }
+.al-opt ul { margin: 0; padding-left: 18px; font-size: 14px; color: var(--rx-ink-2); }
+.al-subs { margin-top: 8px; font-size: 13px; color: var(--rx-ink-3); display: flex; gap: 6px; align-items: flex-start; }
+.al-subs svg { color: var(--rx-blue); flex: none; margin-top: 2px; }
+.al-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.al-day { padding: 12px 10px; border-radius: 14px; background: var(--rx-wash); border: 1px solid var(--rx-line); min-width: 0; }
+.al-day.today { border-color: var(--rx-violet); background: var(--rx-violet-wash); }
+.al-day b { display: block; font-size: 14px; color: var(--rx-ink); }
+.al-day small { display: block; font-size: 12.5px; color: var(--rx-ink-3); }
+.al-day .v { margin-top: 8px; font-size: 20px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--rx-ink); }
+.al-day .v small { display: inline; font-size: 12.5px; font-weight: 450; }
+.al-plans { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.al-note { white-space: pre-line; }
+.al-list-plain { margin: 8px 0 0; padding-left: 18px; color: var(--rx-ink-2); font-size: 14px; }
+.al-list-plain li + li { margin-top: 4px; }
+
+/* Nutricionista: editor do plano */
+.ne-meal { padding: 16px 0; }
+.ne-meal + .ne-meal { border-top: 1px solid var(--rx-line); }
+.ne-meal-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ne-meal-head .t { width: 112px; flex: none; }
+.ne-meal-head .n { flex: 1; min-width: 160px; }
+.ne-items { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.ne-item { display: grid; grid-template-columns: 70px 150px minmax(0, 1fr) 36px; gap: 8px; }
+.ne-item .es-input, .ne-sub .es-input { height: 40px; font-size: 14.5px; padding: 0 10px; min-width: 0; }
+.ne-opt-label { margin: 14px 0 0; display: flex; align-items: center; gap: 8px; }
+.ne-opt-label .es-input { height: 36px; font-size: 13.5px; font-weight: 620; color: var(--rx-ink-2); max-width: 260px; }
+.ne-sub { display: grid; grid-template-columns: 18px minmax(0, 1fr) 36px; gap: 8px; align-items: center; margin-top: 6px; }
+.ne-sub > svg { color: var(--rx-blue); }
+.ne-tools { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.ne-phone { width: 360px; max-width: 100%; margin: 12px auto 0; border-radius: 30px; border: 1px solid var(--rx-line-2); background: var(--rx-bg); padding: 18px 14px; box-shadow: var(--rx-shadow); max-height: 60vh; overflow-y: auto; }
+
+@media (max-width: 900px) {
+  .al-week { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .al-week { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ne-item { grid-template-columns: 64px minmax(0, 1fr) 36px; grid-template-areas: "q u x" "f f f"; }
+  .ne-item .q { grid-area: q; }
+  .ne-item .u { grid-area: u; }
+  .ne-item .f { grid-area: f; }
+  .ne-item .x { grid-area: x; }
+  .ne-meal-head .t { width: 100px; }
+}

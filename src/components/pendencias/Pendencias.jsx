@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, CalendarClock, Megaphone, X } from 'lucide-react';
+import { Bell, CalendarClock, Megaphone, Utensils, X } from 'lucide-react';
 import { espacosApi, fmtUntil } from '../espacos/espacosApi';
 import '../../styles/espacos.css';
 
@@ -16,14 +16,15 @@ export function PendenciasBell({ total = 0, onOpen }) {
 const OUTRAS = {
   evento_cancelado: (o) => ({ title: `${o.title} foi cancelado`, detail: o.spaceName, icon: CalendarClock }),
   evento_texto: (o) => ({ title: `${o.title} foi atualizado`, detail: `${o.spaceName}: local ou detalhes mudaram. Seu aceite continua.`, icon: CalendarClock }),
-  comentario: (o) => ({ title: `Resposta em “${o.title}”`, detail: o.spaceName, icon: Megaphone, aviso: o.refId })
+  comentario: (o) => ({ title: `Resposta em “${o.title}”`, detail: o.spaceName, icon: Megaphone, aviso: o.refId }),
+  plano_publicado: (o) => ({ title: `Plano alimentar publicado: ${o.title}`, detail: `${o.spaceName}. Veja as refeições e registre na aba Alimentação.`, icon: Utensils, tab: 'alimentacao' })
 };
 
 /**
  * Pendências (painel lateral): convites de evento, avisos novos e respostas.
  * Não bloqueia nada; convites somem quando respondidos ou quando o evento começa.
  */
-export function PendenciasDrawer({ open, onClose, data, onChanged, toast }) {
+export function PendenciasDrawer({ open, onClose, data, onChanged, toast, onOpenTab }) {
   const [aviso, setAviso] = useState(null);
   const [texto, setTexto] = useState('');
   const [busy, setBusy] = useState(false);
@@ -83,6 +84,7 @@ export function PendenciasDrawer({ open, onClose, data, onChanged, toast }) {
                   <p>{v.detail}</p>
                   <div className="btns">
                     {v.aviso && <button type="button" className="rx-btn ghost tiny" onClick={() => abrirAviso(v.aviso)}>Abrir</button>}
+                    {v.tab && onOpenTab && <button type="button" className="rx-btn tiny" onClick={() => onOpenTab(v.tab)}>Abrir Alimentação</button>}
                     <button type="button" className="rx-btn ghost tiny" onClick={async () => { try { await espacosApi.lidas([o.id]); await onChanged?.(); } catch (e) { toast?.(e.message); } }}>Marcar como lida</button>
                   </div>
                 </div>

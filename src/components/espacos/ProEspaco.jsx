@@ -5,6 +5,7 @@ import { AtribuirDialog } from './AtribuirDialog';
 import { ProIndividual } from './ProIndividual';
 import { ProConteudo } from './ProConteudo';
 import { AvisosPanel, EventosPanel, ProAgendaPage } from './ProAgenda';
+import { PlanosModelo, ProPlano, ProRegistrosAlimentacao, TurmaPlanos } from '../alimentacao/ProAlimentacao';
 import '../../styles/espacos.css';
 
 /**
@@ -84,14 +85,21 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
   const turmas = meu.turmas || [];
   const g = turmas.find((t) => t.id === sel);
   // Abas e ações dos lotes de agenda/avisos (C) e dos outros lotes (extensions).
+  const isNutri = model === 'nutri';
   const ext = {
-    conteudo: extensions.conteudo,
+    // Lote E: Conteúdo da Nutricionista são os modelos de plano alimentar.
+    conteudo: isNutri ? () => <PlanosModelo toast={toast} /> : extensions.conteudo,
     turmaTabs: (p) => [
+      ...(isNutri ? [{ label: 'Planos', render: ({ turma: t }) => <TurmaPlanos key={`pl-${t.id}`} turma={t} openPessoa={openPessoa} toast={toast} /> }] : []),
       { label: 'Agenda', render: ({ turma: t }) => <EventosPanel key={`ag-${t.id}`} groupId={t.id} fixedLabel={`a turma ${t.name}`} toast={toast} title="Eventos da turma" /> },
       { label: 'Avisos', render: ({ turma: t }) => <AvisosPanel key={`av-${t.id}`} groupId={t.id} fixedLabel={`a turma ${t.name}`} toast={toast} /> },
       ...(extensions.turmaTabs ? extensions.turmaTabs(p) : [])
     ],
     individualTabs: (p) => [
+      ...(isNutri ? [
+        { label: 'Plano', render: ({ linkId, pessoa }) => <ProPlano key={`pp-${linkId}`} linkId={linkId} pessoa={pessoa} toast={toast} /> },
+        { label: 'Registros', render: ({ linkId }) => <ProRegistrosAlimentacao key={`pr-${linkId}`} linkId={linkId} toast={toast} /> }
+      ] : []),
       ...(extensions.individualTabs ? extensions.individualTabs(p) : []),
       { label: 'Agenda', render: ({ linkId, pessoa }) => <EventosPanel linkId={linkId} fixedLabel={pessoa.name} toast={toast} title={`Eventos com ${pessoa.name.split(' ')[0]}`} /> },
       { label: 'Avisos', render: ({ linkId, pessoa }) => <AvisosPanel linkId={linkId} fixedLabel={pessoa.name} toast={toast} /> }

@@ -1,6 +1,6 @@
 import { apiFetch } from '../../utils/api';
 
-async function req(url, { method = 'GET', body } = {}) {
+export async function req(url, { method = 'GET', body } = {}) {
   const res = await apiFetch(url, body === undefined ? { method } : { method, body: JSON.stringify(body) });
   let json = null;
   try {

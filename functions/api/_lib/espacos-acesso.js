@@ -61,6 +61,15 @@ export async function endAssignments(db, { linkId = null, clientId = null, group
   } catch (e) {
     if (!/no such table/i.test(String(e?.message || e))) throw e;
   }
+  // Lote E: ao fim do vínculo, o plano alimentar em andamento é encerrado (a pessoa mantém tudo, só leitura).
+  // Sair de uma turma não mexe no plano: planos alimentares são individuais.
+  if (linkId) {
+    try {
+      await db.prepare("UPDATE meal_plans SET status = 'encerrado', ended_at = ?, end_reason = ?, updated_at = ? WHERE link_id = ? AND status IN ('rascunho', 'publicado')").bind(nowIso, reason, nowIso, linkId).run();
+    } catch (e) {
+      if (!/no such table/i.test(String(e?.message || e))) throw e;
+    }
+  }
 }
 
 export const isMissingTable = (e) => /no such table/i.test(String(e?.message || e));

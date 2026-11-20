@@ -12,13 +12,15 @@ import {
 
 const DEFAULT_PAGES = { notes: true, dashboard: true, telemetry: true, habits: true, bad_habits: true, calendar: true, workouts: true, focus: true, social: true };
 
-function buildModules(user, userPermissions = {}) {
+function buildModules(user, userPermissions = {}, extra = {}) {
   const pages = { ...DEFAULT_PAGES, ...(user?.pagePreferences || {}) };
   const all = [
     { id: 'dashboard', label: 'Painel principal', icon: LayoutGrid, group: null, enabled: true },
     { id: 'habits', label: 'Hábitos e rotinas', icon: CheckCircle2, group: 'Rotina', enabled: pages.habits !== false && userPermissions.habits !== false },
     { id: 'calendar', label: 'Agenda semanal', icon: Calendar, group: 'Rotina', enabled: pages.calendar !== false },
     { id: 'workouts', label: 'Treino', icon: Dumbbell, group: 'Corpo e mente', enabled: pages.workouts !== false && userPermissions.workouts !== false },
+    // Lote E: só aparece quando existe plano alimentar publicado para a pessoa.
+    { id: 'alimentacao', label: 'Alimentação', icon: Utensils, group: 'Corpo e mente', enabled: Boolean(extra.hasMealPlan) },
     { id: 'focus', label: 'Foco', icon: Timer, group: 'Corpo e mente', enabled: pages.focus !== false && userPermissions.focus !== false },
     { id: 'bad_habits', label: 'Maus hábitos', icon: ShieldOff, group: 'Corpo e mente', enabled: pages.bad_habits !== false },
     { id: 'notes', label: 'Notas', icon: StickyNote, group: 'Corpo e mente', enabled: pages.notes !== false },
@@ -37,8 +39,8 @@ export function proModules(pro) {
     { id: 'pro-turmas', label: 'Turmas e convites', icon: Ticket, group: 'Pessoas' },
     { id: 'pro-pessoas', label: pro?.peopleLabel || 'Pessoas', icon: Users, group: 'Pessoas' },
     ...(pro?.model === 'personal' ? [{ id: 'pro-conteudo', label: 'Fichas e programas', icon: ClipboardList, group: 'Conteúdo' }] : []),
-    { id: 'pro-agenda', label: 'Agenda e avisos', icon: Calendar, group: 'Comunicação' },
-    ...(pro?.model === 'nutri' ? [{ id: 'pro-conteudo', label: 'Planos alimentares', icon: Utensils, group: 'Conteúdo' }] : [])
+    ...(pro?.model === 'nutri' ? [{ id: 'pro-conteudo', label: 'Planos alimentares', icon: Utensils, group: 'Conteúdo' }] : []),
+    { id: 'pro-agenda', label: 'Agenda e avisos', icon: Calendar, group: 'Comunicação' }
   ];
 }
 
@@ -91,10 +93,11 @@ export function DesktopSidebar({
   onLogout,
   pro = null,
   proMode = false,
-  onToggleProMode
+  onToggleProMode,
+  hasMealPlan = false
 }) {
   const inSpace = Boolean(proMode && pro?.status === 'ativo');
-  const modules = inSpace ? proModules(pro) : buildModules(user, userPermissions);
+  const modules = inSpace ? proModules(pro) : buildModules(user, userPermissions, { hasMealPlan });
   const groups = [];
   modules.forEach((m) => {
     const last = groups[groups.length - 1];
@@ -200,11 +203,12 @@ export function MobileBottomNav({
   onLogout,
   pro = null,
   proMode = false,
-  onToggleProMode
+  onToggleProMode,
+  hasMealPlan = false
 }) {
   const [open, setOpen] = useState(false);
   const inSpace = Boolean(proMode && pro?.status === 'ativo');
-  const modules = inSpace ? proModules(pro) : buildModules(user, userPermissions);
+  const modules = inSpace ? proModules(pro) : buildModules(user, userPermissions, { hasMealPlan });
   const go = (id) => { setActiveTab(id); setOpen(false); };
   const tab = (id, label, Icon) => (
     <button type="button" aria-current={activeTab === id ? 'page' : undefined} onClick={() => go(id)}>
