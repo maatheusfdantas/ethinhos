@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Eye, Lock, ShieldCheck, Ticket } from 'lucide-react';
 import { espacosApi, fmtDate, initialsOf } from './espacosApi';
+import { AvisosRecebidos } from './AvisosRecebidos';
 import '../../styles/espacos.css';
 
 /**
@@ -115,6 +116,7 @@ export function EspacosTab({ showToast, initialCode = '' }) {
             {codeErr && <div className="es-error" role="alert">{codeErr}</div>}
             <button type="submit" className="rx-btn" style={{ width: '100%' }} disabled={busy || !code.trim()}>Ver convite</button>
           </form>
+          <AvisosRecebidos toast={toast} />
           <section className="es-note"><ShieldCheck size={16} /><span>Abrir um convite não muda nada. Você só entra depois de ver os detalhes e confirmar.</span></section>
         </aside>
       </div>

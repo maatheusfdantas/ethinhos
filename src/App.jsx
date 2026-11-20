@@ -11,6 +11,8 @@ import { TreinoTab } from './components/treino/TreinoTab';
 import { EspacosTab } from './components/espacos/EspacosTab';
 import { ProEspaco } from './components/espacos/ProEspaco';
 import { useProEspaco } from './hooks/useProEspaco';
+import { usePendencias } from './hooks/usePendencias';
+import { PendenciasBell, PendenciasDrawer } from './components/pendencias/Pendencias';
 import { FocusTab } from './components/FocusTab';
 import { CalendarTab } from './components/CalendarTab';
 import { TelemetryTab } from './components/TelemetryTab';
@@ -222,6 +224,9 @@ export function App() {
   // Abrir uma pessoa ou turma a partir de outra tela do espaço (as abas são recriadas a cada troca).
   const [proNav, setProNav] = useState(null);
   const proNavigate = (tab, params = null) => { setProNav(params); setActiveTab(tab); };
+  // Pendências dos espaços (convites, avisos) e eventos aceitos, só para leitura na Agenda e no Painel.
+  const pend = usePendencias(user);
+  const [pendOpen, setPendOpen] = useState(false);
   const [proMode, setProMode] = useState(() => {
     try { return localStorage.getItem('ethos_pro_mode') === '1'; } catch { return false; }
   });
@@ -522,7 +527,7 @@ export function App() {
     }
   };
 
-  const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', 'pro-conteudo': proInfo?.model === 'nutri' ? 'Planos alimentares' : 'Fichas e programas', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
+  const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', 'pro-conteudo': proInfo?.model === 'nutri' ? 'Planos alimentares' : 'Fichas e programas', 'pro-agenda': 'Agenda e avisos', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
   const isAdmin = user?.role === 'admin';
   const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
@@ -583,6 +588,7 @@ export function App() {
             </button>
             <h1 className="rx-top-title">{TAB_TITLES[activeTab] || 'Ethos'}</h1>
             <span className="rx-spacer" />
+            <PendenciasBell total={pend.data.total} onOpen={() => { setPendOpen(true); pend.refresh(); }} />
             <button type="button" className="rx-icon-btn" onClick={() => setShowSupportModal(true)} title="Suporte" aria-label="Abrir suporte">
               <LifeBuoy size={19} />
             </button>
@@ -694,6 +700,9 @@ export function App() {
             {/* TAB 1: DASHBOARD (PAINEL PRINCIPAL FIEL AO MOCKUP) */}
             {activeTab === 'dashboard' && (
               <PainelTab
+                spaceEvents={pend.spaceEvents}
+                pendencias={pend.data.total}
+                onOpenPendencias={() => { setPendOpen(true); pend.refresh(); }}
                 habits={habits}
                 setHabits={setHabits}
                 events={events}
@@ -735,6 +744,7 @@ export function App() {
             {activeTab === 'calendar' && (
               <div className="rx-sheet-legacy"><CalendarTab
                 events={events}
+                spaceEvents={pend.spaceEvents}
                 setEvents={setEvents}
                 habits={habits}
                 setHabits={setHabits}
@@ -791,7 +801,7 @@ export function App() {
             )}
 
             {activeTab === 'espacos' && <EspacosTab showToast={showToast} initialCode={inviteFromUrl} />}
-            {proMode && proInfo?.status === 'ativo' && ['pro-visao', 'pro-turmas', 'pro-pessoas', 'pro-conteudo'].includes(activeTab) && (
+            {proMode && proInfo?.status === 'ativo' && ['pro-visao', 'pro-turmas', 'pro-pessoas', 'pro-conteudo', 'pro-agenda'].includes(activeTab) && (
               <ProEspaco view={activeTab} pro={proInfo} onNavigate={proNavigate} navParams={proNav} showToast={showToast} />
             )}
 
@@ -894,6 +904,8 @@ export function App() {
           onToggleProMode={toggleProMode}
         />
       )}
+
+      <PendenciasDrawer open={pendOpen} onClose={() => setPendOpen(false)} data={pend.data} onChanged={pend.refresh} toast={showToast} />
 
       {/* DISCREET TOAST NOTIFICATION (WITH UNDO / CTRL+Z) */}
       <Toast toast={toast} onDismiss={() => setToast(null)} />

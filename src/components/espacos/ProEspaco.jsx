@@ -4,6 +4,7 @@ import { espacosApi, fmtDate, fmtUntil, initialsOf } from './espacosApi';
 import { AtribuirDialog } from './AtribuirDialog';
 import { ProIndividual } from './ProIndividual';
 import { ProConteudo } from './ProConteudo';
+import { AvisosPanel, EventosPanel, ProAgendaPage } from './ProAgenda';
 import '../../styles/espacos.css';
 
 /**
@@ -82,7 +83,25 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
   }
   const turmas = meu.turmas || [];
   const g = turmas.find((t) => t.id === sel);
-  const ext = extensions;
+  // Abas e ações dos lotes de agenda/avisos (C) e dos outros lotes (extensions).
+  const ext = {
+    conteudo: extensions.conteudo,
+    turmaTabs: (p) => [
+      { label: 'Agenda', render: ({ turma: t }) => <EventosPanel key={`ag-${t.id}`} groupId={t.id} fixedLabel={`a turma ${t.name}`} toast={toast} title="Eventos da turma" /> },
+      { label: 'Avisos', render: ({ turma: t }) => <AvisosPanel key={`av-${t.id}`} groupId={t.id} fixedLabel={`a turma ${t.name}`} toast={toast} /> },
+      ...(extensions.turmaTabs ? extensions.turmaTabs(p) : [])
+    ],
+    individualTabs: (p) => [
+      ...(extensions.individualTabs ? extensions.individualTabs(p) : []),
+      { label: 'Agenda', render: ({ linkId, pessoa }) => <EventosPanel linkId={linkId} fixedLabel={pessoa.name} toast={toast} title={`Eventos com ${pessoa.name.split(' ')[0]}`} /> },
+      { label: 'Avisos', render: ({ linkId, pessoa }) => <AvisosPanel linkId={linkId} fixedLabel={pessoa.name} toast={toast} /> }
+    ],
+    visaoAction: (b, it, h) => {
+      if (b.action === 'lembrar' && it.eventId && it.inviteId) return <button type="button" className="rx-btn ghost tiny" onClick={async () => { try { await espacosApi.lembrar(it.eventId, it.inviteId); toast(`Lembrete enviado a ${it.name}.`); } catch (e) { toast(e.message); } }}>Lembrar</button>;
+      if (b.action === 'agenda') return <button type="button" className="rx-btn ghost tiny" onClick={() => onNavigate?.('pro-agenda')}>Agenda</button>;
+      return extensions.visaoAction ? extensions.visaoAction(b, it, h) : null;
+    }
+  };
 
   const individual = async () => {
     const r = await act(() => espacosApi.conviteIndividual());
@@ -142,7 +161,9 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
   };
 
   let body;
-  if (view === 'pro-conteudo') {
+  if (view === 'pro-agenda') {
+    body = <ProAgendaPage toast={toast} pro={meu.pro} />;
+  } else if (view === 'pro-conteudo') {
     body = model === 'personal' ? <ProConteudo toast={toast} /> : ext.conteudo ? ext.conteudo({ toast }) : <div className="es-empty"><p>Nada por aqui para este modelo.</p></div>;
   } else if (view === 'pro-pessoas' && pessoaSel) {
     body = <ProIndividual key={pessoaSel.linkId} linkId={pessoaSel.linkId} pro={meu.pro} toast={toast} extraTabs={ext.individualTabs ? ext.individualTabs(meu.pro) : []} onBack={() => { setPessoaSel(null); onNavigate?.('pro-pessoas', null); load(); }} initialTab={pessoaSel.tab} />;

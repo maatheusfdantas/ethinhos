@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Minus, Plus, Droplets, Moon, Timer, Dumbbell, ChevronDown, CalendarClock, History, Sparkles } from 'lucide-react';
+import { Check, Minus, Plus, Droplets, Moon, Timer, Dumbbell, ChevronDown, CalendarClock, History, Sparkles, Bell, Building2 } from 'lucide-react';
 import { isEventForDate } from '../services/storage';
 import { ProgressMeter } from './rx/ProgressMeter';
 import { DustCanvas } from './rx/DustCanvas';
@@ -35,7 +35,8 @@ async function api(url, method, body) {
 
 export function PainelTab({
   habits = [], setHabits, events = [], workouts = [], health = {}, setHealth, tags = [], user = null,
-  onOpenAdd, onSwitchTab, onToggleEvent, onLogSubclassEffort, showToast
+  onOpenAdd, onSwitchTab, onToggleEvent, onLogSubclassEffort, showToast,
+  spaceEvents = [], pendencias = 0, onOpenPendencias
 }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(t); }, []);
@@ -54,7 +55,8 @@ export function PainelTab({
   const catOf = (h) => tags.find((t) => t.id === h.tagId || t.name === h.category);
 
   // ---------- Dados do dia ----------
-  const todayEvents = useMemo(() => events.filter((e) => isEventForDate(e, todayStr)), [events, todayStr]);
+  // Eventos aceitos dos espaços entram como itens só de leitura (não fazem parte dos eventos sincronizados).
+  const todayEvents = useMemo(() => [...events.filter((e) => isEventForDate(e, todayStr)), ...spaceEvents.filter((e) => e.date === todayStr)], [events, spaceEvents, todayStr]);
   const timed = todayEvents.filter((e) => !e.allDay && toMin(e.startTime) !== null).sort((a, b) => toMin(a.startTime) - toMin(b.startTime));
   const allDay = todayEvents.filter((e) => e.allDay || toMin(e.startTime) === null);
   const live = timed.find((e) => toMin(e.startTime) <= nowMin && nowMin < (toMin(e.endTime) ?? toMin(e.startTime) + 60) && !e.completed);
@@ -159,16 +161,20 @@ export function PainelTab({
         <div className="body">
           <div className="title"><span className="t">{e.title}</span></div>
           <div className="rx-meta">
-            {e.category && tagLine(e.category, tags.find((t) => t.name === e.category)?.color)}
+            {e.readOnly && <span className="rx-pill"><Building2 size={12} />{e.spaceName}</span>}
+            {!e.readOnly && e.category && tagLine(e.category, tags.find((t) => t.name === e.category)?.color)}
             {e.endTime && <span>Até {e.endTime}</span>}
             {isLive && <span className="rx-pill now">Em andamento</span>}
             {e.priority === 'Alta' && <span className="rx-pill high">Prioridade alta</span>}
           </div>
         </div>
         <div className="rx-act">
-          <button type="button" className="rx-check" aria-pressed={Boolean(e.completed)} aria-label={`${e.completed ? 'Desmarcar' : 'Concluir'} ${e.title}`} onClick={() => onToggleEvent?.(e.id, !e.completed)}>
-            <Check strokeWidth={2.6} />
-          </button>
+          {/* Evento do espaço: referência só de leitura (quem muda é o profissional). */}
+          {!e.readOnly && (
+            <button type="button" className="rx-check" aria-pressed={Boolean(e.completed)} aria-label={`${e.completed ? 'Desmarcar' : 'Concluir'} ${e.title}`} onClick={() => onToggleEvent?.(e.id, !e.completed)}>
+              <Check strokeWidth={2.6} />
+            </button>
+          )}
         </div>
       </li>
     );
@@ -246,6 +252,13 @@ export function PainelTab({
               <span>{doneCount} de {total} hábitos concluídos</span>
               <ProgressMeter pct={taskPct} label="Progresso dos hábitos de hoje" />
               <span className="pct">{taskPct}%</span>
+            </div>
+          )}
+          {pendencias > 0 && (
+            <div className="es-banner" role="status" data-testid="painel-pendencias">
+              <Bell size={18} />
+              <span className="grow">{pendencias === 1 ? '1 pendência' : `${pendencias} pendências`} dos seus espaços: convites e avisos.</span>
+              <button type="button" className="rx-link" onClick={onOpenPendencias}>Ver pendências</button>
             </div>
           )}
         </header>

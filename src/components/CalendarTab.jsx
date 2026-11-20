@@ -84,7 +84,8 @@ export function CalendarTab({
   onDeleteEvent,
   onSwitchTab,
   showToast,
-  tags = []
+  tags = [],
+  spaceEvents = []
 }) {
   // Categorias de verdade: só as da própria conta. A lista EVENT_CATEGORIES fica apenas como paleta de cores
   // (antes ela aparecia como se fossem categorias da pessoa, mesmo sem ela ter criado nenhuma).
@@ -130,7 +131,8 @@ export function CalendarTab({
 
   // Combina eventos reais + expansão de recorrência dinâmica (considerando Blackout Dates / Exceções)
   const combinedEvents = useMemo(() => {
-    const baseList = [...events, ...localSeedEvents.filter(se => !events.some(e => e.id === se.id))];
+    // Eventos aceitos dos espaços: referências só de leitura, fora da lista sincronizada (lote C).
+    const baseList = [...events, ...spaceEvents, ...localSeedEvents.filter(se => !events.some(e => e.id === se.id))];
     const expanded = [...baseList];
 
     // Calcula período de 60 dias ao redor da data do cursor
@@ -204,7 +206,7 @@ export function CalendarTab({
     });
 
     return expanded;
-  }, [events, localSeedEvents, cursorDate]);
+  }, [events, spaceEvents, localSeedEvents, cursorDate]);
 
   // Abrir Modal para Criar Novo Evento em uma data específica
   const handleOpenNewEventModal = (targetDateISO) => {
@@ -229,6 +231,10 @@ export function CalendarTab({
 
   // Abrir Modal para Editar Evento Existente
   const handleOpenEditEventModal = (ev) => {
+    if (ev.readOnly) {
+      showToast?.(`Evento do espaço ${ev.spaceName}, ${ev.startTime} às ${ev.endTime}${ev.location ? `, ${ev.location}` : ''}. Para mudar, fale com o profissional.`);
+      return;
+    }
     setEditingEventId(ev.id);
     setEvTitle(ev.title || '');
     setEvStartDate(ev.date || toISODate(cursorDate));
@@ -327,6 +333,7 @@ export function CalendarTab({
   // =========================================================================
   const handleToggleEventItem = (ev) => {
     setOpenMenuId(null);
+    if (ev.readOnly) { showToast?.('Eventos dos espaços não são marcados como concluídos aqui.'); return; }
     const nextCompleted = !ev.completed;
     if (String(ev.id).startsWith('seed_')) {
       setLocalSeedEvents(prev => prev.map(item => item.id === ev.id ? { ...item, completed: nextCompleted } : item));
@@ -338,6 +345,7 @@ export function CalendarTab({
 
   const handleDeleteEventItem = (ev) => {
     setOpenMenuId(null);
+    if (ev.readOnly) { showToast?.('Para sair deste evento, recuse ou fale com o profissional do espaço.'); return; }
     setEventToDelete(ev);
   };
 
@@ -458,7 +466,7 @@ export function CalendarTab({
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '4px' }}>
           <div
-            onClick={() => handleToggleEventItem(ev)}
+            onClick={() => (ev.readOnly ? handleOpenEditEventModal(ev) : handleToggleEventItem(ev))}
             style={{
               fontWeight: 700,
               cursor: 'pointer',
@@ -466,12 +474,13 @@ export function CalendarTab({
               wordBreak: 'break-word',
               flex: 1
             }}
-            title="Clique para marcar/desmarcar conclusão"
+            title={ev.readOnly ? 'Evento do espaço (só leitura)' : 'Clique para marcar/desmarcar conclusão'}
           >
             {ev.title}
           </div>
 
-          <button
+          {/* Evento do espaço: sem menu de concluir/editar/excluir (quem muda é o profissional). */}
+          {!ev.readOnly && <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
@@ -494,7 +503,7 @@ export function CalendarTab({
             title="Opções do evento"
           >
             <MoreHorizontal size={13} />
-          </button>
+          </button>}
         </div>
 
         <div style={{ fontWeight: 500, opacity: 0.85, marginTop: '2px', fontSize: compact ? '10px' : '11px' }}>

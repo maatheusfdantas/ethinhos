@@ -46,6 +46,20 @@ export async function eraseUserData(db, userId) {
       stmts.push(db.prepare('DELETE FROM space_links WHERE space_id = ?').bind(s.id));
       stmts.push(db.prepare('DELETE FROM spaces WHERE id = ?').bind(s.id));
     }
+    if (await tableExists(db, 'space_events')) {
+      for (const s of own) {
+        stmts.push(db.prepare('DELETE FROM space_event_invites WHERE space_id = ?').bind(s.id));
+        stmts.push(db.prepare('DELETE FROM space_events WHERE space_id = ?').bind(s.id));
+        stmts.push(db.prepare('DELETE FROM space_post_comments WHERE post_id IN (SELECT id FROM space_posts WHERE space_id = ?)').bind(s.id));
+        stmts.push(db.prepare('DELETE FROM space_post_recipients WHERE post_id IN (SELECT id FROM space_posts WHERE space_id = ?)').bind(s.id));
+        stmts.push(db.prepare('DELETE FROM space_posts WHERE space_id = ?').bind(s.id));
+        stmts.push(db.prepare('DELETE FROM notifications WHERE space_id = ?').bind(s.id));
+      }
+      stmts.push(db.prepare('DELETE FROM space_event_invites WHERE user_id = ?').bind(userId));
+      stmts.push(db.prepare('DELETE FROM space_post_recipients WHERE user_id = ?').bind(userId));
+      stmts.push(db.prepare('DELETE FROM space_post_comments WHERE participant_id = ?').bind(userId));
+      stmts.push(db.prepare('DELETE FROM notifications WHERE user_id = ?').bind(userId));
+    }
     stmts.push(db.prepare('DELETE FROM group_members WHERE client_id = ?').bind(userId));
     stmts.push(db.prepare('DELETE FROM space_links WHERE client_id = ?').bind(userId));
     stmts.push(db.prepare('DELETE FROM pro_profiles WHERE user_id = ?').bind(userId));

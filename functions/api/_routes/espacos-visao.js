@@ -91,11 +91,11 @@ export async function handleEspacosVisaoRoutes(ctx) {
 
     // Agenda (lote C): convites sem resposta de eventos futuros e próximos eventos
     const pend = await safe(async () => (await db.prepare(
-      `SELECT i.id, u.name, e.title, e.starts_at, l.id AS link_id FROM space_event_invites i JOIN space_events e ON e.id = i.event_id JOIN users u ON u.id = i.user_id
+      `SELECT i.id, e.id AS event_id, u.name, e.title, e.starts_at, l.id AS link_id FROM space_event_invites i JOIN space_events e ON e.id = i.event_id JOIN users u ON u.id = i.user_id
        LEFT JOIN space_links l ON l.space_id = e.space_id AND l.client_id = i.user_id AND l.status = 'ativo'
        WHERE e.space_id = ? AND e.status = 'ativo' AND i.status = 'pendente' AND e.starts_at > ? ORDER BY e.starts_at LIMIT 50`
     ).bind(pro.space_id, nowIso).all()).results || []);
-    if (pend) blocks.push({ key: 'convites_pendentes', label: 'Convites sem resposta', action: 'lembrar', items: pend.map((r) => ({ inviteId: r.id, linkId: r.link_id, name: r.name, detail: `${r.title}, ${r.starts_at}` })) });
+    if (pend) blocks.push({ key: 'convites_pendentes', label: 'Convites sem resposta', action: 'lembrar', items: pend.map((r) => ({ inviteId: r.id, eventId: r.event_id, linkId: r.link_id, name: r.name, detail: r.title, at: r.starts_at })) });
     const prox = await safe(async () => (await db.prepare(
       `SELECT e.id, e.title, e.starts_at,
               (SELECT COUNT(*) FROM space_event_invites i WHERE i.event_id = e.id AND i.status = 'aceito') AS aceitos,

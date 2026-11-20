@@ -37,6 +37,7 @@ export function proModules(pro) {
     { id: 'pro-turmas', label: 'Turmas e convites', icon: Ticket, group: 'Pessoas' },
     { id: 'pro-pessoas', label: pro?.peopleLabel || 'Pessoas', icon: Users, group: 'Pessoas' },
     ...(pro?.model === 'personal' ? [{ id: 'pro-conteudo', label: 'Fichas e programas', icon: ClipboardList, group: 'Conteúdo' }] : []),
+    { id: 'pro-agenda', label: 'Agenda e avisos', icon: Calendar, group: 'Comunicação' },
     ...(pro?.model === 'nutri' ? [{ id: 'pro-conteudo', label: 'Planos alimentares', icon: Utensils, group: 'Conteúdo' }] : [])
   ];
 }
