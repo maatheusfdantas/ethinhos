@@ -216,8 +216,8 @@ function PomodoCard() {
         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em' }}>
           Pomodo
         </h2>
-        <p style={{ fontSize: '13px', color: '#9CA3AF', margin: '6px 0 0' }}>
-          Lumo orbita ao redor do cronômetro com brilho pulsante e asteroides em segundo plano.
+        <p style={{ fontSize: '13px', color: '#8F99BA', margin: '6px 0 0' }}>
+          Uma sessão. Uma transformação. Acompanhe o Lumo ganhar energia durante o Pomodoro.
         </p>
       </div>
 
@@ -265,9 +265,9 @@ function PomodoCard() {
       {/* Slider Interativo de Teste de Energia / Progresso */}
       <div style={{ width: '100%', maxWidth: '440px', margin: '0 auto 16px', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#9CA3AF', marginBottom: '6px' }}>
-          <span>Progresso de Energia: <strong style={{ color: '#FFFFFF' }}>{Math.round(activeProgress)}%</strong></span>
+          <span>Energia da sessão: <strong style={{ color: '#FFFFFF' }}>{Math.round(activeProgress)}%</strong></span>
           <span style={{ color: '#7FE7FF', fontWeight: 600 }}>
-            {activeProgress >= 80 ? '✦ Constelação Ativa' : activeProgress >= 55 ? '〰 Rastro Ativo' : activeProgress >= 40 ? '◎ Anéis Duplos' : activeProgress >= 25 ? '• Shards Ativos' : activeProgress >= 15 ? '○ Anel Interno' : 'Núcleo Base'}
+            {activeProgress >= 80 ? '✦ Energia Máxima' : activeProgress >= 56 ? '◎ Placas Expandidas' : activeProgress >= 30 ? '• Fenda Aberta' : activeProgress >= 18 ? '○ 1ª Placa' : 'Forma Base'}
           </span>
         </div>
         <input
@@ -281,91 +281,89 @@ function PomodoCard() {
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9.5px', color: '#6B7280', marginTop: '2px' }}>
           <span>0%</span>
-          <span>15%</span>
-          <span>25%</span>
-          <span>40%</span>
-          <span>55%</span>
+          <span>18%</span>
+          <span>30%</span>
+          <span>44%</span>
+          <span>56%</span>
           <span>80%</span>
           <span>100%</span>
         </div>
       </div>
 
-      {/* Timer com o Mascote Lumo orbitando ao redor */}
+      {/* Visualização do Lumo e do Timer */}
       <div
         style={{
           position: 'relative',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '12px 0 24px',
-          width: '360px',
-          height: '360px',
-          maxWidth: '100%'
+          margin: '0 0 24px',
+          width: '100%',
+          maxWidth: '380px'
         }}
       >
-        <LumoMascot progress={activeProgress} status={status} size={360}>
-          <div
+        <LumoMascot progress={activeProgress} status={status} size={360} />
+
+        <div
+          style={{
+            marginTop: '-12px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            userSelect: 'none',
+            textAlign: 'center',
+            backgroundColor: 'rgba(12, 16, 36, 0.85)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(179, 171, 246, 0.25)',
+            padding: '14px 32px',
+            borderRadius: '20px',
+            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(124, 92, 255, 0.15)',
+            zIndex: 10
+          }}
+        >
+          <span
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              userSelect: 'none',
-              textAlign: 'center',
-              background: 'radial-gradient(circle, rgba(12, 12, 16, 0.92) 50%, transparent 80%)',
-              padding: '20px 28px',
-              borderRadius: '50%',
-              zIndex: 10
+              fontSize: '44px',
+              fontWeight: 800,
+              color: '#FFFFFF',
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
-            <span
-              style={{
-                fontSize: '44px',
-                fontWeight: 800,
-                color: '#FFFFFF',
-                letterSpacing: '-0.03em',
-                lineHeight: 1,
-                fontVariantNumeric: 'tabular-nums',
-                textShadow:
-                  status === 'focus'
-                    ? '0 0 24px rgba(127, 231, 255, 0.7), 0 0 48px rgba(79, 141, 255, 0.4)'
-                    : status === 'completed'
-                    ? '0 0 32px rgba(124, 92, 255, 0.9), 0 0 60px rgba(127, 231, 255, 0.6)'
-                    : 'none'
-              }}
-            >
-              {formatTime(seconds)}
-            </span>
-            <span
-              style={{
-                marginTop: '6px',
-                fontSize: '10.5px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                backgroundColor:
-                  status === 'focus'
-                    ? 'rgba(127, 231, 255, 0.15)'
-                    : status === 'completed'
-                    ? 'rgba(124, 92, 255, 0.25)'
-                    : 'rgba(255, 255, 255, 0.08)',
-                color:
-                  status === 'focus'
-                    ? '#7FE7FF'
-                    : status === 'completed'
-                    ? '#C4B5FD'
-                    : '#9CA3AF'
-              }}
-            >
-              {status === 'focus' ? 'Foco' : status === 'completed' ? 'Finalizado' : status === 'idle' ? 'Em Espera' : 'Em Pausa'}
-            </span>
-            <span style={{ fontSize: '10px', color: '#6B7280', marginTop: '4px' }}>
-              {Math.round(activeProgress)}% concluído
-            </span>
-          </div>
-        </LumoMascot>
+            {formatTime(seconds)}
+          </span>
+          <span
+            style={{
+              marginTop: '6px',
+              fontSize: '11px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              padding: '3px 10px',
+              borderRadius: '999px',
+              backgroundColor:
+                status === 'focus'
+                  ? 'rgba(127, 231, 255, 0.15)'
+                  : status === 'completed'
+                  ? 'rgba(124, 92, 255, 0.25)'
+                  : 'rgba(255, 255, 255, 0.08)',
+              color:
+                status === 'focus'
+                  ? '#7FE7FF'
+                  : status === 'completed'
+                  ? '#C4B5FD'
+                  : '#9CA3AF'
+            }}
+          >
+            {status === 'focus' ? 'Foco' : status === 'completed' ? 'Finalizado' : status === 'idle' ? 'Em Espera' : 'Em Pausa'}
+          </span>
+          <span style={{ fontSize: '11px', color: '#8F99BA', marginTop: '4px' }}>
+            {Math.round(activeProgress)}% concluído
+          </span>
+        </div>
       </div>
 
       {/* Controles do Timer */}
@@ -459,12 +457,12 @@ function PomodoCard() {
           }}
         >
           {[
-            { st: 'idle', p: 0, title: 'Início (0%)', desc: 'Núcleo base' },
-            { st: 'focus', p: 20, title: '15% — Anel Interno', desc: 'Anel violeta ativo' },
-            { st: 'focus', p: 45, title: '40% — Anéis Duplos', desc: 'Anel azul e shards' },
-            { st: 'focus', p: 65, title: '55% — Rastro', desc: 'Rastro luminoso' },
-            { st: 'focus', p: 85, title: '80% — Constelação', desc: 'Constelação geométrica' },
-            { st: 'completed', p: 100, title: '100% — Concluído', desc: 'Forma final com burst' }
+            { st: 'idle', p: 0, title: 'Início (0%)', desc: 'Núcleo em repouso' },
+            { st: 'focus', p: 20, title: '18% — 1ª Placa', desc: 'Abertura inicial' },
+            { st: 'focus', p: 45, title: '44% — Placas Médias', desc: 'Fenda de energia expandindo' },
+            { st: 'focus', p: 65, title: '56% — Todas Placas', desc: 'Energia interna alta' },
+            { st: 'focus', p: 85, title: '85% — Faixas e Faíscas', desc: 'Forma avançada e satélites' },
+            { st: 'completed', p: 100, title: '100% — Concluído', desc: 'Shockwave triunfal' }
           ].map((item) => (
             <div
               key={item.title}
