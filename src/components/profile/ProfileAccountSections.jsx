@@ -11,8 +11,9 @@ const SECTIONS = [['ps-saude', 'Saúde'], ['ps-contas', 'Contas conectadas'], ['
 
 const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 
-/** Saúde, contas conectadas, segurança e dados. Tudo ligado à própria conta. */
-export function ProfileAccountSections({ user, setUser, health, setHealth, showToast, onOpenSettings, onLogout }) {
+/** Saúde, contas conectadas, segurança e dados. Tudo ligado à própria conta.
+ * `waterSlot` (opcional) troca o cartão de peso e água: o Perfil novo passa a Meta de água com salvar explícito. */
+export function ProfileAccountSections({ user, setUser, health, setHealth, showToast, onOpenSettings, onLogout, waterSlot = null }) {
   /* ---------- Saúde (privado) ---------- */
   const [hp, setHp] = useState({ height: '', goal: '', activityLevel: '', birthDate: '' });
   const [hpState, setHpState] = useState('idle'); // idle | saving | saved | error
@@ -101,7 +102,7 @@ export function ProfileAccountSections({ user, setUser, health, setHealth, showT
       <section id="ps-saude" className="ps-card" aria-labelledby="psSaude">
         <div className="ps-head"><h3 id="psSaude">Saúde</h3><span className="ps-lock">Só você vê</span></div>
         <p className="ps-muted">Esses dados são só seus: não aparecem para amigos, na comunidade nem para outras contas.</p>
-        <ProfileBiometricsCard user={user} setUser={setUser} health={health} setHealth={setHealth} showToast={showToast} hideConsumption />
+        {waterSlot || <ProfileBiometricsCard user={user} setUser={setUser} health={health} setHealth={setHealth} showToast={showToast} hideConsumption />}
         <form onSubmit={saveHealth} className="ps-form">
           <div className="ps-row">
             <label>Altura (cm)<input type="number" inputMode="numeric" min="50" max="250" value={hp.height} onChange={(e) => setHp({ ...hp, height: e.target.value })} placeholder="Ex.: 172" /></label>

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { DesktopSidebar, MobileBottomNav, BrandMark } from './components/Nav';
 import { PainelTab } from './components/PainelTab';
 import { NotesTab } from './components/NotesTab';
-import { HabitsTab } from './components/HabitsTab';
+import { HabitosTab } from './components/habitos/HabitosTab';
 import { BadHabitsTab } from './components/BadHabitsTab';
 import { AddModal } from './components/AddModal';
 import { WorkoutTab } from './components/WorkoutTab'; // eslint-disable-line no-unused-vars -- módulo antigo preservado
@@ -18,9 +18,9 @@ import { useMealPlans } from './hooks/useAlimentacao';
 import { requestLeave, UnsavedHost } from './hooks/useUnsavedGuard';
 import { FocusTab } from './components/FocusTab';
 import { CalendarTab } from './components/CalendarTab';
-import { TelemetryTab } from './components/TelemetryTab';
+import { AnaliseTab } from './components/analise/AnaliseTab';
 import { SocialTab } from './components/SocialTab';
-import { ProfileTab } from './components/ProfileTab';
+import { PerfilTab } from './components/perfil/PerfilTab';
 import { AuthModal } from './components/AuthModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AdminPortalTab } from './components/AdminPortalTab';
@@ -729,7 +729,7 @@ export function App() {
 
             {/* TAB: HÁBITOS & ROTINAS (ABA DEDICADA EXCLUSIVAMENTE A HÁBITOS) */}
             {activeTab === 'habits' && (
-              <div className="rx-sheet-legacy"><HabitsTab
+              <HabitosTab
                 habits={habits}
                 setHabits={setHabits}
                 tags={tags}
@@ -737,7 +737,7 @@ export function App() {
                 onOpenAddHabit={() => handleOpenAdd('habit')}
                 onLogSubclassEffort={handleLogSubclassEffort}
                 showToast={showToast}
-              /></div>
+              />
             )}
 
             {/* TAB: MAUS HÁBITOS & VÍCIOS (SUPERAÇÃO, SOBRIEDADE E DESEMPENHO) */}
@@ -792,7 +792,7 @@ export function App() {
 
             {/* TAB: PERFIL DO USUÁRIO (XP, POST-ITS, MÚSICA, PLAYLISTS, STREAKS E BIO) */}
             {activeTab === 'profile' && (
-              <div className="rx-sheet-legacy"><ProfileTab
+              <PerfilTab
                 user={user}
                 setUser={setUser}
                 habits={habits}
@@ -805,7 +805,18 @@ export function App() {
                 onOpenSettings={() => setShowProfileModal(true)}
                 onOpenSupport={() => setShowSupportModal(true)}
                 onLogout={handleLogout}
-              /></div>
+              />
+            )}
+
+            {/* TAB: ANÁLISE DE PROGRESSO (lote 2: visual atual; o bloqueio pelo admin continua igual) */}
+            {activeTab === 'telemetry' && permissions.telemetry !== false && (
+              <AnaliseTab
+                habits={habits}
+                health={health}
+                tags={tags}
+                onConfigureCategory={(cat) => setConfigCategory(cat)}
+                user={user}
+              />
             )}
 
             {activeTab === 'espacos' && <EspacosTab showToast={showToast} initialCode={inviteFromUrl} onOpenTab={(t) => requestLeave(() => setActiveTab(t))} />}
@@ -842,7 +853,7 @@ export function App() {
             )}
 
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
-            {activeTab !== 'dashboard' && activeTab !== 'notes' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && activeTab !== 'admin' && activeTab !== 'espacos' && activeTab !== 'alimentacao' && !String(activeTab).startsWith('pro-') && (
+            {activeTab !== 'dashboard' && activeTab !== 'notes' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && !(activeTab === 'telemetry' && permissions.telemetry !== false) && activeTab !== 'admin' && activeTab !== 'espacos' && activeTab !== 'alimentacao' && !String(activeTab).startsWith('pro-') && (
               <div className="rx-sheet-dark">
                 {/* TAB 5: TELEMETRIA / ANÁLISE DE PROGRESSO */}
                 {activeTab === 'telemetry' && (
@@ -854,16 +865,7 @@ export function App() {
                         O Administrador desativou o seu acesso aos gráficos comparativos.
                       </p>
                     </div>
-                  ) : (
-                    <TelemetryTab
-                      habits={habits}
-                      health={health}
-                      tags={tags}
-                      onConfigureCategory={(cat) => setConfigCategory(cat)}
-                      heatmapData={[]}
-                      user={user}
-                    />
-                  )
+                  ) : null
                 )}
 
                 {/* TAB 6: SOCIAL / COMUNIDADE */}
