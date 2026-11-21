@@ -122,7 +122,6 @@ export function EmptyDataVizState({ title, description, icon: Icon = BarChart3, 
         style={{
           fontSize: '0.68rem',
           fontWeight: 700,
-          textTransform: 'uppercase',
           letterSpacing: '0.06em',
           color: '#38BDF8',
           marginBottom: '4px'
@@ -236,8 +235,8 @@ export function CategoryAdherenceList({ categories = [] }) {
       <EmptyDataVizState
         icon={Layers}
         badgeText="Distribuição por Categoria"
-        title="Sem categorias mapeadas ainda"
-        description="Crie hábitos vinculados às suas categorias (ex: Saúde, Estudos, Foco) para visualizar a taxa de aderência de cada área."
+        title="Nenhuma categoria hoje"
+        description="Os hábitos de hoje aparecem aqui, agrupados por categoria."
       />
     );
   }

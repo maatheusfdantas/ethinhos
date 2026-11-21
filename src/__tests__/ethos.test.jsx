@@ -140,7 +140,7 @@ describe('3. DataViz & Estados Vazios (WeeklyExecutionChart & CategoryAdherenceL
 
   it('exibe Empty State quando não há categorias e renderiza barras quando há categorias', () => {
     const { rerender } = render(<CategoryAdherenceList categories={[]} />);
-    expect(screen.getByText(/Sem categorias mapeadas ainda/i)).toBeInTheDocument();
+    expect(screen.getByText(/Nenhuma categoria hoje/i)).toBeInTheDocument();
 
     rerender(
       <CategoryAdherenceList

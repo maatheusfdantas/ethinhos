@@ -80,25 +80,13 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
   const sleepWakeTime = health?.sleep?.wakeTime || (analytics?.accompaniment?.sleep_wake_time || '07:00');
   const sleepLogged = health?.sleep?.logged ?? Boolean(analytics?.accompaniment?.sleep_logged);
 
-  const userProfileLabel = user?.role === 'admin' 
-    ? 'Administrador Geral' 
-    : user?.id?.includes('pro') || user?.id?.includes('matheus')
-      ? 'Matheus Pro (Alto Desempenho)' 
-      : user?.id?.includes('lucas') || user?.id?.includes('mid')
-        ? 'Lucas Dev (Intermediário)'
-        : user?.id?.includes('bruno') || user?.id?.includes('preguica') || user?.id?.includes('low')
-          ? 'Bruno (Baixo Engajamento)'
-          : user?.id?.includes('clean')
-            ? 'Clean (Novo Usuário)'
-            : 'Usuário Ativo';
-
   if (loading && !analytics) {
     return (
       <div className="telemetry-view" style={{ textAlign: 'center', padding: '60px 20px' }}>
         <RefreshCw size={36} color="var(--accent-cyan)" className="spin-icon" style={{ margin: '0 auto 16px' }} />
         <h3 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Calculando…</h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-          Calculando séries temporais, matrizes de regularidade e detecção de padrões...
+          Lendo seus registros de hoje.
         </p>
       </div>
     );
@@ -119,17 +107,17 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
     variability: 0.0
   };
 
-  const highlights = analytics?.highlights || {
-    top_strength: 'Treino e Hidratação',
-    top_risk: 'Sem riscos detectados',
-    suggested_action: 'Mantenha os registros regulares.'
-  };
+  const highlights = analytics?.highlights || {};
 
   const alerts = analytics?.alerts || [];
   const habitItems = analytics?.habits || [];
   const categories = analytics?.categories || [];
   const reports = analytics?.reports || {};
   const charts = analytics?.charts || {};
+  // Só mostra o que vem de dados reais (Q4): sem histórico diário, não há índice, sequência, tendência nem gráficos.
+  const hasHistory = Boolean(analytics?.history_available) && summary.consistency_score !== null && summary.consistency_score !== undefined;
+  const hasHighlights = Boolean(highlights.top_strength || highlights.top_risk || highlights.suggested_action);
+  const hasReports = Object.keys(reports).length > 0;
 
   // Score color
   const getScoreColor = (score) => {
@@ -207,17 +195,6 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
                 <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {user?.name || 'Usuário Ethos'}
                 </h3>
-                <span style={{ 
-                  fontSize: '0.7rem', 
-                  fontWeight: 700, 
-                  background: 'rgba(0, 229, 255, 0.12)', 
-                  color: 'var(--accent-cyan)', 
-                  border: '1px solid rgba(0, 229, 255, 0.25)', 
-                  padding: '2px 8px', 
-                  borderRadius: '12px' 
-                }}>
-                  {userProfileLabel}
-                </span>
               </div>
               <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                 {user?.email || ''}
@@ -225,10 +202,6 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--accent-emerald)', background: 'rgba(52, 211, 153, 0.1)', padding: '4px 10px', borderRadius: 'var(--radius-pill)', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
-            <Radio size={12} className="spin-icon" style={{ animationDuration: '3s' }} />
-            <span>Acompanhamento Ativo</span>
-          </div>
         </div>
 
         {/* 3 Live Companion Pillars */}
@@ -353,6 +326,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
           </span>
         </div>
 
+        {hasHistory && (<>
         {/* Card 2: Consistency Score */}
         <div className="card-native" style={{ background: 'var(--surface-elevated)', borderLeft: `4px solid ${scoreColor}`, padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -434,9 +408,11 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             Últimos 7 dias vs semana anterior
           </span>
         </div>
+        </>)}
       </div>
 
       {/* HIGHLIGHTS STRIP: Ponto Forte, Risco e Sugestão */}
+      {hasHighlights && (
       <div className="card-native" style={{ marginBottom: '24px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(0, 229, 255, 0.2)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
@@ -482,6 +458,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
           </div>
         </div>
       </div>
+      )}
 
       {/* DIAGNOSTIC ALERTS BANNER (Se houver alertas de queda, conflito semanal ou baixa confiabilidade) */}
       {alerts.length > 0 && (
@@ -509,6 +486,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
       )}
 
       {/* 3-LEVEL REPORT SYSTEM SWITCHER (Requisito: Rápido, Expandido, Analítico) */}
+      {hasReports && (
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -788,8 +766,10 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
           </div>
         )}
       </div>
+      )}
 
       {/* HEATMAP MENSAL DE CONSISTÊNCIA (30 Dias) */}
+      {hasHistory && (
       <div className="card-native" style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <div>
@@ -855,10 +835,12 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
           })}
         </div>
       </div>
+      )}
 
       {/* COMPARATIVO SEMANAL E ADERÊNCIA POR CATEGORIA */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '24px' }}>
         {/* Gráfico de Barras: Semana Atual vs Semana Anterior */}
+        {hasHistory && (
         <div className="card-native">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <div>
@@ -888,15 +870,13 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             todayTotalHabitsCount={todayTotalHabitsCount}
           />
         </div>
+        )}
 
         {/* Aderência por Categoria */}
         <div className="card-native">
           <div style={{ marginBottom: '16px' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>
-              Distribuição
-            </span>
             <h4 style={{ fontSize: '1rem', color: 'var(--text-primary)', margin: 0 }}>
-              Aderência por Categoria
+              Categorias hoje
             </h4>
           </div>
 
@@ -904,45 +884,11 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
         </div>
       </div>
 
-      {/* EXPLICAÇÃO TÉCNICA DAS FÓRMULAS & NOTA IDEAL */}
-      <div className="card-native" style={{ background: 'rgba(7, 11, 18, 0.7)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-          <Activity size={18} color="var(--accent-cyan)" />
-          <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', margin: 0 }}>
-            Como o índice de constância é calculado
-          </h4>
-        </div>
+      {!hasHistory && (
         <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-          {summary.description}
+          {summary.description} Sequência, tendência e histórico aparecem quando o Ethos passar a guardar o registro de cada dia.
         </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginTop: '14px' }}>
-          <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>30% Conclusão</span>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Aderência às metas</div>
-          </div>
-          <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>20% Regularidade</span>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Espaçamento temporal</div>
-          </div>
-          <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>15% Retomada</span>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Resiliência pós-falha</div>
-          </div>
-          <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>15% Confiabilidade</span>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Qualidade do log</div>
-          </div>
-          <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--accent-indigo)', fontWeight: 700 }}>10% Tendência</span>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Delta 7d vs 7d ant.</div>
-          </div>
-          <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--accent-indigo)', fontWeight: 700 }}>10% Equilíbrio</span>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Estabilidade categorias</div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
