@@ -51,7 +51,7 @@ export function PendenciasDrawer({ open, onClose, data, onChanged, toast, onOpen
         {!aviso ? (
           <>
             <h2 id="pend-t">Pendências <button type="button" className="es-x" onClick={onClose} aria-label="Fechar"><X size={18} /></button></h2>
-            <p className="es-sub">Convites e avisos dos seus espaços. Nada aqui trava o app.</p>
+            <p className="es-sub">Convites e avisos dos seus espaços.</p>
             {convites.length + avisos.length + outras.length === 0 && <div className="es-empty"><h3>Tudo em dia</h3><p>Novos convites e avisos dos seus profissionais aparecem aqui.</p></div>}
             {convites.map((c) => (
               <div className="es-pend" key={c.inviteId} data-testid="pend-convite">
@@ -90,7 +90,7 @@ export function PendenciasDrawer({ open, onClose, data, onChanged, toast, onOpen
                 </div>
               );
             })}
-            <p className="es-sub" style={{ marginTop: 18 }}>Convites sem resposta deixam de aparecer quando o evento começa.</p>
+            
           </>
         ) : (
           <>

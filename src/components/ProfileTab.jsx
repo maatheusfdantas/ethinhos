@@ -608,7 +608,7 @@ export function ProfileTab({
                     alignItems: 'center',
                     gap: '4px'
                   }}
-                  title="Fórmula Oficial: Peso (em kg) × 35 ml = quantidade diária ideal de água"
+                  title="Peso (kg) × 35 ml por dia"
                 >
                   <Droplets size={12} color="#0284C7" />
                   <span>
@@ -910,7 +910,6 @@ export function ProfileTab({
                     fontSize: '10px',
                     fontWeight: 800,
                     letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
                     cursor: activeTrack ? 'pointer' : 'default'
                   }}
                   title={activeTrack ? "Clique para alternar reprodução" : "Nenhuma música configurada"}
@@ -1277,7 +1276,7 @@ export function ProfileTab({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#EA580C', marginBottom: '6px' }}>
                     <Flame size={16} />
-                    <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em' }}>
                       Conquista de Streak
                     </span>
                   </div>
@@ -1302,7 +1301,7 @@ export function ProfileTab({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4F46E5', marginBottom: '6px' }}>
                     <Timer size={16} />
-                    <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em' }}>
                       Nível & XP Social
                     </span>
                   </div>
@@ -1327,7 +1326,7 @@ export function ProfileTab({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#D97706', marginBottom: '6px' }}>
                     <Dumbbell size={16} />
-                    <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em' }}>
                       Musculação
                     </span>
                   </div>
@@ -1351,7 +1350,7 @@ export function ProfileTab({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#059669', marginBottom: '6px' }}>
                   <CheckCircle2 size={16} />
-                  <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em' }}>
                     Taxa de Hábitos
                   </span>
                 </div>
@@ -1366,7 +1365,7 @@ export function ProfileTab({
 
             {/* EVOLUÇÃO EM HÁBITOS SELECIONADOS PELO USUÁRIO */}
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#1A1B2F', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#1A1B2F', marginBottom: '10px', letterSpacing: '0.05em' }}>
                 Evolução nos Hábitos Compartilhados
               </div>
 
@@ -1416,7 +1415,7 @@ export function ProfileTab({
 
             {/* BADGES / DISTINTIVOS EM DESTAQUE */}
             <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #E2E8F0' }}>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#1A1B2F', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#1A1B2F', marginBottom: '10px', letterSpacing: '0.05em' }}>
                 Conquistas & Distintivos Visíveis
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -1837,7 +1836,7 @@ export function ProfileTab({
 
             {habits.length > 0 && (
               <div>
-                <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#475569', marginBottom: '8px' }}>
                   Hábitos exibidos na evolução ({habits.length} disponíveis):
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>

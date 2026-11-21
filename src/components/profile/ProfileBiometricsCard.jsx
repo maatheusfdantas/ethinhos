@@ -190,10 +190,10 @@ export default function ProfileBiometricsCard({
           </div>
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.01em' }}>
-              Calculadora Biométrica de Hidratação Diária
+              Meta de água
             </h3>
             <span style={{ fontSize: '12px', color: '#0284C7', fontWeight: 600 }}>
-              Fórmula Oficial: Peso (em kg) × 35 ml = quantidade diária de água
+              Peso (kg) × 35 ml por dia
             </span>
           </div>
         </div>
@@ -344,7 +344,7 @@ export default function ProfileBiometricsCard({
               justifyContent: 'center'
             }}
           >
-            <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#0369A1', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#0369A1', letterSpacing: '0.04em' }}>
               Meta Diária Sugerida
             </span>
             <div style={{ fontSize: '17px', fontWeight: 900, color: '#0284C7', marginTop: '2px' }}>
@@ -395,7 +395,7 @@ export default function ProfileBiometricsCard({
       {!hideConsumption && <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #E0F2FE' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
           <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>
-            Progresso Diário com Base na Meta Biométrica
+            Progresso do dia
           </span>
           <span style={{ fontSize: '12px', fontWeight: 800, color: '#0284C7' }}>
             {Math.round(consumedGlasses * glassSizeMl)} / {idealDailyWaterMl > 0 ? idealDailyWaterMl : recommendedGlasses * glassSizeMl} ml

@@ -257,7 +257,7 @@ export function PainelTab({
           {pendencias > 0 && (
             <div className="es-banner" role="status" data-testid="painel-pendencias">
               <Bell size={18} />
-              <span className="grow">{pendencias === 1 ? '1 pendência' : `${pendencias} pendências`} dos seus espaços: convites e avisos.</span>
+              <span className="grow">{pendencias === 1 ? '1 pendência' : `${pendencias} pendências`} dos seus espaços.</span>
               <button type="button" className="rx-link" onClick={onOpenPendencias}>Ver pendências</button>
             </div>
           )}

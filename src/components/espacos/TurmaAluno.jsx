@@ -62,7 +62,7 @@ export function TurmaAluno({ memberId, onBack, onOpenTab, toast }) {
         <CapaTurma capaUrl={d.turma.capaUrl} fotoUrl={d.espaco.fotoUrl} proName={d.espaco.proName} />
         <div className="tc-in">
           <h1 style={{ margin: 0, fontSize: 'clamp(26px, 2.6vw, 34px)' }}>{d.turma.name}</h1>
-          <p className="es-sub" style={{ margin: 0 }}>Turma de {d.espaco.proName} ({d.espaco.name}). Você vê o que é seu e o que a turma recebe; a lista de colegas nunca aparece.</p>
+          <p className="es-sub" style={{ margin: 0 }}>Turma de {d.espaco.proName}, {d.espaco.name}.</p>
           {(d.turma.capaUrl || d.espaco.fotoUrl) && <button type="button" className="rx-link" style={{ justifySelf: 'start' }} onClick={() => setDen({ kind: d.turma.capaUrl ? 'capa' : 'foto', reason: '' })}><Flag size={13} /> Denunciar imagem</button>}
         </div>
       </article>
@@ -156,7 +156,7 @@ export function AparenciaTurma({ turma, toast }) {
         {m.capas?.[turma.id] && <button type="button" className="rx-btn ghost tiny" disabled={busy} onClick={async () => { try { await espacosApi.removerCapa(turma.id); toast?.('Capa removida.'); load(); } catch (e) { toast?.(e.message); } }}>Remover capa</button>}
         {m.foto && <button type="button" className="rx-btn ghost tiny" disabled={busy} onClick={async () => { try { await espacosApi.removerFoto(); toast?.('Foto removida.'); load(); } catch (e) { toast?.(e.message); } }}>Remover foto</button>}
       </div>
-      <p className="es-sub">Capa recortada em 4:1 e foto quadrada, mostrada em círculo. JPG, PNG ou WebP. A foto vale para todas as suas turmas. Alunos podem denunciar imagem imprópria.</p>
+      <p className="es-sub">A foto vale para todas as suas turmas. JPG, PNG ou WebP.</p>
     </div>
   );
 }

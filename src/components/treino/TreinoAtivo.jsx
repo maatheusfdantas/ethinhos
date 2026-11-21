@@ -284,7 +284,6 @@ export function TreinoResumo({ session, onBack }) {
             })}
           </tbody>
         </table>
-        <p className="tr-sub" style={{ marginTop: 12 }}>Cada medida fica separada: carga, repetições e tempo não se misturam.</p>
       </article>
     </div>
   );

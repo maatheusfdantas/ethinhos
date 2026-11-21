@@ -78,7 +78,7 @@ export function ProIndividual({ linkId, pro, onBack, toast, extraTabs = [], init
   return (
     <div className="es">
       <button type="button" className="rx-btn ghost tiny" onClick={() => requestLeave(() => onBack?.())} style={{ marginBottom: 14 }}><ArrowLeft size={15} />{pro?.peopleLabel || 'Pessoas'}</button>
-      <div className="es-head"><div><h1>{pessoa.name}</h1><p>Área individual de acompanhamento. Não é a conta da pessoa: mostra só o que vocês compartilham. Vínculo desde {fmtDate(pessoa.since)}.</p></div>
+      <div className="es-head"><div><h1>{pessoa.name}</h1><p>Vínculo desde {fmtDate(pessoa.since)}.</p></div>
         {isPersonal && <div className="acts"><button type="button" className="rx-btn" onClick={() => setAtribuir(true)}><Plus size={16} />Atribuir ficha</button></div>}</div>
       <div className="es-tabs-row" role="group" aria-label="Seções da área individual">
         {tabs.map((t) => <button key={t} type="button" aria-pressed={t === tab} onClick={() => requestLeave(() => setTab(t))}>{t}</button>)}
@@ -119,7 +119,7 @@ export function ProIndividual({ linkId, pro, onBack, toast, extraTabs = [], init
             <div className="es-week" style={{ marginTop: 12 }}>
               {week.map((d) => { const k = local(d); return <div key={k} className={`es-day ${trained.has(k) ? 'done' : ''} ${k === local(new Date()) ? 'today' : ''}`}><b>{DAY[d.getDay()]}</b><i /><small>{trained.has(k) ? 'treinou' : '—'}</small></div>; })}
             </div>
-            <p className="es-sub" style={{ marginTop: 10 }}>Conta só treinos das fichas que você atribuiu, com pelo menos uma série feita. Treinos próprios da pessoa não aparecem.</p>
+            <p className="es-sub" style={{ marginTop: 10 }}>Só treinos das suas fichas.</p>
           </article>
           <article className="es-card">
             <h2>Sessões (últimos 28 dias)</h2>
@@ -179,7 +179,7 @@ export function ProIndividual({ linkId, pro, onBack, toast, extraTabs = [], init
                 })}
               </tbody>
             </table>
-            <p className="es-sub" style={{ marginTop: 10 }}>Diferenças em destaque, sem julgamento. Carga, repetições e tempo ficam separados.</p>
+            
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}><button type="button" className="rx-btn ghost" onClick={() => setSessao(null)}>Fechar</button></div>
           </div>
         </div>

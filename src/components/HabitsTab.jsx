@@ -348,7 +348,7 @@ export function HabitsTab({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <h1 style={{ fontSize: '22px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
-                Hábitos & Rotinas
+                Hábitos e rotinas
               </h1>
               <span 
                 style={{
@@ -360,11 +360,11 @@ export function HabitsTab({
                   color: '#38BDF8'
                 }}
               >
-                {totalHabits} Cadastrados
+                {totalHabits} cadastrados
               </span>
             </div>
             <p style={{ fontSize: '12.5px', color: '#A9ABC6', margin: '4px 0 0 0' }}>
-              Acompanhamento diário, semanal e mensal com marcação por clique, contador e valor flexível.
+              Diários, semanais ou mensais: marque, conte ou registre um valor.
             </p>
           </div>
         </div>
@@ -402,7 +402,7 @@ export function HabitsTab({
         {/* Card 1: Taxa de Conclusão */}
         <div style={{ backgroundColor: '#211F38', borderRadius: '20px', padding: '18px 20px', color: '#FFFFFF', boxShadow: '0 8px 20px rgba(33, 31, 56, 0.12)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#A9ABC6', textTransform: 'uppercase' }}>Taxa de Hoje</span>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#A9ABC6' }}>Taxa de Hoje</span>
             <TrendingUp size={16} color="#34D399" />
           </div>
           <div style={{ fontSize: '28px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
@@ -419,7 +419,7 @@ export function HabitsTab({
         {/* Card 2: Hábitos Pendentes */}
         <div style={{ backgroundColor: '#211F38', borderRadius: '20px', padding: '18px 20px', color: '#FFFFFF', boxShadow: '0 8px 20px rgba(33, 31, 56, 0.12)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#A9ABC6', textTransform: 'uppercase' }}>Pendentes Hoje</span>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#A9ABC6' }}>Pendentes Hoje</span>
             <Clock size={16} color="#FDE68A" />
           </div>
           <div style={{ fontSize: '28px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
@@ -433,21 +433,21 @@ export function HabitsTab({
         {/* Card 3: Ofensiva / Sequência */}
         <div style={{ backgroundColor: '#211F38', borderRadius: '20px', padding: '18px 20px', color: '#FFFFFF', boxShadow: '0 8px 20px rgba(33, 31, 56, 0.12)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#A9ABC6', textTransform: 'uppercase' }}>Ofensiva Ativa</span>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#A9ABC6' }}>Ofensiva Ativa</span>
             <Flame size={16} color="#F43F5E" />
           </div>
           <div style={{ fontSize: '28px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: '4px' }}>
             {user?.streak_days || 0} <span style={{ fontSize: '13px', fontWeight: 600, color: '#A9ABC6' }}>dias seguidos</span>
           </div>
           <span style={{ fontSize: '11.5px', color: '#34D399', display: 'block', marginTop: '16px', fontWeight: 600 }}>
-            🔥 Ritmo consistente mantido
+            Sequência mantida
           </span>
         </div>
 
         {/* Card 4: Distribuição por Tipo */}
         <div style={{ backgroundColor: '#211F38', borderRadius: '20px', padding: '18px 20px', color: '#FFFFFF', boxShadow: '0 8px 20px rgba(33, 31, 56, 0.12)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#A9ABC6', textTransform: 'uppercase' }}>Formatos Ativos</span>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#A9ABC6' }}>Formatos Ativos</span>
             <Sliders size={16} color="#C4B5FD" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>

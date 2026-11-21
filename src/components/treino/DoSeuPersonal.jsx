@@ -54,7 +54,7 @@ export function DoSeuPersonal({ atribuidos = [], onStart, onCopy, onChanged, toa
           <div className="tr-cards" style={{ marginTop: 12 }}>{encerradas.map(card)}</div>
         </details>
       )}
-      <p className="tr-sub" style={{ marginTop: 10 }}>Mudanças feitas durante o treino valem só para a sessão. O profissional vê só as sessões destas fichas.</p>
+      <p className="tr-sub" style={{ marginTop: 10 }}>Mudanças no treino valem só para a sessão.</p>
 
       {ver && (
         <div className="rx-overlay" onClick={() => setVer(null)}>

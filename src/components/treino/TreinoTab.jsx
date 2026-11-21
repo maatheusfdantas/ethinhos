@@ -437,7 +437,7 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
                 <div className="tr-week">
                   {s.week.map((d) => <div key={d.idx} className={`tr-day ${d.done ? 'done' : ''} ${d.today ? 'today' : ''}`}><b>{DAY_SHORT[d.idx]}</b><i /><small>{d.names[0] || 'livre'}</small></div>)}
                 </div>
-                <p className="rx-sub" style={{ marginTop: 10 }}>Os dias vêm de “Dias na agenda” de cada ficha. Marcado = sessão com pelo menos uma série feita.</p>
+                <p className="rx-sub" style={{ marginTop: 10 }}>Marcado: dia com pelo menos uma série feita.</p>
               </section>
               <section>
                 <h2>Últimas sessões <button type="button" className="rx-link" onClick={() => go('historico')}>Ver histórico</button></h2>

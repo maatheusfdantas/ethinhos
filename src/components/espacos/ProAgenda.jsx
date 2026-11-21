@@ -25,7 +25,7 @@ function Destinatarios({ value, onChange, fixed }) {
         <button type="button" className="es-chip" aria-pressed={value.audience === 'pessoas'} onClick={() => onChange({ ...value, audience: 'pessoas' })}>Pessoas</button>
         <button type="button" className="es-chip" aria-pressed={value.audience === 'espaco'} onClick={() => onChange({ ...value, audience: 'espaco' })}>Todo o espaço</button>
       </div>
-      {value.audience === 'turma' && <select className="es-input" aria-label="Turma" value={value.groupId || ''} onChange={(e) => onChange({ ...value, groupId: e.target.value })}>{opts.turmas.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.members} pessoas)</option>)}</select>}
+      {value.audience === 'turma' && <select className="es-input" aria-label="Turma" value={value.groupId || ''} onChange={(e) => onChange({ ...value, groupId: e.target.value })}>{opts.turmas.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.members} {t.members === 1 ? 'pessoa' : 'pessoas'})</option>)}</select>}
       {value.audience === 'pessoas' && (
         <div className="es-radio">{opts.pessoas.map((p) => (
           <label key={p.linkId}><input type="checkbox" checked={(value.linkIds || []).includes(p.linkId)} onChange={(e) => onChange({ ...value, linkIds: e.target.checked ? [...(value.linkIds || []), p.linkId] : (value.linkIds || []).filter((x) => x !== p.linkId) })} /><span>{p.name}<small>@{p.username}</small></span></label>
@@ -101,7 +101,7 @@ export function EventosPanel({ groupId = null, linkId = null, fixedLabel = null,
           <button type="button" className="rx-btn ghost tiny" onClick={() => openDet(e.id)}>Abrir</button>
         </div>
       ))}
-      <p className="es-sub" style={{ marginTop: 8 }}>Mudar data ou horário pede nova confirmação. Convites sem resposta deixam de pedir ação quando o evento começa. Presença é marcada depois.</p>
+      <p className="es-sub" style={{ marginTop: 8 }}>Mudar data ou horário pede nova confirmação.</p>
 
       {novo && (
         <div className="rx-overlay" onClick={() => guardNovo.confirm(() => setNovo(null))}>
@@ -210,7 +210,7 @@ export function AvisosPanel({ groupId = null, linkId = null, fixedLabel = null, 
           <button type="button" className="rx-btn ghost tiny" onClick={() => openDet(a.id)}>Abrir</button>
         </div>
       ))}
-      <p className="es-sub" style={{ marginTop: 8 }}>Os destinatários são fixados na publicação. Cada pessoa vê só a própria conversa com você. Sem chat e sem confirmação de leitura obrigatória.</p>
+      <p className="es-sub" style={{ marginTop: 8 }}>Cada pessoa vê só a própria conversa com você.</p>
 
       {novo && (
         <div className="rx-overlay" onClick={() => guardNovo.confirm(() => setNovo(null))}>

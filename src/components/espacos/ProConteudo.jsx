@@ -66,7 +66,7 @@ export function ProConteudo({ toast }) {
 
   return (
     <div className="es">
-      <div className="es-head"><div><h1>Fichas e programas</h1><p>Modelos com versões. Mudar um modelo não muda sessões feitas nem cópias adaptadas.</p></div>
+      <div className="es-head"><div><h1>Fichas e programas</h1><p>Modelos com versões. Mudar um modelo não muda o que já foi enviado.</p></div>
         <div className="acts"><button type="button" className="rx-btn" onClick={() => abrir({ id: null, name: '', description: '', content: { exercises: [] }, originalContent: { exercises: [] } })}><Plus size={16} />Nova ficha</button></div></div>
       <div className="es-grid">
         <article className="es-card">
@@ -91,9 +91,9 @@ export function ProConteudo({ toast }) {
               onClick={async () => { try { await espacosApi.config({ allowClientEdit: !(data.config?.allowClientEdit === true) }); load(); } catch (e) { toast?.(e.message); } }}>
               <span className="knob" /><span>Pessoas podem editar a cópia delas</span>
             </button>
-            <p className="rx-sub">Vale quando a atribuição não define nada. A escolha feita na atribuição tem precedência.</p>
+            <p className="rx-sub">A escolha feita em cada atribuição tem prioridade.</p>
           </section>
-          <section><h2>Biblioteca</h2><p className="rx-sub">250 exercícios em português, com o nome em inglês para busca, e os personalizados do seu espaço. Abra pela ficha.</p></section>
+          <section><h2>Biblioteca</h2><p className="rx-sub">250 exercícios e os personalizados do seu espaço.</p></section>
         </aside>
       </div>
 

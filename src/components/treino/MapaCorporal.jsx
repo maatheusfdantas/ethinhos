@@ -52,7 +52,7 @@ export function MapaCorporal({ exercises = [], semMusculos = 0 }) {
   return (
     <section className="bm-box" data-testid="mapa-corporal">
       <h3>Músculos trabalhados nesta ficha</h3>
-      <p className="tr-sub">Ênfase estimada a partir dos exercícios. Não é medição do corpo.</p>
+      <p className="tr-sub">Ênfase estimada pelos exercícios da ficha.</p>
       <div className="bm">
         <Corpo agg={agg} side="front" hover={hover} interactive onPick={setHover} label="Frente do corpo" />
         <Corpo agg={agg} side="back" hover={hover} interactive onPick={setHover} label="Costas" />

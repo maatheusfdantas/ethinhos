@@ -58,7 +58,7 @@ export function Biblioteca({ fichaName = 'a ficha', counts = {}, onAdd, onRemove
       <div className="bl-wrap">
         <button type="button" className="rx-btn ghost tiny" onClick={voltar}><ArrowLeft size={15} />Voltar para {fichaName}</button>
         <div className="bl-head">
-          <div><h2 id="bl-t">Biblioteca de exercícios</h2><p className="tr-sub">Em português, com o nome em inglês para busca. {lib ? `${lib.exercicios.length} exercícios${lib.personalizados.length ? ` e ${lib.personalizados.length} personalizados` : ''}.` : ''}</p></div>
+          <div><h2 id="bl-t">Biblioteca de exercícios</h2><p className="tr-sub">{lib ? `${lib.exercicios.length} exercícios${lib.personalizados.length ? ` e ${lib.personalizados.length} personalizados` : ''}. Busque em português ou inglês.` : ''}</p></div>
           <button type="button" className="rx-btn ghost" onClick={() => setCustom({ name: '', primary: [], secondary: [], equipment: '', metric: 'reps', instructions: '' })}><Plus size={16} />Exercício personalizado</button>
         </div>
         {erro && <div className="tr-error">{erro}</div>}
@@ -76,7 +76,7 @@ export function Biblioteca({ fichaName = 'a ficha', counts = {}, onAdd, onRemove
                     <li key={e.id}>
                       <button type="button" className="bl-item" aria-current={sel === e.id ? 'true' : undefined} onClick={() => setSel(e.id)} data-testid="bl-item">
                         <span className="bl-thumb"><CorpoExercicio exercise={e} thumb /></span>
-                        <span className="bl-txt"><b>{e.name}</b><small>{[e.aliases?.[0], e.equipment, e.origin === 'personalizada' ? 'personalizado' : null].filter(Boolean).join(' · ')}</small></span>
+                        <span className="bl-txt"><b>{e.name}</b><small>{[e.aliases?.[0], e.equipment, e.origin === 'personalizada' ? 'personalizado' : null].filter(Boolean).join(', ')}</small></span>
                         <span className={`bl-mark ${n ? 'on' : ''}`} aria-label={n === 0 ? 'Não está na ficha' : n === 1 ? 'Já está na ficha' : `Está ${n} vezes na ficha`} data-testid="bl-mark">{n === 1 ? <Check size={15} strokeWidth={3} /> : n > 1 ? n : ''}</span>
                       </button>
                     </li>
@@ -87,10 +87,10 @@ export function Biblioteca({ fichaName = 'a ficha', counts = {}, onAdd, onRemove
             {list.length > 120 && <p className="tr-sub">Mostrando 120 de {list.length}. Refine a busca.</p>}
           </section>
           <aside className="bl-card bl-detail">
-            {!selected ? <p className="tr-sub">Toque num exercício para ver os músculos, as instruções e adicionar à ficha.</p> : (
+            {!selected ? <p className="tr-sub">Escolha um exercício para ver os músculos e adicionar.</p> : (
               <>
                 <h3>{selected.name}</h3>
-                <p className="tr-sub">{[selected.aliases?.[0], selected.group, selected.equipment, selected.level, selected.type].filter(Boolean).join(' · ')}</p>
+                <p className="tr-sub">{[selected.aliases?.[0], selected.group, selected.equipment, selected.level].filter(Boolean).join(', ')}</p>
                 <CorpoExercicio exercise={selected} />
                 <p className="bl-ms"><span className="bl-tag p">Principais</span>{selected.primary.map((k) => MUSCLES[k]).join(', ') || 'não definidos'}</p>
                 <p className="bl-ms"><span className="bl-tag">Secundários</span>{selected.secondary.map((k) => MUSCLES[k]).join(', ') || 'nenhum'}</p>
@@ -138,7 +138,7 @@ export function Biblioteca({ fichaName = 'a ficha', counts = {}, onAdd, onRemove
             } catch (err) { toast?.(err.message); } finally { setBusy(false); }
           }}>
             <h2 id="bl-c-t">Exercício personalizado</h2>
-            <p>{escopo === 'espaco' ? 'Fica no seu espaço' : 'Fica só com você'} e é preservado nas atualizações da base. Escolha ao menos um músculo principal.</p>
+            <p>{escopo === 'espaco' ? 'Fica no seu espaço' : 'Fica só com você'} Escolha ao menos um músculo principal.</p>
             <div className="tr-field"><label htmlFor="bl-cn">Nome</label><input id="bl-cn" className="tr-input" maxLength={80} placeholder="Ex.: Remada no TRX" value={custom.name} onChange={(e) => setCustom({ ...custom, name: e.target.value })} /></div>
             <div className="tr-field"><span className="lbl">Músculos principais (obrigatório)</span>
               <div className="tr-chips">{MUSCLE_KEYS.map((k) => <button key={k} type="button" className="tr-chip" aria-pressed={custom.primary.includes(k)} onClick={() => setCustom((c) => ({ ...c, primary: c.primary.includes(k) ? c.primary.filter((x) => x !== k) : [...c.primary, k], secondary: c.secondary.filter((x) => x !== k) }))}>{MUSCLES[k]}</button>)}</div></div>

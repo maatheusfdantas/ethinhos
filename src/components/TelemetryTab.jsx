@@ -96,7 +96,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
     return (
       <div className="telemetry-view" style={{ textAlign: 'center', padding: '60px 20px' }}>
         <RefreshCw size={36} color="var(--accent-cyan)" className="spin-icon" style={{ margin: '0 auto 16px' }} />
-        <h3 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Processando Engine Analítica Python</h3>
+        <h3 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Calculando…</h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
           Calculando séries temporais, matrizes de regularidade e detecção de padrões...
         </p>
@@ -150,11 +150,11 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <Cpu size={22} color="var(--accent-cyan)" />
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-              Engine Analítica & Telemetria
+              Análise de progresso
             </h2>
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
-            Acompanhamento individual contínuo baseado em modelagem comportamental com Python.
+            Hábitos, água e sono em números.
           </p>
         </div>
 
@@ -178,11 +178,8 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             title="Recalcular métricas"
           >
             <RefreshCw size={14} className={loading ? 'spin-icon' : ''} />
-            Sincronizar Telemetria
+            Atualizar
           </button>
-          <span className="section-badge" style={{ borderColor: 'rgba(0, 229, 255, 0.3)', color: 'var(--accent-cyan)' }}>
-            Engine Analítica Ethos
-          </span>
         </div>
       </div>
 
@@ -223,7 +220,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
                 </span>
               </div>
               <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                {user?.email || 'telemetria@ethos.io'} • Telemetria individual ao vivo
+                {user?.email || ''}
               </span>
             </div>
           </div>
@@ -239,7 +236,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
           {/* Pillar 1: Hábitos do dia */}
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Target size={14} color="var(--accent-cyan)" />
                 Hábitos de Hoje
               </span>
@@ -280,7 +277,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
           {/* Pillar 2: Hidratação Real */}
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Droplets size={14} color="var(--accent-cyan)" />
                 Hidratação Atual
               </span>
@@ -306,7 +303,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
           {/* Pillar 3: Sono & Descanso */}
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Moon size={14} color="var(--accent-indigo)" />
                 Sono & Recuperação
               </span>
@@ -340,7 +337,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
         {/* Card 1: Progresso do Dia */}
         <div className="card-native" style={{ background: 'var(--surface-elevated)', borderLeft: '4px solid var(--accent-cyan)', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
               Progresso do Dia
             </span>
             <Target size={18} color="var(--accent-cyan)" />
@@ -359,8 +356,8 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
         {/* Card 2: Consistency Score */}
         <div className="card-native" style={{ background: 'var(--surface-elevated)', borderLeft: `4px solid ${scoreColor}`, padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-              Consistency Score
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              Índice de constância
             </span>
             <ShieldCheck size={18} color={scoreColor} />
           </div>
@@ -368,7 +365,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             <span style={{ fontSize: '1.8rem', fontWeight: 800, color: scoreColor }}>
               {summary.consistency_score}
             </span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: scoreColor, background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: scoreColor, background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '4px' }}>
               {summary.label}
             </span>
           </div>
@@ -383,7 +380,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
         {/* Card 3: Streak Principal */}
         <div className="card-native" style={{ background: 'var(--surface-elevated)', borderLeft: '4px solid var(--accent-amber)', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
               Streak Principal
             </span>
             <Flame size={18} color="var(--accent-amber)" />
@@ -403,7 +400,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
         {/* Card 4: Tendência Semanal */}
         <div className="card-native" style={{ background: 'var(--surface-elevated)', borderLeft: '4px solid var(--accent-indigo)', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
               Tendência Recente
             </span>
             {summary.trend_status === 'improving' ? (
@@ -425,7 +422,6 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
             <span style={{ 
               fontSize: '0.72rem', 
               fontWeight: 700, 
-              textTransform: 'uppercase',
               color: summary.trend_status === 'improving' ? 'var(--accent-emerald)' : summary.trend_status === 'declining' ? 'var(--accent-rose)' : 'var(--accent-cyan)',
               background: 'rgba(255,255,255,0.06)',
               padding: '2px 8px',
@@ -448,7 +444,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
               <Sparkles size={18} color="var(--accent-emerald)" />
             </div>
             <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-emerald)', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
                 Ponto Mais Forte
               </span>
               <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
@@ -462,7 +458,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
               <AlertTriangle size={18} color="var(--accent-rose)" />
             </div>
             <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-rose)', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-rose)' }}>
                 Atenção / Risco
               </span>
               <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
@@ -476,7 +472,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
               <Lightbulb size={18} color="var(--accent-cyan)" />
             </div>
             <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-cyan)', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
                 Ação Prática Sugerida
               </span>
               <div style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-primary)', marginTop: '2px', lineHeight: 1.4 }}>
@@ -752,7 +748,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
                     </div>
                   </div>
                   <div style={{ padding: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Consistency Score</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Índice de constância</span>
                     <div style={{ fontSize: '1.4rem', fontWeight: 800, color: scoreColor, marginTop: '4px' }}>
                       {Math.round(activeWindowData.consistency_score)}
                     </div>
@@ -797,7 +793,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
       <div className="card-native" style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 700, textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>
               Frequência Diária
             </span>
             <h3 style={{ fontSize: '1.15rem', color: 'var(--text-primary)', margin: 0 }}>
@@ -866,7 +862,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
         <div className="card-native">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 700, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>
                 Comparativo
               </span>
               <h4 style={{ fontSize: '1rem', color: 'var(--text-primary)', margin: 0 }}>
@@ -896,7 +892,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
         {/* Aderência por Categoria */}
         <div className="card-native">
           <div style={{ marginBottom: '16px' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 700, textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>
               Distribuição
             </span>
             <h4 style={{ fontSize: '1rem', color: 'var(--text-primary)', margin: 0 }}>
@@ -913,7 +909,7 @@ export function TelemetryTab({ habits = [], health = {}, user = null }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
           <Activity size={18} color="var(--accent-cyan)" />
           <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', margin: 0 }}>
-            Estrutura Ponderada do Consistency Score
+            Como o índice de constância é calculado
           </h4>
         </div>
         <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>

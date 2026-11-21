@@ -264,7 +264,7 @@ export function TurmaPlanos({ turma, openPessoa, toast }) {
           <button type="button" className={p.plano ? 'rx-btn ghost tiny' : 'rx-btn tiny'} onClick={() => openPessoa?.(p.linkId, 'Plano')}>{p.plano ? 'Abrir plano' : 'Criar plano'}</button>
         </div>
       ))}
-      <p className="es-sub">Planos alimentares são individuais: cada paciente tem o seu, mesmo dentro do grupo.</p>
+      <p className="es-sub">Cada paciente tem o próprio plano.</p>
     </article>
   );
 }
@@ -311,7 +311,7 @@ export function PlanosModelo({ toast }) {
   }
   return (
     <>
-      <div className="es-head"><div><h1>Planos alimentares</h1><p>Modelos de plano para reaproveitar. Cada paciente recebe uma cópia própria, que você ajusta na área individual.</p></div>
+      <div className="es-head"><div><h1>Planos alimentares</h1><p>Modelos para começar os planos dos pacientes.</p></div>
         <div className="acts"><button type="button" className="rx-btn" onClick={() => abrir({ id: null, name: '', content: starterContent() })}><Plus size={16} />Novo modelo</button></div></div>
       <article className="es-card">
         {list === null ? <p className="es-sub">Carregando…</p> : list.length === 0 ? (

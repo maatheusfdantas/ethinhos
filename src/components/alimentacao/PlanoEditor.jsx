@@ -36,7 +36,7 @@ export function PlanoEditor({ value, onChange, idPrefix = 'ne' }) {
             <button key={k} type="button" className="es-chip" aria-pressed={content.layout === k} onClick={() => { if (content.layout !== k) { onChange(changeLayout(content, k)); setGk(LAYOUTS[k][0].key); } }}>{LAYOUT_LABEL[k]}</button>
           ))}
         </div>
-        <span className="es-sub" style={{ margin: 0 }}>Dias novos começam com uma cópia do cardápio do primeiro grupo.</span>
+        <span className="es-sub" style={{ margin: 0 }}>Os dias novos copiam o primeiro cardápio.</span>
       </div>
 
       {groups.length > 1 && (

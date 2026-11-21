@@ -85,7 +85,7 @@ export function AtribuirDialog({ groupId = null, linkIds = null, onClose, onDone
               <label><input type="radio" name="atr-d" checked={dest === 'individual'} onChange={() => { setDest('individual'); setSel([]); }} /><span>Uma pessoa<small>Só para um aluno.</small></span></label>
             </div>
             {dest === 'turma' && turmas.length > 0 && (
-              <div className="es-field" style={{ marginTop: 12 }}><label htmlFor="atr-g">Turma</label><select id="atr-g" className="es-input" value={turmaId} onChange={(e) => setTurmaId(e.target.value)}>{turmas.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.members} pessoas)</option>)}</select></div>
+              <div className="es-field" style={{ marginTop: 12 }}><label htmlFor="atr-g">Turma</label><select id="atr-g" className="es-input" value={turmaId} onChange={(e) => setTurmaId(e.target.value)}>{turmas.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.members} {t.members === 1 ? 'pessoa' : 'pessoas'})</option>)}</select></div>
             )}
             {dest === 'selecao' && (
               <>

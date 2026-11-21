@@ -81,7 +81,7 @@ export function EspacosTab({ showToast, initialCode = '', onOpenTab }) {
 
   return (
     <div className="es">
-      <div className="es-head"><div><h1>Espaços</h1><p>Profissionais que acompanham você no Ethos. Cada um vê só o que atribuir e os registros disso.</p></div></div>
+      <div className="es-head"><div><h1>Espaços</h1><p>Profissionais que acompanham você.</p></div></div>
       <div className="es-grid">
         <div className="es-stack">
           {data.error && <div className="es-note">{data.error}</div>}

@@ -186,7 +186,7 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
     const extTurma = ext.turmaTabs ? ext.turmaTabs(meu.pro).find((t) => t.label === turmaTab) : null;
     body = (
       <>
-        <div className="es-head"><div><h1>Turmas e convites</h1><p>Turmas organizam grupos. Quem participa de uma turma não vê os outros participantes.</p></div>
+        <div className="es-head"><div><h1>Turmas e convites</h1><p>Quem participa de uma turma não vê os outros participantes.</p></div>
           <div className="acts"><button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={individual}><User size={16} />Convite individual</button><button type="button" className="rx-btn" onClick={() => setNova({ name: '', description: '' })}><Plus size={16} />Nova turma</button></div></div>
         {turmas.length === 0 ? (
           <section className="es-card" style={{ maxWidth: 640 }}><div className="es-empty"><h3>Nenhuma turma ainda</h3><p>Crie uma turma e gere um código de 24 horas para as pessoas entrarem. Para atender alguém sem turma, use o convite individual.</p><button type="button" className="rx-btn" onClick={() => setNova({ name: '', description: '' })}><Plus size={16} />Criar turma</button></div></section>
@@ -196,7 +196,7 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
               {turmas.map((t) => (
                 <button key={t.id} type="button" className="es-sel" aria-current={t.id === sel ? 'true' : undefined} onClick={() => setSel(t.id)}>
                   <span className="grow"><b>{t.name}</b><small>{t.description || 'Sem descrição'}</small></span>
-                  <span className={`rx-pill ${t.status === 'ativa' ? 'es-pill-on' : ''}`}>{t.status === 'ativa' ? `${t.members} pessoas` : 'Rascunho'}</span>
+                  <span className={`rx-pill ${t.status === 'ativa' ? 'es-pill-on' : ''}`}>{t.status === 'ativa' ? `${t.members} {t.members === 1 ? 'pessoa' : 'pessoas'}` : 'Rascunho'}</span>
                 </button>
               ))}
             </section>
@@ -241,7 +241,7 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
                     {turmaAtrib === null ? <p className="es-sub">Carregando…</p> : turmaAtrib.length === 0 ? <div className="es-empty"><p>Nada atribuído a esta turma ainda.</p></div> : turmaAtrib.map((a) => (
                       <div className="es-row" key={a.templateId}><div className="grow"><b>{a.name}</b><small>versão {a.version}, {a.people} {a.people === 1 ? 'pessoa' : 'pessoas'}{a.adapted ? `, ${a.adapted} ${a.adapted === 1 ? 'adaptada' : 'adaptadas'}` : ''}, desde {fmtDate(a.since)}</small></div></div>
                     ))}
-                    <p className="es-sub">Atribuir à turma cria uma cópia por pessoa. Adaptar a de alguém não muda os colegas. Quem entra depois não recebe sozinho: atribua de novo (quem já tem não recebe duplicado).</p>
+                    <p className="es-sub">Cada pessoa recebe uma cópia. Quem entrar depois precisa receber de novo.</p>
                   </article>
                 )}
                 {extTurma && extTurma.render({ turma: g, pro: meu.pro, toast, reload: load })}
@@ -254,7 +254,7 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
   } else if (view === 'pro-pessoas') {
     body = (
       <>
-        <div className="es-head"><div><h1>{peopleLabel}</h1><p>{pessoas?.length || 0} com vínculo ativo. Abra a área individual para planejar e acompanhar.</p></div>
+        <div className="es-head"><div><h1>{peopleLabel}</h1><p>{pessoas?.length || 0} com vínculo ativo.</p></div>
           <div className="acts"><button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={individual}><User size={16} />Convite individual</button></div></div>
         <article className="es-card">
           {!pessoas?.length ? <div className="es-empty"><h3>Ninguém ainda</h3><p>As pessoas aparecem aqui quando entram com um código de turma ou com um convite individual.</p></div> : (
@@ -281,7 +281,7 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
     const b = blocos.find((x) => x.key === bloco) || blocos[0];
     body = (
       <>
-        <div className="es-head"><div><h1>{meu.pro.spaceName}</h1><p>{meu.pro.modelLabel}. O que pede sua atenção hoje: cada número abre a lista correspondente.</p></div>
+        <div className="es-head"><div><h1>{meu.pro.spaceName}</h1><p>{meu.pro.modelLabel}</p></div>
           <div className="acts"><button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={individual}><User size={16} />Convite individual</button><button type="button" className="rx-btn" onClick={() => onNavigate?.('pro-turmas')}><Ticket size={16} />Turmas e convites</button></div></div>
         {blocos.length > 0 ? (
           <div className="es-act" role="group" aria-label="Ações">
@@ -306,7 +306,7 @@ export function ProEspaco({ view = 'pro-visao', pro, onNavigate, navParams = nul
           </article>
           <aside className="rx-rail">
             <section className="summary"><h2>Turmas</h2>
-              {turmas.length === 0 ? <p className="rx-sub">Nenhuma turma ainda.</p> : <ul className="rx-list">{turmas.map((t) => <li key={t.id}><span className="ic violet"><Ticket size={16} /></span><div><b>{t.name}</b><p>{t.members} pessoas{t.inviteId ? `, código válido até ${fmtUntil(t.inviteUntil)}` : ''}</p></div></li>)}</ul>}
+              {turmas.length === 0 ? <p className="rx-sub">Nenhuma turma ainda.</p> : <ul className="rx-list">{turmas.map((t) => <li key={t.id}><span className="ic violet"><Ticket size={16} /></span><div><b>{t.name}</b><p>{t.members} {t.members === 1 ? 'pessoa' : 'pessoas'}{t.inviteId ? `, código válido até ${fmtUntil(t.inviteUntil)}` : ''}</p></div></li>)}</ul>}
             </section>
             <section><h2>{peopleLabel}</h2><p className="rx-sub">{visao?.pessoas ?? pessoas?.length ?? 0} com vínculo ativo.</p></section>
             <section><h2>Privacidade</h2><p className="rx-sub">{model === 'personal' ? 'Personal não acessa alimentação.' : model === 'nutri' ? 'Nutricionista não acessa treinos.' : 'Clínica não acessa treinos nem alimentação.'} Hábitos, notas, saúde e agenda pessoal das pessoas nunca aparecem aqui.</p></section>

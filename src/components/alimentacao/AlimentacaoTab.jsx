@@ -135,7 +135,7 @@ export function AlimentacaoTab({ showToast }) {
         </div>
         <aside className="rx-rail">
           <section className="summary"><h2>Relação com o plano</h2>
-            <p className="rx-sub">Contagens do dia. Não é nota: serve para você e {plano.proName || 'a nutricionista'} conversarem.</p>
+            <p className="rx-sub">Contagens do dia.</p>
             <Contagens counts={n.counts} />
           </section>
           <section><h2>{plano.status === 'encerrado' ? 'Plano encerrado' : 'Plano vigente'}</h2>
@@ -185,7 +185,7 @@ export function AlimentacaoTab({ showToast }) {
             </div>
           );
         })}
-        <p className="rx-sub">Se o vínculo com a nutricionista acabar, você continua vendo seus planos e registros aqui. Eles não aparecem como vigentes.</p>
+        <p className="rx-sub">Planos antigos ficam aqui, só para leitura.</p>
       </article>
     );
   }
@@ -193,7 +193,7 @@ export function AlimentacaoTab({ showToast }) {
   return (
     <div className="es">
       <div className="es-head">
-        <div><h1>Alimentação</h1><p>Plano de <b>{plano.proName || 'sua nutricionista'}</b>{plano.spaceName ? ` (${plano.spaceName})` : ''}. {plano.status === 'encerrado' ? 'Este plano foi encerrado e fica só para leitura.' : 'Esta aba aparece porque existe um plano publicado para você.'}</p></div>
+        <div><h1>Alimentação</h1><p>Plano de <b>{plano.proName || 'sua nutricionista'}</b>{plano.spaceName ? ` (${plano.spaceName})` : ''}. {plano.status === 'encerrado' ? 'Plano encerrado, só leitura.' : ''}</p></div>
         <div className="acts"><div className="es-tabs-row" role="group" aria-label="Período" style={{ marginBottom: 0 }}>{['Dia', 'Semana', 'Histórico'].map((t) => <button key={t} type="button" aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}</div></div>
       </div>
       {planos.length > 1 && (
