@@ -4,7 +4,7 @@ import { DesktopSidebar, MobileBottomNav, BrandMark } from './components/Nav';
 import { PainelTab } from './components/PainelTab';
 import { NotesTab } from './components/NotesTab';
 import { HabitosTab } from './components/habitos/HabitosTab';
-import { BadHabitsTab } from './components/BadHabitsTab';
+import { MausHabitosTab } from './components/maus/MausHabitosTab';
 import { AddModal } from './components/AddModal';
 import { WorkoutTab } from './components/WorkoutTab'; // eslint-disable-line no-unused-vars -- módulo antigo preservado
 import { TreinoTab } from './components/treino/TreinoTab';
@@ -17,7 +17,7 @@ import { AlimentacaoTab } from './components/alimentacao/AlimentacaoTab';
 import { useMealPlans } from './hooks/useAlimentacao';
 import { requestLeave, UnsavedHost } from './hooks/useUnsavedGuard';
 import { FocusTab } from './components/FocusTab';
-import { CalendarTab } from './components/CalendarTab';
+import { AgendaTab } from './components/agenda/AgendaTab';
 import { AnaliseTab } from './components/analise/AnaliseTab';
 import { SocialTab } from './components/SocialTab';
 import { PerfilTab } from './components/perfil/PerfilTab';
@@ -742,15 +742,16 @@ export function App() {
 
             {/* TAB: MAUS HÁBITOS & VÍCIOS (SUPERAÇÃO, SOBRIEDADE E DESEMPENHO) */}
             {activeTab === 'bad_habits' && (
-              <div className="rx-sheet-legacy"><BadHabitsTab
+              <MausHabitosTab
                 user={user}
                 showToast={showToast}
-              /></div>
+              />
             )}
 
             {/* TAB 4: CALENDÁRIO / AGENDA MENSAL, SEMANAL E DIÁRIA */}
             {activeTab === 'calendar' && (
-              <div className="rx-sheet-legacy"><CalendarTab
+              <AgendaTab
+                user={user}
                 events={events}
                 spaceEvents={pend.spaceEvents}
                 setEvents={setEvents}
@@ -765,7 +766,7 @@ export function App() {
                 onDeleteEvent={handleDeleteEvent}
                 onSwitchTab={setActiveTab}
                 showToast={showToast}
-              /></div>
+              />
             )}
 
             {/* TAB 2: MUSCULAÇÃO & TREINO (RENDERIZADO DIRETO NA MOLDURA CLARA FIEL AO MOCKUP) */}
