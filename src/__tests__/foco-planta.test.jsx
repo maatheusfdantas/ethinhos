@@ -175,4 +175,23 @@ describe('FocusTab com planta', () => {
     expect(container.querySelector('.rf-orbit .center').className).toBe('center');
     expect(container.querySelectorAll('.rf-orbit .moon')).toHaveLength(5);
   });
+
+  it('permite abrir o catálogo visual no Foco e escolher entre Plantas, Mundos e Elementos para cultivar', () => {
+    render(<FocusTab user={user} tags={tags} />);
+    fireEvent.click(screen.getByTestId('rf-open-catalogo'));
+    const modal = screen.getByTestId('rf-catalogo-modal');
+    expect(modal).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('rf-cat-tab-mundos'));
+    fireEvent.click(screen.getByTestId('rf-cat-item-mundo-aether'));
+    fireEvent.click(within(modal).getByRole('button', { name: /Cultivar Aetheris/i }));
+
+    expect(screen.queryByTestId('rf-catalogo-modal')).toBeNull();
+    expect(screen.getByTestId('rf-cultivo-selector').textContent).toMatch(/Aetheris/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Começar sessão' }));
+    pular(26);
+    const salvo = JSON.parse(localStorage.getItem('ethos_foco_v1_u1'));
+    expect(salvo.sessions[0]).toMatchObject({ full: true, plant: { especie: 'mundo-aether', estagio: 'florida' } });
+  });
 });

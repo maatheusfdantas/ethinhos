@@ -11,6 +11,7 @@ import {
   carregarSessao, salvarSessao
 } from './foco/planta/sessaoFoco';
 import { especiePorId, especiesPorTema, estagioPara, ESPECIE_PADRAO, TEMAS_CULTIVO } from './foco/planta/especies';
+import { urlDoAsset } from './foco/planta/assets';
 import { Planta } from './foco/planta/Planta';
 
 const INTENSITY = [
@@ -155,6 +156,9 @@ export function FocusTab({
   const [note, setNote] = useState('');
   const [stopAsk, setStopAsk] = useState(null);
   const [showCert, setShowCert] = useState(false);
+  const [showCatalogo, setShowCatalogo] = useState(false);
+  const [catTema, setCatTema] = useState('plantas');
+  const [catBusca, setCatBusca] = useState('');
   const [glow, setGlow] = useState(0);
 
 
@@ -466,14 +470,50 @@ export function FocusTab({
                               onClick={() => {
                                 const lista = especiesPorTema(t.id);
                                 if (lista[0]) set({ especie: lista[0].id });
+                                setCatTema(t.id);
                               }}
                             >
                               <i style={{ background: ativo ? (especie.paleta?.c1 || '#A78BFA') : '#64748B' }} />
-                              {t.nome}
+                              {t.icone} {t.nome} ({especiesPorTema(t.id).length})
                             </button>
                           );
                         })}
                       </div>
+
+                      {/* Cartão visual da escolha atual + botão para abrir o Catálogo Visual */}
+                      <div className="rf-cultivo-box">
+                        <div className="rf-cultivo-prev">
+                          <div className="rf-cultivo-thumb" aria-hidden="true">
+                            <img className="sp" src={urlDoAsset(especie.id, especie.estagios[especie.estagios.length - 1].assetKey) || ''} alt="" />
+                            <img className="ch" src={urlDoAsset(especie.id, especie.chao) || ''} alt="" />
+                          </div>
+                          <div className="rf-cultivo-meta">
+                            <b>{especie.nome}</b>
+                            {especie.subtitulo && <small>{especie.subtitulo}</small>}
+                            {especie.paleta && (
+                              <span className="rf-pal-pill">
+                                <i style={{ background: especie.paleta.c1 }} />
+                                <i style={{ background: especie.paleta.c2 }} />
+                                <i style={{ background: especie.paleta.c3 }} />
+                                <span>{especie.paleta.nome}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="rf-btn ghost"
+                          data-testid="rf-open-catalogo"
+                          onClick={() => {
+                            setCatTema(especie.tema || 'plantas');
+                            setCatBusca('');
+                            setShowCatalogo(true);
+                          }}
+                        >
+                          Escolher no catálogo
+                        </button>
+                      </div>
+
                       <select
                         className="rf-input"
                         aria-label="Escolher planta, mundo ou elemento para cultivar"
@@ -485,7 +525,7 @@ export function FocusTab({
                           <option key={item.id} value={item.id}>
                             {item.id === 'lirio-lunar'
                               ? '★ Lírio-lunar (Padrão)'
-                              : `${item.nome} · ${item.paleta?.nome || ''}`}
+                              : `#${String(item.indiceTema || 1).padStart(2, '0')} · ${item.nome} — ${item.paleta?.nome || ''}`}
                           </option>
                         ))}
                       </select>
@@ -724,6 +764,143 @@ export function FocusTab({
               <button type="button" className="rf-btn ghost" onClick={stopDrop}>{stopAsk.done > 0 ? 'Parar sem guardar' : 'Parar'}</button>
               <button type="button" className="rf-btn ghost" autoFocus onClick={stopBack}>Continuar focando</button>
               {plantaOn && estagio !== especie.estagios[0] && <p className="rf-hint">Guardar deixa a planta onde chegou. Parar sem guardar faz ela murchar.</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCatalogo && (
+        <div className="rx-overlay" onClick={() => setShowCatalogo(false)}>
+          <div
+            className="rx-dialog rf-cat-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rfCatTitle"
+            data-testid="rf-catalogo-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="rf-card-head">
+              <div>
+                <h2 id="rfCatTitle">Escolher o que cultivar no Foco</h2>
+                <p className="rf-sub">
+                  21 Plantas, 20 Mundos e 20 Elementos com progressão em 5 estágios e paletas de cores alternadas.
+                </p>
+              </div>
+              <button type="button" className="x" aria-label="Fechar catálogo" onClick={() => setShowCatalogo(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Prévia dos 5 estágios do item selecionado */}
+            <div className="rf-cat-stages" aria-label={`Progressão de ${especie.nome}`}>
+              {especie.estagios.map((st) => (
+                <div key={st.stageId} className="rf-cat-stage">
+                  <img src={urlDoAsset(especie.id, st.assetKey) || ''} alt="" />
+                  <b>{st.nome}</b>
+                  <span>{Math.round(st.minProgress * 100)}%</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Filtros de Tema e Busca */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="rf-chips">
+                {TEMAS_CULTIVO.map((t) => (
+                  <button
+                    type="button"
+                    key={t.id}
+                    className="rf-chip"
+                    aria-pressed={catTema === t.id}
+                    data-testid={`rf-cat-tab-${t.id}`}
+                    onClick={() => setCatTema(t.id)}
+                  >
+                    <i style={{ background: catTema === t.id ? (especie.paleta?.c1 || '#A78BFA') : '#64748B' }} />
+                    {t.icone} {t.nome} ({especiesPorTema(t.id).length})
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="rf-chip"
+                  aria-pressed={catTema === 'todos'}
+                  data-testid="rf-cat-tab-todos"
+                  onClick={() => setCatTema('todos')}
+                >
+                  Todos (61)
+                </button>
+              </div>
+              <input
+                type="search"
+                className="rf-input"
+                aria-label="Buscar no catálogo de cultivo"
+                placeholder="Buscar nome ou paleta..."
+                value={catBusca}
+                onChange={(e) => setCatBusca(e.target.value)}
+                style={{ maxWidth: 230 }}
+              />
+            </div>
+
+            {/* Grade visual de cartões */}
+            <div className="rf-cat-grid">
+              {especiesPorTema(catTema)
+                .filter((item) => {
+                  const q = catBusca.trim().toLowerCase();
+                  if (!q) return true;
+                  return (
+                    item.nome.toLowerCase().includes(q) ||
+                    (item.subtitulo || '').toLowerCase().includes(q) ||
+                    (item.paleta?.nome || '').toLowerCase().includes(q)
+                  );
+                })
+                .map((item) => {
+                  const selecionado = item.id === especie.id;
+                  const finalStage = item.estagios[item.estagios.length - 1];
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className="rf-cat-card"
+                      aria-pressed={selecionado}
+                      data-testid={`rf-cat-item-${item.id}`}
+                      onClick={() => set({ especie: item.id })}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--rx-ink-3)' }}>
+                          {item.id === 'lirio-lunar' ? '★ Padrão' : `#${String(item.indiceTema || 1).padStart(2, '0')}`}
+                        </span>
+                        {item.paleta && (
+                          <span style={{ display: 'inline-flex', gap: 4 }}>
+                            <i style={{ width: 8, height: 8, borderRadius: '50%', background: item.paleta.c1, display: 'inline-block' }} />
+                            <i style={{ width: 8, height: 8, borderRadius: '50%', background: item.paleta.c2, display: 'inline-block' }} />
+                            <i style={{ width: 8, height: 8, borderRadius: '50%', background: item.paleta.c3, display: 'inline-block' }} />
+                          </span>
+                        )}
+                      </div>
+                      <div className="rf-cat-art" aria-hidden="true">
+                        <img className="sp" src={urlDoAsset(item.id, finalStage.assetKey) || ''} alt="" />
+                        <img className="ch" src={urlDoAsset(item.id, item.chao) || ''} alt="" />
+                      </div>
+                      <div>
+                        <b style={{ display: 'block', fontSize: 13.5 }}>{item.nome}</b>
+                        {item.subtitulo && (
+                          <small style={{ display: 'block', fontSize: 11, color: 'var(--rx-ink-3)', marginTop: 2 }}>
+                            {item.subtitulo}
+                          </small>
+                        )}
+                        {item.paleta && (
+                          <span style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: item.paleta.c1, marginTop: 4 }}>
+                            {item.paleta.nome}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
+
+            <div className="rf-btns" style={{ justifyContent: 'flex-end', marginTop: 16 }}>
+              <button type="button" className="rf-btn" onClick={() => setShowCatalogo(false)}>
+                Cultivar {especie.nome}
+              </button>
             </div>
           </div>
         </div>
