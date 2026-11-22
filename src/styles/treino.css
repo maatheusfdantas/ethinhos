@@ -93,12 +93,45 @@
 
 /* Treino ativo */
 .tr-bar { position: sticky; top: 76px; z-index: 15; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 18px; margin-bottom: 20px; border-radius: 18px; background: var(--rx-glass-strong); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--rx-line-2); box-shadow: var(--rx-shadow); }
-.tr-bar .clock { font-size: 30px; font-weight: 650; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
-.tr-bar .lbl { font-size: 13px; color: var(--rx-ink-3); }
-.tr-bar .grow { flex: 1; min-width: 160px; }
+.tr-bar.tr-bar-compact { max-width: 720px; padding: 9px 14px; margin-bottom: 16px; border-radius: 14px; gap: 12px; border: 1.5px solid var(--rx-violet); box-shadow: 0 8px 24px rgba(124, 92, 255, .14); }
+.tr-bar-timer { display: flex; align-items: center; gap: 9px; padding-right: 12px; border-right: 1px solid var(--rx-line); }
+.tr-live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--rx-m-habitos); box-shadow: 0 0 0 4px rgba(34, 197, 94, .2); flex: none; }
+.tr-live-dot.paused { background: var(--rx-amber); box-shadow: 0 0 0 4px rgba(245, 185, 113, .2); }
+.tr-bar .clock { font-size: 20px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.1; color: var(--rx-ink); }
+.tr-bar .lbl { font-size: 11.5px; color: var(--rx-ink-2); font-weight: 560; }
+.tr-bar .grow { flex: 1; min-width: 140px; font-size: 13.5px; }
+
+/* Card flutuante de tempo de descanso */
+.tr-rest-float { position: fixed; right: 24px; bottom: 24px; z-index: 65; display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 20px; background: var(--rx-glass-strong); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border: 2px solid var(--rx-m-treino, var(--rx-violet)); box-shadow: 0 18px 44px rgba(15, 12, 32, .35), 0 0 0 4px rgba(249, 115, 22, .12); max-width: 340px; }
+.tr-rest-float .tr-ring { width: 64px; height: 64px; flex: none; }
+.tr-rest-body { display: flex; flex-direction: column; gap: 2px; }
+.tr-rest-lbl { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--rx-m-treino, var(--rx-violet)); }
+.tr-rest-float .t { font-size: 26px; font-weight: 720; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.05; color: var(--rx-ink); }
+.tr-rest-acts { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+
+/* Card do exercício ativo em destaque */
+.tr-panel.tr-ex-highlight { border: 2px solid var(--rx-violet); box-shadow: 0 14px 36px rgba(124, 92, 255, .14), var(--rx-shadow); background: var(--rx-card); padding: 24px; }
+.tr-ex-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.tr-ex-step { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 99px; background: var(--rx-violet-wash); color: var(--rx-violet); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.tr-ex-title { margin: 0 0 4px !important; font-size: clamp(22px, 2.4vw, 28px) !important; font-weight: 720 !important; color: var(--rx-ink); }
+
+/* Banner de conclusão quando todas as séries terminam */
+.tr-panel.tr-finish-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border: 2px solid var(--rx-m-habitos); background: var(--rx-card); box-shadow: 0 12px 32px rgba(34, 197, 94, .16); }
+.tr-finish-info { display: flex; align-items: center; gap: 12px; }
+.tr-finish-info svg { color: var(--rx-m-habitos); flex: none; }
+.tr-muscle-card .tr-muscle-tags { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rx-line); }
+
+/* Biblioteca e editor com músculos */
+.tr-libcard-top { display: flex; align-items: flex-start; gap: 12px; }
+.tr-libcard-muscles { padding: 6px 10px; border-radius: 12px; background: var(--rx-wash); }
+.tr-edit-ex-wrap { border-top: 1px solid var(--rx-line); padding: 12px 0; }
+.tr-edit-ex-wrap .tr-edit-ex { border-top: 0; padding: 0; }
+.tr-edit-muscle-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.tr-muscle-select { margin-left: auto; height: 34px; border-radius: 9px; border: 1px solid var(--rx-line-2); background: var(--rx-bg-2); color: var(--rx-ink); padding: 0 10px; font: 500 13px var(--rx-font); }
+
 .tr-sets { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
-.tr-set { display: grid; grid-template-columns: 34px minmax(70px, .8fr) minmax(0, 1fr) minmax(0, 1fr) 70px; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--rx-wash); border: 1px solid transparent; }
-.tr-set.cur { border-color: var(--rx-violet); background: var(--rx-violet-wash); }
+.tr-set { display: grid; grid-template-columns: 34px minmax(70px, .8fr) minmax(0, 1fr) minmax(0, 1fr) 70px; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--rx-wash); border: 1px solid var(--rx-line); }
+.tr-set.cur { border: 2px solid var(--rx-violet); background: var(--rx-violet-wash); box-shadow: 0 6px 18px rgba(124, 92, 255, .14); }
 .tr-set.done { background: transparent; border-color: var(--rx-line); }
 .tr-set .n { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--rx-card-2); font-weight: 650; font-size: 14px; }
 .tr-set.done .n { background: var(--rx-grad); color: var(--rx-on-accent); }

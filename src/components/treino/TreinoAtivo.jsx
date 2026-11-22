@@ -1,8 +1,85 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Info, Pause, Play, RotateCcw } from 'lucide-react';
+import { Check, CheckCircle2, Dumbbell, Info, Pause, Play, RotateCcw } from 'lucide-react';
 import { fmtClock, fmtKg, metricOf, treinoApi } from './treinoApi';
+import { findExercise, loadBiblioteca } from './bibliotecaApi';
+import { CorpoExercicio } from './MapaCorporal';
+import { MUSCLES, normalizeSearch } from './musculos';
 
 const SAVE_ERROR = 'Não foi possível salvar. Confira a conexão e tente de novo.';
+
+const LEGACY_MUSCLE_MAP = {
+  peitoral: { primary: ['peitoral'], secondary: ['triceps', 'deltoide_anterior'] },
+  peito: { primary: ['peitoral'], secondary: ['triceps', 'deltoide_anterior'] },
+  dorsais: { primary: ['dorsal', 'dorso_medio'], secondary: ['biceps', 'trapezio'] },
+  costas: { primary: ['dorsal', 'dorso_medio'], secondary: ['biceps', 'lombar'] },
+  'costas completas': { primary: ['dorsal', 'dorso_medio', 'lombar'], secondary: ['biceps', 'trapezio'] },
+  quadriceps: { primary: ['quadriceps'], secondary: ['gluteos'] },
+  pernas: { primary: ['quadriceps', 'gluteos'], secondary: ['posteriores', 'panturrilhas'] },
+  'posterior e gluteos': { primary: ['posteriores', 'gluteos'], secondary: ['lombar'] },
+  posteriores: { primary: ['posteriores'], secondary: ['gluteos'] },
+  gluteos: { primary: ['gluteos'], secondary: ['posteriores', 'abdutores'] },
+  panturrilhas: { primary: ['panturrilhas'], secondary: ['tibial'] },
+  deltoides: { primary: ['deltoide_anterior', 'deltoide_lateral'], secondary: ['triceps', 'trapezio'] },
+  'deltoide lateral': { primary: ['deltoide_lateral'], secondary: ['trapezio'] },
+  ombros: { primary: ['deltoide_anterior', 'deltoide_lateral', 'deltoide_posterior'], secondary: ['trapezio'] },
+  biceps: { primary: ['biceps'], secondary: ['antebraco'] },
+  triceps: { primary: ['triceps'], secondary: ['peitoral', 'deltoide_anterior'] },
+  abdomen: { primary: ['abdomen'], secondary: ['obliquos'] },
+  core: { primary: ['abdomen', 'obliquos'], secondary: ['lombar'] }
+};
+
+export function resolveExerciseWithMuscles(ex, lib) {
+  if (!ex) return { id: 'ex', name: '', primary: [], secondary: [] };
+  if (Array.isArray(ex.primary) && ex.primary.length > 0) {
+    return { ...ex, secondary: Array.isArray(ex.secondary) ? ex.secondary : [] };
+  }
+  const fromId = findExercise(lib, ex.libraryId || ex.id);
+  if (fromId && fromId.primary?.length) return fromId;
+
+  const all = [...(lib?.exercicios || []), ...(lib?.personalizados || [])];
+  const normName = normalizeSearch(ex.name).trim();
+  if (normName) {
+    const exact = all.find((item) => normalizeSearch(item.name).trim() === normName || (item.aliases || []).some((a) => normalizeSearch(a).trim() === normName));
+    if (exact && exact.primary?.length) return exact;
+    const partial = all.find((item) => normalizeSearch(item.name).includes(normName) || normName.includes(normalizeSearch(item.name)));
+    if (partial && partial.primary?.length) return partial;
+  }
+
+  const rawMuscle = normalizeSearch(ex.muscle || '').trim();
+  if (rawMuscle && LEGACY_MUSCLE_MAP[rawMuscle]) {
+    return { ...ex, ...LEGACY_MUSCLE_MAP[rawMuscle] };
+  }
+  for (const [k, v] of Object.entries(LEGACY_MUSCLE_MAP)) {
+    if (rawMuscle.includes(k) || normName.includes(k)) {
+      return { ...ex, ...v };
+    }
+  }
+  if (/agachamento|leg press|extensora|afundo/i.test(ex.name || '')) {
+    return { ...ex, primary: ['quadriceps', 'gluteos'], secondary: ['posteriores'] };
+  }
+  if (/supino|crucifixo|flexao/i.test(ex.name || '')) {
+    return { ...ex, primary: ['peitoral'], secondary: ['triceps', 'deltoide_anterior'] };
+  }
+  if (/remada|puxada|barra fixa/i.test(ex.name || '')) {
+    return { ...ex, primary: ['dorsal', 'dorso_medio'], secondary: ['biceps'] };
+  }
+  if (/terra|stiff|mesa flexora/i.test(ex.name || '')) {
+    return { ...ex, primary: ['posteriores', 'gluteos'], secondary: ['lombar'] };
+  }
+  if (/desenvolvimento|elevacao lateral/i.test(ex.name || '')) {
+    return { ...ex, primary: ['deltoide_anterior', 'deltoide_lateral'], secondary: ['triceps'] };
+  }
+  if (/rosca/i.test(ex.name || '')) {
+    return { ...ex, primary: ['biceps'], secondary: ['antebraco'] };
+  }
+  if (/triceps|testa|corda/i.test(ex.name || '')) {
+    return { ...ex, primary: ['triceps'], secondary: [] };
+  }
+  if (/prancha|abdominal/i.test(ex.name || '')) {
+    return { ...ex, primary: ['abdomen', 'obliquos'], secondary: ['lombar'] };
+  }
+  return { ...ex, primary: [], secondary: [] };
+}
 
 /**
  * Treino ativo. A sessão vive no servidor: tempo calculado por início e pausas, séries salvas ao concluir.
@@ -19,6 +96,11 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
   const [, setTick] = useState(0);
   const base = useRef({ elapsed: session?.elapsedMs || 0, at: Date.now() });
   const [typed, setTyped] = useState({});
+  const [lib, setLib] = useState(null);
+
+  useEffect(() => {
+    loadBiblioteca().then(setLib, () => setLib({ exercicios: [], personalizados: [] }));
+  }, []);
 
   useEffect(() => {
     base.current = { elapsed: session?.elapsedMs || 0, at: Date.now() };
@@ -37,6 +119,7 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
   });
 
   const ex = exercises[exIdx];
+  const resolvedEx = useMemo(() => (ex ? resolveExerciseWithMuscles(ex, lib) : { primary: [], secondary: [] }), [ex, lib]);
   if (!ex) {
     return <div className="tr-panel"><p className="tr-sub">Esta ficha não tem exercícios.</p></div>;
   }
@@ -45,6 +128,10 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
   const total = Math.max(1, Number(ex.sets) || 1);
   const totalPlanned = exercises.reduce((a, e) => a + Math.max(1, Number(e.sets) || 1), 0);
   const totalDone = (session?.sets || []).length;
+  const allExercisesDone = totalPlanned > 0 && totalDone >= totalPlanned;
+
+  const primaryNames = (resolvedEx.primary || []).map((k) => MUSCLES[k]).filter(Boolean);
+  const secondaryNames = (resolvedEx.secondary || []).map((k) => MUSCLES[k]).filter(Boolean);
 
   const prev = done[done.length - 1];
   const last = suggestions[ex.id];
@@ -120,39 +207,79 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
   });
 
   const planText = metric === 'tempo' ? `${ex.reps} s` : `${ex.reps} reps`;
-  const C = 2 * Math.PI * 38;
+  const C = 2 * Math.PI * 28;
 
   return (
     <div>
-      <div className="tr-bar" role="region" aria-label="Sessão em andamento">
-        <div><div className="lbl">{paused ? 'Pausado' : 'Em andamento'}</div><div className="clock" data-testid="tr-clock">{fmtClock(elapsed)}</div></div>
-        <div className="grow"><b>{session.name}</b><div className="lbl"><span data-testid="tr-sets-done">{totalDone}</span> de {totalPlanned} séries. Pausas não contam no tempo.</div></div>
-        <button type="button" className="rx-btn ghost" onClick={togglePause} disabled={busy}>{paused ? <Play size={16} /> : <Pause size={16} />}{paused ? 'Continuar' : 'Pausar'}</button>
-        <button type="button" className="rx-btn" onClick={() => setConfirm('finalizar')} disabled={busy}>Finalizar treino (+50 pts)</button>
+      {/* Card compacto e fixo do cronômetro "Em andamento" */}
+      <div className="tr-bar tr-bar-compact" role="region" aria-label="Sessão em andamento">
+        <div className="tr-bar-timer">
+          <span className={`tr-live-dot ${paused ? 'paused' : ''}`} aria-hidden="true" />
+          <div>
+            <div className="lbl">{paused ? 'Pausado' : 'Em andamento'}</div>
+            <div className="clock" data-testid="tr-clock">{fmtClock(elapsed)}</div>
+          </div>
+        </div>
+        <div className="grow">
+          <b>{session.name}</b>
+          <div className="lbl"><span data-testid="tr-sets-done">{totalDone}</span> de {totalPlanned} séries</div>
+        </div>
+        <button type="button" className="rx-btn ghost tiny" onClick={togglePause} disabled={busy}>
+          {paused ? <Play size={15} /> : <Pause size={15} />}
+          {paused ? 'Continuar' : 'Pausar'}
+        </button>
+        {!allExercisesDone && (
+          <button type="button" className="rx-btn tiny" onClick={() => setConfirm('finalizar')} disabled={busy}>
+            Finalizar treino (+50 pts)
+          </button>
+        )}
       </div>
+
+      {/* Card flutuante de tempo de descanso */}
+      {rest && restLeft > 0 && (
+        <aside className="tr-rest-float" role="timer" aria-live="polite" aria-label="Tempo de descanso" data-testid="tr-rest-floating">
+          <svg className="tr-ring" viewBox="0 0 68 68" aria-hidden="true">
+            <circle className="bg" cx="34" cy="34" r="28" />
+            <circle className="fg" cx="34" cy="34" r="28" strokeDasharray={C} strokeDashoffset={C * (1 - restLeft / rest.total)} />
+          </svg>
+          <div className="tr-rest-body">
+            <div className="tr-rest-lbl">Tempo de descanso</div>
+            <div className="t">{fmtClock(restLeft)}</div>
+            <div className="tr-rest-acts">
+              <button type="button" className="rx-btn ghost tiny" onClick={() => setRest((r) => ({ endAt: r.endAt + 15000, total: r.total + 15000 }))}>+15 s</button>
+              <button type="button" className="rx-btn tiny" onClick={() => setRest(null)}>Pular descanso</button>
+            </div>
+          </div>
+        </aside>
+      )}
 
       <div className="tr-grid">
         <div className="tr-stack">
-          {rest && restLeft > 0 && (
-            <section className="tr-panel" aria-live="polite">
-              <div className="tr-rest">
-                <svg className="tr-ring" viewBox="0 0 88 88" aria-hidden="true"><circle className="bg" cx="44" cy="44" r="38" /><circle className="fg" cx="44" cy="44" r="38" strokeDasharray={C} strokeDashoffset={C * (1 - restLeft / rest.total)} /></svg>
+          {/* Card em destaque para finalizar quando todos os exercícios foram concluídos */}
+          {allExercisesDone && (
+            <section className="tr-panel tr-finish-banner" data-testid="tr-all-done" aria-live="polite">
+              <div className="tr-finish-info">
+                <CheckCircle2 size={24} />
                 <div>
-                  <div className="tr-sub" style={{ margin: '0 0 4px' }}>Descanso</div>
-                  <div className="t">{fmtClock(restLeft)}</div>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                    <button type="button" className="rx-btn ghost tiny" onClick={() => setRest((r) => ({ endAt: r.endAt + 15000, total: r.total + 15000 }))}>+15 s</button>
-                    <button type="button" className="rx-btn ghost tiny" onClick={() => setRest(null)}>Pular descanso</button>
-                  </div>
+                  <h3>Todos os exercícios concluídos!</h3>
+                  <p className="tr-sub">Você completou todas as {totalPlanned} séries planejadas desta sessão.</p>
                 </div>
               </div>
+              <button type="button" className="rx-btn" onClick={finish} disabled={busy}>
+                Finalizar treino (+50 pts)
+              </button>
             </section>
           )}
 
-          <article className="tr-panel">
-            <h2 style={{ fontSize: 24 }}>{ex.name} <span className="rx-pill">{metric === 'kg' ? 'Carga' : metric === 'tempo' ? 'Tempo' : 'Repetições'}</span></h2>
+          {/* Card do exercício atual com destaque visual */}
+          <article className="tr-panel tr-ex-highlight" data-testid="tr-active-exercise-card">
+            <div className="tr-ex-head">
+              <span className="tr-ex-step">Exercício {exIdx + 1} de {exercises.length}</span>
+              <span className="rx-pill">{metric === 'kg' ? 'Carga' : metric === 'tempo' ? 'Tempo' : 'Repetições'}</span>
+            </div>
+            <h2 className="tr-ex-title">{ex.name}</h2>
             <p className="tr-sub">{total} séries de {planText}{Number(ex.restSec) > 0 ? `, descanso de ${ex.restSec} s` : ''}.</p>
-            <p className="tr-sub" id="tr-sug-note" style={{ marginTop: 8 }}>Valores em itálico vêm da {sugSource}. Só contam quando você conclui a série.</p>
+            <p className="tr-sub" id="tr-sug-note" style={{ marginTop: 6 }}>Valores em itálico vêm da {sugSource}. Só contam quando você conclui a série.</p>
             <div className="tr-sets">
               {Array.from({ length: total }, (_, i) => {
                 const d = done[i];
@@ -198,6 +325,27 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
         </div>
 
         <aside className="tr-stack">
+          {/* Card com o músculo trabalhado */}
+          <section className="tr-panel tr-muscle-card" data-testid="tr-musculo-card">
+            <h2><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Dumbbell size={16} />Músculo trabalhado</span></h2>
+            <p className="tr-sub">Ênfase muscular de <b>{ex.name}</b></p>
+            <div style={{ marginTop: 10 }}>
+              <CorpoExercicio exercise={resolvedEx} />
+            </div>
+            <div className="tr-muscle-tags">
+              <p className="bl-ms">
+                <span className="bl-tag p">Principal</span>
+                {primaryNames.length ? primaryNames.join(', ') : (ex.muscle || 'Corpo todo / Geral')}
+              </p>
+              {secondaryNames.length > 0 && (
+                <p className="bl-ms">
+                  <span className="bl-tag">Secundário</span>
+                  {secondaryNames.join(', ')}
+                </p>
+              )}
+            </div>
+          </section>
+
           <section className="tr-panel">
             <h2>Exercícios</h2>
             <ul className="tr-exnav">

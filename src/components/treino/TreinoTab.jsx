@@ -1,10 +1,40 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BookOpen, Calendar, CheckCircle2, Clock, Dumbbell, History, Info, Pencil, Play, Plus, Trash2, X } from 'lucide-react';
-import { EXERCISE_LIBRARY_CATALOG, EXERCISE_LIBRARY_GROUPS, WORKOUT_THEMES } from '../WorkoutTab';
-import { TreinoAtivo, TreinoResumo } from './TreinoAtivo';
+import { TreinoAtivo, TreinoResumo, resolveExerciseWithMuscles } from './TreinoAtivo';
 import { DoSeuPersonal } from './DoSeuPersonal';
+import { Biblioteca } from './Biblioteca';
+import { CorpoExercicio, MapaCorporal } from './MapaCorporal';
+import { loadBiblioteca } from './bibliotecaApi';
+import { MUSCLES, MUSCLE_KEYS, matchesExercise } from './musculos';
 import { fmtKg, newSessionId, treinoApi } from './treinoApi';
 import '../../styles/treino.css';
+
+export const WORKOUT_THEMES = [
+  { id: 'orange', label: 'Laranja Energia', accent: '#F97316' },
+  { id: 'blue', label: 'Azul Intenso', accent: '#3B82F6' },
+  { id: 'green', label: 'Verde Foco', accent: '#10B981' },
+  { id: 'purple', label: 'Roxo Força', accent: '#8B5CF6' },
+  { id: 'rose', label: 'Rosa Potência', accent: '#F43F5E' }
+];
+
+// Base anatômica local caso o servidor ainda esteja carregando ou offline (mesmo formato da Biblioteca nova)
+const FALLBACK_EXERCISES = [
+  { id: 'fe_bench_press', name: 'Supino Reto com Barra', aliases: ['Barbell Bench Press'], group: 'Peito', primary: ['peitoral'], secondary: ['triceps', 'deltoide_anterior'], equipment: 'Barra', level: 'Intermediário', sets: 4, reps: 10, weightKg: 40, restSec: 90, instructions: ['Deite no banco plano, pés firmes no chão e desça a barra até o meio do peito.'] },
+  { id: 'fe_incline_db_press', name: 'Supino Inclinado com Halteres', aliases: ['Incline Dumbbell Press'], group: 'Peito', primary: ['peitoral', 'deltoide_anterior'], secondary: ['triceps'], equipment: 'Halteres', level: 'Intermediário', sets: 4, reps: 10, weightKg: 18, restSec: 75, instructions: ['Banco a 30°–45°, desça os halteres controlando as escápulas.'] },
+  { id: 'fe_cable_crossover', name: 'Crucifixo no Crossover', aliases: ['Cable Crossover'], group: 'Peito', primary: ['peitoral'], secondary: ['deltoide_anterior'], equipment: 'Polia', level: 'Iniciante', sets: 3, reps: 12, weightKg: 15, restSec: 60, instructions: ['Incline levemente o tronco e una as mãos à frente do peito.'] },
+  { id: 'fe_lat_pulldown', name: 'Puxada Frontal na Polia', aliases: ['Lat Pulldown'], group: 'Costas', primary: ['dorsal'], secondary: ['biceps', 'dorso_medio'], equipment: 'Polia', level: 'Iniciante', sets: 4, reps: 10, weightKg: 45, restSec: 75, instructions: ['Traga a barra em direção à parte superior do peito mantendo o peito aberto.'] },
+  { id: 'fe_barbell_row', name: 'Remada Curvada com Barra', aliases: ['Barbell Bent Over Row'], group: 'Costas', primary: ['dorso_medio', 'dorsal'], secondary: ['biceps', 'lombar', 'trapezio'], equipment: 'Barra', level: 'Intermediário', sets: 4, reps: 10, weightKg: 40, restSec: 90, instructions: ['Tronco inclinado a 45°, puxe a barra na direção do abdômen.'] },
+  { id: 'fe_deadlift', name: 'Levantamento Terra', aliases: ['Deadlift'], group: 'Costas', primary: ['lombar', 'posteriores', 'gluteos'], secondary: ['trapezio', 'dorsal', 'antebraco'], equipment: 'Barra', level: 'Avançado', sets: 4, reps: 6, weightKg: 70, restSec: 120, instructions: ['Coluna neutra, empurre o chão com os pés mantendo a barra próxima às pernas.'] },
+  { id: 'fe_barbell_squat', name: 'Agachamento Livre com Barra', aliases: ['Barbell Squat'], group: 'Pernas', primary: ['quadriceps', 'gluteos'], secondary: ['posteriores', 'lombar'], equipment: 'Barra', level: 'Intermediário', sets: 4, reps: 8, weightKg: 50, restSec: 120, instructions: ['Desça controlando os joelhos na direção das pontas dos pés.'] },
+  { id: 'fe_leg_press', name: 'Leg Press 45°', aliases: ['Leg Press'], group: 'Pernas', primary: ['quadriceps'], secondary: ['gluteos', 'posteriores'], equipment: 'Máquina', level: 'Iniciante', sets: 4, reps: 12, weightKg: 120, restSec: 90, instructions: ['Apoie a lombar no encosto e desça a plataforma sem tirar o quadril do banco.'] },
+  { id: 'fe_romanian_deadlift', name: 'Stiff / Terra Romeno', aliases: ['Romanian Deadlift'], group: 'Pernas', primary: ['posteriores', 'gluteos'], secondary: ['lombar'], equipment: 'Barra', level: 'Intermediário', sets: 4, reps: 10, weightKg: 40, restSec: 90, instructions: ['Empurre o quadril para trás mantendo leve flexão nos joelhos.'] },
+  { id: 'fe_calf_raise', name: 'Panturrilha em Pé', aliases: ['Standing Calf Raise'], group: 'Pernas', primary: ['panturrilhas'], secondary: ['tibial'], equipment: 'Máquina', level: 'Iniciante', sets: 4, reps: 15, weightKg: 50, restSec: 45, instructions: ['Amplitude máxima na subida e descida controlada.'] },
+  { id: 'fe_shoulder_press', name: 'Desenvolvimento com Halteres', aliases: ['Dumbbell Shoulder Press'], group: 'Ombros', primary: ['deltoide_anterior', 'deltoide_lateral'], secondary: ['triceps', 'trapezio'], equipment: 'Halteres', level: 'Intermediário', sets: 4, reps: 10, weightKg: 14, restSec: 75, instructions: ['Empurre os halteres acima da cabeça sem arquear a lombar.'] },
+  { id: 'fe_lateral_raise', name: 'Elevação Lateral', aliases: ['Lateral Raise'], group: 'Ombros', primary: ['deltoide_lateral'], secondary: ['trapezio'], equipment: 'Halteres', level: 'Iniciante', sets: 4, reps: 12, weightKg: 8, restSec: 60, instructions: ['Eleve os braços até a linha dos ombros com leve flexão nos cotovelos.'] },
+  { id: 'fe_barbell_curl', name: 'Rosca Direta com Barra', aliases: ['Barbell Curl'], group: 'Braços', primary: ['biceps'], secondary: ['antebraco'], equipment: 'Barra', level: 'Iniciante', sets: 3, reps: 10, weightKg: 20, restSec: 60, instructions: ['Mantenha os cotovelos fixos ao lado do tronco durante a subida.'] },
+  { id: 'fe_triceps_pushdown', name: 'Tríceps Pulley na Corda', aliases: ['Triceps Pushdown'], group: 'Braços', primary: ['triceps'], secondary: ['antebraco'], equipment: 'Polia', level: 'Iniciante', sets: 3, reps: 12, weightKg: 20, restSec: 60, instructions: ['Estenda completamente os cotovelos abrindo a corda no final.'] },
+  { id: 'fe_plank', name: 'Prancha Abdominal Isométrica', aliases: ['Plank'], group: 'Core', primary: ['abdomen', 'obliquos'], secondary: ['lombar'], equipment: 'Peso corporal', level: 'Iniciante', metric: 'tempo', sets: 3, reps: 45, weightKg: 0, restSec: 45, instructions: ['Mantenha o corpo alinhado e o abdômen contraído.'] }
+];
 
 const DAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -14,12 +44,11 @@ const daysText = (w) => {
   return d.length ? `${d.join(', ')} às ${w.scheduledTime || '18:30'}` : 'Sem dia na agenda';
 };
 const localDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const blankExercise = () => ({ id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, name: '', sets: 3, reps: 10, weightKg: 0, restSec: 60, showWeight: true, showRestTimer: true });
+const blankExercise = () => ({ id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, name: '', primary: [], secondary: [], muscle: '', sets: 3, reps: 10, weightKg: 0, restSec: 60, showWeight: true, showRestTimer: true });
 const newWorkout = () => ({ id: `wo_${Date.now()}`, name: '', subtitle: 'Foco em força e hipertrofia progressiva', theme: 'orange', scheduledDays: [1], scheduledTime: '18:30', exercises: [] });
 
 /**
- * Treino (redesenho aprovado em 18/11/2026, proposta 05). Usa as mesmas fichas de sempre (workouts);
- * as sessões ficam no servidor (/api/treino). O WorkoutTab antigo continua no código, sem uso nesta tela.
+ * Treino unificado com a Biblioteca nova e Mapa Corporal (músculos principais e secundários em todas as telas).
  */
 export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showToast, user }) {
   const [view, setView] = useState('home');
@@ -29,6 +58,9 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
   const [libQuery, setLibQuery] = useState('');
   const [libTarget, setLibTarget] = useState('');
   const [custom, setCustom] = useState(null);
+  const [libModalOpen, setLibModalOpen] = useState(false);
+  const [libData, setLibData] = useState(null);
+  const [selectedLibEx, setSelectedLibEx] = useState(null);
   const [history, setHistory] = useState({ sessions: [], exercises: [], loaded: false, error: '' });
   const [open, setOpen] = useState(null);
   const [active, setActive] = useState(null);
@@ -41,12 +73,32 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
   const toast = (m) => (showToast ? showToast(m) : undefined);
   const userId = user?.id;
 
+  useEffect(() => {
+    loadBiblioteca().then(
+      (res) => setLibData(res),
+      () => setLibData({ exercicios: [], personalizados: [] })
+    );
+  }, [view, libModalOpen]);
+
+  const unifiedCatalog = useMemo(() => {
+    const serverList = [...(libData?.personalizados || []), ...(libData?.exercicios || [])];
+    if (serverList.length === 0) return FALLBACK_EXERCISES;
+    // Garante que todos os itens do fallback também estejam acessíveis caso não estejam na seed local
+    const existingNames = new Set(serverList.map((e) => e.name.toLowerCase()));
+    const extras = FALLBACK_EXERCISES.filter((e) => !existingNames.has(e.name.toLowerCase()));
+    return [...serverList, ...extras];
+  }, [libData]);
+
+  const unifiedGroups = useMemo(() => {
+    const groups = [...new Set(unifiedCatalog.map((e) => e.group).filter(Boolean))];
+    return [{ id: 'all', label: 'Todos' }, ...groups.map((g) => ({ id: g, label: g }))];
+  }, [unifiedCatalog]);
+
   const loadServer = useCallback(async () => {
     try {
       const [h, o] = await Promise.all([treinoApi.historico(60), treinoApi.aberta()]);
       setHistory({ sessions: h.sessions || [], exercises: h.exercises || [], loaded: true, error: '' });
       setOpen(o.session || null);
-      // "Do seu personal": se a parte dos espaços ainda não existir no servidor, a seção só não aparece.
       treinoApi.atribuidos().then((r) => setAtribuidos(r.atribuidos || []), () => setAtribuidos([]));
     } catch (e) {
       setHistory({ sessions: [], exercises: [], loaded: true, error: e?.code === 'treino_indisponivel' ? 'O histórico de treinos ainda não está disponível.' : 'Não foi possível carregar o histórico agora.' });
@@ -82,7 +134,6 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
     }
   };
 
-  // Ficha do profissional: o conteúdo vem da cópia no servidor (o navegador manda só o id da atribuição).
   const startAssignment = async (a) => {
     if (starting) return;
     setStarting(true);
@@ -114,7 +165,25 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
     }
     setStarting(true);
     try {
-      const content = { exercises: w.exercises.map((e) => ({ id: e.id, name: e.name, sets: e.sets, reps: e.reps, weightKg: e.weightKg, restSec: e.restSec, showWeight: e.showWeight, showRestTimer: e.showRestTimer, muscle: e.muscle })) };
+      const content = {
+        exercises: w.exercises.map((e) => {
+          const resolved = resolveExerciseWithMuscles(e, { exercicios: unifiedCatalog, personalizados: [] });
+          return {
+            id: e.id,
+            libraryId: e.libraryId || resolved.id,
+            name: e.name,
+            sets: e.sets,
+            reps: e.reps,
+            weightKg: e.weightKg,
+            restSec: e.restSec,
+            showWeight: e.showWeight,
+            showRestTimer: e.showRestTimer,
+            muscle: e.muscle || (resolved.primary?.[0] ? MUSCLES[resolved.primary[0]] : ''),
+            primary: resolved.primary || [],
+            secondary: resolved.secondary || []
+          };
+        })
+      };
       const r = await treinoApi.iniciar({ id: newSessionId(), name: w.name, workoutRef: w.id, content });
       if (r.resumed && r.session?.workoutRef !== w.id) toast(r.message || 'Você já tem um treino em andamento. Ele foi retomado.');
       await loadSuggestions(r.session.content.exercises || []);
@@ -135,7 +204,6 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
     go('ativo');
   };
 
-  // ---------- números da semana (só dados reais) ----------
   const stats = useMemo(() => {
     const closed = history.sessions.filter((s) => s.status !== 'em_andamento');
     const monday = new Date(today);
@@ -168,7 +236,6 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
     return { week, scheduledDays, trainedThisWeek, month: month.length, monthIncomplete: month.filter((s) => s.status === 'incompleta').length, avg, next };
   }, [history.sessions, own, dow]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---------- edição ----------
   const openEditor = (w) => {
     setDraft(JSON.parse(JSON.stringify(w || newWorkout())));
     go('editor');
@@ -179,7 +246,27 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
       toast('Dê um nome para a ficha.');
       return null;
     }
-    const clean = { ...draft, name, subtitle: (draft.subtitle || '').trim(), exercises: (draft.exercises || []).filter((e) => (e.name || '').trim()).map((e) => ({ ...e, name: e.name.trim(), sets: Math.max(1, Number(e.sets) || 1), reps: Math.max(0, Number(e.reps) || 0), weightKg: Math.max(0, Number(String(e.weightKg).replace(',', '.')) || 0), restSec: Math.max(0, Number(e.restSec) || 0) })) };
+    const clean = {
+      ...draft,
+      name,
+      subtitle: (draft.subtitle || '').trim(),
+      exercises: (draft.exercises || [])
+        .filter((e) => (e.name || '').trim())
+        .map((e) => {
+          const resolved = resolveExerciseWithMuscles(e, { exercicios: unifiedCatalog, personalizados: [] });
+          return {
+            ...e,
+            name: e.name.trim(),
+            primary: e.primary?.length ? e.primary : (resolved.primary || []),
+            secondary: e.secondary?.length ? e.secondary : (resolved.secondary || []),
+            muscle: e.muscle || (resolved.primary?.[0] ? MUSCLES[resolved.primary[0]] : ''),
+            sets: Math.max(1, Number(e.sets) || 1),
+            reps: Math.max(0, Number(e.reps) || 0),
+            weightKg: Math.max(0, Number(String(e.weightKg).replace(',', '.')) || 0),
+            restSec: Math.max(0, Number(e.restSec) || 0)
+          };
+        })
+    };
     setWorkouts((prev) => (prev.some((w) => w.id === clean.id) ? prev.map((w) => (w.id === clean.id ? clean : w)) : [...prev, clean]));
     if (andThen) andThen(clean);
     else {
@@ -202,14 +289,27 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
       toast('Crie uma ficha primeiro.');
       return;
     }
-    const ex = { id: `ex_lib_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, name: card.name, muscle: card.muscle, sets: card.sets || 4, reps: card.reps || 10, weightKg: card.weightKg || 0, restSec: card.restSec || 60, showWeight: (card.weightKg || 0) > 0, showRestTimer: true };
+    const primaryNames = (card.primary || []).map((k) => MUSCLES[k]).filter(Boolean);
+    const ex = {
+      id: `ex_lib_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      libraryId: card.id,
+      name: card.name,
+      primary: card.primary || [],
+      secondary: card.secondary || [],
+      muscle: primaryNames[0] || card.muscle || card.group || '',
+      sets: card.sets || 4,
+      reps: card.metric === 'tempo' ? 30 : (card.reps || 10),
+      weightKg: card.weightKg || 0,
+      restSec: card.restSec || 60,
+      showWeight: (card.weightKg || 0) > 0 || card.metric !== 'tempo',
+      showRestTimer: true
+    };
     setWorkouts((prev) => prev.map((w) => (w.id === targetId ? { ...w, exercises: [...(w.exercises || []), ex] } : w)));
     toast(`${card.name} entrou em ${target.name}.`);
   };
 
   const target = libTarget || own[0]?.id || '';
 
-  // ---------- telas ----------
   let body;
   if (view === 'ativo' && active) {
     body = (
@@ -226,10 +326,14 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
     body = <TreinoResumo session={finished} onBack={() => go('home')} />;
   } else if (view === 'editor' && draft) {
     const isNew = !own.some((w) => w.id === draft.id);
+    const resolvedDraftExs = (draft.exercises || []).map((e) => resolveExerciseWithMuscles(e, { exercicios: unifiedCatalog, personalizados: [] }));
+    const semMusculosCount = resolvedDraftExs.filter((r) => !r.primary?.length).length;
+    const draftCounts = (draft.exercises || []).reduce((m, e) => { if (e.libraryId) m[e.libraryId] = (m[e.libraryId] || 0) + 1; return m; }, {});
+
     body = (
       <>
         <div className="tr-head">
-          <div><h1>{isNew ? 'Nova ficha' : 'Editar ficha'}</h1><p>Dias na agenda, horário, estilo do card, séries, carga e descanso.</p></div>
+          <div><h1>{isNew ? 'Nova ficha' : 'Editar ficha'}</h1><p>Dias na agenda, horário, estilo do card, séries, carga, descanso e mapa muscular.</p></div>
           <div className="acts"><button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={() => go('home')}>Voltar para as fichas</button><button type="button" className="rx-btn" onClick={() => saveDraft()}>Salvar ficha</button></div>
         </div>
         <div className="tr-grid">
@@ -238,23 +342,49 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
             <div className="tr-field"><label htmlFor="tr-fs">Descrição do foco</label><input id="tr-fs" className="tr-input" value={draft.subtitle || ''} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })} /></div>
             <h3 style={{ margin: '18px 0 4px' }}>Exercícios</h3>
             {(draft.exercises || []).length === 0 && <p className="tr-sub">Nenhum exercício ainda. Adicione da biblioteca ou crie um personalizado.</p>}
-            {(draft.exercises || []).map((e, i) => (
-              <div className="tr-edit-ex" key={e.id}>
-                <label>Exercício<input className="tr-input" value={e.name} onChange={(ev) => setEx(i, { name: ev.target.value })} /></label>
-                <label>Séries<input className="tr-input" inputMode="numeric" value={e.sets} onChange={(ev) => setEx(i, { sets: ev.target.value })} /></label>
-                <label>Repetições<input className="tr-input" inputMode="numeric" value={e.reps} onChange={(ev) => setEx(i, { reps: ev.target.value })} /></label>
-                <label>Carga (kg)<input className="tr-input" inputMode="decimal" value={e.weightKg} onChange={(ev) => setEx(i, { weightKg: ev.target.value })} /></label>
-                <label>Descanso (s)<input className="tr-input" inputMode="numeric" value={e.restSec} onChange={(ev) => setEx(i, { restSec: ev.target.value })} /></label>
-                <label className="chk"><input type="checkbox" checked={e.showWeight !== false} onChange={(ev) => setEx(i, { showWeight: ev.target.checked })} />Exibir carga</label>
-                <button type="button" className="tr-x" aria-label={`Tirar ${e.name || 'exercício'}`} onClick={() => setDraft((d) => ({ ...d, exercises: d.exercises.filter((_, k) => k !== i) }))}><X size={16} /></button>
-              </div>
-            ))}
+            {(draft.exercises || []).map((e, i) => {
+              const res = resolvedDraftExs[i];
+              const muscNames = (res?.primary || []).map((k) => MUSCLES[k]).filter(Boolean);
+              return (
+                <div className="tr-edit-ex-wrap" key={e.id}>
+                  <div className="tr-edit-ex">
+                    <label>Exercício<input className="tr-input" value={e.name} onChange={(ev) => setEx(i, { name: ev.target.value })} /></label>
+                    <label>Séries<input className="tr-input" inputMode="numeric" value={e.sets} onChange={(ev) => setEx(i, { sets: ev.target.value })} /></label>
+                    <label>Repetições<input className="tr-input" inputMode="numeric" value={e.reps} onChange={(ev) => setEx(i, { reps: ev.target.value })} /></label>
+                    <label>Carga (kg)<input className="tr-input" inputMode="decimal" value={e.weightKg} onChange={(ev) => setEx(i, { weightKg: ev.target.value })} /></label>
+                    <label>Descanso (s)<input className="tr-input" inputMode="numeric" value={e.restSec} onChange={(ev) => setEx(i, { restSec: ev.target.value })} /></label>
+                    <label className="chk"><input type="checkbox" checked={e.showWeight !== false} onChange={(ev) => setEx(i, { showWeight: ev.target.checked })} />Exibir carga</label>
+                    <button type="button" className="tr-x" aria-label={`Tirar ${e.name || 'exercício'}`} onClick={() => setDraft((d) => ({ ...d, exercises: d.exercises.filter((_, k) => k !== i) }))}><X size={16} /></button>
+                  </div>
+                  <div className="tr-edit-muscle-row">
+                    <span className="bl-tag p">Músculo trabalhado</span>
+                    <span className="tr-sub">{muscNames.length ? muscNames.join(', ') : (e.muscle || 'Escolha um músculo ao lado ou pelo nome do exercício')}</span>
+                    <select
+                      className="tr-muscle-select"
+                      aria-label={`Músculo principal de ${e.name || `exercício ${i + 1}`}`}
+                      value={res?.primary?.[0] || ''}
+                      onChange={(ev) => {
+                        const k = ev.target.value;
+                        setEx(i, { primary: k ? [k] : [], muscle: k ? MUSCLES[k] : '' });
+                      }}
+                    >
+                      <option value="">Músculo principal (automático)</option>
+                      {MUSCLE_KEYS.map((k) => <option key={k} value={k}>{MUSCLES[k]}</option>)}
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-              <button type="button" className="rx-btn ghost tiny" onClick={() => saveDraft((w) => { setLibTarget(w.id); go('biblioteca'); })}><BookOpen size={15} />Adicionar da biblioteca</button>
+              <button type="button" className="rx-btn ghost tiny" onClick={() => setLibModalOpen(true)}><BookOpen size={15} />Adicionar da biblioteca</button>
               <button type="button" className="rx-btn ghost tiny" onClick={() => setDraft((d) => ({ ...d, exercises: [...(d.exercises || []), blankExercise()] }))}><Plus size={15} />Exercício personalizado</button>
             </div>
           </article>
           <aside className="tr-stack">
+            <MapaCorporal
+              exercises={resolvedDraftExs.filter((x) => x.primary?.length).map((x) => ({ id: x.id, name: x.name, primary: x.primary, secondary: x.secondary }))}
+              semMusculos={semMusculosCount}
+            />
             <section className="tr-panel">
               <h2>Agenda</h2>
               <div className="tr-field" style={{ marginTop: 12 }}>
@@ -278,38 +408,104 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
             {!isNew && <button type="button" className="tr-btn-danger" onClick={() => setConfirm({ type: 'delete', id: draft.id, name: draft.name })}><Trash2 size={15} />Excluir ficha</button>}
           </aside>
         </div>
+        {libModalOpen && (
+          <Biblioteca
+            fichaName={draft.name || 'a ficha'}
+            counts={draftCounts}
+            escopo="pessoa"
+            toast={toast}
+            onAdd={(x) => setDraft((d) => ({
+              ...d,
+              exercises: [
+                ...(d.exercises || []),
+                {
+                  id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                  libraryId: x.id,
+                  name: x.name,
+                  primary: x.primary || [],
+                  secondary: x.secondary || [],
+                  muscle: x.primary?.[0] ? MUSCLES[x.primary[0]] : '',
+                  sets: 3,
+                  reps: x.metric === 'tempo' ? 30 : 10,
+                  weightKg: 0,
+                  restSec: 60,
+                  showWeight: x.metric !== 'tempo',
+                  showRestTimer: true
+                }
+              ]
+            }))}
+            onRemoveLast={(libId) => setDraft((d) => {
+              const idx = (d.exercises || []).map((e) => e.libraryId).lastIndexOf(libId);
+              return idx >= 0 ? { ...d, exercises: d.exercises.filter((_, k) => k !== idx) } : d;
+            })}
+            onClose={() => setLibModalOpen(false)}
+          />
+        )}
       </>
     );
   } else if (view === 'biblioteca') {
-    const q = libQuery.trim().toLowerCase();
-    const items = EXERCISE_LIBRARY_CATALOG.filter((e) => (libGroup === 'all' || e.group === libGroup) && (!q || `${e.name} ${e.muscle}`.toLowerCase().includes(q)));
+    const items = unifiedCatalog.filter((e) => (libGroup === 'all' || e.group === libGroup) && matchesExercise(e, libQuery));
     body = (
       <>
         <div className="tr-head">
-          <div><h1>Biblioteca de exercícios</h1><p>{EXERCISE_LIBRARY_CATALOG.length} exercícios prontos. Busque por nome ou músculo e coloque direto numa ficha.</p></div>
-          <div className="acts"><button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={() => go('home')}>Voltar</button><button type="button" className="rx-btn" onClick={() => (own.length ? setCustom({ name: '', sets: 3, reps: 10, weightKg: 0, restSec: 60, target }) : toast('Crie uma ficha primeiro.'))}><Plus size={16} />Criar exercício personalizado</button></div>
+          <div><h1>Biblioteca de exercícios</h1><p>{unifiedCatalog.length} exercícios com mapa anatômico de músculos principais e secundários. Busque em português ou inglês e coloque direto numa ficha.</p></div>
+          <div className="acts"><button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={() => go('home')}>Voltar</button><button type="button" className="rx-btn" onClick={() => (own.length ? setCustom({ name: '', primary: ['peitoral'], secondary: [], sets: 3, reps: 10, weightKg: 0, restSec: 60, target }) : toast('Crie uma ficha primeiro.'))}><Plus size={16} />Criar exercício personalizado</button></div>
         </div>
-        <div className="tr-field" style={{ maxWidth: 520 }}><label htmlFor="tr-q">Buscar exercício ou músculo</label><input id="tr-q" className="tr-input" value={libQuery} placeholder="Ex.: glúteo, supino" autoComplete="off" onChange={(e) => setLibQuery(e.target.value)} /></div>
+        <div className="tr-field" style={{ maxWidth: 520 }}><label htmlFor="tr-q">Buscar exercício ou músculo</label><input id="tr-q" className="tr-input" value={libQuery} placeholder="Ex.: glúteo, supino, squat, quadríceps…" autoComplete="off" onChange={(e) => setLibQuery(e.target.value)} /></div>
         <div className="tr-chips" style={{ marginBottom: 18 }}>
-          {EXERCISE_LIBRARY_GROUPS.map((g) => <button key={g.id} type="button" className="tr-chip" aria-pressed={libGroup === g.id} onClick={() => setLibGroup(g.id)}>{g.label}</button>)}
+          {unifiedGroups.map((g) => <button key={g.id} type="button" className="tr-chip" aria-pressed={libGroup === g.id} onClick={() => setLibGroup(g.id)}>{g.label}</button>)}
         </div>
         {items.length ? (
           <div className="tr-lib">
-            {items.map((e) => (
-              <article className="tr-libcard" key={e.id}>
-                <b>{e.name}</b>
-                <div className="row"><span className="rx-pill">{e.muscle}</span><span className="rx-pill">{e.level}</span><span className="rx-pill">{e.sets} × {e.reps}{e.weightKg ? `, ${e.weightKg} kg` : ''}</span></div>
-                <p>{e.desc}</p>
-                {own.length ? (
-                  <div className="go">
-                    <select aria-label={`Ficha para ${e.name}`} value={target} onChange={(ev) => setLibTarget(ev.target.value)}>{own.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
-                    <button type="button" className="rx-btn tiny" onClick={() => addFromLibrary(e, target)}>Colocar na ficha</button>
+            {items.slice(0, 120).map((e) => {
+              const primNames = (e.primary || []).map((k) => MUSCLES[k]).filter(Boolean);
+              const secNames = (e.secondary || []).map((k) => MUSCLES[k]).filter(Boolean);
+              return (
+                <article className="tr-libcard" key={e.id} data-testid="tr-libcard">
+                  <div className="tr-libcard-top">
+                    <span className="bl-thumb" onClick={() => setSelectedLibEx(e)} title="Ver mapa anatômico completo" style={{ cursor: 'pointer' }}>
+                      <CorpoExercicio exercise={e} thumb />
+                    </span>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <b>{e.name}</b>
+                      <div className="row" style={{ marginTop: 4 }}>
+                        {e.group && <span className="rx-pill">{e.group}</span>}
+                        {e.equipment && <span className="rx-pill">{e.equipment}</span>}
+                        {e.level && <span className="rx-pill">{e.level}</span>}
+                      </div>
+                    </div>
                   </div>
-                ) : <button type="button" className="rx-btn ghost tiny" onClick={() => openEditor()}>Criar uma ficha</button>}
-              </article>
-            ))}
+                  <div className="tr-libcard-muscles">
+                    <p className="bl-ms"><span className="bl-tag p">Principal</span>{primNames.length ? primNames.join(', ') : (e.muscle || 'Geral')}</p>
+                    {secNames.length > 0 && <p className="bl-ms"><span className="bl-tag">Secundário</span>{secNames.join(', ')}</p>}
+                  </div>
+                  {(e.instructions?.[0] || e.desc) && <p>{e.instructions?.[0] || e.desc}</p>}
+                  {own.length ? (
+                    <div className="go">
+                      <select aria-label={`Ficha para ${e.name}`} value={target} onChange={(ev) => setLibTarget(ev.target.value)}>{own.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select>
+                      <button type="button" className="rx-btn tiny" onClick={() => addFromLibrary(e, target)}>Colocar na ficha</button>
+                    </div>
+                  ) : <button type="button" className="rx-btn ghost tiny" onClick={() => openEditor()}>Criar uma ficha</button>}
+                </article>
+              );
+            })}
           </div>
         ) : <div className="tr-empty"><h3>Nada encontrado</h3><p>Tente outro nome ou músculo, ou crie um exercício personalizado.</p></div>}
+
+        {selectedLibEx && (
+          <div className="rx-overlay" onClick={() => setSelectedLibEx(null)}>
+            <div className="rx-dialog" role="dialog" aria-modal="true" aria-label={`Músculos de ${selectedLibEx.name}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ margin: 0 }}>{selectedLibEx.name}</h2>
+                <button type="button" className="tr-x" onClick={() => setSelectedLibEx(null)} aria-label="Fechar"><X size={16} /></button>
+              </div>
+              <CorpoExercicio exercise={selectedLibEx} />
+              <p className="bl-ms"><span className="bl-tag p">Principais</span>{(selectedLibEx.primary || []).map((k) => MUSCLES[k]).join(', ') || 'não definidos'}</p>
+              <p className="bl-ms"><span className="bl-tag">Secundários</span>{(selectedLibEx.secondary || []).map((k) => MUSCLES[k]).join(', ') || 'nenhum'}</p>
+              {selectedLibEx.instructions?.length > 0 && <ol className="bl-how">{selectedLibEx.instructions.map((t, i) => <li key={i}>{t}</li>)}</ol>}
+            </div>
+          </div>
+        )}
       </>
     );
   } else if (view === 'historico') {
@@ -365,7 +561,6 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
       </>
     );
   } else {
-    // home
     if (own.length === 0 && atribuidos.length === 0) {
       body = (
         <>
@@ -373,7 +568,7 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
           <section className="tr-panel" style={{ maxWidth: 640 }}>
             <div className="tr-empty">
               <h3>Crie sua primeira ficha</h3>
-              <p>Escolha os exercícios na biblioteca ({EXERCISE_LIBRARY_CATALOG.length} prontos) ou crie os seus. Você define séries, repetições, carga e descanso, e em quais dias ela aparece na agenda.</p>
+              <p>Escolha os exercícios na biblioteca ({unifiedCatalog.length} prontos com mapa muscular) ou crie os seus. Você define séries, repetições, carga e descanso, e em quais dias ela aparece na agenda.</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" className="rx-btn" onClick={() => openEditor()}><Plus size={16} />Criar primeira ficha</button>
                 <button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={() => go('biblioteca')}><BookOpen size={16} />Ver a biblioteca</button>
@@ -389,7 +584,7 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
           <div className="tr-head">
             <div><h1>Treino</h1><p>{s.next ? `Próximo: ${s.next.w.name}, ${s.next.when.toLowerCase().startsWith('hoje') ? s.next.when.toLowerCase() : s.next.when}.` : 'Nenhuma ficha com dia na agenda.'}</p></div>
             <div className="acts">
-              <button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={() => go('biblioteca')}><BookOpen size={16} />Biblioteca ({EXERCISE_LIBRARY_CATALOG.length})</button>
+              <button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={() => go('biblioteca')}><BookOpen size={16} />Biblioteca ({unifiedCatalog.length})</button>
               <button type="button" className="rx-btn ghost" style={{ height: 42 }} onClick={() => go('historico')}><History size={16} />Histórico</button>
               <button type="button" className="rx-btn" onClick={() => openEditor()}><Plus size={16} />Nova ficha</button>
             </div>
@@ -412,23 +607,44 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
               <h2 className="tr-section-title" style={{ marginTop: atribuidos.length ? 28 : 0 }}>Suas fichas</h2>
               {own.length === 0 && <p className="tr-sub" style={{ marginBottom: 12 }}>Você ainda não tem fichas próprias. Crie uma ou copie uma ficha do seu personal.</p>}
               <div className="tr-cards">
-                {own.map((w) => (
-                  <article className="tr-card" key={w.id} style={{ '--acc': accentOf(w) }}>
-                    <h3><i className="dot" />{w.name}</h3>
-                    {w.subtitle && <p>{w.subtitle}</p>}
-                    <div className="meta"><span className="rx-pill">{(w.exercises || []).length} exercícios</span><span className="rx-pill">{daysText(w)}</span></div>
-                    <ul className="tr-exlist">
-                      {(w.exercises || []).slice(0, 3).map((e) => <li key={e.id}><span>{e.name}</span><span>{e.sets} × {e.reps}{e.showWeight !== false && Number(e.weightKg) > 0 ? `, ${fmtKg(e.weightKg)} kg` : ''}</span></li>)}
-                      {(w.exercises || []).length > 3 && <li><span style={{ color: 'var(--rx-ink-3)' }}>e mais {(w.exercises || []).length - 3}</span><span /></li>}
-                    </ul>
-                    <div className="acts">
-                      <button type="button" className="rx-btn tiny" disabled={starting} onClick={() => (open ? resume() : startWorkout(w))}><Play size={15} />{open && open.workoutRef === w.id ? 'Retomar treino' : 'Iniciar treino'}</button>
-                      <button type="button" className="rx-btn ghost tiny" onClick={() => openEditor(w)}><Pencil size={15} />Editar</button>
-                      <span className="grow" />
-                      <button type="button" className="tr-x" title="Excluir ficha de treino" aria-label={`Excluir ${w.name}`} onClick={() => setConfirm({ type: 'delete', id: w.id, name: w.name })}><Trash2 size={16} /></button>
-                    </div>
-                  </article>
-                ))}
+                {own.map((w) => {
+                  const fichaMuscles = [...new Set(
+                    (w.exercises || []).flatMap((e) => {
+                      const res = resolveExerciseWithMuscles(e, { exercicios: unifiedCatalog, personalizados: [] });
+                      return (res.primary || []).map((k) => MUSCLES[k]).filter(Boolean);
+                    })
+                  )];
+                  return (
+                    <article className="tr-card" key={w.id} style={{ '--acc': accentOf(w) }}>
+                      <h3><i className="dot" />{w.name}</h3>
+                      {w.subtitle && <p>{w.subtitle}</p>}
+                      <div className="meta">
+                        <span className="rx-pill">{(w.exercises || []).length} exercícios</span>
+                        <span className="rx-pill">{daysText(w)}</span>
+                        {fichaMuscles.slice(0, 3).map((m) => <span key={m} className="rx-pill">{m}</span>)}
+                      </div>
+                      <ul className="tr-exlist">
+                        {(w.exercises || []).slice(0, 3).map((e) => {
+                          const res = resolveExerciseWithMuscles(e, { exercicios: unifiedCatalog, personalizados: [] });
+                          const mLabel = (res.primary || []).map((k) => MUSCLES[k])[0] || e.muscle || '';
+                          return (
+                            <li key={e.id}>
+                              <span>{e.name}{mLabel ? <small style={{ color: 'var(--rx-ink-3)', marginLeft: 6 }}>({mLabel})</small> : null}</span>
+                              <span>{e.sets} × {e.reps}{e.showWeight !== false && Number(e.weightKg) > 0 ? `, ${fmtKg(e.weightKg)} kg` : ''}</span>
+                            </li>
+                          );
+                        })}
+                        {(w.exercises || []).length > 3 && <li><span style={{ color: 'var(--rx-ink-3)' }}>e mais {(w.exercises || []).length - 3}</span><span /></li>}
+                      </ul>
+                      <div className="acts">
+                        <button type="button" className="rx-btn tiny" disabled={starting} onClick={() => (open ? resume() : startWorkout(w))}><Play size={15} />{open && open.workoutRef === w.id ? 'Retomar treino' : 'Iniciar treino'}</button>
+                        <button type="button" className="rx-btn ghost tiny" onClick={() => openEditor(w)}><Pencil size={15} />Editar</button>
+                        <span className="grow" />
+                        <button type="button" className="tr-x" title="Excluir ficha de treino" aria-label={`Excluir ${w.name}`} onClick={() => setConfirm({ type: 'delete', id: w.id, name: w.name })}><Trash2 size={16} /></button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </section>
             <aside className="rx-rail">
@@ -473,10 +689,29 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
       )}
       {custom && (
         <div className="rx-overlay" onClick={() => setCustom(null)}>
-          <div className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="tr-cus-t" onClick={(e) => e.stopPropagation()}>
+          <div className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="tr-cus-t" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 id="tr-cus-t">Exercício personalizado</h2>
-            <p>Ele entra na ficha escolhida, como os da biblioteca.</p>
+            <p>Escolha o nome e os músculos trabalhados para entrar na ficha com mapa anatômico.</p>
             <div className="tr-field"><label htmlFor="tr-cn">Nome do exercício</label><input id="tr-cn" className="tr-input" value={custom.name} onChange={(e) => setCustom({ ...custom, name: e.target.value })} /></div>
+            <div className="tr-field">
+              <span className="lbl">Músculo principal trabalhado</span>
+              <div className="tr-chips">
+                {MUSCLE_KEYS.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    className="tr-chip"
+                    aria-pressed={(custom.primary || []).includes(k)}
+                    onClick={() => setCustom((c) => ({
+                      ...c,
+                      primary: (c.primary || []).includes(k) ? c.primary.filter((x) => x !== k) : [...(c.primary || []), k]
+                    }))}
+                  >
+                    {MUSCLES[k]}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
               {[['sets', 'Séries'], ['reps', 'Repetições'], ['weightKg', 'Carga (kg)'], ['restSec', 'Descanso (s)']].map(([k, l]) => (
                 <div className="tr-field" key={k}><label htmlFor={`tr-c-${k}`}>{l}</label><input id={`tr-c-${k}`} className="tr-input" inputMode="decimal" value={custom[k]} onChange={(e) => setCustom({ ...custom, [k]: e.target.value })} /></div>
@@ -488,7 +723,8 @@ export function TreinoTab({ workouts = [], setWorkouts, onCompleteWorkout, showT
               <button type="button" className="rx-btn" onClick={() => {
                 if (!custom.name.trim()) { toast('Dê um nome ao exercício.'); return; }
                 const kg = Math.max(0, Number(String(custom.weightKg).replace(',', '.')) || 0);
-                addFromLibrary({ name: custom.name.trim(), muscle: 'Personalizado', sets: Math.max(1, Number(custom.sets) || 1), reps: Math.max(0, Number(custom.reps) || 0), weightKg: kg, restSec: Math.max(0, Number(custom.restSec) || 0) }, custom.target);
+                const prim = custom.primary?.length ? custom.primary : ['peitoral'];
+                addFromLibrary({ name: custom.name.trim(), primary: prim, secondary: custom.secondary || [], muscle: MUSCLES[prim[0]] || 'Personalizado', sets: Math.max(1, Number(custom.sets) || 1), reps: Math.max(0, Number(custom.reps) || 0), weightKg: kg, restSec: Math.max(0, Number(custom.restSec) || 0) }, custom.target);
                 setCustom(null);
               }}>Adicionar exercício</button>
             </div>

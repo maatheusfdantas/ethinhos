@@ -89,21 +89,25 @@ describe('Treino redesenhado', () => {
     expect(saved()[0].exercises.map((e) => e.name)).toContain('Supino Reto com Barra');
   });
 
-  it('treino ativo: inicia no servidor, sugere a última carga, salva a série e finaliza com +50 pts', async () => {
+  it('treino ativo: inicia no servidor, mostra músculo trabalhado, sugere a última carga, salva a série e exibe finalizar treino ao concluir tudo', async () => {
     const onComplete = vi.fn();
     render(<Harness initial={[FICHA]} onComplete={onComplete} />);
     fireEvent.click(screen.getByRole('button', { name: /Iniciar treino/i }));
     await screen.findByText(/Em andamento/);
     expect(calls.find((c) => c.url === '/api/treino/sessoes').body.content.exercises[0].id).toBe('ex_1');
+    expect(screen.getByTestId('tr-musculo-card').textContent).toMatch(/Quadríceps/i);
     const kg = screen.getByLabelText('Carga (kg)');
     expect(kg.value).toBe('42,5');
     expect(kg.className).toMatch(/sug/);
     fireEvent.click(screen.getByRole('button', { name: /Concluir série 1/i }));
     await waitFor(() => expect(screen.getByTestId('tr-sets-done').textContent).toBe('1'));
     expect(calls.find((c) => c.url.endsWith('/series')).body).toMatchObject({ exerciseKey: 'ex_1', setNo: 1, weightKg: 42.5, reps: 8, metric: 'kg' });
-    fireEvent.click(screen.getByRole('button', { name: /Finalizar treino/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Finalizar agora/i }));
-    await screen.findByText(/registrado como incompleto/i);
+    fireEvent.click(screen.getByRole('button', { name: /Concluir série 2/i }));
+    await waitFor(() => expect(screen.getByTestId('tr-sets-done').textContent).toBe('2'));
+    const allDoneBanner = screen.getByTestId('tr-all-done');
+    expect(allDoneBanner.textContent).toMatch(/Todos os exercícios concluídos/i);
+    fireEvent.click(within(allDoneBanner).getByRole('button', { name: /Finalizar treino/i }));
+    await screen.findByText(/Treino concluído/i);
     expect(onComplete).toHaveBeenCalledWith('Treino A');
   });
 });
