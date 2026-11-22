@@ -203,3 +203,48 @@
 .mh-g .rx-check[aria-pressed='true'] { background: var(--rx-grad); border-color: transparent; color: var(--rx-on-accent); }
 .mh-full { background: var(--rx-bg); }
 .mh-orb.big { width: 260px; height: 260px; font-size: 20px; }
+
+/* Agenda: mês em blocos e próximos em cartões (proposta 11, aprovada em 22/11/2026). Só tokens --rx-*. */
+.ag-month { gap: 8px; border: 0; border-radius: 0; overflow: visible; }
+.ag-month + .ag-sel { margin-top: 20px; }
+.ag-month .wd { background: none; border: 0; padding: 0 6px 2px; font-size: 13px; font-weight: 600; color: var(--rx-ink-2); }
+.ag-day, .ag-day:nth-child(7n + 1) { min-height: 98px; padding: 9px 9px 8px; border: 1px solid var(--rx-line); border-radius: 14px; background: var(--rx-wash); gap: 5px; transition: border-color .15s, background .15s; }
+.ag-day:hover { border-color: var(--rx-line-2); background: var(--rx-card-2); }
+.ag-day .n { width: auto; height: auto; display: block; border-radius: 0; font-size: 15px; font-weight: 650; }
+.ag-day.out { background: transparent; border-style: dashed; }
+.ag-day.out .n { opacity: .5; }
+.ag-day.today { background: var(--rx-grad); border-color: transparent; color: var(--rx-on-accent); }
+.ag-day.today .n { background: none; color: inherit; }
+.ag-day[aria-pressed="true"] { border-color: var(--rx-lavender); box-shadow: inset 0 0 0 1px var(--rx-lavender); }
+.ag-day.today[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--rx-lavender); }
+.ag-tick { display: block; min-width: 0; padding: 1px 0 1px 7px; border-left: 2px solid var(--c, var(--rx-violet)); font-size: 12.5px; line-height: 1.25; color: var(--rx-ink); }
+.ag-tick b { display: block; font-weight: 580; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-tick small { display: block; font-size: 11.5px; color: var(--rx-ink-3); font-variant-numeric: tabular-nums; }
+.ag-tick.done b { text-decoration: line-through; color: var(--rx-ink-3); }
+.ag-tick.ro { border-left-style: dashed; }
+.ag-day.today .ag-tick, .ag-day.today .ag-tick small { color: var(--rx-on-accent); border-left-color: currentColor; }
+.ag-day .ag-dots { display: flex; margin-top: auto; gap: 4px; }
+.ag-day .ag-dots.all { display: none; }
+.ag-day.today .ag-tick.done b { color: var(--rx-on-accent); opacity: .7; }
+.ag-day .ag-dots i { width: 8px; height: 8px; }
+.ag-day .ag-dots em { font-style: normal; font-size: 11.5px; color: var(--rx-ink-3); line-height: 8px; }
+.ag-day.today .ag-dots i { box-shadow: 0 0 0 1.5px var(--rx-on-accent); }
+.ag-day.today .ag-dots em { color: var(--rx-on-accent); }
+.ag-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.ag-card { padding: 12px 14px; border-radius: 14px; background: var(--rx-wash); border: 1px solid var(--rx-line); }
+.ag-card.ro { background: transparent; border-style: dashed; }
+.ag-card .d { font-size: 12.5px; font-weight: 600; color: var(--rx-lavender); }
+.ag-card .t { margin-top: 3px; font-size: 15px; font-weight: 640; color: var(--rx-ink); overflow-wrap: anywhere; }
+.ag-card .m { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12.5px; color: var(--rx-ink-3); flex-wrap: wrap; }
+.ag-card .m i { width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--rx-violet)); flex: none; }
+@media (max-width: 760px) {
+  .ag-month { gap: 4px; }
+  .ag-month .wd { text-align: center; padding: 0 0 2px; font-size: 12px; }
+  .ag-day, .ag-day:nth-child(7n + 1) { min-height: 52px; padding: 6px 2px; border-radius: 10px; align-items: center; }
+  .ag-day .n { font-size: 14px; }
+  .ag-day .ag-tick { display: none; }
+  .ag-day .ag-dots.rest { display: none; }
+  .ag-day .ag-dots.all { display: flex; margin-top: 2px; justify-content: center; }
+  .ag-day .ag-dots i { width: 6px; height: 6px; }
+  .ag-day .ag-dots em { display: none; }
+}

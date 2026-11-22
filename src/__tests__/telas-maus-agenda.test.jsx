@@ -140,3 +140,31 @@ describe('Agenda (tela nova)', () => {
     expect(within(linha).queryByRole('button')).toBeNull();
   });
 });
+
+describe('Agenda: mês em blocos e próximos em cartões (proposta 11)', () => {
+  const hoje = isoDia(new Date());
+  const ev = (id, title, startTime, extra = {}) => ({ id, title, date: hoje, endDate: hoje, startTime, endTime: '23:00', category: 'Estudo', ...extra });
+
+  it('dia com até 2 eventos mostra título e horário; com mais, o primeiro e pontos para o resto', () => {
+    const { container, rerender } = render(<AgendaTab events={[ev('e1', 'Inglês', '08:00'), ev('e2', 'Revisão', '09:00')]} tags={[{ name: 'Estudo', color: '#A78BFA' }]} showToast={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mês' }));
+    let dia = container.querySelector('.ag-day.today');
+    expect([...dia.querySelectorAll('.ag-tick b')].map((b) => b.textContent)).toEqual(['Inglês', 'Revisão']);
+    expect(dia.querySelector('.ag-tick small').textContent).toBe('08:00');
+    expect(dia.querySelector('.ag-dots.rest')).toBeNull();
+    rerender(<AgendaTab events={[ev('e1', 'Inglês', '08:00'), ev('e2', 'Revisão', '09:00'), ev('e3', 'Grupo', '19:00')]} tags={[{ name: 'Estudo', color: '#A78BFA' }]} showToast={vi.fn()} />);
+    dia = container.querySelector('.ag-day.today');
+    expect(dia.querySelectorAll('.ag-tick')).toHaveLength(1);
+    expect(dia.querySelectorAll('.ag-dots.rest i')).toHaveLength(2);
+    expect(dia.getAttribute('aria-label')).toMatch(/3 eventos/);
+  });
+
+  it('próximos eventos aparecem em cartões com data, título, horário e categoria', () => {
+    render(<AgendaTab events={[ev('e1', 'Dentista', '08:30', { endTime: '09:00', category: 'Saúde', location: 'Clínica' })]} showToast={vi.fn()} />);
+    const card = screen.getByTestId('ag-proximo');
+    expect(card.textContent).toMatch(/^Hoje/);
+    expect(card.textContent).toMatch(/Dentista/);
+    expect(card.textContent).toMatch(/08:30 às 09:00/);
+    expect(card.textContent).toMatch(/Saúde, Clínica/);
+  });
+});

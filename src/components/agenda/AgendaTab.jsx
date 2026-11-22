@@ -185,7 +185,9 @@ export function AgendaTab({ user, events = [], setEvents, workouts = [], friends
     </>);
   };
 
-  const chip = (ev) => <span key={ev.id} className={`ag-chip ${ev.completed || ev.cancelled ? 'done' : ''} ${ev.readOnly ? 'ro' : ''}`} style={{ '--c': cor(ev) }}><i aria-hidden="true" />{ev.title}</span>;
+  // Mês em blocos (proposta 11): evento com traço da cor, título e horário; com mais de 2, os demais viram pontos.
+  const tick = (ev) => <span key={ev.id} className={`ag-tick ${ev.completed || ev.cancelled ? 'done' : ''} ${ev.readOnly ? 'ro' : ''}`} style={{ '--c': cor(ev) }}><b>{ev.title}</b><small>{ev.allDay ? 'Dia todo' : ev.startTime}</small></span>;
+  const DIA_SEM = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const selD = new Date(`${sel}T12:00:00`);
 
   return (
@@ -217,9 +219,9 @@ export function AgendaTab({ user, events = [], setEvents, workouts = [], friends
                   <button key={k} type="button" className={`ag-day ${d.getMonth() !== cursor.getMonth() ? 'out' : ''} ${k === hoje ? 'today' : ''}`} aria-pressed={k === sel} onClick={() => setSel(k)} onDoubleClick={() => abrirDia(k)}
                     aria-label={`${d.getDate()} de ${MES[d.getMonth()]}, ${es.length} ${es.length === 1 ? 'evento' : 'eventos'}`}>
                     <span className="n">{d.getDate()}</span>
-                    {es.slice(0, 2).map(chip)}
-                    {es.length > 2 && <span className="ag-more">mais {es.length - 2}</span>}
-                    <span className="ag-dots" aria-hidden="true">{es.slice(0, 4).map((ev) => <i key={ev.id} style={{ '--c': cor(ev) }} />)}</span>
+                    {(es.length > 2 ? es.slice(0, 1) : es).map(tick)}
+                    {es.length > 2 && <span className="ag-dots rest" aria-hidden="true">{es.slice(1, 5).map((ev) => <i key={ev.id} style={{ '--c': cor(ev) }} />)}{es.length > 5 && <em>+{es.length - 5}</em>}</span>}
+                    {es.length > 0 && <span className="ag-dots all" aria-hidden="true">{es.slice(0, 4).map((ev) => <i key={ev.id} style={{ '--c': cor(ev) }} />)}</span>}
                   </button>
                 );
               })}
@@ -249,12 +251,18 @@ export function AgendaTab({ user, events = [], setEvents, workouts = [], friends
 
         <aside className="rx-rail">
           <section className="summary">
-            <h2>Próximos</h2>
+            <h2>Próximos eventos</h2>
             {proximos.length === 0 ? <p className="rx-sub">Nenhum compromisso marcado.</p> : (
-              <ul className="ag-list">{proximos.map((ev) => (
-                <li key={ev.id}><span>{ev.date === hoje ? 'Hoje' : `${+ev.date.slice(8)}/${+ev.date.slice(5, 7)}`}<br />{ev.allDay ? 'Dia todo' : ev.startTime}</span>
-                  <span><b>{ev.title}</b><small>{ev.readOnly ? ev.spaceName : ev.category || 'Sem categoria'}{ev.location ? `, ${ev.location}` : ''}</small></span></li>
-              ))}</ul>
+              <div className="ag-cards">{proximos.map((ev) => {
+                const dd = new Date(`${ev.date}T12:00:00`);
+                return (
+                  <div key={ev.id} className={`ag-card ${ev.readOnly ? 'ro' : ''}`} style={{ '--c': cor(ev) }} data-testid="ag-proximo">
+                    <div className="d">{ev.date === hoje ? 'Hoje' : `${DIA_SEM[dd.getDay()]}, ${dd.getDate()} de ${MES[dd.getMonth()]}`}</div>
+                    <div className="t">{ev.title}</div>
+                    <div className="m"><i aria-hidden="true" />{hora(ev)}<span aria-hidden="true">·</span>{ev.readOnly ? ev.spaceName : ev.category || 'Sem categoria'}{ev.location ? `, ${ev.location}` : ''}</div>
+                  </div>
+                );
+              })}</div>
             )}
           </section>
           <section>
