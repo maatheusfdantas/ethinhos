@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Lírio-lunar florido">
+<!-- PROVISÓRIO: substitua por a arte definitiva com o mesmo nome de arquivo. Base do caule em (60, 100). -->
+<title>Lírio-lunar florido</title>
+<defs>
+  <linearGradient id="folha" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C4B5FD"/><stop offset="1" stop-color="#7764ba"/></linearGradient>
+  <linearGradient id="folhaB" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93C5FD"/><stop offset="1" stop-color="#7764ba"/></linearGradient>
+  <linearGradient id="petala" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDE9FE"/><stop offset=".6" stop-color="#C4B5FD"/><stop offset="1" stop-color="#60A5FA"/></linearGradient>
+  <radialGradient id="brilho"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#C4B5FD" stop-opacity="0"/></radialGradient>
+</defs>
+
+<ellipse cx="60" cy="99" rx="8" ry="2.6" fill="#4A3F86"/>
+<path d="M60 100 C57 82 63 62 60 30" fill="none" stroke="#A78BFA" stroke-width="2.6" stroke-linecap="round"/>
+<path d="M59.2 90 C50.5 89.4 43.0 83.1 43.6 76.3 C49.2 75.6 57.3 80.6 59.2 90Z" fill="url(#folha)"/><path d="M59.2 90 Q50.7625 81.9 45.5 77.8" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M59.8 81 C68.2 80.4 75.4 74.4 74.8 67.8 C69.4 67.2 61.6 72.0 59.8 81Z" fill="url(#folhaB)"/><path d="M59.8 81 Q67.89999999999999 73.2 73.0 69.2" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M61 69 C53.3 68.5 46.7 63.0 47.3 56.9 C52.2 56.4 59.4 60.8 61 69Z" fill="url(#folha)"/><path d="M61 69 Q53.575 61.9 48.9 58.2" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M61.4 57 C68.4 56.5 74.4 51.5 73.9 46.0 C69.4 45.5 62.9 49.5 61.4 57Z" fill="url(#folhaB)"/><path d="M61.4 57 Q68.15 50.5 72.4 47.2" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M60.8 45 C55.2 44.6 50.4 40.6 50.8 36.2 C54.4 35.8 59.6 39.0 60.8 45Z" fill="url(#folha)"/><path d="M60.8 45 Q55.4 39.8 52.0 37.2" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<circle cx="60" cy="21" r="17" fill="url(#brilho)" opacity=".55"/>
+<path transform="rotate(0 60 21)" d="M60 21 C55 16 55.5 8 60 3.5 C64.5 8 65 16 60 21Z" fill="url(#petala)"/><path transform="rotate(72 60 21)" d="M60 21 C55 16 55.5 8 60 3.5 C64.5 8 65 16 60 21Z" fill="url(#petala)"/><path transform="rotate(144 60 21)" d="M60 21 C55 16 55.5 8 60 3.5 C64.5 8 65 16 60 21Z" fill="url(#petala)"/><path transform="rotate(216 60 21)" d="M60 21 C55 16 55.5 8 60 3.5 C64.5 8 65 16 60 21Z" fill="url(#petala)"/><path transform="rotate(288 60 21)" d="M60 21 C55 16 55.5 8 60 3.5 C64.5 8 65 16 60 21Z" fill="url(#petala)"/>
+<path transform="rotate(36 60 21)" d="M60 21 C57 17.5 57.5 12 60 9 C62.5 12 63 17.5 60 21Z" fill="#A78BFA" opacity=".85"/><path transform="rotate(108 60 21)" d="M60 21 C57 17.5 57.5 12 60 9 C62.5 12 63 17.5 60 21Z" fill="#A78BFA" opacity=".85"/><path transform="rotate(180 60 21)" d="M60 21 C57 17.5 57.5 12 60 9 C62.5 12 63 17.5 60 21Z" fill="#A78BFA" opacity=".85"/><path transform="rotate(252 60 21)" d="M60 21 C57 17.5 57.5 12 60 9 C62.5 12 63 17.5 60 21Z" fill="#A78BFA" opacity=".85"/><path transform="rotate(324 60 21)" d="M60 21 C57 17.5 57.5 12 60 9 C62.5 12 63 17.5 60 21Z" fill="#A78BFA" opacity=".85"/>
+<circle cx="60" cy="21" r="3" fill="#FFFFFF"/>
+<circle cx="88" cy="14" r="1.2" fill="#FFFFFF" opacity=".8"/><circle cx="31" cy="26" r="1" fill="#C4B5FD"/><circle cx="84" cy="36" r=".9" fill="#93C5FD"/>
+</svg>

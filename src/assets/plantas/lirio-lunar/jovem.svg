@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Planta jovem">
+<!-- PROVISÓRIO: substitua por a arte definitiva com o mesmo nome de arquivo. Base do caule em (60, 100). -->
+<title>Planta jovem</title>
+<defs>
+  <linearGradient id="folha" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C4B5FD"/><stop offset="1" stop-color="#7764ba"/></linearGradient>
+  <linearGradient id="folhaB" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93C5FD"/><stop offset="1" stop-color="#7764ba"/></linearGradient>
+  <linearGradient id="petala" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDE9FE"/><stop offset=".6" stop-color="#C4B5FD"/><stop offset="1" stop-color="#60A5FA"/></linearGradient>
+  <radialGradient id="brilho"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#C4B5FD" stop-opacity="0"/></radialGradient>
+</defs>
+
+<ellipse cx="60" cy="99" rx="8" ry="2.6" fill="#4A3F86"/>
+<path d="M60 100 C57 82 63 62 60 32" fill="none" stroke="#A78BFA" stroke-width="2.6" stroke-linecap="round"/>
+<path d="M59.2 90 C50.8 89.4 43.6 83.4 44.2 76.8 C49.6 76.2 57.4 81.0 59.2 90Z" fill="url(#folha)"/><path d="M59.2 90 Q51.1 82.2 46.0 78.2" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M59.8 81 C67.8 80.4 74.8 74.7 74.2 68.3 C69.0 67.8 61.5 72.4 59.8 81Z" fill="url(#folhaB)"/><path d="M59.8 81 Q67.5625 73.5 72.5 69.7" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M61 69 C53.6 68.5 47.4 63.2 47.9 57.5 C52.6 56.9 59.4 61.1 61 69Z" fill="url(#folha)"/><path d="M61 69 Q53.9125 62.2 49.5 58.7" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M61.4 57 C68.0 56.5 73.8 51.8 73.3 46.5 C69.0 46.1 62.8 49.9 61.4 57Z" fill="url(#folhaB)"/><path d="M61.4 57 Q67.8125 50.8 71.9 47.7" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M60.8 45 C55.5 44.6 51.0 40.9 51.4 36.8 C54.8 36.4 59.7 39.4 60.8 45Z" fill="url(#folha)"/><path d="M60.8 45 Q55.7375 40.1 52.5 37.6" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M60 33 C55.5 28 56 20 60 15 C64 20 64.5 28 60 33Z" fill="#7764ba" stroke="#C4B5FD" stroke-width=".9"/>
+<path d="M60 31 C58.5 26 58.8 21 60 17.5" fill="none" stroke="#C4B5FD" stroke-opacity=".6" stroke-width=".7"/>
+</svg>

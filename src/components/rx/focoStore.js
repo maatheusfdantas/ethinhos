@@ -42,7 +42,8 @@ export function emptyState() {
     v: 1, foco: 0, minGoal: 2, cycle: 0, blocks: 0, pauses: 0, notes: 0,
     badges: {}, metDates: [], days: {}, sessions: [], interrupted: false,
     missions: { date: '', done: [], hidden: [] }, missionsHidden: false,
-    simple: false, reduce: false, theme: 'aurora'
+    simple: false, reduce: false, theme: 'aurora',
+    planta: true // planta crescendo no anel (proposta 10); false volta ao anel com planeta
   };
 }
 
@@ -102,12 +103,12 @@ const clone = (s) => ({ ...s, days: { ...s.days }, sessions: [...s.sessions], me
  * Registra uma sessão. full=false é parada antecipada: guarda o tempo, sem Foco e sem punição.
  * @returns {{ state, events, cycleClosed }}
  */
-export function recordSession(prev, { subject, mins, goal = '', full = true, now = new Date() }) {
+export function recordSession(prev, { subject, mins, goal = '', full = true, now = new Date(), plant = null }) {
   const s = clone(prev); const events = []; const today = localDate(now);
   const lastDay = s.sessions.find((x) => x.full)?.date;
   const day = { n: 0, min: 0, ...(s.days[today] || {}) };
   day.min += mins;
-  s.sessions.unshift({ id: `${now.getTime()}`, date: today, at: `${pad(now.getHours())}:${pad(now.getMinutes())}`, hour: now.getHours(), subject, mins, goal, note: '', full });
+  s.sessions.unshift({ id: `${now.getTime()}`, date: today, at: `${pad(now.getHours())}:${pad(now.getMinutes())}`, hour: now.getHours(), subject, mins, goal, note: '', full, ...(plant ? { plant } : {}) });
   s.sessions = s.sessions.slice(0, 300);
   let cycleClosed = false;
   if (full) {

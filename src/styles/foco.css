@@ -197,3 +197,21 @@ button.rf-missions .dot, .rf-missions button.dot { cursor: pointer; }
 }
 @media (prefers-reduced-motion: reduce) { .rf *, .rf *::before, .rf *::after { animation: none !important; transition: none !important; } }
 .rf[data-reduce="true"] *, .rf[data-reduce="true"] *::before, .rf[data-reduce="true"] *::after { animation: none !important; transition: none !important; }
+
+/* Planta no anel (proposta 10, aprovada em 22/11/2026). Medidas em % do anel para acompanhar o tamanho dele. */
+.rf-orbit .center.planta { justify-content: flex-end; padding-bottom: 16.9%; }
+.rf-orbit .center.planta .time { font-size: 42px; }
+.rf-orbit .center.planta .phase { margin-top: 4px; font-size: 13.5px; }
+.rf-orbit .center.planta .cyc { display: none; }
+.rf-planta { position: absolute; left: 50%; top: 16.9%; width: 45%; transform: translateX(-50%); pointer-events: none; }
+.rf-planta .solo { position: relative; aspect-ratio: 6 / 5; }
+.rf-planta .balanco { position: absolute; inset: 0; transform-origin: 50% 100%; }
+.rf-planta[data-sway="on"] .balanco, .rf-planta[data-sway="pause"] .balanco { animation: rfBalanco 5.6s ease-in-out infinite alternate; }
+.rf-planta[data-sway="pause"] .balanco { animation-play-state: paused; }
+.rf-planta img { user-select: none; -webkit-user-drag: none; }
+.rf-planta img.est { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; transform-origin: 50% 100%; }
+.rf-planta img.est.entra { animation: rfEntra var(--rf-entrada, 320ms) cubic-bezier(.2, .9, .3, 1.25) both; }
+.rf-planta img.chao { display: block; width: 76%; margin: -3.5% auto 0; }
+@keyframes rfBalanco { from { transform: rotate(-1.4deg); } to { transform: rotate(1.6deg); } }
+@keyframes rfEntra { from { transform: scale(var(--rf-escala, .88)); opacity: .55; } to { transform: scale(1); opacity: 1; } }
+@media (max-width: 1000px) { .rf-orbit .center.planta .time { font-size: 38px; } }

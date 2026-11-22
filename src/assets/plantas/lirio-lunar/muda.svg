@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Muda">
+<!-- PROVISÓRIO: substitua por a arte definitiva com o mesmo nome de arquivo. Base do caule em (60, 100). -->
+<title>Muda</title>
+<defs>
+  <linearGradient id="folha" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C4B5FD"/><stop offset="1" stop-color="#7764ba"/></linearGradient>
+  <linearGradient id="folhaB" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93C5FD"/><stop offset="1" stop-color="#7764ba"/></linearGradient>
+  <linearGradient id="petala" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDE9FE"/><stop offset=".6" stop-color="#C4B5FD"/><stop offset="1" stop-color="#60A5FA"/></linearGradient>
+  <radialGradient id="brilho"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#C4B5FD" stop-opacity="0"/></radialGradient>
+</defs>
+
+<ellipse cx="60" cy="99" rx="8" ry="2.6" fill="#4A3F86"/>
+<path d="M60 100 C58 86 62 74 60 58" fill="none" stroke="#A78BFA" stroke-width="2.4" stroke-linecap="round"/>
+<path d="M59.6 88 C52.6 87.5 46.6 82.5 47.1 77.0 C51.6 76.5 58.1 80.5 59.6 88Z" fill="url(#folha)"/><path d="M59.6 88 Q52.85 81.5 48.6 78.2" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M60.4 80 C67.0 79.5 72.8 74.8 72.3 69.5 C68.0 69.1 61.8 72.9 60.4 80Z" fill="url(#folhaB)"/><path d="M60.4 80 Q66.8125 73.8 70.9 70.7" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M60.6 68 C55.0 67.6 50.2 63.6 50.6 59.2 C54.2 58.8 59.4 62.0 60.6 68Z" fill="url(#folha)"/><path d="M60.6 68 Q55.2 62.8 51.8 60.2" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M60 60 C64.5 59.7 68.5 56.4 68.1 52.9 C65.2 52.5 61.0 55.1 60 60Z" fill="url(#folhaB)"/><path d="M60 60 Q64.3875 55.8 67.2 53.6" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+</svg>

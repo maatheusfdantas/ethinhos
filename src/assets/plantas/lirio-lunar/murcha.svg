@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Planta murcha">
+<!-- PROVISÓRIO: substitua por a arte definitiva com o mesmo nome de arquivo. Base do caule em (60, 100). -->
+<title>Planta murcha</title>
+<defs>
+  <linearGradient id="folha" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C4B5FD"/><stop offset="1" stop-color="#7764ba"/></linearGradient>
+  <linearGradient id="folhaB" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93C5FD"/><stop offset="1" stop-color="#7764ba"/></linearGradient>
+  <linearGradient id="petala" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDE9FE"/><stop offset=".6" stop-color="#C4B5FD"/><stop offset="1" stop-color="#60A5FA"/></linearGradient>
+  <radialGradient id="brilho"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#C4B5FD" stop-opacity="0"/></radialGradient>
+</defs>
+
+<ellipse cx="60" cy="99" rx="8" ry="2.6" fill="#3A3460"/>
+<path d="M60 100 C59 84 61 70 68 60 C74 52 80 54 82 62" fill="none" stroke="#6E6893" stroke-width="2.4" stroke-linecap="round"/>
+<path d="M59.6 90 C52.6 93.1 46.6 98.9 47.1 93.4 C51.6 92.9 58.1 87.9 59.6 90Z" fill="#5D577F"/><path d="M59.6 90 Q52.85 90.7 48.6 94.6" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M60.2 80 C66.9 82.6 72.5 86.9 72.1 81.7 C67.8 81.2 61.6 77.4 60.2 80Z" fill="#6E6893"/><path d="M60.2 80 Q66.6125 79.9 70.7 82.8" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M63 67 C57.4 69.8 52.6 75.4 53.0 71.0 C56.6 70.6 61.8 65.8 63 67Z" fill="#5D577F"/><path d="M63 67 Q57.6 68.2 54.2 72.0" fill="none" stroke="#EDE9FE" stroke-opacity=".35" stroke-width=".7"/>
+<path d="M82 62 C79 66 79.5 72 82 76 C84.5 72 85 66 82 62Z" fill="#4E4870" stroke="#6E6893" stroke-width=".8"/>
+<path d="M38 98 C41 95 46 95 48 97 C45 99 41 99.5 38 98Z" fill="#5D577F"/>
+</svg>

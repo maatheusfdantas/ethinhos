@@ -6,6 +6,12 @@ import {
   loadState, saveState, levelIndex, missionsFor, recordSession, addNote, recordPause,
   markMission, hideMission, setGoal, toggleRest, report, localDate
 } from './rx/focoStore';
+import {
+  criarSessao, restanteMs, progresso, minutosFeitos, pausaUsadaMs, pausar, retomar, pausada,
+  carregarSessao, salvarSessao
+} from './foco/planta/sessaoFoco';
+import { especiePorId, estagioPara, ESPECIE_PADRAO } from './foco/planta/especies';
+import { Planta } from './foco/planta/Planta';
 
 const PRESETS = [15, 25, 45, 50, 60];
 const INTENSITY = [
@@ -58,9 +64,14 @@ export function FocusTab({
   onFocusComplete
 }) {
   const userId = user?.id || 'anon';
+  // Sessão em andamento guardada no navegador: volta igual depois de trocar de tela ou recarregar.
+  const [restaurada] = useState(() => carregarSessao(userId));
+  const sessRef = useRef(restaurada);
+  const meta0 = restaurada?.tipo === 'focus' ? restaurada.meta : null;
 
   /* ---------- Categoria e subclasse (comportamento existente) ---------- */
   const [selectedCategoryId, setSelectedCategoryId] = useState(() => {
+    if (meta0?.categoryId) return meta0.categoryId;
     if (syncedFocusRequest?.category) {
       const match = tags.find((t) => t.name.toLowerCase() === syncedFocusRequest.category.toLowerCase() || t.id === syncedFocusRequest.category);
       if (match) return match.id;
@@ -68,12 +79,13 @@ export function FocusTab({
     const studyCat = tags.find((t) => t.has_subclasses || t.name.toLowerCase().includes('facul') || t.name.toLowerCase().includes('estudo'));
     return studyCat?.id || tags[0]?.id || 'tag_facul';
   });
-  const [selectedSubclassName, setSelectedSubclassName] = useState(() => syncedFocusRequest?.subclass || '');
+  const [selectedSubclassName, setSelectedSubclassName] = useState(() => meta0?.subclass ?? (syncedFocusRequest?.subclass || ''));
   const currentCategory = tags.find((t) => t.id === selectedCategoryId || t.name === selectedCategoryId) || tags[0] || {
     id: 'tag_default', name: 'Estudos', color: '#818cf8', icon: 'BookOpen', has_subclasses: false, subclasses: []
   };
   const subclasses = Array.isArray(currentCategory.subclasses) ? currentCategory.subclasses : [];
   useEffect(() => {
+    if (sessRef.current?.tipo === 'focus') return; // não troca a categoria de uma sessão em andamento
     if (syncedFocusRequest?.category) {
       const match = tags.find((t) => t.name.toLowerCase() === syncedFocusRequest.category.toLowerCase() || t.id === syncedFocusRequest.category);
       if (match) {
@@ -85,10 +97,10 @@ export function FocusTab({
   const subject = selectedSubclassName ? `${currentCategory.name} • ${selectedSubclassName}` : currentCategory.name;
 
   /* ---------- Configuração da sessão ---------- */
-  const [mins, setMins] = useState(25);
-  const [isCustom, setIsCustom] = useState(false);
-  const [intensity, setIntensity] = useState('');
-  const [goal, setGoalText] = useState('');
+  const [mins, setMins] = useState(() => meta0?.mins || 25);
+  const [isCustom, setIsCustom] = useState(() => !PRESETS.includes(meta0?.mins || 25));
+  const [intensity, setIntensity] = useState(() => meta0?.intensity || '');
+  const [goal, setGoalText] = useState(() => meta0?.goal || '');
 
   /* ---------- Gamificação (só no navegador, por usuário) ---------- */
   const [g, setG] = useState(() => loadState(userId));
@@ -118,12 +130,28 @@ export function FocusTab({
   const apply = useCallback((r) => { setG(r.state); notify(r.events); return r; }, [notify]);
 
   /* ---------- Cronômetro ---------- */
-  const [phase, setPhase] = useState('idle'); // idle | focus | paused | done | break
-  const [total, setTotal] = useState(25 * 60);
-  const [left, setLeft] = useState(25 * 60);
-  const endAt = useRef(0);
-  const [pauseLeft, setPauseLeft] = useState(MAX_PAUSE_SECONDS);
-  const [breakInfo, setBreakInfo] = useState({ long: false, act: '' });
+  // idle | focus | paused | done | break
+  const [phase, setPhase] = useState(() => (!restaurada ? 'idle' : restaurada.tipo === 'break' ? 'break' : pausada(restaurada) ? 'paused' : 'focus'));
+  // Fonte de verdade do tempo: horários da sessão (ver foco/planta/sessaoFoco.js). "agora" só faz a tela andar.
+  const [sess, setSess] = useState(restaurada);
+  const [agora, setAgora] = useState(() => Date.now());
+  const gravar = (nova, guardar = true) => {
+    sessRef.current = nova; setSess(nova);
+    salvarSessao(userId, guardar ? nova : null);
+  };
+  // Outra conta no mesmo navegador: carrega a sessão dela (cada conta tem a sua).
+  const sessaoDe = useRef(userId);
+  useEffect(() => {
+    if (sessaoDe.current === userId) return;
+    sessaoDe.current = userId;
+    const outra = carregarSessao(userId); sessRef.current = outra; setSess(outra);
+    setPhase(!outra ? 'idle' : outra.tipo === 'break' ? 'break' : pausada(outra) ? 'paused' : 'focus');
+  }, [userId]);
+  const total = sess ? sess.duracaoMs / 1000 : mins * 60;
+  const left = sess ? restanteMs(sess, agora) / 1000 : mins * 60;
+  const pauseLeft = sess ? Math.max(0, MAX_PAUSE_SECONDS - pausaUsadaMs(sess, agora) / 1000) : MAX_PAUSE_SECONDS;
+  const [murcha, setMurcha] = useState(false);
+  const [breakInfo, setBreakInfo] = useState(() => ({ long: restaurada?.tipo === 'break' ? !!restaurada.meta?.long : false, act: '' }));
   const [last, setLast] = useState(null);
   const [note, setNote] = useState('');
   const [stopAsk, setStopAsk] = useState(null);
@@ -168,8 +196,14 @@ export function FocusTab({
   }, [reduce, simple]);
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
 
+  /* ---------- Planta ---------- */
+  const especie = especiePorId(g.especie || ESPECIE_PADRAO);
+  const plantaOn = !!g.planta && !simple;
+  const plantaDe = (s, n) => ({ especie: especie.id, estagio: estagioPara(especie, progresso(s, n)).stageId });
+
   /* ---------- Conclusão: regras existentes (horas na subclasse, onFocusComplete) + camada nova ---------- */
-  const finishFocus = () => {
+  const finishFocus = (n = Date.now()) => {
+    const atual = sessRef.current;
     const categoryName = currentCategory?.name || 'Estudos';
     const subclassName = selectedSubclassName || null;
     if (subclassName && onLogSubclassEffort) {
@@ -178,57 +212,76 @@ export function FocusTab({
     const sessionInfo = {
       subject, category: categoryName, subclass: subclassName, durationMins: mins,
       date: new Date().toLocaleDateString('pt-BR'), userName: user?.name || 'Você',
-      fraudProtected: pauseLeft > 0
+      fraudProtected: atual ? pausaUsadaMs(atual, n) < MAX_PAUSE_SECONDS * 1000 : true
     };
     onFocusComplete?.(sessionInfo);
-    const r = apply(recordSession(g, { subject, mins, goal }));
-    setLast({ ...sessionInfo, id: r.state.sessions[0].id, full: true, goal });
-    setNote(''); setPhase('done'); setGlow((x) => x + 1);
+    const plant = atual ? plantaDe(atual, n) : null;
+    const r = apply(recordSession(g, { subject, mins, goal, plant }));
+    setLast({ ...sessionInfo, id: r.state.sessions[0].id, full: true, goal, plant });
+    if (atual) gravar(pausar(atual, n), false); // congela em 00:00; não fica guardada
+    setAgora(n); setNote(''); setPhase('done'); setGlow((x) => x + 1);
     burst(r.cycleClosed ? 'cycle' : 'done');
   };
   const finishBreak = (early) => {
     const act = breakInfo.act || (early ? '' : 'tempo');
     apply(recordPause(g, { action: act, long: breakInfo.long }));
-    setPhase('idle');
+    gravar(null); setPhase('idle');
   };
   const finishRef = useRef(finishFocus);
   const finishBreakRef = useRef(finishBreak);
   useEffect(() => { finishRef.current = finishFocus; finishBreakRef.current = finishBreak; });
 
+  // O relógio só atualiza a tela; o tempo vem dos horários. Ao voltar para a aba, recalcula na hora.
   useEffect(() => {
-    if (phase !== 'focus' && phase !== 'break') return undefined;
-    const t = setInterval(() => {
-      const rest = (endAt.current - Date.now()) / 1000;
-      if (rest <= 0) { clearInterval(t); setLeft(0); if (phase === 'focus') finishRef.current(); else finishBreakRef.current(false); }
-      else setLeft(rest);
-    }, 250);
-    return () => clearInterval(t);
-  }, [phase]);
-  useEffect(() => {
-    if (phase !== 'paused') return undefined;
-    const t = setInterval(() => setPauseLeft((p) => Math.max(0, p - 1)), 1000);
-    return () => clearInterval(t);
+    if (phase !== 'focus' && phase !== 'break' && phase !== 'paused') return undefined;
+    let fechou = false;
+    const tick = () => {
+      if (fechou) return;
+      const n = Date.now(); const atual = sessRef.current;
+      setAgora(n);
+      if (phase === 'paused' || !atual || restanteMs(atual, n) > 0) return;
+      fechou = true;
+      if (phase === 'focus') finishRef.current(n); else finishBreakRef.current(false);
+    };
+    tick();
+    const t = setInterval(tick, 250);
+    document.addEventListener('visibilitychange', tick);
+    return () => { fechou = true; clearInterval(t); document.removeEventListener('visibilitychange', tick); };
   }, [phase]);
 
   const start = () => {
-    setTotal(mins * 60); setLeft(mins * 60); setPauseLeft(MAX_PAUSE_SECONDS);
-    endAt.current = Date.now() + mins * 60 * 1000; setPhase('focus'); burst('start');
+    const n = Date.now();
+    gravar(criarSessao({ minutos: mins, agora: n, meta: { mins, categoryId: currentCategory.id || currentCategory.name, subclass: selectedSubclassName, goal, intensity } }));
+    setAgora(n); setMurcha(false); setPhase('focus'); burst('start');
   };
-  const pause = () => setPhase('paused');
-  const resume = () => { endAt.current = Date.now() + left * 1000; setPhase('focus'); };
-  const askStop = () => { const was = phase; setPhase('paused'); setStopAsk({ was, done: Math.floor((total - left) / 60) }); };
+  const pause = () => { gravar(pausar(sess, Date.now())); setPhase('paused'); };
+  const resume = () => { gravar(retomar(sessRef.current, Date.now())); setPhase('focus'); };
+  const askStop = () => {
+    const was = phase; const n = Date.now();
+    gravar(pausar(sess, n)); setAgora(n); setPhase('paused');
+    setStopAsk({ was, done: minutosFeitos(sess, n) });
+  };
   const stopKeep = () => {
     const done = stopAsk.done; setStopAsk(null);
-    const r = apply(recordSession(g, { subject, mins: done, goal, full: false }));
-    setLast({ subject, durationMins: done, id: r.state.sessions[0].id, full: false, goal });
+    const atual = sessRef.current; const plant = atual ? plantaDe(atual, atual.pausadoEm ?? Date.now()) : null;
+    const r = apply(recordSession(g, { subject, mins: done, goal, full: false, plant }));
+    setLast({ subject, durationMins: done, id: r.state.sessions[0].id, full: false, goal, plant });
+    if (atual) gravar(atual, false); // fica congelada onde parou (a planta também)
     setNote(''); setPhase('done');
   };
-  const stopDrop = () => { setStopAsk(null); setG((s) => ({ ...s, interrupted: true })); setPhase('idle'); };
+  const stopDrop = () => {
+    const atual = sessRef.current;
+    // Descartar faz a planta murchar, se ela já tinha passado da semente. Nenhum ponto é tirado.
+    const cresceu = atual && estagioPara(especie, progresso(atual, atual.pausadoEm ?? Date.now())) !== especie.estagios[0];
+    setStopAsk(null); setG((st) => ({ ...st, interrupted: true }));
+    gravar(null); setMurcha(!!cresceu); setPhase('idle');
+  };
   const stopBack = () => { const was = stopAsk.was; setStopAsk(null); if (was === 'focus') resume(); };
   const startBreak = (long) => {
-    const m = long ? 20 : 5; setBreakInfo({ long, act: '' });
-    setTotal(m * 60); setLeft(m * 60); endAt.current = Date.now() + m * 60000; setPhase('break');
+    const m = long ? 20 : 5; const n = Date.now(); setBreakInfo({ long, act: '' });
+    gravar(criarSessao({ minutos: m, tipo: 'break', agora: n, meta: { long } })); setAgora(n); setPhase('break');
   };
+  const skipBreak = () => { gravar(null); setPhase('idle'); };
 
   /* ---------- Certificado (existente, no visual novo) ---------- */
   const certRef = useRef(null);
@@ -270,6 +323,11 @@ export function FocusTab({
   const moonsOn = phase === 'done' && last?.full && g.cycle === 0 ? CYCLE : g.cycle;
   const running = phase === 'focus' || phase === 'paused';
   const planetA = -Math.PI / 2 + pct * 2 * Math.PI;
+  // Na pausa entre sessões, mostra a planta da última sessão; parada, sem balanço.
+  const estagio = phase === 'break'
+    ? (especie.estagios.find((e) => e.stageId === last?.plant?.estagio) || especie.estagios[0])
+    : estagioPara(especie, pct, phase === 'idle' && murcha ? 'murcha' : 'ativa');
+  const balanco = phase === 'focus' ? 'on' : phase === 'paused' ? 'pause' : 'off';
   const longNext = g.blocks >= LONG_AFTER;
   const lastNote = last ? g.sessions.find((x) => x.id === last.id)?.note : '';
   const phaseLabel = { idle: 'Pronto para começar', focus: 'Focando', paused: 'Pausado', done: last?.full ? 'Concluída' : 'Registrado', break: breakInfo.long ? 'Pausa longa' : 'Pausa' }[phase];
@@ -294,6 +352,7 @@ export function FocusTab({
           <p>{simple ? 'Cronômetro de foco, sem extras.' : `Nível ${LEVELS[li].name} · ${g.foco} de Foco · hoje ${todayN} de ${g.minGoal} ${plural(g.minGoal, 'sessão', 'sessões')}`}</p>
         </div>
         <div className="rf-tools">
+          {!simple && <button type="button" className="rf-switch" role="switch" aria-checked={!!g.planta} onClick={() => set({ planta: !g.planta })}><span className="knob" />Planta</button>}
           <button type="button" className="rf-switch" role="switch" aria-checked={simple} onClick={() => set({ simple: !simple })}><span className="knob" />Modo simples</button>
           <button type="button" className="rf-switch" role="switch" aria-checked={!!g.reduce} onClick={() => set({ reduce: !g.reduce })}><span className="knob" />Reduzir movimento</button>
         </div>
@@ -321,7 +380,8 @@ export function FocusTab({
                   style={{ strokeDasharray: C, strokeDashoffset: C * (1 - pct), stroke: phase === 'break' ? 'url(#rfBreak)' : 'url(#rfRing)' }} />
                 <circle className="planet" r="6" cx={170 + Math.cos(planetA) * R} cy={170 + Math.sin(planetA) * R} style={{ opacity: pct > 0 && pct < 1 ? 1 : 0 }} />
               </svg>
-              <div className="center">
+              {plantaOn && <Planta especie={especie} estagio={estagio} balanco={balanco} />}
+              <div className={`center${plantaOn ? ' planta' : ''}`}>
                 <div className="time" role="timer" aria-label={`Tempo restante ${fmt(shownLeft)}`}>{fmt(shownLeft)}</div>
                 <div className="phase" aria-live="polite">{phaseLabel}</div>
                 {!simple && <div className="cyc">Ciclo: {moonsOn} de {CYCLE}</div>}
@@ -374,6 +434,11 @@ export function FocusTab({
                     </>
                   )}
                   <div className="rf-btns"><button type="button" className="rf-btn" onClick={start}>Começar sessão</button></div>
+                  {plantaOn && (
+                    <p className="rf-hint">{murcha
+                      ? 'A planta murchou porque a sessão foi descartada. Na próxima ela recomeça da semente.'
+                      : `Uma semente de ${especie.nome} cresce enquanto você foca e floresce se a sessão chegar ao fim.`}</p>
+                  )}
                 </>
               )}
 
@@ -408,9 +473,12 @@ export function FocusTab({
                     {longNext ? (
                       <><button type="button" className="rf-btn" onClick={() => startBreak(true)}>Pausa longa · 20 min</button><button type="button" className="rf-btn ghost" onClick={() => startBreak(false)}>Pausa curta · 5 min</button></>
                     ) : <button type="button" className="rf-btn" onClick={() => startBreak(false)}>Pausa de 5 min</button>}
-                    <button type="button" className="rf-btn ghost" onClick={() => setPhase('idle')}>Pular pausa</button>
+                    <button type="button" className="rf-btn ghost" onClick={skipBreak}>Pular pausa</button>
                     {last.full && <button type="button" className="rf-btn link" onClick={() => setShowCert(true)}>Ver certificado</button>}
                   </div>
+                  {plantaOn && last.plant && (
+                    <p className="rf-hint">{last.full ? `O ${especie.nome} floresceu.` : `A planta ficou no estágio ${(especie.estagios.find((e) => e.stageId === last.plant.estagio)?.nome || 'Semente').toLowerCase()}.`}</p>
+                  )}
                   {longNext && <p className="rf-hint">Você fez {g.blocks} blocos seguidos. Uma pausa longa ajuda a manter o ritmo.</p>}
                 </>
               )}
@@ -597,6 +665,7 @@ export function FocusTab({
               {stopAsk.done > 0 && <button type="button" className="rf-btn" onClick={stopKeep}>Guardar {stopAsk.done} min e parar</button>}
               <button type="button" className="rf-btn ghost" onClick={stopDrop}>{stopAsk.done > 0 ? 'Parar sem guardar' : 'Parar'}</button>
               <button type="button" className="rf-btn ghost" autoFocus onClick={stopBack}>Continuar focando</button>
+              {plantaOn && estagio !== especie.estagios[0] && <p className="rf-hint">Guardar deixa a planta onde chegou. Parar sem guardar faz ela murchar.</p>}
             </div>
           </div>
         </div>
