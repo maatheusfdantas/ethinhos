@@ -10,7 +10,7 @@ import {
   criarSessao, restanteMs, progresso, minutosFeitos, pausaUsadaMs, pausar, retomar, pausada,
   carregarSessao, salvarSessao
 } from './foco/planta/sessaoFoco';
-import { especiePorId, estagioPara, ESPECIE_PADRAO } from './foco/planta/especies';
+import { especiePorId, especiesPorTema, estagioPara, ESPECIE_PADRAO, TEMAS_CULTIVO } from './foco/planta/especies';
 import { Planta } from './foco/planta/Planta';
 
 const INTENSITY = [
@@ -450,6 +450,47 @@ export function FocusTab({
                       <span>120 min</span>
                     </div>
                   </div>
+                  {plantaOn && (
+                    <div className="rf-field" data-testid="rf-cultivo-selector">
+                      <span className="lbl">Cultivar nesta sessão</span>
+                      <div className="rf-chips">
+                        {TEMAS_CULTIVO.map((t) => {
+                          const temaAtual = especie.tema || 'plantas';
+                          const ativo = temaAtual === t.id;
+                          return (
+                            <button
+                              type="button"
+                              key={t.id}
+                              className="rf-chip"
+                              aria-pressed={ativo}
+                              onClick={() => {
+                                const lista = especiesPorTema(t.id);
+                                if (lista[0]) set({ especie: lista[0].id });
+                              }}
+                            >
+                              <i style={{ background: ativo ? (especie.paleta?.c1 || '#A78BFA') : '#64748B' }} />
+                              {t.nome}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <select
+                        className="rf-input"
+                        aria-label="Escolher planta, mundo ou elemento para cultivar"
+                        value={especie.id}
+                        onChange={(e) => set({ especie: e.target.value })}
+                        style={{ marginTop: 8 }}
+                      >
+                        {especiesPorTema(especie.tema || 'plantas').map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.id === 'lirio-lunar'
+                              ? '★ Lírio-lunar (Padrão)'
+                              : `${item.nome} · ${item.paleta?.nome || ''}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="rf-btns"><button type="button" className="rf-btn" onClick={start}>Começar sessão</button></div>
                   {plantaOn && (
                     <p className="rf-hint">{murcha

@@ -3,9 +3,15 @@
 //   2. acrescente a configuração abaixo. A lógica do cronômetro não muda.
 // Cada estágio vale a partir de minProgress (0 a 1) do progresso da sessão.
 
+import { CATALOGO_EXTRA, PALETAS_ALTERNADAS, TEMAS_CULTIVO } from './catalogoCultivo';
+
+export { PALETAS_ALTERNADAS, TEMAS_CULTIVO };
+
 /**
  * @typedef {{ stageId: string, minProgress: number, assetKey: string, nome: string }} Estagio
- * @typedef {{ id: string, nome: string, estagios: Estagio[], murcha: { stageId: string, assetKey: string, nome: string },
+ * @typedef {{ id: string, nome: string, subtitulo?: string, tema?: 'plantas'|'mundos'|'elementos', indiceTema?: number,
+ *   paleta?: { id: string, nome: string, c1: string, c2: string, c3: string, light: string },
+ *   estagios: Estagio[], murcha: { stageId: string, assetKey: string, nome: string },
  *   chao: string, entrada: { ms: number, escala: number } }} Especie
  */
 
@@ -14,6 +20,10 @@ export const ESPECIES = [
   {
     id: 'lirio-lunar',
     nome: 'Lírio-lunar',
+    subtitulo: 'Flor original do Foco Ethos sobre ilha lunar (Padrão)',
+    tema: 'plantas',
+    indiceTema: 0,
+    paleta: PALETAS_ALTERNADAS[0],
     estagios: [
       { stageId: 'semente', minProgress: 0, assetKey: 'semente', nome: 'Semente' },
       { stageId: 'broto', minProgress: 0.1, assetKey: 'broto', nome: 'Broto' },
@@ -25,11 +35,13 @@ export const ESPECIES = [
     chao: 'chao',
     // Entrada curta só quando o estágio muda
     entrada: { ms: 320, escala: 0.88 }
-  }
+  },
+  ...CATALOGO_EXTRA
 ];
 
 export const ESPECIE_PADRAO = ESPECIES[0].id;
 export const especiePorId = (id) => ESPECIES.find((e) => e.id === id) || ESPECIES[0];
+export const especiesPorTema = (tema) => (!tema || tema === 'todos' ? ESPECIES : ESPECIES.filter((e) => (e.tema || 'plantas') === tema));
 
 /**
  * Escolhe o estágio pelo progresso. estado 'murcha' (sessão descartada) devolve o estágio de falha.
