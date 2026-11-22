@@ -55,18 +55,15 @@ describe('Planta do Foco na aba Teste', () => {
     expect(container.querySelector('.rf-planta').dataset.sway).toBe('off');
   });
 
-  it('oferece no mínimo 20 variações de cada tema (Plantas, Mundos e Elementos) com paletas alternadas e preserva o Lírio-lunar padrão', () => {
-    const plantas = especiesPorTema('plantas');
-    const mundos = especiesPorTema('mundos');
-    const elementos = especiesPorTema('elementos');
-
+  it('oferece no mínimo 20 variações de cada um dos 9 temas (Plantas, Mundos, Elementos, Mascotes, Naves, ETs, Foguetes, Livros e Poções) com paletas alternadas', () => {
+    const temas = ['plantas', 'mundos', 'elementos', 'mascotes', 'naves', 'ets', 'foguetes', 'livros', 'pocoes'];
     expect(ESPECIES[0].id).toBe('lirio-lunar');
-    expect(plantas.length).toBeGreaterThanOrEqual(21); // Lírio-lunar + 20 novas plantas
-    expect(mundos.length).toBeGreaterThanOrEqual(20);
-    expect(elementos.length).toBeGreaterThanOrEqual(20);
+    expect(ESPECIES.length).toBeGreaterThanOrEqual(181);
 
-    // Verifica que as paletas se alternam (dois itens vizinhos nunca têm a mesma paleta)
-    for (const lista of [plantas, mundos, elementos]) {
+    for (const t of temas) {
+      const lista = especiesPorTema(t);
+      expect(lista.length, `tema ${t}`).toBeGreaterThanOrEqual(20);
+      // Verifica que as paletas se alternam (dois itens vizinhos nunca têm a mesma paleta)
       for (let i = 1; i < lista.length; i++) {
         expect(lista[i].paleta.id).not.toBe(lista[i - 1].paleta.id);
       }
@@ -79,7 +76,7 @@ describe('Planta do Foco na aba Teste', () => {
     expect(estagio(container)).toBe('florida');
     expect(screen.getByTestId('planta-lab-estagio').textContent).toBe('Mundo Pleno');
 
-    fireEvent.click(screen.getByTestId('planta-lab-tema-elementos'));
-    expect(screen.getByTestId('planta-lab-estagio').textContent).toBe('Manifestação');
+    fireEvent.click(screen.getByTestId('planta-lab-tema-foguetes'));
+    expect(screen.getByTestId('planta-lab-estagio').textContent).toBe('Decolagem');
   });
 });

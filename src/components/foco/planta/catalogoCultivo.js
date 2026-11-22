@@ -1,7 +1,14 @@
-// Catálogo expandido de cultivo do Foco (Pomodoro):
-// - 20 novas Plantas (+ Lírio-lunar original preservado = 21 Plantas)
-// - 20 Mundos
-// - 20 Elementos
+// Catálogo completo de cultivo do Foco (Pomodoro):
+// 9 Temas com no mínimo 20 variações cada e paletas de cores alternadas (181 opções no total):
+// 1. Plantas (Lírio-lunar original preservado + 20 novas = 21)
+// 2. Mundos (20)
+// 3. Elementos (20)
+// 4. Mascotes Espaciais (20)
+// 5. Espaçonaves (20)
+// 6. ETs (20)
+// 7. Foguetes (20)
+// 8. Livros Mágicos (20)
+// 9. Poções (20)
 // Todos seguem exatamente a mesma arquitetura de progressão (0%, 10%, 35%, 65%, 100% + murcha + chão)
 // e o sistema de coordenadas (viewBox 0 0 120 100 com base em 60,100; chão 0 0 120 34 com superfície em y=6)
 // do Lírio-lunar original.
@@ -9,7 +16,13 @@
 export const TEMAS_CULTIVO = [
   { id: 'plantas', nome: 'Plantas', icone: '🌱', descricao: 'Espécies botânicas luminosas que germinam, criam folhas e florescem.' },
   { id: 'mundos', nome: 'Mundos', icone: '🪐', descricao: 'Planetas, ilhas flutuantes e estrelas que ganham atmosfera, anéis e luas.' },
-  { id: 'elementos', nome: 'Elementos', icone: '✨', descricao: 'Forças primordiais, cristais e chamas que evoluem da centelha à manifestação.' }
+  { id: 'elementos', nome: 'Elementos', icone: '✨', descricao: 'Forças primordiais, cristais e chamas que evoluem da centelha à manifestação.' },
+  { id: 'mascotes', nome: 'Mascotes espaciais', icone: '👾', descricao: 'Companheiros astrais que nascem do ovo cósmico e despertam suas asas e halos.' },
+  { id: 'naves', nome: 'Espaçonaves', icone: '🛸', descricao: 'Discos, veleiros solares e cruzadores que montam o casco e ativam a dobra.' },
+  { id: 'ets', nome: 'ETs', icone: '👽', descricao: 'Visitantes e sábios galácticos que evoluem do sinal cósmico à telepatia plena.' },
+  { id: 'foguetes', nome: 'Foguetes', icone: '🚀', descricao: 'Foguetes multiestágio que são montados na base, acionam motores e decolam.' },
+  { id: 'livros', nome: 'Livros mágicos', icone: '📖', descricao: 'Grimórios e tomos arcanos que se abrem e projetam runas e constelações.' },
+  { id: 'pocoes', nome: 'Poções', icone: '🧪', descricao: 'Frascos e elixires alquímicos que borbulham, destilam e irradiam estrelas.' }
 ];
 
 export const PALETAS_ALTERNADAS = [
@@ -104,38 +117,173 @@ const RAW_ELEMENTOS = [
   { id: 'elem-tempestade', nome: 'Trovão Cobalto', subtitulo: 'Núcleo de tempestade em alta voltagem', variant: 3 }
 ];
 
+const RAW_MASCOTES = [
+  { id: 'masc-kitsune', nome: 'Kitsune Astral', subtitulo: 'Raposa cósmica de caudas luminosas', variant: 0 },
+  { id: 'masc-coruja', nome: 'Coruja Nebulosa', subtitulo: 'Guardiã alada da sabedoria noturna', variant: 1 },
+  { id: 'masc-neko', nome: 'Astro-Neko', subtitulo: 'Gatinho orbital com antenas estelares', variant: 2 },
+  { id: 'masc-draco', nome: 'Draco de Cristal', subtitulo: 'Pequeno dragão de asas prismáticas', variant: 3 },
+  { id: 'masc-lumini', nome: 'Lumini', subtitulo: 'Espírito estelar com placas flutuantes', variant: 4 },
+  { id: 'masc-fenix', nome: 'Filhote de Fênix', subtitulo: 'Ave solar que desperta em chamas suaves', variant: 1 },
+  { id: 'masc-axolote', nome: 'Axolote Cósmico', subtitulo: 'Sorriso sereno com brânquias de luz', variant: 2 },
+  { id: 'masc-lobo', nome: 'Lobo da Aurora', subtitulo: 'Companheiro fiel de pelagem cintilante', variant: 0 },
+  { id: 'masc-tanuki', nome: 'Tanuki Lunar', subtitulo: 'Guardião das crateras douradas', variant: 2 },
+  { id: 'masc-serpente', nome: 'Wyvern de Prata', subtitulo: 'Serpente alada de anéis luminosos', variant: 3 },
+  { id: 'masc-coelho', nome: 'Coelho de Jade', subtitulo: 'Habitante saltarim do mar lunar', variant: 0 },
+  { id: 'masc-grifo', nome: 'Grifo Rubi', subtitulo: 'Filhote real de penas incandescentes', variant: 1 },
+  { id: 'masc-cervo', nome: 'Cervo Boreal', subtitulo: 'Galhadas que brilham como constelações', variant: 3 },
+  { id: 'masc-moth', nome: 'Mariposa de Ametista', subtitulo: 'Asas de poeira estelar e antenas de neon', variant: 1 },
+  { id: 'masc-pangolim', nome: 'Pangolim de Cobre', subtitulo: 'Armadura articulada com núcleo turquesa', variant: 4 },
+  { id: 'masc-pinguim', nome: 'Pinguim Polar', subtitulo: 'Explorador das geleiras de Cryon', variant: 1 },
+  { id: 'masc-leao', nome: 'Leãozinho Solar', subtitulo: 'Juba radiante em forma de coroa', variant: 4 },
+  { id: 'masc-lontra', nome: 'Lontra das Estrelas', subtitulo: 'Guardiã de pérolas gravitacionais', variant: 2 },
+  { id: 'masc-falcao', nome: 'Falcão Boreal', subtitulo: 'Voo silencioso sob cortinas de aurora', variant: 1 },
+  { id: 'masc-orbita', nome: 'Sentinela Cobalto', subtitulo: 'Mascote astral com halo duplo', variant: 4 }
+];
+
+const RAW_NAVES = [
+  { id: 'nave-valkyria', nome: 'Cruzador Valkyria', subtitulo: 'Asas delta com propulsão de dobra', variant: 1 },
+  { id: 'nave-aurora', nome: 'Veleiro Aurora', subtitulo: 'Velas solares de fótons esmeralda', variant: 2 },
+  { id: 'nave-hyperion', nome: 'Disco Hyperion', subtitulo: 'Cúpula panorâmica e anel antigravidade', variant: 0 },
+  { id: 'nave-orion', nome: 'Exploradora Órion', subtitulo: 'Esfera científica com giroscópio duplo', variant: 3 },
+  { id: 'nave-pegasus', nome: 'Fragata Pegasus', subtitulo: 'Três turbinas de plasma celeste', variant: 4 },
+  { id: 'nave-nova', nome: 'Interceptor Nova', subtitulo: 'Caça veloz de casco rubi e ouro', variant: 1 },
+  { id: 'nave-zenith', nome: 'Sonda Zenith', subtitulo: 'Veleiro orbital de longo alcance', variant: 2 },
+  { id: 'nave-eclipse', nome: 'Furtiva Eclipse', subtitulo: 'Geometria angular com reator fúcsia', variant: 1 },
+  { id: 'nave-ikar', nome: 'Caça Ícaro', subtitulo: 'Coletores solares de alta intensidade', variant: 2 },
+  { id: 'nave-argos', nome: 'Cargueiro Argos', subtitulo: 'Disco de transporte prateado', variant: 0 },
+  { id: 'nave-nautilus', nome: 'Cruzador Nautilus', subtitulo: 'Casco do espaço profundo', variant: 4 },
+  { id: 'nave-crimson', nome: 'Vanguarda Carmesim', subtitulo: 'Escudos defletores de quartzo', variant: 3 },
+  { id: 'nave-bioship', nome: 'Bio-Nave Gaia', subtitulo: 'Estrutura orgânica viva e cristalina', variant: 0 },
+  { id: 'nave-nebula', nome: 'Corveta Nébula', subtitulo: 'Motor de salto quântico ametista', variant: 4 },
+  { id: 'nave-chronos', nome: 'Nave Chronos', subtitulo: 'Anéis temporais em liga de cobre', variant: 3 },
+  { id: 'nave-artemis', nome: 'Cruzador Ártemis', subtitulo: 'Blindagem glacial de longo curso', variant: 1 },
+  { id: 'nave-soberana', nome: 'Nau Soberana', subtitulo: 'Veleiro imperial banhado a ouro', variant: 2 },
+  { id: 'nave-andromeda', nome: 'Disco Andrômeda', subtitulo: 'Nave intergaláctica de dobra', variant: 0 },
+  { id: 'nave-boreal', nome: 'Planador Boreal', subtitulo: 'Asas translúcidas de luz polar', variant: 1 },
+  { id: 'nave-aegis', nome: 'Fragata Aegis', subtitulo: 'Cidadela orbital com domo de cobalto', variant: 4 }
+];
+
+const RAW_ETS = [
+  { id: 'et-zylar', nome: 'Zylar, o Observador', subtitulo: 'Telepata sereno das Plêiades', variant: 0 },
+  { id: 'et-xeno', nome: 'Xeno Botânico', subtitulo: 'Colecionador de flora interplanetária', variant: 1 },
+  { id: 'et-solari', nome: 'Emissário Solari', subtitulo: 'Ser luminoso de três olhos dourados', variant: 3 },
+  { id: 'et-lyriano', nome: 'Místico de Lyra', subtitulo: 'Manto flutuante e halo de ametista', variant: 2 },
+  { id: 'et-arcturus', nome: 'Sábio de Arcturus', subtitulo: 'Coroa cristalina e orbes em órbita', variant: 2 },
+  { id: 'et-krypton', nome: 'Guardião Rubi', subtitulo: 'Traje cerimonial com núcleo solar', variant: 4 },
+  { id: 'et-veridiano', nome: 'Antenista de Verídia', subtitulo: 'Antenas bioluminescentes simpáticas', variant: 1 },
+  { id: 'et-nebulon', nome: 'Nebulon', subtitulo: 'Viajante dimensional de aura índigo', variant: 0 },
+  { id: 'et-helios', nome: 'Oráculo de Hélios', subtitulo: 'Entidade radiante de pura energia', variant: 4 },
+  { id: 'et-zeta', nome: 'Cartógrafo Zeta', subtitulo: 'Olhos prateados que mapeiam estrelas', variant: 0 },
+  { id: 'et-aquari', nome: 'Nômade Aquari', subtitulo: 'Habitante das luas oceânicas', variant: 3 },
+  { id: 'et-carmesim', nome: 'Alquimista de Marte', subtitulo: 'Visor de quartzo e insígnia real', variant: 1 },
+  { id: 'et-silvano', nome: 'Druida Estelar', subtitulo: 'Simbiose entre vida alienígena e floresta', variant: 3 },
+  { id: 'et-psion', nome: 'Mestre Psion', subtitulo: 'Ondas mentais visíveis em neon', variant: 2 },
+  { id: 'et-mecano', nome: 'Sintético de Cobre', subtitulo: 'Híbrido amigável de bronze e plasma', variant: 4 },
+  { id: 'et-cryo', nome: 'Viajante de Europa', subtitulo: 'Corpo translúcido de gelo celeste', variant: 0 },
+  { id: 'et-aurum', nome: 'Monge Áureo', subtitulo: 'Levitação contínua em lótus espacial', variant: 4 },
+  { id: 'et-orion', nome: 'Embaixador de Órion', subtitulo: 'Colar de mini-planetas em órbita', variant: 2 },
+  { id: 'et-boreal', nome: 'Tecelão da Aurora', subtitulo: 'Fios magnéticos dançando entre as mãos', variant: 1 },
+  { id: 'et-cosmos', nome: 'Arquivista Cobalto', subtitulo: 'Guardião das memórias da galáxia', variant: 0 }
+];
+
+const RAW_FOGUETES = [
+  { id: 'fog-apollo', nome: 'Apollo Astral', subtitulo: 'Clássico lunar com vigia iluminada', variant: 0 },
+  { id: 'fog-veridia', nome: 'Propulsor Esmeralda', subtitulo: 'Combustível limpo de plasma verde', variant: 4 },
+  { id: 'fog-titan', nome: 'Titã Heavy', subtitulo: 'Dois boosters laterais de alta potência', variant: 1 },
+  { id: 'fog-stardust', nome: 'Ônibus Stardust', subtitulo: 'Asas delta para pouso orbital', variant: 2 },
+  { id: 'fog-horizon', nome: 'Horizonte Celeste', subtitulo: 'Cápsula panorâmica de vidro azul', variant: 3 },
+  { id: 'fog-vulcano', nome: 'Foguete Vulcano', subtitulo: 'Chama rubi e carenagem dourada', variant: 0 },
+  { id: 'fog-jade', nome: 'Lançador de Jade', subtitulo: 'Fuselagem aerodinâmica de três estágios', variant: 4 },
+  { id: 'fog-pulsar', nome: 'Pulsar Heavy', subtitulo: 'Boosters gêmeos com trilha fúcsia', variant: 1 },
+  { id: 'fog-solaris', nome: 'Flecha Solar', subtitulo: 'Ponta dourada que rompe a atmosfera', variant: 0 },
+  { id: 'fog-mercury', nome: 'Mercúrio Prateado', subtitulo: 'Fuselagem metálica espelhada', variant: 3 },
+  { id: 'fog-poseidon', nome: 'Tridente Orbital', subtitulo: 'Três motores oceânicos sincronizados', variant: 1 },
+  { id: 'fog-ares', nome: 'Ares V (Marte)', subtitulo: 'Foguete pesado de missão marciana', variant: 1 },
+  { id: 'fog-gaia', nome: 'Semeador Gaia', subtitulo: 'Cápsula botânica para novos mundos', variant: 3 },
+  { id: 'fog-hyper', nome: 'Hiper-Foguete Neon', subtitulo: 'Aletas magnéticas e rastro violeta', variant: 2 },
+  { id: 'fog-atlas', nome: 'Atlas de Cobre', subtitulo: 'Turbina clássica com chama turquesa', variant: 0 },
+  { id: 'fog-polaris', nome: 'Sonda Poláris', subtitulo: 'Foguete criogênico de gelo celeste', variant: 4 },
+  { id: 'fog-midas', nome: 'Pioneiro Áureo', subtitulo: 'Revestimento térmico de folha de ouro', variant: 0 },
+  { id: 'fog-nebula', nome: 'Shuttle Nébula', subtitulo: 'Ônibus de pesquisa intergaláctica', variant: 2 },
+  { id: 'fog-aurora', nome: 'Vetor Boreal', subtitulo: 'Rastro luminoso em cores de aurora', variant: 4 },
+  { id: 'fog-cobalto', nome: 'Estrela de Cobalto', subtitulo: 'Foguete insígnia da frota Ethos', variant: 3 }
+];
+
+const RAW_LIVROS = [
+  { id: 'liv-astronomia', nome: 'Atlas das Constelações', subtitulo: 'Projeta mapas estelares vivos', variant: 0 },
+  { id: 'liv-herbario', nome: 'Herbário Esmeralda', subtitulo: 'Páginas que brotam folhas luminosas', variant: 2 },
+  { id: 'liv-alquimia', nome: 'Tratado do Sol', subtitulo: 'Símbolos alquímicos em ouro e coral', variant: 3 },
+  { id: 'liv-sonhos', nome: 'Diário Onírico', subtitulo: 'Fitas de seda rosa e runas flutuantes', variant: 1 },
+  { id: 'liv-mares', nome: 'Crônicas de Atlântida', subtitulo: 'Letras que brilham como espuma celeste', variant: 0 },
+  { id: 'liv-fogo', nome: 'Grimório Carmesim', subtitulo: 'Feitiços de foco com gema dourada', variant: 1 },
+  { id: 'liv-jade', nome: 'Sutra de Jade', subtitulo: 'Pergaminhos serenos que levitam em paz', variant: 4 },
+  { id: 'liv-arcano', nome: 'Códice do Vórtice', subtitulo: 'Astrolábio mágico girando sobre as páginas', variant: 3 },
+  { id: 'liv-luz', nome: 'Tomo da Luz Solar', subtitulo: 'Páginas douradas que iluminam o estudo', variant: 0 },
+  { id: 'liv-prata', nome: 'Tomo da Lua Cheia', subtitulo: 'Capa de prata com selo violeta', variant: 1 },
+  { id: 'liv-abissal', nome: 'Enciclopédia Oceânica', subtitulo: 'Pérolas de sabedoria suspensas no ar', variant: 2 },
+  { id: 'liv-rubi', nome: 'Livro dos Segredos', subtitulo: 'Selo de quartzo que se abre com o foco', variant: 1 },
+  { id: 'liv-floresta', nome: 'Bestiário de Gaia', subtitulo: 'Árvore holográfica acima das páginas', variant: 2 },
+  { id: 'liv-runas', nome: 'Compêndio Rúnico', subtitulo: 'Alfabeto estelar em neon ametista', variant: 4 },
+  { id: 'liv-relogio', nome: 'Manual do Tempo', subtitulo: 'Anéis cronológicos de cobre e turquesa', variant: 3 },
+  { id: 'liv-inverno', nome: 'Contos de Inverno', subtitulo: 'Cristais de gelo que dançam das letras', variant: 0 },
+  { id: 'liv-rei', nome: 'Manuscrito Real', subtitulo: 'Caligrafia iluminada em ouro puro', variant: 4 },
+  { id: 'liv-cosmos', nome: 'História do Cosmos', subtitulo: 'Uma mini-galáxia espiral sai do livro', variant: 3 },
+  { id: 'liv-aurora', nome: 'Cânticos Boreais', subtitulo: 'Ondas de luz polar entre os capítulos', variant: 0 },
+  { id: 'liv-sabedoria', nome: 'Grimório de Cobalto', subtitulo: 'O tomo mestre do conhecimento profundo', variant: 1 }
+];
+
+const RAW_POCOES = [
+  { id: 'poc-foco', nome: 'Elixir do Foco Puro', subtitulo: 'Destilado lavanda de clareza mental', variant: 0 },
+  { id: 'poc-vital', nome: 'Néctar de Esmeralda', subtitulo: 'Gotas regeneradoras da floresta', variant: 1 },
+  { id: 'poc-solar', nome: 'Essência de Sol', subtitulo: 'Líquido dourado que aquece a mente', variant: 2 },
+  { id: 'poc-sonho', nome: 'Filtro de Ametista', subtitulo: 'Frasco lunar de inspiração criativa', variant: 3 },
+  { id: 'poc-mana', nome: 'Poção de Mana Celeste', subtitulo: 'Energia azul borbulhante para estudos', variant: 0 },
+  { id: 'poc-fenix', nome: 'Lágrima de Fênix', subtitulo: 'Ampola lapidada com faíscas douradas', variant: 1 },
+  { id: 'poc-menta', nome: 'Tônico de Jade', subtitulo: 'Frescor sereno em destilador triplo', variant: 4 },
+  { id: 'poc-cosmos', nome: 'Extrato de Nebulosa', subtitulo: 'Galáxia líquida dentro do cristal', variant: 3 },
+  { id: 'poc-ambar', nome: 'Ambrósia Dourada', subtitulo: 'Caldeirão alquímico dos antigos sábios', variant: 2 },
+  { id: 'poc-lunar', nome: 'Orvalho da Lua', subtitulo: 'Coletado sob a luz prateada da meia-noite', variant: 3 },
+  { id: 'poc-mare', nome: 'Soro de Thalassa', subtitulo: 'Ondas bioluminescentes em miniatura', variant: 0 },
+  { id: 'poc-rubi', nome: 'Elixir Carmesim', subtitulo: 'Força vital concentrada em diamante', variant: 1 },
+  { id: 'poc-botanica', nome: 'Seiva Encantada', subtitulo: 'Caldeirão com folhas e esporos brilhantes', variant: 2 },
+  { id: 'poc-neon', nome: 'Catalisador Astral', subtitulo: 'Tubos de reação luminosa em neon', variant: 4 },
+  { id: 'poc-alquimia', nome: 'Destilado de Cobre', subtitulo: 'Alambique antigo com vapor turquesa', variant: 4 },
+  { id: 'poc-glacial', nome: 'Essência Boreal', subtitulo: 'Flocos de cristal suspensos no líquido', variant: 1 },
+  { id: 'poc-ouro', nome: 'Ouro Potável (Aurum)', subtitulo: 'A obra-prima da alquimia clássica', variant: 0 },
+  { id: 'poc-eter', nome: 'Frasco de Éter', subtitulo: 'Nuvem violeta condensada em vidro', variant: 3 },
+  { id: 'poc-aurora', nome: 'Líquido da Aurora', subtitulo: 'Caldeirão que irradia luzes do norte', variant: 2 },
+  { id: 'poc-cobalto', nome: 'Tônico de Cobalto', subtitulo: 'Fórmula suprema de concentração', variant: 1 }
+];
+
+const STAGE_NAMES_BY_TEMA = {
+  plantas: ['Semente', 'Broto', 'Muda', 'Jovem', 'Florida', 'Murcha'],
+  mundos: ['Núcleo', 'Protoplaneta', 'Crosta', 'Atmosfera', 'Mundo Pleno', 'Eclipsado'],
+  elementos: ['Centelha', 'Pulso', 'Fluxo', 'Vórtice', 'Manifestação', 'Dissipado'],
+  mascotes: ['Ovo Cósmico', 'Despertar', 'Filhote', 'Guardião', 'Mascote Pleno', 'Adormecido'],
+  naves: ['Cápsula', 'Propulsores', 'Casco & Asas', 'Reator', 'Nave Plena', 'Desenergizada'],
+  ets: ['Sinal', 'Cápsula Bio', 'Visitante', 'Telepata', 'Sábio Galáctico', 'Teletransportado'],
+  foguetes: ['Base', '1º Estágio', 'Fuselagem', 'Ignição', 'Decolagem', 'Abortado'],
+  livros: ['Pergaminho', 'Tomo Selado', 'Páginas Abertas', 'Runas Vivas', 'Grimório Arcano', 'Selado'],
+  pocoes: ['Frasco Vazio', 'Primeiras Gotas', 'Ebulição', 'Destilação', 'Elixir Radiante', 'Evaporada']
+};
+
 function montarEstagios(tema) {
-  if (tema === 'mundos') {
-    return [
-      { stageId: 'semente', minProgress: 0, assetKey: 'semente', nome: 'Núcleo' },
-      { stageId: 'broto', minProgress: 0.1, assetKey: 'broto', nome: 'Protoplaneta' },
-      { stageId: 'muda', minProgress: 0.35, assetKey: 'muda', nome: 'Crosta' },
-      { stageId: 'jovem', minProgress: 0.65, assetKey: 'jovem', nome: 'Atmosfera' },
-      { stageId: 'florida', minProgress: 1, assetKey: 'florida', nome: 'Mundo Pleno' }
-    ];
-  }
-  if (tema === 'elementos') {
-    return [
-      { stageId: 'semente', minProgress: 0, assetKey: 'semente', nome: 'Centelha' },
-      { stageId: 'broto', minProgress: 0.1, assetKey: 'broto', nome: 'Pulso' },
-      { stageId: 'muda', minProgress: 0.35, assetKey: 'muda', nome: 'Fluxo' },
-      { stageId: 'jovem', minProgress: 0.65, assetKey: 'jovem', nome: 'Vórtice' },
-      { stageId: 'florida', minProgress: 1, assetKey: 'florida', nome: 'Manifestação' }
-    ];
-  }
+  const nomes = STAGE_NAMES_BY_TEMA[tema] || STAGE_NAMES_BY_TEMA.plantas;
   return [
-    { stageId: 'semente', minProgress: 0, assetKey: 'semente', nome: 'Semente' },
-    { stageId: 'broto', minProgress: 0.1, assetKey: 'broto', nome: 'Broto' },
-    { stageId: 'muda', minProgress: 0.35, assetKey: 'muda', nome: 'Muda' },
-    { stageId: 'jovem', minProgress: 0.65, assetKey: 'jovem', nome: 'Jovem' },
-    { stageId: 'florida', minProgress: 1, assetKey: 'florida', nome: 'Florida' }
+    { stageId: 'semente', minProgress: 0, assetKey: 'semente', nome: nomes[0] },
+    { stageId: 'broto', minProgress: 0.1, assetKey: 'broto', nome: nomes[1] },
+    { stageId: 'muda', minProgress: 0.35, assetKey: 'muda', nome: nomes[2] },
+    { stageId: 'jovem', minProgress: 0.65, assetKey: 'jovem', nome: nomes[3] },
+    { stageId: 'florida', minProgress: 1, assetKey: 'florida', nome: nomes[4] }
   ];
 }
 
+const TEMA_OFFSET = { plantas: 1, mundos: 0, elementos: 2, mascotes: 3, naves: 4, ets: 5, foguetes: 6, livros: 7, pocoes: 8 };
+
 function criarEntradaCatalogo(item, idx, tema) {
-  // Alterna as 20 paletas com deslocamento por tema para garantir alternância visual em todas as listas
-  const offset = tema === 'plantas' ? 1 : tema === 'mundos' ? 0 : 2;
+  const offset = TEMA_OFFSET[tema] ?? 0;
   const paleta = PALETAS_ALTERNADAS[(idx + offset) % PALETAS_ALTERNADAS.length];
+  const nomes = STAGE_NAMES_BY_TEMA[tema] || STAGE_NAMES_BY_TEMA.plantas;
   return {
     id: item.id,
     nome: item.nome,
@@ -148,7 +296,7 @@ function criarEntradaCatalogo(item, idx, tema) {
     murcha: {
       stageId: 'murcha',
       assetKey: 'murcha',
-      nome: tema === 'mundos' ? 'Eclipsado' : tema === 'elementos' ? 'Dissipado' : 'Murcha'
+      nome: nomes[5]
     },
     chao: 'chao',
     entrada: { ms: 320, escala: 0.88 }
@@ -158,7 +306,13 @@ function criarEntradaCatalogo(item, idx, tema) {
 export const CATALOGO_EXTRA = [
   ...RAW_PLANTAS.map((it, i) => criarEntradaCatalogo(it, i, 'plantas')),
   ...RAW_MUNDOS.map((it, i) => criarEntradaCatalogo(it, i, 'mundos')),
-  ...RAW_ELEMENTOS.map((it, i) => criarEntradaCatalogo(it, i, 'elementos'))
+  ...RAW_ELEMENTOS.map((it, i) => criarEntradaCatalogo(it, i, 'elementos')),
+  ...RAW_MASCOTES.map((it, i) => criarEntradaCatalogo(it, i, 'mascotes')),
+  ...RAW_NAVES.map((it, i) => criarEntradaCatalogo(it, i, 'naves')),
+  ...RAW_ETS.map((it, i) => criarEntradaCatalogo(it, i, 'ets')),
+  ...RAW_FOGUETES.map((it, i) => criarEntradaCatalogo(it, i, 'foguetes')),
+  ...RAW_LIVROS.map((it, i) => criarEntradaCatalogo(it, i, 'livros')),
+  ...RAW_POCOES.map((it, i) => criarEntradaCatalogo(it, i, 'pocoes'))
 ];
 
 const MAPA_EXTRA = new Map(CATALOGO_EXTRA.map((e) => [e.id, e]));
@@ -171,7 +325,7 @@ const MAPA_EXTRA = new Map(CATALOGO_EXTRA.map((e) => [e.id, e]));
 
 function svgChao(e) {
   const { paleta, tema } = e;
-  if (tema === 'mundos') {
+  if (tema === 'mundos' || tema === 'naves' || tema === 'ets') {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 34" role="img" aria-label="Base orbital de ${e.nome}">
 <defs><linearGradient id="gBase" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${paleta.groundMid}"/><stop offset="1" stop-color="${paleta.groundBase}"/></linearGradient></defs>
 <ellipse cx="60" cy="10" rx="46" ry="7" fill="none" stroke="${paleta.c2}" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="4 3"/>
@@ -180,8 +334,8 @@ function svgChao(e) {
 <ellipse cx="60" cy="6" rx="26" ry="2.6" fill="${paleta.c1}" opacity=".45"/>
 </svg>`;
   }
-  if (tema === 'elementos') {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 34" role="img" aria-label="Altar elemental de ${e.nome}">
+  if (tema === 'elementos' || tema === 'foguetes' || tema === 'livros' || tema === 'pocoes') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 34" role="img" aria-label="Altar de ${e.nome}">
 <defs><linearGradient id="gBase" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${paleta.groundMid}"/><stop offset="1" stop-color="${paleta.groundBase}"/></linearGradient></defs>
 <polygon points="16,7 60,1 104,7 88,27 60,32 32,27" fill="url(#gBase)"/>
 <ellipse cx="60" cy="6" rx="42" ry="4.6" fill="${paleta.groundTop}"/>
@@ -207,7 +361,7 @@ function defsPadrao(p) {
 </defs>`;
 }
 
-/* ---------- 1. PLANTAS (5 arquétipos progressivos) ---------- */
+/* ---------- 1. PLANTAS ---------- */
 function svgPlanta(e, stage) {
   const p = e.paleta;
   const v = e.variant % 5;
@@ -277,8 +431,7 @@ ${botaoTopo}
 </svg>`;
   }
 
-  // Estágio 100%: florida (varia a coroa por arquétipo + índice)
-  const petalCount = 5 + (e.indiceTema % 4); // 5, 6, 7 ou 8 pétalas
+  const petalCount = 5 + (e.indiceTema % 4);
   const step = 360 / petalCount;
   const petalasPrincipais = Array.from({ length: petalCount }, (_, i) =>
     `<path transform="rotate(${(i * step).toFixed(1)} 60 21)" d="M60 21 C54.8 15.5 55.2 7.2 60 2.8 C64.8 7.2 65.2 15.5 60 21Z" fill="url(#petala)"/>`
@@ -316,7 +469,7 @@ ${petalasInternas}
 </svg>`;
 }
 
-/* ---------- 2. MUNDOS (5 arquétipos planetários/orbitais progressivos) ---------- */
+/* ---------- 2. MUNDOS ---------- */
 function svgMundo(e, stage) {
   const p = e.paleta;
   const v = e.variant % 5;
@@ -377,7 +530,6 @@ function svgMundo(e, stage) {
 </svg>`;
   }
 
-  // Estágio 100%: Mundo Pleno (varia por arquétipo 0..4)
   const detalheMundo = v === 0
     ? `<ellipse transform="rotate(-18 60 40)" cx="60" cy="40" rx="34" ry="9" fill="none" stroke="url(#anel)" stroke-width="3.2"/>
        <ellipse transform="rotate(-18 60 40)" cx="60" cy="40" rx="28" ry="6.5" fill="none" stroke="${p.light}" stroke-opacity=".65" stroke-width="1.2"/>
@@ -412,7 +564,7 @@ ${detalheMundo}
 </svg>`;
 }
 
-/* ---------- 3. ELEMENTOS (5 arquétipos elementais progressivos) ---------- */
+/* ---------- 3. ELEMENTOS ---------- */
 function svgElemento(e, stage) {
   const p = e.paleta;
   const v = e.variant % 5;
@@ -475,34 +627,28 @@ ${v === 1
 </svg>`;
   }
 
-  // Estágio 100%: Manifestação Plena (5 arquétipos elementais)
   const corpoElemental = v === 0
-    ? `<!-- Chama / Plasma -->
-       <path d="M60 99 C40 76 42 42 60 12 C78 42 80 76 60 99Z" fill="url(#petala)"/>
+    ? `<path d="M60 99 C40 76 42 42 60 12 C78 42 80 76 60 99Z" fill="url(#petala)"/>
        <path d="M55 99 C34 80 35 52 49 30 C49 54 47 78 55 99Z" fill="url(#folha)"/>
        <path d="M65 99 C86 80 85 52 71 30 C71 54 73 78 65 99Z" fill="url(#folhaB)"/>
        <path d="M60 96 C52 80 53 56 60 36 C67 56 68 80 60 96Z" fill="#FFFFFF" opacity=".85"/>`
     : v === 1
-    ? `<!-- Cristal / Prisma -->
-       <polygon points="60,10 72,36 67,99 53,99 48,36" fill="url(#petala)" stroke="#FFFFFF" stroke-width="1"/>
+    ? `<polygon points="60,10 72,36 67,99 53,99 48,36" fill="url(#petala)" stroke="#FFFFFF" stroke-width="1"/>
        <polygon points="38,38 50,54 49,99 36,99" fill="url(#folha)" stroke="${p.light}" stroke-width=".7"/>
        <polygon points="82,36 84,99 71,99 70,52" fill="url(#folhaB)" stroke="${p.light}" stroke-width=".7"/>
        <polygon points="28,62 37,72 36,99 27,99" fill="url(#folhaB)" opacity=".85"/>
        <polygon points="92,60 93,99 84,99 83,70" fill="url(#folha)" opacity=".85"/>
        <circle cx="60" cy="24" r="3.5" fill="#FFFFFF"/>`
     : v === 2
-    ? `<!-- Onda / Maré -->
-       <path d="M60 99 C38 82 36 48 56 22 C66 10 78 16 74 28 C68 22 58 28 58 42 C58 62 74 74 60 99Z" fill="url(#petala)"/>
+    ? `<path d="M60 99 C38 82 36 48 56 22 C66 10 78 16 74 28 C68 22 58 28 58 42 C58 62 74 74 60 99Z" fill="url(#petala)"/>
        <path d="M52 99 C32 84 32 58 46 38 C44 58 46 78 52 99Z" fill="url(#folha)"/>
        <path d="M68 99 C86 82 86 54 72 34 C74 56 72 78 68 99Z" fill="url(#folhaB)"/>
        <circle cx="60" cy="16" r="4" fill="#FFFFFF"/><circle cx="78" cy="22" r="2.5" fill="${p.light}"/><circle cx="42" cy="28" r="2.2" fill="${p.c1}"/>`
     : v === 3
-    ? `<!-- Raio / Tempestade -->
-       <polygon points="64,10 44,48 58,48 48,99 78,44 62,44" fill="url(#petala)" stroke="#FFFFFF" stroke-width="1"/>
+    ? `<polygon points="64,10 44,48 58,48 48,99 78,44 62,44" fill="url(#petala)" stroke="#FFFFFF" stroke-width="1"/>
        <ellipse cx="60" cy="48" rx="28" ry="10" fill="none" stroke="${p.c1}" stroke-width="1.8" stroke-dasharray="5 3"/>
        <ellipse transform="rotate(60 60 48)" cx="60" cy="48" rx="28" ry="10" fill="none" stroke="${p.c2}" stroke-width="1.6" stroke-dasharray="4 3"/>`
-    : `<!-- Vórtex / Éter -->
-       <path d="M60 99 C38 78 82 54 60 14 C38 54 82 78 60 99Z" fill="url(#petala)"/>
+    : `<path d="M60 99 C38 78 82 54 60 14 C38 54 82 78 60 99Z" fill="url(#petala)"/>
        <path d="M54 99 C30 74 44 42 60 20" fill="none" stroke="${p.c1}" stroke-width="3" stroke-linecap="round"/>
        <path d="M66 99 C90 74 76 42 60 20" fill="none" stroke="${p.c2}" stroke-width="3" stroke-linecap="round"/>
        <circle cx="60" cy="22" r="7" fill="#FFFFFF"/><circle cx="60" cy="22" r="12" fill="none" stroke="${p.light}" stroke-width="1.5"/>`;
@@ -512,6 +658,507 @@ ${v === 1
 <circle cx="60" cy="46" r="36" fill="url(#brilho)" opacity=".75"/>
 ${corpoElemental}
 <circle cx="30" cy="24" r="1.6" fill="#FFFFFF" opacity=".9"/><circle cx="90" cy="22" r="1.5" fill="${p.c1}"/><circle cx="26" cy="54" r="1.3" fill="${p.c2}"/><circle cx="92" cy="52" r="1.4" fill="#FFFFFF"/>
+</svg>`;
+}
+
+/* ---------- 4. MASCOTES ESPACIAIS ---------- */
+function svgMascote(e, stage) {
+  const p = e.paleta;
+  const v = e.variant % 5;
+  const defs = defsPadrao(p);
+
+  if (stage === 'semente') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Ovo cósmico de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="10" ry="2.8" fill="${p.groundMid}"/>
+<circle cx="60" cy="89" r="12" fill="url(#brilho)" opacity=".7"/>
+<ellipse cx="60" cy="90" rx="7" ry="9" fill="url(#petala)" stroke="${p.light}" stroke-width=".8"/>
+<circle cx="58" cy="88" r="1.8" fill="#FFFFFF" opacity=".85"/>
+</svg>`;
+  }
+
+  if (stage === 'broto') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Despertar de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="10" ry="2.8" fill="${p.groundMid}"/>
+<circle cx="60" cy="84" r="15" fill="url(#brilho)" opacity=".75"/>
+<ellipse cx="60" cy="86" rx="10" ry="11" fill="url(#folha)"/>
+<circle cx="56" cy="84" r="2" fill="#FFFFFF"/><circle cx="64" cy="84" r="2" fill="#FFFFFF"/>
+<path d="M51 79 L54 73 L57 78" fill="${p.c1}"/><path d="M69 79 L66 73 L63 78" fill="${p.c2}"/>
+</svg>`;
+  }
+
+  if (stage === 'muda') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Filhote ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="11" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="72" r="20" fill="url(#brilho)" opacity=".7"/>
+<ellipse cx="60" cy="85" rx="12" ry="13" fill="url(#folha)"/>
+<circle cx="60" cy="64" r="11" fill="url(#petala)"/>
+<polygon points="50,58 46,46 56,54" fill="url(#folhaB)"/><polygon points="70,58 74,46 64,54" fill="url(#folhaB)"/>
+<circle cx="56" cy="64" r="2.2" fill="#0C1020"/><circle cx="64" cy="64" r="2.2" fill="#0C1020"/>
+<circle cx="55.3" cy="63.3" r=".9" fill="#FFFFFF"/><circle cx="63.3" cy="63.3" r=".9" fill="#FFFFFF"/>
+</svg>`;
+  }
+
+  if (stage === 'jovem') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Guardião ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="12" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="62" r="26" fill="url(#brilho)" opacity=".75"/>
+<path d="M46 74 C32 66 30 52 40 48 C44 56 46 64 48 72Z" fill="url(#folhaB)"/>
+<path d="M74 74 C88 66 90 52 80 48 C76 56 74 64 72 72Z" fill="url(#folhaB)"/>
+<ellipse cx="60" cy="80" rx="14" ry="17" fill="url(#folha)"/>
+<circle cx="60" cy="54" r="13" fill="url(#petala)"/>
+<polygon points="49,47 43,32 56,43" fill="url(#folha)"/><polygon points="71,47 77,32 64,43" fill="url(#folha)"/>
+<circle cx="55" cy="54" r="2.5" fill="#0C1020"/><circle cx="65" cy="54" r="2.5" fill="#0C1020"/>
+<circle cx="54.2" cy="53.2" r="1" fill="#FFFFFF"/><circle cx="64.2" cy="53.2" r="1" fill="#FFFFFF"/>
+</svg>`;
+  }
+
+  if (stage === 'murcha') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="${e.nome} adormecido">
+<ellipse cx="60" cy="99" rx="11" ry="2.8" fill="#2E294E"/>
+<ellipse cx="60" cy="88" rx="15" ry="10" fill="#4E4870"/>
+<path d="M53 87 Q56 89 59 87" fill="none" stroke="#1E1A3A" stroke-width="1.6"/>
+<path d="M62 87 Q65 89 68 87" fill="none" stroke="#1E1A3A" stroke-width="1.6"/>
+</svg>`;
+  }
+
+  const extrasMascote = v === 0
+    ? `<!-- Caudas astrais de Kitsune -->
+       <path d="M48 86 C26 78 22 52 36 38 C38 54 40 70 48 86Z" fill="url(#petala)"/>
+       <path d="M72 86 C94 78 98 52 84 38 C82 54 80 70 72 86Z" fill="url(#petala)"/>`
+    : v === 1
+    ? `<!-- Asas abertas de Coruja/Fênix -->
+       <path d="M46 72 C22 60 20 36 38 28 C40 44 42 58 46 72Z" fill="url(#petala)"/>
+       <path d="M74 72 C98 60 100 36 82 28 C80 44 78 58 74 72Z" fill="url(#petala)"/>`
+    : v === 2
+    ? `<!-- Antenas lunares & anel -->
+       <path d="M54 36 Q46 20 38 24" fill="none" stroke="${p.light}" stroke-width="2"/><circle cx="38" cy="24" r="3.2" fill="${p.c2}"/>
+       <path d="M66 36 Q74 20 82 24" fill="none" stroke="${p.light}" stroke-width="2"/><circle cx="82" cy="24" r="3.2" fill="${p.c1}"/>`
+    : v === 3
+    ? `<!-- Asas e chifres de Dragão -->
+       <polygon points="46,68 20,42 32,74" fill="url(#folhaB)"/><polygon points="74,68 100,42 88,74" fill="url(#folhaB)"/>
+       <polygon points="52,38 44,18 57,34" fill="${p.light}"/><polygon points="68,38 76,18 63,34" fill="${p.light}"/>`
+    : `<!-- Placas orbitais estilo Lumo -->
+       <ellipse cx="60" cy="22" rx="16" ry="4" fill="none" stroke="${p.light}" stroke-width="2"/>
+       <circle cx="30" cy="48" r="4" fill="url(#petala)"/><circle cx="90" cy="48" r="4" fill="url(#petala)"/>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Mascote Pleno ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="13" ry="3.2" fill="${p.groundMid}"/>
+<circle cx="60" cy="54" r="36" fill="url(#brilho)" opacity=".75"/>
+${extrasMascote}
+<ellipse cx="60" cy="76" rx="16" ry="20" fill="url(#folha)"/>
+<ellipse cx="60" cy="78" rx="10" ry="13" fill="${p.light}" opacity=".35"/>
+<circle cx="60" cy="48" r="15" fill="url(#petala)"/>
+<polygon points="48,40 41,22 56,36" fill="url(#folha)"/><polygon points="72,40 79,22 64,36" fill="url(#folha)"/>
+<circle cx="54" cy="48" r="3" fill="#0C1020"/><circle cx="66" cy="48" r="3" fill="#0C1020"/>
+<circle cx="53" cy="47" r="1.2" fill="#FFFFFF"/><circle cx="65" cy="47" r="1.2" fill="#FFFFFF"/>
+<ellipse cx="60" cy="52" rx="2.2" ry="1.4" fill="${p.c3}"/>
+<circle cx="60" cy="16" r="3" fill="#FFFFFF"/>
+</svg>`;
+}
+
+/* ---------- 5. ESPAÇONAVES ---------- */
+function svgNave(e, stage) {
+  const p = e.paleta;
+  const v = e.variant % 5;
+  const defs = defsPadrao(p);
+
+  if (stage === 'semente') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Cápsula de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="10" ry="2.8" fill="${p.groundMid}"/>
+<circle cx="60" cy="88" r="11" fill="url(#brilho)" opacity=".7"/>
+<ellipse cx="60" cy="90" rx="10" ry="4.5" fill="url(#folha)"/>
+<path d="M54 89 Q60 82 66 89 Z" fill="${p.light}"/>
+</svg>`;
+  }
+
+  if (stage === 'broto') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Propulsores de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="11" ry="2.8" fill="${p.groundMid}"/>
+<path d="M56 84 L60 98 L64 84 Z" fill="${p.c2}" opacity=".75"/>
+<ellipse cx="60" cy="80" rx="16" ry="6" fill="url(#folha)"/>
+<path d="M52 79 Q60 69 68 79 Z" fill="url(#petala)"/>
+</svg>`;
+  }
+
+  if (stage === 'muda') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Casco de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="12" ry="3" fill="${p.groundMid}"/>
+<path d="M52 70 L60 98 L68 70 Z" fill="url(#brilho)" opacity=".75"/>
+<polygon points="32,70 60,58 88,70 76,74 44,74" fill="url(#folhaB)"/>
+<ellipse cx="60" cy="66" rx="20" ry="7" fill="url(#folha)"/>
+<path d="M50 65 Q60 52 70 65 Z" fill="url(#petala)"/>
+</svg>`;
+  }
+
+  if (stage === 'jovem') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Reator de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="12" ry="3" fill="${p.groundMid}"/>
+<polygon points="48,56 60,99 72,56" fill="url(#brilho)" opacity=".8"/>
+<polygon points="24,58 60,42 96,58 82,64 38,64" fill="url(#folhaB)"/>
+<ellipse cx="60" cy="54" rx="25" ry="8" fill="url(#folha)"/>
+<path d="M47 52 Q60 36 73 52 Z" fill="url(#petala)"/>
+<circle cx="45" cy="55" r="2" fill="#FFFFFF"/><circle cx="60" cy="56" r="2.2" fill="#FFFFFF"/><circle cx="75" cy="55" r="2" fill="#FFFFFF"/>
+</svg>`;
+  }
+
+  if (stage === 'murcha') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="${e.nome} desenergizada">
+<ellipse cx="60" cy="99" rx="12" ry="2.8" fill="#2E294E"/>
+<ellipse transform="rotate(8 62 86)" cx="62" cy="86" rx="22" ry="6.5" fill="#4E4870"/>
+<path d="M52 84 Q62 74 72 85 Z" fill="#3F3A60"/>
+</svg>`;
+  }
+
+  const cascoPleno = v === 0
+    ? `<!-- Disco Voador com feixe trator -->
+       <polygon points="44,46 60,99 76,46" fill="url(#brilho)" opacity=".75"/>
+       <ellipse cx="60" cy="44" rx="34" ry="10" fill="url(#folha)" stroke="${p.light}" stroke-width="1"/>
+       <path d="M44 42 Q60 22 76 42 Z" fill="url(#petala)"/>
+       <circle cx="38" cy="44" r="2.2" fill="#FFFFFF"/><circle cx="52" cy="47" r="2.2" fill="#FFFFFF"/><circle cx="68" cy="47" r="2.2" fill="#FFFFFF"/><circle cx="82" cy="44" r="2.2" fill="#FFFFFF"/>`
+    : v === 1
+    ? `<!-- Cruzador Asas Delta -->
+       <polygon points="50,48 60,99 70,48" fill="url(#brilho)" opacity=".8"/>
+       <polygon points="18,52 60,16 102,52 82,58 60,46 38,58" fill="url(#folhaB)" stroke="${p.light}" stroke-width=".9"/>
+       <polygon points="60,14 68,48 60,56 52,48" fill="url(#petala)"/>
+       <circle cx="60" cy="36" r="4" fill="#FFFFFF"/>`
+    : v === 2
+    ? `<!-- Veleiro Solar -->
+       <polygon points="54,50 60,99 66,50" fill="url(#brilho)" opacity=".75"/>
+       <path d="M60 12 C30 22 22 46 46 58 L60 48 L74 58 C98 46 90 22 60 12Z" fill="url(#petala)" stroke="#FFFFFF" stroke-width=".9"/>
+       <ellipse cx="60" cy="44" rx="10" ry="16" fill="url(#folha)"/>`
+    : v === 3
+    ? `<!-- Exploradora Giroscópica -->
+       <polygon points="52,50 60,99 68,50" fill="url(#brilho)" opacity=".75"/>
+       <ellipse transform="rotate(-24 60 40)" cx="60" cy="40" rx="34" ry="10" fill="none" stroke="url(#petala)" stroke-width="3"/>
+       <ellipse transform="rotate(24 60 40)" cx="60" cy="40" rx="34" ry="10" fill="none" stroke="${p.c2}" stroke-width="2"/>
+       <circle cx="60" cy="40" r="14" fill="url(#folha)"/><circle cx="60" cy="40" r="6" fill="#FFFFFF"/>`
+    : `<!-- Fragata Interestelar -->
+       <polygon points="46,48 60,99 74,48" fill="url(#brilho)" opacity=".85"/>
+       <polygon points="26,46 42,24 78,24 94,46 78,56 42,56" fill="url(#folha)"/>
+       <ellipse cx="60" cy="38" rx="18" ry="8" fill="url(#petala)"/>
+       <circle cx="42" cy="48" r="3" fill="#FFFFFF"/><circle cx="60" cy="50" r="3.5" fill="#FFFFFF"/><circle cx="78" cy="48" r="3" fill="#FFFFFF"/>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Nave Plena ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="13" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="42" r="36" fill="url(#brilho)" opacity=".6"/>
+${cascoPleno}
+</svg>`;
+}
+
+/* ---------- 6. ETs ---------- */
+function svgEt(e, stage) {
+  const p = e.paleta;
+  const v = e.variant % 5;
+  const defs = defsPadrao(p);
+
+  if (stage === 'semente') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Sinal de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="10" ry="2.8" fill="${p.groundMid}"/>
+<circle cx="60" cy="90" r="10" fill="url(#brilho)" opacity=".8"/>
+<circle cx="60" cy="92" r="4" fill="url(#petala)"/>
+<ellipse cx="60" cy="92" rx="9" ry="3" fill="none" stroke="${p.c1}" stroke-width="1"/>
+</svg>`;
+  }
+
+  if (stage === 'broto') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Cápsula de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="10" ry="2.8" fill="${p.groundMid}"/>
+<circle cx="60" cy="84" r="14" fill="url(#brilho)" opacity=".75"/>
+<path d="M51 98 C51 78 69 78 69 98 Z" fill="url(#petala)" opacity=".85"/>
+<circle cx="60" cy="88" r="5.5" fill="url(#folha)"/>
+</svg>`;
+  }
+
+  if (stage === 'muda') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Visitante ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="11" ry="3" fill="${p.groundMid}"/>
+<path d="M48 99 C48 78 72 78 72 99 Z" fill="url(#folhaB)"/>
+<path d="M60 79 C46 79 44 56 60 56 C76 56 74 79 60 79Z" fill="url(#petala)"/>
+<ellipse transform="rotate(-18 54 68)" cx="54" cy="68" rx="4.5" ry="3" fill="#0C1020"/>
+<ellipse transform="rotate(18 66 68)" cx="66" cy="68" rx="4.5" ry="3" fill="#0C1020"/>
+<circle cx="53" cy="67" r="1" fill="#FFFFFF"/><circle cx="65" cy="67" r="1" fill="#FFFFFF"/>
+</svg>`;
+  }
+
+  if (stage === 'jovem') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Telepata ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="12" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="56" r="26" fill="url(#brilho)" opacity=".7"/>
+<path d="M44 99 C45 72 75 72 76 99 Z" fill="url(#folha)"/>
+<path d="M60 72 C43 72 40 44 60 44 C80 44 77 72 60 72Z" fill="url(#petala)"/>
+<ellipse transform="rotate(-18 53 58)" cx="53" cy="58" rx="5.5" ry="3.6" fill="#0C1020"/>
+<ellipse transform="rotate(18 67 58)" cx="67" cy="58" rx="5.5" ry="3.6" fill="#0C1020"/>
+<circle cx="52" cy="57" r="1.2" fill="#FFFFFF"/><circle cx="66" cy="57" r="1.2" fill="#FFFFFF"/>
+<ellipse cx="60" cy="36" rx="14" ry="3.5" fill="none" stroke="${p.light}" stroke-width="1.5"/>
+</svg>`;
+  }
+
+  if (stage === 'murcha') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="${e.nome} teletransportado">
+<ellipse cx="60" cy="99" rx="11" ry="2.8" fill="#2E294E"/>
+<path d="M54 99 L58 64 L62 64 L66 99 Z" fill="#4E4870" opacity=".5"/>
+<ellipse cx="60" cy="64" rx="10" ry="3" fill="none" stroke="#6E6893" stroke-dasharray="3 2"/>
+</svg>`;
+  }
+
+  const detalheEt = v === 1
+    ? `<path d="M53 36 Q46 22 40 24" fill="none" stroke="${p.c1}" stroke-width="2"/><circle cx="40" cy="24" r="3.2" fill="#FFFFFF"/>
+       <path d="M67 36 Q74 22 80 24" fill="none" stroke="${p.c2}" stroke-width="2"/><circle cx="80" cy="24" r="3.2" fill="#FFFFFF"/>`
+    : v === 2
+    ? `<polygon points="60,14 68,28 52,28" fill="url(#petala)" stroke="#FFFFFF" stroke-width=".8"/>
+       <circle cx="34" cy="52" r="4" fill="url(#folhaB)"/><circle cx="86" cy="52" r="4" fill="url(#folhaB)"/>`
+    : v === 3
+    ? `<circle cx="60" cy="43" r="2.8" fill="#0C1020"/><circle cx="59.4" cy="42.4" r="1" fill="#FFFFFF"/>
+       <circle cx="34" cy="46" r="3.5" fill="${p.light}"/><circle cx="86" cy="46" r="3.5" fill="${p.light}"/>`
+    : `<ellipse cx="60" cy="24" rx="20" ry="5" fill="none" stroke="${p.light}" stroke-width="2"/>
+       <circle cx="60" cy="16" r="3.5" fill="#FFFFFF"/>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Sábio Galáctico ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="13" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="50" r="36" fill="url(#brilho)" opacity=".75"/>
+<path d="M38 99 C40 66 80 66 82 99 Z" fill="url(#folha)"/>
+<path d="M48 99 L60 72 L72 99 Z" fill="url(#folhaB)" opacity=".8"/>
+<path d="M60 68 C40 68 36 36 60 36 C84 36 80 68 60 68Z" fill="url(#petala)"/>
+<ellipse transform="rotate(-18 52 52)" cx="52" cy="52" rx="6.2" ry="4" fill="#0C1020"/>
+<ellipse transform="rotate(18 68 52)" cx="68" cy="52" rx="6.2" ry="4" fill="#0C1020"/>
+<circle cx="50.8" cy="51" r="1.4" fill="#FFFFFF"/><circle cx="66.8" cy="51" r="1.4" fill="#FFFFFF"/>
+${detalheEt}
+</svg>`;
+}
+
+/* ---------- 7. FOGUETES ---------- */
+function svgFoguete(e, stage) {
+  const p = e.paleta;
+  const v = e.variant % 5;
+  const defs = defsPadrao(p);
+
+  if (stage === 'semente') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Base de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="11" ry="2.8" fill="${p.groundMid}"/>
+<polygon points="52,99 55,88 65,88 68,99" fill="url(#folha)"/>
+<rect x="53" y="85" width="14" height="4" rx="1.5" fill="url(#petala)"/>
+</svg>`;
+  }
+
+  if (stage === 'broto') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="1º Estágio de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="11" ry="2.8" fill="${p.groundMid}"/>
+<polygon points="52,99 55,90 65,90 68,99" fill="${p.c3}"/>
+<rect x="52" y="70" width="16" height="21" rx="3" fill="url(#petala)"/>
+<polygon points="45,92 52,78 52,92" fill="url(#folhaB)"/><polygon points="75,92 68,78 68,92" fill="url(#folhaB)"/>
+</svg>`;
+  }
+
+  if (stage === 'muda') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Fuselagem de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="12" ry="3" fill="${p.groundMid}"/>
+<path d="M60 44 C51 56 51 74 52 92 L68 92 C69 74 69 56 60 44Z" fill="url(#petala)"/>
+<polygon points="42,94 52,74 52,92" fill="url(#folha)"/><polygon points="78,94 68,74 68,92" fill="url(#folha)"/>
+<circle cx="60" cy="64" r="4.5" fill="#0C1020" stroke="${p.light}" stroke-width="1.5"/>
+</svg>`;
+  }
+
+  if (stage === 'jovem') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Ignição de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="14" ry="3.2" fill="${p.groundMid}"/>
+<path d="M54 84 C50 92 55 99 60 100 C65 99 70 92 66 84 Z" fill="${p.c2}"/>
+<path d="M60 30 C50 44 50 66 52 84 L68 84 C70 66 70 44 60 30Z" fill="url(#petala)"/>
+<polygon points="40,86 52,66 52,84" fill="url(#folha)"/><polygon points="80,86 68,66 68,84" fill="url(#folha)"/>
+<circle cx="60" cy="52" r="5" fill="#0C1020" stroke="${p.light}" stroke-width="1.6"/>
+</svg>`;
+  }
+
+  if (stage === 'murcha') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="${e.nome} abortado">
+<ellipse cx="60" cy="99" rx="11" ry="2.8" fill="#2E294E"/>
+<g transform="rotate(24 60 88)">
+  <path d="M60 56 C52 66 52 80 53 94 L67 94 C68 80 68 66 60 56Z" fill="#4E4870"/>
+  <circle cx="60" cy="74" r="4" fill="#2E294E"/>
+</g>
+</svg>`;
+  }
+
+  const boosters = v === 1
+    ? `<rect x="40" y="38" width="8" height="28" rx="4" fill="url(#folhaB)"/>
+       <rect x="72" y="38" width="8" height="28" rx="4" fill="url(#folhaB)"/>`
+    : v === 2
+    ? `<polygon points="30,62 50,38 50,64" fill="url(#folhaB)"/><polygon points="90,62 70,38 70,64" fill="url(#folhaB)"/>`
+    : '';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Decolagem de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="15" ry="3.4" fill="${p.groundMid}"/>
+<circle cx="60" cy="50" r="36" fill="url(#brilho)" opacity=".7"/>
+<!-- Pluma de propulsão e nuvens de decolagem -->
+<circle cx="46" cy="95" r="7" fill="${p.light}" opacity=".75"/><circle cx="74" cy="95" r="7" fill="${p.light}" opacity=".75"/>
+<path d="M51 64 C44 78 52 94 60 100 C68 94 76 78 69 64 Z" fill="url(#folhaB)"/>
+<path d="M55 64 C52 76 56 88 60 95 C64 88 68 76 65 64 Z" fill="#FFFFFF"/>
+${boosters}
+<path d="M60 10 C48 26 48 48 51 66 L69 66 C72 48 72 26 60 10Z" fill="url(#petala)" stroke="#FFFFFF" stroke-width=".8"/>
+<path d="M60 10 C54 18 53 24 53 26 L67 26 C67 24 66 18 60 10Z" fill="url(#folha)"/>
+<polygon points="38,68 51,48 51,66" fill="url(#folha)"/><polygon points="82,68 69,48 69,66" fill="url(#folha)"/>
+<circle cx="60" cy="38" r="5.5" fill="#0C1020" stroke="#FFFFFF" stroke-width="1.6"/>
+<circle cx="58.5" cy="36.5" r="1.6" fill="#FFFFFF"/>
+</svg>`;
+}
+
+/* ---------- 8. LIVROS MÁGICOS ---------- */
+function svgLivro(e, stage) {
+  const p = e.paleta;
+  const v = e.variant % 5;
+  const defs = defsPadrao(p);
+
+  if (stage === 'semente') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Pergaminho de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="10" ry="2.8" fill="${p.groundMid}"/>
+<circle cx="60" cy="90" r="10" fill="url(#brilho)" opacity=".7"/>
+<rect transform="rotate(-12 60 90)" x="49" y="87" width="22" height="6" rx="3" fill="url(#petala)"/>
+<rect transform="rotate(-12 60 90)" x="58" y="86.5" width="4" height="7" rx="1" fill="${p.c3}"/>
+</svg>`;
+  }
+
+  if (stage === 'broto') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Tomo de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="10" ry="2.8" fill="${p.groundMid}"/>
+<circle cx="60" cy="83" r="14" fill="url(#brilho)" opacity=".75"/>
+<polygon points="44,86 60,78 76,86 60,94" fill="url(#folha)"/>
+<polygon points="44,83 60,75 76,83 60,91" fill="url(#petala)"/>
+<circle cx="60" cy="83" r="3" fill="#FFFFFF"/>
+</svg>`;
+  }
+
+  if (stage === 'muda') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Páginas de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="11" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="72" r="20" fill="url(#brilho)" opacity=".75"/>
+<path d="M60 84 Q42 78 34 84 L38 68 Q48 64 60 72 Z" fill="url(#petala)" stroke="${p.c3}" stroke-width="1"/>
+<path d="M60 84 Q78 78 86 84 L82 68 Q72 64 60 72 Z" fill="url(#petala)" stroke="${p.c3}" stroke-width="1"/>
+</svg>`;
+  }
+
+  if (stage === 'jovem') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Runas de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="12" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="60" r="26" fill="url(#brilho)" opacity=".75"/>
+<path d="M60 80 Q40 72 30 80 L35 60 Q47 55 60 65 Z" fill="url(#petala)" stroke="${p.c1}" stroke-width="1.2"/>
+<path d="M60 80 Q80 72 90 80 L85 60 Q73 55 60 65 Z" fill="url(#petala)" stroke="${p.c1}" stroke-width="1.2"/>
+<circle cx="60" cy="42" r="8" fill="none" stroke="${p.light}" stroke-width="1.6" stroke-dasharray="4 2"/>
+<polygon points="60,35 65,45 55,45" fill="url(#folhaB)"/>
+</svg>`;
+  }
+
+  if (stage === 'murcha') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="${e.nome} selado">
+<ellipse cx="60" cy="99" rx="11" ry="2.8" fill="#2E294E"/>
+<polygon points="44,90 60,84 76,90 60,96" fill="#4E4870"/>
+<line x1="48" y1="86" x2="72" y2="94" stroke="#2E294E" stroke-width="2"/>
+<line x1="72" y1="86" x2="48" y2="94" stroke="#2E294E" stroke-width="2"/>
+</svg>`;
+  }
+
+  const projecaoArcana = v === 0
+    ? `<polyline points="44,36 54,22 66,30 76,16" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+       <circle cx="44" cy="36" r="2.8" fill="${p.c1}"/><circle cx="54" cy="22" r="3" fill="#FFFFFF"/><circle cx="66" cy="30" r="2.8" fill="${p.c2}"/><circle cx="76" cy="16" r="3.2" fill="#FFFFFF"/>`
+    : v === 1
+    ? `<polygon points="60,14 70,28 60,42 50,28" fill="url(#petala)" stroke="#FFFFFF" stroke-width="1"/>
+       <circle cx="60" cy="28" r="3.5" fill="#FFFFFF"/>`
+    : v === 2
+    ? `<path d="M60 54 L60 26" stroke="${p.light}" stroke-width="2.4"/>
+       <circle cx="60" cy="24" r="10" fill="url(#folha)"/><circle cx="52" cy="28" r="7" fill="url(#folhaB)"/><circle cx="68" cy="28" r="7" fill="url(#petala)"/>`
+    : v === 3
+    ? `<circle cx="60" cy="28" r="14" fill="none" stroke="${p.c1}" stroke-width="1.8"/>
+       <ellipse transform="rotate(35 60 28)" cx="60" cy="28" rx="18" ry="6" fill="none" stroke="${p.light}" stroke-width="1.4"/>
+       <circle cx="60" cy="28" r="4" fill="#FFFFFF"/>`
+    : `<polygon points="60,14 64,24 75,24 66,31 69,42 60,35 51,42 54,31 45,24 56,24" fill="url(#petala)"/>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Grimório Arcano ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="13" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="48" r="36" fill="url(#brilho)" opacity=".75"/>
+<!-- Livro aberto levitando -->
+<path d="M60 78 Q36 68 24 78 L30 54 Q45 48 60 60 Z" fill="url(#folha)" stroke="${p.light}" stroke-width="1"/>
+<path d="M60 78 Q84 68 96 78 L90 54 Q75 48 60 60 Z" fill="url(#folhaB)" stroke="${p.light}" stroke-width="1"/>
+<path d="M60 74 Q38 64 28 73 L33 52 Q46 46 60 57 Z" fill="url(#petala)"/>
+<path d="M60 74 Q82 64 92 73 L87 52 Q74 46 60 57 Z" fill="url(#petala)"/>
+${projecaoArcana}
+</svg>`;
+}
+
+/* ---------- 9. POÇÕES ---------- */
+function svgPocao(e, stage) {
+  const p = e.paleta;
+  const v = e.variant % 5;
+  const defs = defsPadrao(p);
+
+  if (stage === 'semente') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Frasco de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="10" ry="2.8" fill="${p.groundMid}"/>
+<rect x="56" y="76" width="8" height="6" rx="1" fill="none" stroke="${p.light}" stroke-width="1.4"/>
+<circle cx="60" cy="90" r="9" fill="none" stroke="${p.light}" stroke-width="1.5"/>
+</svg>`;
+  }
+
+  if (stage === 'broto') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Gotas de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="10" ry="2.8" fill="${p.groundMid}"/>
+<rect x="55" y="70" width="10" height="7" rx="1.5" fill="none" stroke="${p.light}" stroke-width="1.5"/>
+<circle cx="60" cy="87" r="11" fill="none" stroke="${p.light}" stroke-width="1.6"/>
+<path d="M51 90 A9 9 0 0 0 69 90 Z" fill="url(#folha)"/>
+</svg>`;
+  }
+
+  if (stage === 'muda') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Ebulição de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="11" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="80" r="18" fill="url(#brilho)" opacity=".65"/>
+<rect x="54" y="58" width="12" height="9" rx="2" fill="none" stroke="${p.light}" stroke-width="1.6"/>
+<circle cx="60" cy="82" r="15" fill="none" stroke="${p.light}" stroke-width="1.8"/>
+<path d="M47 82 A13 13 0 0 0 73 82 Z" fill="url(#petala)"/>
+<circle cx="56" cy="78" r="2" fill="#FFFFFF"/><circle cx="63" cy="75" r="1.5" fill="#FFFFFF"/>
+</svg>`;
+  }
+
+  if (stage === 'jovem') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Destilação de ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="12" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="70" r="26" fill="url(#brilho)" opacity=".75"/>
+<rect x="53" y="46" width="14" height="10" rx="2" fill="none" stroke="${p.light}" stroke-width="1.8"/>
+<circle cx="60" cy="76" r="19" fill="none" stroke="${p.light}" stroke-width="2"/>
+<circle cx="60" cy="76" r="16" fill="url(#petala)"/>
+<circle cx="55" cy="38" r="3" fill="${p.c1}"/><circle cx="64" cy="30" r="2.2" fill="#FFFFFF"/>
+</svg>`;
+  }
+
+  if (stage === 'murcha') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="${e.nome} evaporada">
+<ellipse cx="60" cy="99" rx="11" ry="2.8" fill="#2E294E"/>
+<circle cx="60" cy="85" r="13" fill="none" stroke="#6E6893" stroke-width="1.6"/>
+<path d="M54 80 L64 88" stroke="#6E6893" stroke-width="1.4"/>
+</svg>`;
+  }
+
+  const frascoPleno = v === 1
+    ? `<!-- Ampola Diamante -->
+       <rect x="54" y="34" width="12" height="10" rx="2" fill="url(#folha)"/>
+       <polygon points="60,44 84,68 60,96 36,68" fill="url(#petala)" stroke="#FFFFFF" stroke-width="1.8"/>`
+    : v === 2
+    ? `<!-- Caldeirão Alquímico -->
+       <path d="M36 58 L84 58 C88 82 76 96 60 96 C44 96 32 82 36 58Z" fill="url(#folha)" stroke="${p.light}" stroke-width="1.6"/>
+       <ellipse cx="60" cy="58" rx="24" ry="6" fill="url(#petala)"/>`
+    : v === 4
+    ? `<!-- Destilador Triplo -->
+       <rect x="36" y="48" width="12" height="46" rx="6" fill="url(#folha)" stroke="#FFFFFF" stroke-width="1.2"/>
+       <rect x="54" y="36" width="12" height="58" rx="6" fill="url(#petala)" stroke="#FFFFFF" stroke-width="1.4"/>
+       <rect x="72" y="48" width="12" height="46" rx="6" fill="url(#folhaB)" stroke="#FFFFFF" stroke-width="1.2"/>`
+    : `<!-- Frasco Redondo Real -->
+       <rect x="53" y="36" width="14" height="12" rx="2" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+       <rect x="55" y="30" width="10" height="6" rx="2" fill="url(#folhaB)"/>
+       <circle cx="60" cy="72" r="22" fill="url(#petala)" stroke="#FFFFFF" stroke-width="2"/>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Elixir Radiante ${e.nome}">${defs}
+<ellipse cx="60" cy="99" rx="13" ry="3" fill="${p.groundMid}"/>
+<circle cx="60" cy="58" r="36" fill="url(#brilho)" opacity=".75"/>
+${frascoPleno}
+<circle cx="52" cy="68" r="3" fill="#FFFFFF" opacity=".85"/><circle cx="66" cy="76" r="2.2" fill="#FFFFFF" opacity=".85"/>
+<circle cx="60" cy="18" r="4" fill="#FFFFFF"/><circle cx="46" cy="24" r="2.5" fill="${p.c1}"/><circle cx="74" cy="22" r="2.5" fill="${p.c2}"/>
 </svg>`;
 }
 
@@ -531,6 +1178,18 @@ export function gerarSvgCultivo(especieId, assetKey) {
     rawSvg = svgMundo(item, assetKey);
   } else if (item.tema === 'elementos') {
     rawSvg = svgElemento(item, assetKey);
+  } else if (item.tema === 'mascotes') {
+    rawSvg = svgMascote(item, assetKey);
+  } else if (item.tema === 'naves') {
+    rawSvg = svgNave(item, assetKey);
+  } else if (item.tema === 'ets') {
+    rawSvg = svgEt(item, assetKey);
+  } else if (item.tema === 'foguetes') {
+    rawSvg = svgFoguete(item, assetKey);
+  } else if (item.tema === 'livros') {
+    rawSvg = svgLivro(item, assetKey);
+  } else if (item.tema === 'pocoes') {
+    rawSvg = svgPocao(item, assetKey);
   } else {
     rawSvg = svgPlanta(item, assetKey);
   }
