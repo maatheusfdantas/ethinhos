@@ -33,6 +33,7 @@ import { apiFetch } from '../utils/api';
 import { AdminSupportGrant } from './support/AdminSupportGrant';
 import { AdminProfissionais } from './espacos/AdminProfissionais';
 import { LumoMascot } from './LumoMascot';
+import { PlantaLaboratorio } from './foco/planta/PlantaLaboratorio';
 
 /**
  * Floating Ambient Dust Particles
@@ -2271,6 +2272,7 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
             </div>
 
             <PomodoCard />
+            <PlantaLaboratorio />
           </section>
         )}
       </main>
