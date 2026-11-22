@@ -5,7 +5,8 @@ import { PainelTab } from './components/PainelTab';
 import { NotesTab } from './components/NotesTab';
 import { HabitosTab } from './components/habitos/HabitosTab';
 import { MausHabitosTab } from './components/maus/MausHabitosTab';
-import { AddModal } from './components/AddModal';
+import { AddModal } from './components/AddModal'; // eslint-disable-line no-unused-vars -- modal antigo preservado (proposta 13)
+import { CriarModal } from './components/criar/CriarModal';
 import { WorkoutTab } from './components/WorkoutTab'; // eslint-disable-line no-unused-vars -- módulo antigo preservado
 import { TreinoTab } from './components/treino/TreinoTab';
 import { EspacosTab } from './components/espacos/EspacosTab';
@@ -959,7 +960,8 @@ export function App() {
       <Toast toast={toast} onDismiss={() => setToast(null)} />
 
       {/* MODAL OVERLAYS */}
-      <AddModal
+      {/* Proposta 13: criar hábito ou evento no visual novo (o AddModal continua no código) */}
+      <CriarModal
         isOpen={showAddModal}
         initialMode={addModalInitialMode}
         onClose={() => setShowAddModal(false)}
