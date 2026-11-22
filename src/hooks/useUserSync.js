@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../utils/api';
 import { normalizeHealthForToday, todayLocal } from '../utils/healthDay';
+import { normalizeHabitsForToday, stampProgressDates } from '../utils/habitDay';
 
 /**
  * useUserSync
@@ -18,6 +19,8 @@ import { normalizeHealthForToday, todayLocal } from '../utils/healthDay';
  *   gera exclusões (isso só acontece por reset de tela, não por ação da pessoa).
  * - Notas e música têm persistência própria (utils/postits.js e o Perfil); a sincronização não as reenvia.
  * - Ao sair da conta, o envio pendente é feito na hora, antes de o token ser apagado.
+ * - Hábitos por dia (proposta 15): num dia novo o progresso de outro dia começa zerado, e toda mudança
+ *   de progresso carimba o dia de hoje em `doneDate` (utils/habitDay.js).
  */
 export const MASS_DELETE_GUARD = 5;
 
@@ -78,6 +81,7 @@ export function useUserSync({
   const latestRef = useRef({});
   const chainRef = useRef(Promise.resolve());
   const setters = { habits: setHabits, events: setEvents, tags: setTags };
+  const prevHabitsRef = useRef([]);
 
   latestRef.current = { user, habits, events, tags, health, workouts };
 
@@ -98,7 +102,7 @@ export function useUserSync({
         return fallback;
       }
     };
-    const localHabits = readLocal('habits', []);
+    const localHabits = normalizeHabitsForToday(readLocal('habits', []));
     const localEvents = readLocal('events', []);
     const localTags = readLocal('tags', []);
     const localWorkouts = readLocal('workouts', []);
@@ -112,6 +116,7 @@ export function useUserSync({
     });
 
     // 1. Cache local para a tela aparecer na hora
+    prevHabitsRef.current = localHabits;
     setHabits(localHabits);
     setEvents(localEvents);
     setTags(localTags);
@@ -153,7 +158,9 @@ export function useUserSync({
       );
 
       snapshotRef.current = { habits: toSnapshot(serverHabits), events: toSnapshot(serverEvents), tags: toSnapshot(serverTags) };
-      setHabits(serverHabits);
+      const habitsHoje = normalizeHabitsForToday(serverHabits);
+      prevHabitsRef.current = habitsHoje;
+      setHabits(habitsHoje);
       setEvents(serverEvents);
       setTags(serverTags);
       setWorkouts(mergedWorkouts);
@@ -257,6 +264,7 @@ export function useUserSync({
       if (now !== day) {
         day = now;
         setHealth((h) => normalizeHealthForToday(h, now));
+        setHabits((hs) => normalizeHabitsForToday(hs, now));
       }
     }, 60000);
     return () => clearInterval(t);
@@ -273,6 +281,14 @@ export function useUserSync({
   useEffect(() => {
     if (!user?.id || !isHydratedRef.current) return;
     const uid = user.id;
+
+    // Progresso mudou: carimba o dia de hoje (o próximo ciclo grava e sincroniza).
+    const carimbados = stampProgressDates(prevHabitsRef.current, habits);
+    prevHabitsRef.current = carimbados;
+    if (carimbados !== habits) {
+      setHabits(carimbados);
+      return;
+    }
 
     try {
       localStorage.setItem(`ethos_habits_${uid}`, JSON.stringify(habits));

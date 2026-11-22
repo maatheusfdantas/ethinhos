@@ -101,6 +101,8 @@ export async function ensureDatabaseReady(env) {
       `ALTER TABLE habits ADD COLUMN period_type TEXT NOT NULL DEFAULT 'day'`,
       `ALTER TABLE habits ADD COLUMN period_config TEXT NOT NULL DEFAULT '{}'`,
       `ALTER TABLE habits ADD COLUMN completion_style TEXT NOT NULL DEFAULT 'quick'`,
+      // Proposta 15 (22/11/2026): dia a que o progresso pertence; num dia novo o hábito começa desmarcado.
+      `ALTER TABLE habits ADD COLUMN done_date TEXT`,
       `ALTER TABLE events ADD COLUMN end_date TEXT`,
       `ALTER TABLE events ADD COLUMN subclass_id TEXT`,
       `ALTER TABLE events ADD COLUMN subclass_name TEXT`,

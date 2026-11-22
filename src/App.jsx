@@ -19,7 +19,9 @@ import { useMealPlans } from './hooks/useAlimentacao';
 import { requestLeave, UnsavedHost } from './hooks/useUnsavedGuard';
 import { FocusTab } from './components/FocusTab';
 import { AgendaTab } from './components/agenda/AgendaTab';
-import { AnaliseTab } from './components/analise/AnaliseTab';
+import { AnaliseTab } from './components/analise/AnaliseTab'; // eslint-disable-line no-unused-vars -- tela do lote 2 preservada (proposta 15)
+import { AnaliseProgresso } from './components/analise/AnaliseProgresso';
+import { useRegistroDiario } from './hooks/useRegistroDiario';
 import { SocialTab } from './components/SocialTab'; // eslint-disable-line no-unused-vars -- tela antiga preservada (proposta 14)
 import { ComunidadeTab } from './components/comunidade/ComunidadeTab';
 import { PerfilTab } from './components/perfil/PerfilTab';
@@ -216,7 +218,7 @@ export function App() {
   };
 
   // Sincronização e hidratação segura do usuário via hook modular
-  const { loadUserData, resetSyncState } = useUserSync({
+  const { loadUserData, resetSyncState, isHydrated } = useUserSync({
     user,
     setUser,
     habits,
@@ -230,6 +232,9 @@ export function App() {
     workouts,
     setWorkouts
   });
+
+  // Registro de cada dia para a Análise de progresso (proposta 15).
+  useRegistroDiario({ user, habits, health, isHydrated });
 
   // Espaços profissionais: perfil da conta (o menu só muda; o servidor confere tudo a cada pedido).
   const { pro: proInfo } = useProEspaco(user);
@@ -823,13 +828,12 @@ export function App() {
               />
             )}
 
-            {/* TAB: ANÁLISE DE PROGRESSO (lote 2: visual atual; o bloqueio pelo admin continua igual) */}
+            {/* TAB: ANÁLISE DE PROGRESSO (proposta 15: registro diário; o bloqueio pelo admin continua igual) */}
             {activeTab === 'telemetry' && permissions.telemetry !== false && (
-              <AnaliseTab
+              <AnaliseProgresso
                 habits={habits}
                 health={health}
-                tags={tags}
-                onConfigureCategory={(cat) => setConfigCategory(cat)}
+                events={events}
                 user={user}
               />
             )}

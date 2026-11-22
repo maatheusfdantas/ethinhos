@@ -59,10 +59,13 @@ export function checkEvent(ev) {
 //   alterado. O upsert tem "WHERE <tabela>.user_id = excluded.user_id" como segunda barreira.
 // - As gravações da sincronização vão num único batch (transação), sem estado parcial.
 // ----------------------------------------------------------------------------
-const HABIT_COLS = ['id', 'user_id', 'title', 'category', 'icon_name', 'target', 'current', 'unit', 'effort', 'priority', 'tag_id', 'subclass_id', 'subclass_name', 'tracking_type', 'period_type', 'period_config', 'repeat_days', 'completed', 'completion_style', 'created_at'];
+const HABIT_COLS = ['id', 'user_id', 'title', 'category', 'icon_name', 'target', 'current', 'unit', 'effort', 'priority', 'tag_id', 'subclass_id', 'subclass_name', 'tracking_type', 'period_type', 'period_config', 'repeat_days', 'completed', 'completion_style', 'created_at', 'done_date'];
 const EVENT_COLS = ['id', 'user_id', 'title', 'date', 'end_date', 'all_day', 'start_time', 'end_time', 'category', 'subclass_id', 'subclass_name', 'author_name', 'repeat_rule', 'repeat_config', 'reminders', 'buffer_before', 'buffer_after', 'is_floating', 'energy_level', 'meeting_url', 'visibility', 'conflict_policy', 'location', 'notes', 'priority', 'completed', 'created_at'];
 const CATEGORY_COLS = ['id', 'user_id', 'name', 'color', 'bg', 'icon', 'is_shared', 'has_subclasses', 'created_at'];
 const TAG_COLS = ['id', 'user_id', 'name', 'color', 'bg', 'icon', 'is_shared', 'has_subclasses'];
+
+/** Data local AAAA-MM-DD ou null (habits.done_date, proposta 15). */
+const dayOrNull = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
 /** INSERT que, se o id já existir, só atualiza quando a linha é da mesma conta. */
 export function ownedUpsertSql(table, cols) {
@@ -175,6 +178,7 @@ export async function handleUserRoutes(ctx) {
               periodType: h.period_type || 'day',
               periodConfig: parsedCfg,
               completed: h.completed === 1,
+              doneDate: h.done_date || null,
               repeatDays: JSON.parse(h.repeat_days || '[1,2,3,4,5]')
             };
           }),
@@ -305,7 +309,8 @@ export async function handleUserRoutes(ctx) {
             JSON.stringify(h.repeatDays || [1, 2, 3, 4, 5]),
             h.completed ? 1 : 0,
             h.completionStyle || h.completion_style || 'quick',
-            h.created_at || nowIso
+            h.created_at || nowIso,
+            dayOrNull(h.doneDate ?? h.done_date)
           ));
         }
         // Apagar tudo só com o pedido explícito (nunca por lista vazia).
@@ -500,7 +505,8 @@ export async function handleUserRoutes(ctx) {
           JSON.stringify(body.repeatDays || [1, 2, 3, 4, 5]),
           body.completed ? 1 : 0,
           body.completionStyle || (trackingType === 'counter' ? 'increment' : 'quick'),
-          new Date().toISOString()
+          new Date().toISOString(),
+          dayOrNull(body.doneDate)
         )
         .run();
     }
