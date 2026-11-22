@@ -37,7 +37,7 @@ function estadoHabito(tags) {
 function estadoEvento(tags) {
   const hoje = hojeLocal();
   return {
-    titulo: '', data: hoje, fim: hoje, inicio: '09:00', termino: '10:00', diaTodo: false, categoria: tags[0]?.name || 'Geral',
+    titulo: '', data: hoje, fim: hoje, inicio: '09:00', termino: '10:00', diaTodo: true, categoria: tags[0]?.name || 'Geral',
     local: '', notas: '', link: '', participantes: '', repetir: 'Nunca', repDias: [1, 2, 3, 4, 5], repFim: 'never', repAte: '',
     repVezes: 10, pular: [], novaPular: ''
   };
@@ -273,8 +273,8 @@ export function CriarModal({ isOpen, onClose, onAddHabit, onAddEvent, tags = [],
               {!ev.diaTodo && <label className="cr-field">Fim<input className="cr-in" type="time" value={ev.termino} onChange={(e) => setEvt({ termino: e.target.value })} /></label>}
             </div>
             <label className="cr-switch-row">
-              <button type="button" className="cr-switch" role="switch" aria-checked={ev.diaTodo} aria-label="Dia inteiro, sem horário" onClick={() => setEvt({ diaTodo: !ev.diaTodo })}><i /></button>
-              Dia inteiro, sem horário
+              <button type="button" className="cr-switch" role="switch" aria-checked={!ev.diaTodo} aria-label="Atribuir horário" onClick={() => setEvt({ diaTodo: !ev.diaTodo })}><i /></button>
+              Atribuir horário
             </label>
 
             <div><p className="cr-l">Categoria</p>{chipsCategoria(ev.categoria, (n) => setEvt({ categoria: n }))}</div>

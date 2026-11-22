@@ -55,7 +55,7 @@ export function expandirRecorrencias(baseList, cursorDate) {
   return expanded;
 }
 
-const vazio = (dateStr, categoria) => ({ id: null, title: '', date: dateStr, endDate: dateStr, startTime: '09:00', endTime: '10:00', category: categoria, customColor: '', location: '', description: '', reminder: '15 min antes', participantsText: '', participants: [] });
+const vazio = (dateStr, categoria) => ({ id: null, title: '', date: dateStr, endDate: dateStr, allDay: true, startTime: '09:00', endTime: '10:00', category: categoria, customColor: '', location: '', description: '', reminder: '15 min antes', participantsText: '', participants: [] });
 
 /**
  * Agenda no visual atual do Ethos (proposta 09, aprovada em 21/11/2026). Mesmas props e ações da CalendarTab antiga
@@ -87,11 +87,12 @@ export function AgendaTab({ user, events = [], setEvents, workouts = [], friends
   const editar = (ev) => {
     if (ev.readOnly) { showToast?.(`Evento do espaço ${ev.spaceName}, ${ev.startTime} às ${ev.endTime}${ev.location ? `, ${ev.location}` : ''}. Para mudar, fale com o profissional.`); return; }
     const o = original(ev);
-    abrir({ ...vazio(o.date, o.category || ''), ...o, participants: Array.isArray(o.participants) ? o.participants : [] });
+    abrir({ ...vazio(o.date, o.category || ''), ...o, allDay: Boolean(o.allDay), participants: Array.isArray(o.participants) ? o.participants : [] });
   };
   const salvar = () => {
     if (!form || !form.title.trim()) return false;
-    const campos = { title: form.title.trim(), date: form.date, endDate: form.endDate || form.date, startTime: form.startTime, endTime: form.endTime, category: form.category, customColor: form.customColor, location: (form.location || '').trim(), description: (form.description || '').trim(), reminder: form.reminder, participantsText: (form.participantsText || '').trim(), participants: form.participants };
+    const semHorario = Boolean(form.allDay);
+    const campos = { title: form.title.trim(), date: form.date, endDate: form.endDate || form.date, allDay: semHorario, startTime: semHorario ? '00:00' : (form.startTime || '09:00'), endTime: semHorario ? '23:59' : (form.endTime || '10:00'), category: form.category, customColor: form.customColor, location: (form.location || '').trim(), description: (form.description || '').trim(), reminder: form.reminder, participantsText: (form.participantsText || '').trim(), participants: form.participants };
     if (form.id) {
       const atual = events.find((e) => e.id === form.id) || {};
       const salvo = { ...atual, ...campos, id: form.id };
@@ -99,7 +100,7 @@ export function AgendaTab({ user, events = [], setEvents, workouts = [], friends
       if (user?.id) fetch(`/api/user/${user.id}/event`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(salvo) }).catch(() => showToast?.('Não foi possível salvar no servidor. Tente de novo.'));
       showToast?.(`${salvo.title} atualizado.`);
     } else {
-      const ev = { id: `ev_${Date.now()}`, ...campos, allDay: false, completed: false };
+      const ev = { id: `ev_${Date.now()}`, ...campos, completed: false };
       onAddEvent?.(ev);
       showToast?.(`${ev.title} adicionado à agenda.`);
     }
@@ -284,8 +285,11 @@ export function AgendaTab({ user, events = [], setEvents, workouts = [], friends
             {form.repeat && form.repeat !== 'Nunca' && <p>Este evento se repete ({form.repeat}). A alteração vale para todas as datas.</p>}
             <div className="ag-form" style={{ marginTop: 12 }}>
               <div className="es-field full"><label htmlFor="ag-t">Título</label><input id="ag-t" className="es-input" required autoFocus placeholder="Ex.: Reunião de planejamento" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-              <div className="es-field"><label htmlFor="ag-d">Começa</label><div className="ag-dt"><input id="ag-d" type="date" className="es-input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value, endDate: form.endDate < e.target.value ? e.target.value : form.endDate })} /><input type="time" className="es-input" aria-label="Hora de início" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} /></div></div>
-              <div className="es-field"><label htmlFor="ag-e">Termina</label><div className="ag-dt"><input id="ag-e" type="date" className="es-input" min={form.date} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /><input type="time" className="es-input" aria-label="Hora de término" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} /></div></div>
+              <div className="es-field"><label htmlFor="ag-d">Começa</label><div className="ag-dt"><input id="ag-d" type="date" className="es-input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value, endDate: form.endDate < e.target.value ? e.target.value : form.endDate })} />{!form.allDay && <input type="time" className="es-input" aria-label="Hora de início" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />}</div></div>
+              <div className="es-field"><label htmlFor="ag-e">Termina</label><div className="ag-dt"><input id="ag-e" type="date" className="es-input" min={form.date} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />{!form.allDay && <input type="time" className="es-input" aria-label="Hora de término" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} />}</div></div>
+              <div className="es-field full">
+                <button type="button" className="es-switch" role="switch" aria-checked={!form.allDay} aria-label="Atribuir horário" onClick={() => setForm({ ...form, allDay: !form.allDay })}><span className="knob" aria-hidden="true" />Atribuir horário</button>
+              </div>
               <div className="es-field"><label htmlFor="ag-l">Local <span className="rx-sub">(opcional)</span></label><input id="ag-l" className="es-input" placeholder="Ex.: Sala 204" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
               <div className="es-field"><label htmlFor="ag-r">Lembrete</label><select id="ag-r" className="es-input" value={form.reminder} onChange={(e) => setForm({ ...form, reminder: e.target.value })}>{LEMBRETES.map((l) => <option key={l} value={l}>{l}</option>)}</select></div>
               <div className="es-field full"><label htmlFor="ag-x">Descrição <span className="rx-sub">(opcional)</span></label><input id="ag-x" className="es-input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>

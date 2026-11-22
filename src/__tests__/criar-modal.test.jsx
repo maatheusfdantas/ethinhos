@@ -70,10 +70,12 @@ describe('Criar hábito', () => {
 });
 
 describe('Criar evento', () => {
-  it('dia inteiro, semanal por número de vezes; campos fora da tela seguem com os valores padrão', () => {
+  it('por padrão horário não vem marcado (dia inteiro); semanal por número de vezes; campos fora da tela seguem com os valores padrão', () => {
     const { onAddEvent } = abrir({ initialMode: 'event' });
     fireEvent.change(screen.getByLabelText('Nome do evento'), { target: { value: 'Aula de inglês' } });
-    fireEvent.click(screen.getByRole('switch', { name: 'Dia inteiro, sem horário' }));
+    const sw = screen.getByRole('switch', { name: 'Atribuir horário' });
+    expect(sw).toHaveAttribute('aria-checked', 'false');
+    expect(screen.queryByLabelText('Início')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Semanal' }));
     fireEvent.click(screen.getByRole('button', { name: 'Número de vezes' }));
     fireEvent.change(screen.getByLabelText('Número de vezes'), { target: { value: '8' } });
@@ -86,11 +88,13 @@ describe('Criar evento', () => {
     expect(onAddEvent.mock.calls[0][0].repeatConfig).toMatchObject({ repeatEndType: 'count', repeatCount: 8, repeatDays: [1, 2, 3, 4, 5], repeatInterval: 1, blackoutDates: [] });
   });
 
-  it('data de hoje é a local; detalhes opcionais e datas a pular entram no evento', () => {
+  it('ao marcar Atribuir horário permite alterar a hora; data de hoje é a local; detalhes opcionais e datas a pular entram no evento', () => {
     const { onAddEvent } = abrir({ initialMode: 'event' });
     const d = new Date(); const p = (n) => String(n).padStart(2, '0');
     expect(screen.getByLabelText('Data').value).toBe(`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`);
     fireEvent.change(screen.getByLabelText('Nome do evento'), { target: { value: 'Reunião' } });
+    fireEvent.click(screen.getByRole('switch', { name: 'Atribuir horário' }));
+    expect(screen.getByLabelText('Início').value).toBe('09:00');
     fireEvent.click(screen.getByRole('button', { name: 'Diário' }));
     fireEvent.change(screen.getByLabelText(/Local/), { target: { value: 'Sala 2' } });
     fireEvent.change(screen.getByLabelText('Data a pular'), { target: { value: '2026-12-25' } });

@@ -13,10 +13,11 @@ import {
 import { especiePorId, estagioPara, ESPECIE_PADRAO } from './foco/planta/especies';
 import { Planta } from './foco/planta/Planta';
 
-const PRESETS = [15, 25, 45, 50, 60];
 const INTENSITY = [
-  { id: 'leve', name: 'Leve', mins: 15 }, { id: 'normal', name: 'Normal', mins: 25 },
-  { id: 'profunda', name: 'Profunda', mins: 50 }, { id: 'sprint', name: 'Sprint', mins: 10 }
+  { id: 'sprint', name: 'Sprint', mins: 10 },
+  { id: 'leve', name: 'Leve', mins: 15 },
+  { id: 'normal', name: 'Normal', mins: 25 },
+  { id: 'profunda', name: 'Profunda', mins: 50 }
 ];
 const BREAK_ACTS = [
   { id: 'longe', name: 'Longe da tela', d: 'Olhe pela janela ou caminhe um pouco' },
@@ -98,9 +99,7 @@ export function FocusTab({
 
   /* ---------- Configuração da sessão ---------- */
   const [mins, setMins] = useState(() => meta0?.mins || 25);
-  const [isCustom, setIsCustom] = useState(() => !PRESETS.includes(meta0?.mins || 25));
-  const [intensity, setIntensity] = useState(() => meta0?.intensity || '');
-  const [goal, setGoalText] = useState(() => meta0?.goal || '');
+  const [intensity, setIntensity] = useState(() => meta0?.intensity || 'normal');
 
   /* ---------- Gamificação (só no navegador, por usuário) ---------- */
   const [g, setG] = useState(() => loadState(userId));
@@ -216,8 +215,8 @@ export function FocusTab({
     };
     onFocusComplete?.(sessionInfo);
     const plant = atual ? plantaDe(atual, n) : null;
-    const r = apply(recordSession(g, { subject, mins, goal, plant }));
-    setLast({ ...sessionInfo, id: r.state.sessions[0].id, full: true, goal, plant });
+    const r = apply(recordSession(g, { subject, mins, plant }));
+    setLast({ ...sessionInfo, id: r.state.sessions[0].id, full: true, plant });
     if (atual) gravar(pausar(atual, n), false); // congela em 00:00; não fica guardada
     setAgora(n); setNote(''); setPhase('done'); setGlow((x) => x + 1);
     burst(r.cycleClosed ? 'cycle' : 'done');
@@ -251,7 +250,7 @@ export function FocusTab({
 
   const start = () => {
     const n = Date.now();
-    gravar(criarSessao({ minutos: mins, agora: n, meta: { mins, categoryId: currentCategory.id || currentCategory.name, subclass: selectedSubclassName, goal, intensity } }));
+    gravar(criarSessao({ minutos: mins, agora: n, meta: { mins, categoryId: currentCategory.id || currentCategory.name, subclass: selectedSubclassName, intensity } }));
     setAgora(n); setMurcha(false); setPhase('focus'); burst('start');
   };
   const pause = () => { gravar(pausar(sess, Date.now())); setPhase('paused'); };
@@ -264,8 +263,8 @@ export function FocusTab({
   const stopKeep = () => {
     const done = stopAsk.done; setStopAsk(null);
     const atual = sessRef.current; const plant = atual ? plantaDe(atual, atual.pausadoEm ?? Date.now()) : null;
-    const r = apply(recordSession(g, { subject, mins: done, goal, full: false, plant }));
-    setLast({ subject, durationMins: done, id: r.state.sessions[0].id, full: false, goal, plant });
+    const r = apply(recordSession(g, { subject, mins: done, full: false, plant }));
+    setLast({ subject, durationMins: done, id: r.state.sessions[0].id, full: false, plant });
     if (atual) gravar(atual, false); // fica congelada onde parou (a planta também)
     setNote(''); setPhase('done');
   };
@@ -333,8 +332,8 @@ export function FocusTab({
   const phaseLabel = { idle: 'Pronto para começar', focus: 'Focando', paused: 'Pausado', done: last?.full ? 'Concluída' : 'Registrado', break: breakInfo.long ? 'Pausa longa' : 'Pausa' }[phase];
   const set = (patch) => setG((s) => ({ ...s, ...patch }));
   const pickIntensity = (it) => {
-    if (intensity === it.id) { setIntensity(''); return; }
-    setIntensity(it.id); setMins(it.mins); setIsCustom(!PRESETS.includes(it.mins));
+    setIntensity(it.id);
+    setMins(it.mins);
   };
   const pts = [[24, 58], [64, 26], [106, 50], [148, 18], [190, 46], [232, 24], [274, 54]];
   const maxMin = Math.max(60, ...week.map((d) => d.min));
@@ -413,26 +412,44 @@ export function FocusTab({
                     )}
                   </div>
                   <div className="rf-field">
-                    <span className="lbl">Duração</span>
+                    <span className="lbl">Intensidade</span>
                     <div className="rf-chips">
-                      {PRESETS.map((m) => <button type="button" key={m} className="rf-chip" aria-pressed={!isCustom && mins === m} onClick={() => { setMins(m); setIsCustom(false); }}>{m} min</button>)}
-                      <input className="rf-input rf-num" type="number" min="1" max="180" aria-label="Outra duração em minutos" placeholder="outro"
-                        value={isCustom ? mins : ''} onChange={(e) => { const v = Math.max(1, Math.min(180, Math.round(Number(e.target.value)) || 25)); setMins(v); setIsCustom(true); }} />
+                      {INTENSITY.map((it) => (
+                        <button type="button" key={it.id} className="rf-chip" aria-pressed={intensity === it.id && mins === it.mins} onClick={() => pickIntensity(it)}>
+                          {it.name} · {it.mins} min
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  {!simple && (
-                    <>
-                      <div className="rf-field">
-                        <span className="lbl">Intensidade <span className="opt">(opcional)</span></span>
-                        <div className="rf-chips">{INTENSITY.map((it) => <button type="button" key={it.id} className="rf-chip" aria-pressed={intensity === it.id} onClick={() => pickIntensity(it)}>{it.name}</button>)}</div>
-                        <p className="rf-hint">Sugere uma duração. Não muda o Foco que a sessão gera.</p>
-                      </div>
-                      <div className="rf-field">
-                        <label htmlFor="rfGoal" className="lbl">Objetivo curto <span className="opt">(opcional)</span></label>
-                        <input id="rfGoal" className="rf-input" maxLength={80} placeholder="Ex.: terminar a lista 3" value={goal} onChange={(e) => setGoalText(e.target.value)} />
-                      </div>
-                    </>
-                  )}
+                  <div className="rf-field">
+                    <div className="rf-range-head">
+                      <label htmlFor="rfTimerRange" className="lbl" style={{ margin: 0 }}>Temporizador</label>
+                      <output htmlFor="rfTimerRange" className="rf-range-val">{mins} min</output>
+                    </div>
+                    <input
+                      id="rfTimerRange"
+                      type="range"
+                      className="rf-range"
+                      min="5"
+                      max="120"
+                      step="1"
+                      aria-label="Temporizador de 5 a 120 minutos"
+                      value={mins}
+                      onChange={(e) => {
+                        const v = Math.max(5, Math.min(120, Math.round(Number(e.target.value)) || 25));
+                        setMins(v);
+                        const match = INTENSITY.find((i) => i.mins === v);
+                        setIntensity(match ? match.id : '');
+                      }}
+                    />
+                    <div className="rf-range-marks" aria-hidden="true">
+                      <span>5 min</span>
+                      <span>25 min</span>
+                      <span>60 min</span>
+                      <span>90 min</span>
+                      <span>120 min</span>
+                    </div>
+                  </div>
                   <div className="rf-btns"><button type="button" className="rf-btn" onClick={start}>Começar sessão</button></div>
                   {plantaOn && (
                     <p className="rf-hint">{murcha
@@ -444,7 +461,7 @@ export function FocusTab({
 
               {running && (
                 <>
-                  <div className="rf-now"><b>{subject}</b><span>{goal || `${mins} minutos${intensity ? ' · ' + INTENSITY.find((i) => i.id === intensity).name.toLowerCase() : ''}`}</span></div>
+                  <div className="rf-now"><b>{subject}</b><span>{`${mins} minutos${intensity && INTENSITY.find((i) => i.id === intensity) ? ' · ' + INTENSITY.find((i) => i.id === intensity).name.toLowerCase() : ''}`}</span></div>
                   <p className="rf-text">{phase === 'paused' ? 'Pausado. Continue quando puder.' : 'Celular longe, uma coisa de cada vez.'}</p>
                   <div className="rf-btns">
                     {phase === 'paused' ? <button type="button" className="rf-btn" onClick={resume}>Continuar</button> : <button type="button" className="rf-btn ghost" onClick={pause}>Pausar</button>}
