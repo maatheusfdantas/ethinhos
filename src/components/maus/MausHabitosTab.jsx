@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Phone, Plus, Trash2, X } from 'lucide-react';
+import { Check, HeartHandshake, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
 import '../../styles/espacos.css';
 import '../../styles/telas.css';
 
@@ -67,6 +67,8 @@ export function MausHabitosTab({ user, showToast }) {
   const [novo, setNovo] = useState(null);
   const [recaida, setRecaida] = useState(null); // { habit, gatilho, licao }
   const [apagar, setApagar] = useState(null);
+  const [editando, setEditando] = useState(null); // { id, title } | null
+  const [abandonar, setAbandonar] = useState(null); // habit | null
   const [sos, setSos] = useState(null); // 'resp' | 'ater' | 'onda' | 'frio' | null
   const [telaCheia, setTelaCheia] = useState(false);
 
@@ -133,6 +135,20 @@ export function MausHabitosTab({ user, showToast }) {
     showToast?.(`Acompanhamento de ${apagar.title} removido.`);
     setApagar(null);
   };
+  const salvarNome = (e) => {
+    e.preventDefault();
+    if (!editando || !editando.title.trim()) return;
+    const novoNome = editando.title.trim();
+    alterar((prev) => prev.map((x) => (x.id === editando.id ? { ...x, title: novoNome } : x)));
+    setEditando(null);
+    showToast?.(`Nome atualizado para "${novoNome}".`);
+  };
+  const confirmarAbandono = () => {
+    if (!abandonar) return;
+    alterar((prev) => prev.filter((x) => x.id !== abandonar.id));
+    setAbandonar(null);
+    showToast?.('Tudo bem dar um passo atrás e respirar. Estamos com você quando quiser recomeçar, sem culpa.');
+  };
   const usarSugestao = (s) => setNovo((f) => ({ ...f, title: s.title, category: s.category, reason: s.motivational_reason, costPeriod: s.cost_per_day > 0 ? 'day' : 'none', costValue: s.cost_per_day > 0 ? String(s.cost_per_day) : '' }));
 
   const maior = lista.reduce((m, h) => Math.max(m, tempoLimpo(h.started_at, agora).dias), 0);
@@ -165,7 +181,37 @@ export function MausHabitosTab({ user, showToast }) {
             const rel = h.relapses || [];
             return (
               <article className="es-card" key={h.id} data-testid="mau-habito">
-                <h2>{h.title}<span className="rx-sub" style={{ margin: 0, fontWeight: 500 }}>{h.category}</span></h2>
+                {editando?.id === h.id ? (
+                  <form onSubmit={salvarNome} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                    <input
+                      className="es-input"
+                      aria-label="Novo nome do mau hábito"
+                      value={editando.title}
+                      onChange={(e) => setEditando({ ...editando, title: e.target.value })}
+                      autoFocus
+                      style={{ flex: '1 1 180px' }}
+                    />
+                    <button type="submit" className="rx-btn tiny">Salvar nome</button>
+                    <button type="button" className="rx-btn ghost tiny" onClick={() => setEditando(null)}>Cancelar</button>
+                  </form>
+                ) : (
+                  <h2>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span>{h.title}</span>
+                      <button
+                        type="button"
+                        className="rx-link"
+                        aria-label={`Editar nome de ${h.title}`}
+                        onClick={() => setEditando({ id: h.id, title: h.title })}
+                        style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <Pencil size={13} />
+                        <span>Editar nome</span>
+                      </button>
+                    </span>
+                    <span className="rx-sub" style={{ margin: 0, fontWeight: 500 }}>{h.category}</span>
+                  </h2>
+                )}
                 <div className="mh-count" aria-label={`${t.dias} dias, ${t.horas} horas e ${t.minutos} minutos sem recaída`}>
                   <b>{t.dias}<span>{t.dias === 1 ? 'dia' : 'dias'}</span></b><b>{t.horas}<span>h</span></b><b>{t.minutos}<span>min</span></b>
                 </div>
@@ -184,6 +230,7 @@ export function MausHabitosTab({ user, showToast }) {
                 )}
                 <div className="mh-acts">
                   <button type="button" className="rx-btn ghost tiny" onClick={() => setRecaida({ habit: h, gatilho: GATILHOS[0], licao: '' })}>Registrar recaída</button>
+                  <button type="button" className="rx-btn ghost tiny" onClick={() => setAbandonar(h)} aria-label={`Abandonar ${h.title}`}>Abandonar</button>
                   <span className="sp" />
                   <button type="button" className="mh-del" aria-label={`Excluir ${h.title}`} onClick={() => setApagar(h)}><Trash2 size={16} /></button>
                 </div>
@@ -321,6 +368,24 @@ export function MausHabitosTab({ user, showToast }) {
             <div className="opts" style={{ justifyContent: 'flex-end' }}>
               <button type="button" className="rx-btn ghost" onClick={() => setApagar(null)}>Cancelar</button>
               <button type="button" className="rx-btn" onClick={excluir}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {abandonar && (
+        <div className="rx-overlay" onClick={() => setAbandonar(null)}>
+          <div className="rx-dialog" role="dialog" aria-modal="true" aria-labelledby="mh-ab-t" data-testid="mh-abandonar-dialog" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <h2 id="mh-ab-t" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <HeartHandshake size={18} />
+              <span>Pausar o acompanhamento de {abandonar.title}</span>
+            </h2>
+            <p style={{ lineHeight: 1.55 }}>
+              Não se culpe. Mudar um hábito difícil não é uma linha reta, e cada hora ou dia que você tentou já foi um passo real de cuidado consigo mesmo. Se este não é o momento de continuar este acompanhamento, está tudo bem respirar, tirar esse peso dos ombros e recomeçar apenas quando você se sentir pronto — sem cobranças e sem julgamentos.
+            </p>
+            <div className="opts" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+              <button type="button" className="rx-btn ghost" onClick={() => setAbandonar(null)}>Continuar tentando</button>
+              <button type="button" className="rx-btn" onClick={confirmarAbandono}>Abandonar sem culpa</button>
             </div>
           </div>
         </div>

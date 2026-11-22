@@ -548,8 +548,45 @@ export function App() {
 
   const TAB_TITLES = { espacos: 'Espaços', 'pro-visao': 'Meu espaço', 'pro-turmas': 'Turmas e convites', 'pro-pessoas': proInfo?.peopleLabel || 'Pessoas', 'pro-conteudo': proInfo?.model === 'nutri' ? 'Planos alimentares' : 'Fichas e programas', 'pro-agenda': 'Agenda e avisos', 'pro-tarefas': 'Pendências administrativas', alimentacao: 'Alimentação', dashboard: 'Painel principal', habits: 'Hábitos e rotinas', calendar: 'Agenda semanal', workouts: 'Treino', focus: 'Foco', bad_habits: 'Maus hábitos', notes: 'Notas', telemetry: 'Análise de progresso', social: 'Comunidade', profile: 'Perfil' };
   const isAdmin = user?.role === 'admin';
-  const permissions = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
+  const [systemModules, setSystemModules] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ethos_system_modules');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    const onSysChange = (e) => {
+      if (e?.detail) setSystemModules(e.detail);
+    };
+    window.addEventListener('ethos:system-modules', onSysChange);
+    apiFetch('/api/system/modules')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.modules) {
+          setSystemModules(d.modules);
+          try { localStorage.setItem('ethos_system_modules', JSON.stringify(d.modules)); } catch {}
+        }
+      })
+      .catch(() => {});
+    return () => window.removeEventListener('ethos:system-modules', onSysChange);
+  }, []);
+
+  const userPerms = user?.permissions || { focus: true, workouts: true, telemetry: true, social: true, habits: true };
+  const permissions = {
+    ...userPerms,
+    ...Object.fromEntries(Object.entries(systemModules).filter(([, v]) => v === false))
+  };
   const firstName = user?.name ? user.name.split(' ')[0] : 'Dilan';
+
+  // Redireciona se a aba ativa foi desativada globalmente pelo administrador
+  useEffect(() => {
+    if (activeTab !== 'dashboard' && activeTab !== 'profile' && activeTab !== 'admin' && permissions[activeTab] === false) {
+      setActiveTab('dashboard');
+    }
+  }, [activeTab, permissions]);
 
   // Redireciona usuários não-administradores se tentarem acessar a aba admin
   useEffect(() => {
@@ -592,8 +629,8 @@ export function App() {
           tags={tags}
           onConfigureCategory={(cat) => setConfigCategory(cat)}
           onCreateCategory={handleOpenCreateCategory}
-          onOpenProfile={() => setShowProfileModal(true)}
-          onOpenAuth={() => setShowAuthModal(true)}
+          onOpenProfile={() => setActiveTab('profile')}
+          onOpenAuth={() => setShowProfileModal(true)}
           onOpenSupport={() => setShowSupportModal(true)}
           onLogout={handleLogout}
           pro={proInfo}
@@ -817,6 +854,7 @@ export function App() {
                 setUser={setUser}
                 habits={habits}
                 workouts={workouts}
+                events={events}
                 health={health}
                 setHealth={setHealth}
                 badges={badges}
@@ -932,7 +970,7 @@ export function App() {
           userPermissions={permissions}
           user={user}
           onOpenSupport={() => setShowSupportModal(true)}
-          onOpenAuth={() => setShowAuthModal(true)}
+          onOpenAuth={() => setShowProfileModal(true)}
           onLogout={handleLogout}
           pro={proInfo}
           proMode={proMode}
@@ -950,13 +988,13 @@ export function App() {
           const noPainel = (pedir) => requestLeave(() => { setActiveTab('dashboard'); pedir(Date.now()); });
           return [
             pg.habits !== false && permissions.habits !== false && { id: 'habito', label: 'Hábito', icon: CheckCircle2, cor: 'var(--rx-m-habitos)', onSelect: () => handleOpenAdd('habit') },
-            pg.calendar !== false && { id: 'evento', label: 'Evento', icon: CalendarPlus, cor: 'var(--rx-m-agenda)', onSelect: () => handleOpenAdd('event') },
+            pg.calendar !== false && permissions.calendar !== false && { id: 'evento', label: 'Evento', icon: CalendarPlus, cor: 'var(--rx-m-agenda)', onSelect: () => handleOpenAdd('event') },
             pg.focus !== false && permissions.focus !== false && { id: 'foco', label: 'Foco', icon: Timer, cor: 'var(--rx-m-foco)', onSelect: () => ir('focus') },
             { id: 'agua', label: 'Copo de água', icon: Droplets, cor: 'var(--rx-m-agua)', onSelect: () => noPainel(setAguaPedido) },
             { id: 'sono', label: 'Sono', icon: Moon, cor: 'var(--rx-m-sono)', onSelect: () => noPainel(setSonoPedido) },
             pg.workouts !== false && permissions.workouts !== false && { id: 'treino', label: 'Treino', icon: Dumbbell, cor: 'var(--rx-m-treino)', onSelect: () => ir('workouts') },
-            pg.notes !== false && { id: 'nota', label: 'Nota', icon: StickyNote, cor: 'var(--rx-m-notas)', onSelect: () => ir('notes') },
-            pg.bad_habits !== false && { id: 'mau', label: 'Mau hábito', icon: ShieldOff, cor: 'var(--rx-m-maus)', onSelect: () => ir('bad_habits') },
+            pg.notes !== false && permissions.notes !== false && { id: 'nota', label: 'Nota', icon: StickyNote, cor: 'var(--rx-m-notas)', onSelect: () => ir('notes') },
+            pg.bad_habits !== false && permissions.bad_habits !== false && { id: 'mau', label: 'Mau hábito', icon: ShieldOff, cor: 'var(--rx-m-maus)', onSelect: () => ir('bad_habits') },
             { id: 'categoria', label: 'Categoria', icon: Tag, cor: 'var(--rx-m-analise)', onSelect: () => handleOpenCreateCategory() }
           ].filter(Boolean);
         })()}
@@ -1009,6 +1047,7 @@ export function App() {
         user={user}
         health={health}
         setHealth={setHealth}
+        showToast={showToast}
         onUpdateUser={(updated) => {
           setUser(updated);
           try {

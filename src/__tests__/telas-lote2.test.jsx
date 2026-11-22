@@ -8,6 +8,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { HabitosTab } from '../components/habitos/HabitosTab';
 import { AnaliseTab, resumoTreino } from '../components/analise/AnaliseTab';
 import { PerfilTab } from '../components/perfil/PerfilTab';
+import { ProfileModal } from '../components/ProfileModal';
 
 const ok = (body = {}) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
 
@@ -104,9 +105,32 @@ describe('Perfil (tela nova)', () => {
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/user/u1/profile', expect.objectContaining({ method: 'PUT', body: JSON.stringify({ bio: 'Treinando para os 10 km.' }) })));
   });
 
-  it('meta de água só grava ao tocar em Salvar alterações', async () => {
+  it('exibe bio, objetivo, música escutada e análise integrada no feed, sem formulários biométricos poluindo o perfil', () => {
+    const onOpenSettings = vi.fn();
+    render(<PerfilTab user={user} setUser={vi.fn()} health={{ glassMl: 250 }} onOpenSettings={onOpenSettings} />);
+    expect(screen.getByTestId('pf-objetivo-card')).toBeTruthy();
+    expect(screen.getByTestId('pf-musica-card')).toBeTruthy();
+    expect(screen.getByTestId('pf-analise-integrada')).toBeTruthy();
+    expect(screen.queryByTestId('meta-agua')).toBeNull();
+    expect(screen.queryByLabelText('Altura (cm)')).toBeNull();
+    fireEvent.click(screen.getByTestId('pf-open-settings'));
+    expect(onOpenSettings).toHaveBeenCalled();
+  });
+
+  it('meta de água e dados pessoais ficam nas Configurações (ProfileModal) e só gravam ao tocar em Salvar alterações', async () => {
     const setHealth = vi.fn();
-    render(<PerfilTab user={user} setUser={vi.fn()} health={{ glassMl: 250, waterGlasses: 0 }} setHealth={setHealth} showToast={vi.fn()} />);
+    render(
+      <ProfileModal
+        isOpen
+        onClose={vi.fn()}
+        user={user}
+        onUpdateUser={vi.fn()}
+        health={{ glassMl: 250, waterGlasses: 0 }}
+        setHealth={setHealth}
+        showToast={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('settings-account-sections')).toBeTruthy();
     const meta = screen.getByTestId('meta-agua');
     const salvar = within(meta).getByRole('button', { name: 'Salvar alterações' });
     expect(salvar.disabled).toBe(true);

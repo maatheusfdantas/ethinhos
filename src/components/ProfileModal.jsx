@@ -29,8 +29,10 @@ import {
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { VaulModalSheet } from './ui/MotionPrimitives';
 import { calculateDailyWaterTarget } from '../utils/biometricsAndAnalytics';
+import { ProfileAccountSections } from './profile/ProfileAccountSections';
+import { MetaAgua } from './perfil/MetaAgua';
 
-export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, health = {}, setHealth }) {
+export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, health = {}, setHealth, showToast }) {
   // Dados Pessoais & Identidade
   const [name, setName] = useState(user?.name || '');
   const [username, setUsername] = useState(user?.username || '');
@@ -504,62 +506,26 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             />
           </div>
 
-          {/* Cálculo de Hidratação Diária Ideal com base no Peso (Peso em kg × 35 ml) */}
-          <div
-            style={{
-              marginTop: '12px',
-              padding: '12px 14px',
-              borderRadius: '14px',
-              backgroundColor: 'rgba(14, 165, 233, 0.08)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
-              display: 'grid',
-              gridTemplateColumns: '1fr 1.4fr',
-              gap: '12px',
-              alignItems: 'center'
-            }}
-          >
-            <div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#7DD3FC', fontWeight: 700, marginBottom: '5px' }}>
-                <Droplets size={12} />
-                <span>Peso (kg)</span>
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="20"
-                max="300"
-                placeholder="Ex: 70"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                style={{
-                  width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(56, 189, 248, 0.35)',
-                  borderRadius: '10px',
-                  padding: '8px 10px',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  color: '#FFFFFF',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-            <div>
-              <div style={{ fontSize: '10.5px', color: '#94A3B8', fontWeight: 600 }}>
-                Peso (em kg) × 35 ml = Água Diária Ideal
-              </div>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#38BDF8', marginTop: '3px' }}>
-                {numericWeightKg > 0
-                  ? `${numericWeightKg} kg × 35 ml = ${dailyWaterIdealMl.toLocaleString('pt-BR')} ml / dia`
-                  : 'Informe o peso para calcular'}
-              </div>
-              {numericWeightKg > 0 && (
-                <div style={{ fontSize: '11px', color: '#BAE6FD', marginTop: '2px' }}>
-                  Equivale a <strong>{dailyWaterIdealGlasses} copos</strong> de {health?.glassMl || 250} ml/dia
-                </div>
-              )}
-            </div>
+          {/* Saúde, Biometria (Peso, Altura, Data de Nascimento, Objetivo), Contas Conectadas, Segurança e Dados */}
+          <div style={{ marginTop: '16px' }} data-testid="settings-account-sections">
+            <ProfileAccountSections
+              user={user}
+              setUser={onUpdateUser}
+              health={health}
+              setHealth={setHealth}
+              showToast={showToast}
+              onOpenSettings={onClose}
+              onLogout={onLogout}
+              waterSlot={
+                <MetaAgua
+                  user={user}
+                  setUser={onUpdateUser}
+                  health={health}
+                  setHealth={setHealth}
+                  showToast={showToast}
+                />
+              }
+            />
           </div>
         </div>
 

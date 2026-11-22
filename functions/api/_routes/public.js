@@ -6,12 +6,33 @@
 import { validateEmail, validatePersonName, validatePhone } from '../../../src/domain/validation.js';
 import { recordAuditLogEdge } from '../_lib/audit.js';
 import { authenticateRequestEdge } from '../_lib/auth.js';
+import { ALL_PERMS } from '../_lib/constants.js';
 import { edgeFallbackMemory } from '../_lib/db.js';
 import { jsonResponse, sanitizeStringEdge } from '../_lib/http.js';
 
 /** Devolve a Response da rota correspondente, ou null se nenhuma rota deste domínio casar. */
 export async function handlePublicRoutes(ctx) {
   const { request, correlationId, clientIp, userAgent, url, pathname, method, body, storage } = ctx;
+
+  // --------------------------------------------------------------------------
+  // ROTA DE VISIBILIDADE DE ABAS DO SISTEMA (`/api/system/modules`)
+  // --------------------------------------------------------------------------
+  if (pathname === '/api/system/modules' && method === 'GET') {
+    const base = JSON.parse(ALL_PERMS);
+    let modules = { ...base, ...(edgeFallbackMemory.systemModules || {}) };
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db
+          .prepare(`CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL)`)
+          .run();
+        const row = await storage.db.prepare(`SELECT value FROM system_settings WHERE key = 'system_modules'`).first();
+        if (row?.value) {
+          modules = { ...base, ...JSON.parse(row.value) };
+        }
+      } catch (_e) {}
+    }
+    return jsonResponse({ modules }, 200, correlationId, request);
+  }
 
   // --------------------------------------------------------------------------
   // ROTA PÚBLICA DE LISTA DE ESPERA DA LANDING PAGE (`/api/waitlist`)

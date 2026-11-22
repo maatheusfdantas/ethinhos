@@ -1,10 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Check, Copy, ExternalLink, Music, Plus, Settings2, Trash2, X } from 'lucide-react';
+import { Camera, Check, Copy, ExternalLink, Music, Plus, Settings, Settings2, Target, Trash2, X } from 'lucide-react';
 import { calculateUserLevelAndXp } from '../../utils/biometricsAndAnalytics';
-import { ProfileAccountSections } from '../profile/ProfileAccountSections';
-import { MetaAgua } from './MetaAgua';
+import { AnaliseProgresso } from '../analise/AnaliseProgresso';
 import '../../styles/espacos.css';
 import '../../styles/telas.css';
+
+const GOAL_LABELS = {
+  perder_peso: 'Perder peso',
+  manter: 'Manter o peso',
+  ganhar_massa: 'Ganhar massa',
+  condicionamento: 'Melhorar o condicionamento',
+  sono: 'Dormir melhor',
+  outro: 'Objetivo personalizado'
+};
 
 /** Sugestões para preencher a música do perfil (as mesmas do perfil antigo). */
 const SUGESTOES = [
@@ -37,10 +45,33 @@ const putPerfil = (user, body) => (user?.id
  * métricas compartilhadas, hábitos fixados e conquistas. Saiu o "check-in diário" de +50 XP (pedido do usuário);
  * o XP já resgatado continua somado. Saíram também o player simulado e as conquistas de exemplo.
  */
-export function PerfilTab({ user, setUser, habits = [], workouts = [], badges = [], friends = [], health = {}, setHealth, showToast, onOpenSettings, onOpenSupport, onLogout }) {
+export function PerfilTab({ user, setUser, habits = [], workouts = [], events = [], badges = [], friends = [], health = {}, showToast, onOpenSettings, onOpenSupport }) {
   const fileRef = useRef(null);
   const nome = user?.name || user?.username || 'Usuário';
   const iniciais = nome.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase() || 'US';
+
+  /* ---------- Objetivo e Música escutada (Spotify só leitura) ---------- */
+  const [objetivoKey, setObjetivoKey] = useState(user?.goal || '');
+  const [spotifyNow, setSpotifyNow] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/account/health')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d?.goal) setObjetivoKey(d.goal);
+      })
+      .catch(() => {});
+    fetch('/api/integrations/spotify/now-playing')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d && d.connected !== false && d.track) setSpotifyNow(d);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user?.id]);
+
+  const objetivoTexto = GOAL_LABELS[objetivoKey] || user?.goalLabel || '';
 
   /* ---------- Bio ---------- */
   const [editBio, setEditBio] = useState(false);
@@ -165,6 +196,12 @@ export function PerfilTab({ user, setUser, habits = [], workouts = [], badges = 
             <span>Nível {xp.currentLevel}, {xp.levelTitle}</span>
           </p>
         </div>
+        {onOpenSettings && (
+          <button type="button" className="rx-btn ghost" onClick={onOpenSettings} data-testid="pf-open-settings">
+            <Settings size={15} />
+            <span>Configurações</span>
+          </button>
+        )}
       </div>
 
       <div className="es-grid">
@@ -185,14 +222,51 @@ export function PerfilTab({ user, setUser, habits = [], workouts = [], badges = 
             ) : <p className="es-sub" style={{ marginTop: 8 }}>{bio || 'Sem bio. Conte em até 150 caracteres o que você está construindo.'}</p>}
           </article>
 
-          <ProfileAccountSections user={user} setUser={setUser} health={health} setHealth={setHealth} showToast={showToast} onOpenSettings={onOpenSettings} onLogout={onLogout}
-            waterSlot={<MetaAgua user={user} setUser={setUser} health={health} setHealth={setHealth} showToast={showToast} />} />
+          <article className="es-card" data-testid="pf-objetivo-card">
+            <h2>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Target size={16} />
+                <span>Meu objetivo</span>
+              </span>
+              {onOpenSettings && (
+                <button type="button" className="rx-link" onClick={onOpenSettings}>
+                  {objetivoTexto ? 'Alterar em Configurações' : 'Definir em Configurações'}
+                </button>
+              )}
+            </h2>
+            {objetivoTexto ? (
+              <p className="es-sub" style={{ marginTop: 8, fontWeight: 600, color: 'var(--rx-ink)' }}>
+                {objetivoTexto}
+              </p>
+            ) : (
+              <p className="es-sub" style={{ marginTop: 8 }}>
+                Nenhum objetivo principal definido ainda. Abra Configurações → Perfil &amp; Saúde para preencher suas informações pessoais.
+              </p>
+            )}
+          </article>
 
-          <article className="es-card">
-            <h2>Música do perfil <button type="button" className="rx-link" onClick={() => setEditMusica({ title: musica?.title || '', artist: musica?.artist || '', album: musica?.album || '' })}>{musica ? 'Trocar' : 'Definir'}</button></h2>
+          <article className="es-card" data-testid="pf-musica-card">
+            <h2>Música escutada <button type="button" className="rx-link" onClick={() => setEditMusica({ title: musica?.title || '', artist: musica?.artist || '', album: musica?.album || '' })}>{musica ? 'Trocar destaque' : 'Definir música'}</button></h2>
+            {spotifyNow?.track && (
+              <div className="pf-track" style={{ marginBottom: musica ? 10 : 0 }}>
+                <span className="pf-cover" aria-hidden="true"><Music size={20} /></span>
+                <div>
+                  <span className="rx-sub" style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {spotifyNow.state === 'playing' ? 'Spotify · Ouvindo agora' : 'Spotify · Última escutada'}
+                  </span>
+                  <div><b>{spotifyNow.track.name}</b></div>
+                  <p className="rx-sub" style={{ margin: '2px 0 0' }}>
+                    {Array.isArray(spotifyNow.track.artists) ? spotifyNow.track.artists.join(', ') : ''}
+                    {spotifyNow.track.album ? `, ${spotifyNow.track.album}` : ''}
+                  </p>
+                </div>
+              </div>
+            )}
             {musica ? (
               <div className="pf-track"><span className="pf-cover" aria-hidden="true"><Music size={20} /></span><div><b>{musica.title}</b><p className="rx-sub" style={{ margin: '2px 0 0' }}>{musica.artist}{musica.album ? `, ${musica.album}` : ''}</p></div></div>
-            ) : <p className="es-sub">Escolha uma música para aparecer no seu perfil. Para mostrar o que você está ouvindo agora, conecte o Spotify em Contas conectadas.</p>}
+            ) : !spotifyNow?.track ? (
+              <p className="es-sub">Escolha uma música para destacar no seu perfil ou conecte o Spotify em Configurações → Contas conectadas para mostrar o que você está escutando.</p>
+            ) : null}
           </article>
 
           <article className="es-card">
@@ -244,6 +318,11 @@ export function PerfilTab({ user, setUser, habits = [], workouts = [], badges = 
           </section>
         </aside>
       </div>
+
+      {/* Análise de registros e relatórios integrada ao Perfil do usuário */}
+      <section style={{ marginTop: 28 }} data-testid="pf-analise-integrada">
+        <AnaliseProgresso user={user} habits={habits} health={health} events={events} />
+      </section>
 
       {editMusica && (
         <div className="rx-overlay" onClick={() => setEditMusica(null)}>

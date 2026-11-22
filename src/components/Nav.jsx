@@ -12,23 +12,34 @@ import {
  * Todos os módulos continuam acessíveis, respeitando permissões do admin e preferências de página.
  */
 
-const DEFAULT_PAGES = { notes: true, dashboard: true, telemetry: true, habits: true, bad_habits: true, calendar: true, workouts: true, focus: true, social: true };
+const DEFAULT_PAGES = { notes: true, dashboard: true, telemetry: true, habits: true, bad_habits: true, calendar: true, workouts: true, focus: true, social: true, espacos: true };
+
+function readSystemModules() {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('ethos_system_modules') : null;
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
 
 function buildModules(user, userPermissions = {}, extra = {}) {
   const pages = { ...DEFAULT_PAGES, ...(user?.pagePreferences || {}) };
+  const sys = { ...readSystemModules(), ...(extra.systemModules || {}) };
+  const can = (k) => sys[k] !== false && pages[k] !== false && userPermissions[k] !== false;
   const all = [
     { id: 'dashboard', label: 'Painel principal', icon: LayoutGrid, group: null, enabled: true },
-    { id: 'habits', label: 'Hábitos e rotinas', icon: CheckCircle2, group: 'Rotina', enabled: pages.habits !== false && userPermissions.habits !== false },
-    { id: 'calendar', label: 'Agenda semanal', icon: Calendar, group: 'Rotina', enabled: pages.calendar !== false },
-    { id: 'workouts', label: 'Treino', icon: Dumbbell, group: 'Corpo e mente', enabled: pages.workouts !== false && userPermissions.workouts !== false },
+    { id: 'habits', label: 'Hábitos e rotinas', icon: CheckCircle2, group: 'Rotina', enabled: can('habits') },
+    { id: 'calendar', label: 'Agenda semanal', icon: Calendar, group: 'Rotina', enabled: can('calendar') },
+    { id: 'workouts', label: 'Treino', icon: Dumbbell, group: 'Corpo e mente', enabled: can('workouts') },
     // Lote E: só aparece quando existe plano alimentar publicado para a pessoa.
     { id: 'alimentacao', label: 'Alimentação', icon: Utensils, group: 'Corpo e mente', enabled: Boolean(extra.hasMealPlan) },
-    { id: 'focus', label: 'Foco', icon: Timer, group: 'Corpo e mente', enabled: pages.focus !== false && userPermissions.focus !== false },
-    { id: 'bad_habits', label: 'Maus hábitos', icon: ShieldOff, group: 'Corpo e mente', enabled: pages.bad_habits !== false },
-    { id: 'notes', label: 'Notas', icon: StickyNote, group: 'Corpo e mente', enabled: pages.notes !== false },
-    { id: 'telemetry', label: 'Análise de progresso', icon: TrendingUp, group: 'Entender', enabled: true },
-    { id: 'social', label: 'Comunidade', icon: Users, group: 'Pessoas', enabled: pages.social !== false && userPermissions.social !== false },
-    { id: 'espacos', label: 'Espaços', icon: Building2, group: 'Pessoas', enabled: true },
+    { id: 'focus', label: 'Foco', icon: Timer, group: 'Corpo e mente', enabled: can('focus') },
+    { id: 'bad_habits', label: 'Maus hábitos', icon: ShieldOff, group: 'Corpo e mente', enabled: can('bad_habits') },
+    { id: 'notes', label: 'Notas', icon: StickyNote, group: 'Corpo e mente', enabled: can('notes') },
+    { id: 'telemetry', label: 'Análise de progresso', icon: TrendingUp, group: 'Entender', enabled: can('telemetry') },
+    { id: 'social', label: 'Comunidade', icon: Users, group: 'Pessoas', enabled: can('social') },
+    { id: 'espacos', label: 'Espaços', icon: Building2, group: 'Pessoas', enabled: can('espacos') },
     { id: 'profile', label: 'Perfil', icon: User, group: 'Pessoas', enabled: true }
   ];
   return all.filter((m) => m.enabled);
@@ -233,30 +244,30 @@ export function MobileBottomNav({
   return (
     <>
       {inSpace ? (
-      <nav className="rx-tabbar" aria-label="Navegação">
-        {tab('pro-visao', 'Visão geral', LayoutGrid)}
-        {tab('pro-turmas', 'Turmas', Ticket)}
-        {tab('pro-pessoas', pro?.peopleLabel || 'Pessoas', Users)}
-        {tab('espacos', 'Espaços', Building2)}
-        <button type="button" aria-expanded={open} onClick={() => setOpen(true)}>
-          <Menu className="rx-i" strokeWidth={1.75} />
-          <span>Menu</span>
-        </button>
-      </nav>
+        <nav className="rx-tabbar" aria-label="Navegação">
+          {tab('pro-visao', 'Visão geral', LayoutGrid)}
+          {tab('pro-turmas', 'Turmas', Ticket)}
+          {tab('pro-pessoas', pro?.peopleLabel || 'Pessoas', Users)}
+          {tab('espacos', 'Espaços', Building2)}
+          <button type="button" aria-expanded={open} onClick={() => setOpen(true)}>
+            <Menu className="rx-i" strokeWidth={1.75} />
+            <span>Menu</span>
+          </button>
+        </nav>
       ) : (
-      <nav className="rx-tabbar" aria-label="Navegação">
-        {tab('dashboard', 'Painel', LayoutGrid)}
-        {modules.some((m) => m.id === 'habits') ? tab('habits', 'Hábitos', CheckCircle2) : tab('calendar', 'Agenda', Calendar)}
-        <button type="button" className="fab" aria-label="Criar ou registrar" onClick={() => onOpenAdd?.()} data-testid="dock-mais">
-          <span className="c"><Plus className="rx-i" strokeWidth={2.2} /></span>
-          <span>Novo</span>
-        </button>
-        {tab('telemetry', 'Análise', TrendingUp)}
-        <button type="button" aria-expanded={open} onClick={() => setOpen(true)}>
-          <Menu className="rx-i" strokeWidth={1.75} />
-          <span>Menu</span>
-        </button>
-      </nav>
+        <nav className="rx-tabbar" aria-label="Navegação">
+          {tab('dashboard', 'Painel', LayoutGrid)}
+          {modules.some((m) => m.id === 'habits') ? tab('habits', 'Hábitos', CheckCircle2) : tab('calendar', 'Agenda', Calendar)}
+          <button type="button" className="fab" aria-label="Criar ou registrar" onClick={() => onOpenAdd?.()} data-testid="dock-mais">
+            <span className="c"><Plus className="rx-i" strokeWidth={2.2} /></span>
+            <span>Novo</span>
+          </button>
+          {tab('telemetry', 'Análise', TrendingUp)}
+          <button type="button" aria-expanded={open} onClick={() => setOpen(true)}>
+            <Menu className="rx-i" strokeWidth={1.75} />
+            <span>Menu</span>
+          </button>
+        </nav>
       )}
 
       {open && (

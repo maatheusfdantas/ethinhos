@@ -502,10 +502,44 @@ function PomodoCard() {
  * 4. Tickets de Suporte
  * 5. Logs & Auditoria de Segurança
  */
+const SYSTEM_MODULE_LIST = [
+  { id: 'habits', label: 'Hábitos e rotinas', desc: 'Aba de hábitos diários e listas de rotina' },
+  { id: 'calendar', label: 'Agenda semanal', desc: 'Calendário de eventos e compromissos' },
+  { id: 'workouts', label: 'Treino', desc: 'Fichas de musculação, treino ativo e biblioteca' },
+  { id: 'focus', label: 'Foco (Pomodoro)', desc: 'Temporizador de foco e sessões profundas' },
+  { id: 'bad_habits', label: 'Maus hábitos', desc: 'Acompanhamento de sobriedade e superação' },
+  { id: 'notes', label: 'Notas', desc: 'Bloco de anotações e ideias (ex.: pode ser ocultado)' },
+  { id: 'telemetry', label: 'Análise de progresso', desc: 'Relatórios e gráficos de evolução' },
+  { id: 'social', label: 'Comunidade', desc: 'Conexões e amigos na rede' },
+  { id: 'espacos', label: 'Espaços', desc: 'Turmas e acompanhamento profissional' }
+];
+
+const DEFAULT_SYSTEM_MODULES = {
+  habits: true,
+  calendar: true,
+  workouts: true,
+  focus: true,
+  bad_habits: true,
+  notes: true,
+  telemetry: true,
+  social: true,
+  espacos: true
+};
+
 export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: globalToast }) {
   // Seções da Governança Administrativa
   const [activeSection, setActiveSection] = useState('users'); // 'users' | 'tokens' | 'waitlist' | 'support' | 'security' | 'profissionais' | 'teste'
   const [previousSection, setPreviousSection] = useState('users');
+
+  // Visibilidade global de abas no sistema
+  const [systemModules, setSystemModules] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ethos_system_modules');
+      return saved ? { ...DEFAULT_SYSTEM_MODULES, ...JSON.parse(saved) } : DEFAULT_SYSTEM_MODULES;
+    } catch (_e) {
+      return DEFAULT_SYSTEM_MODULES;
+    }
+  });
 
   // Estados principais
   const [users, setUsers] = useState([]);
@@ -552,12 +586,25 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
   const fetchAdminData = async () => {
     setRefreshing(true);
     try {
-      const [usersRes, waitlistRes, ticketsRes, logsRes] = await Promise.all([
+      const [usersRes, waitlistRes, ticketsRes, logsRes, modulesRes] = await Promise.all([
         apiFetch('/api/admin/users').catch(() => null),
         apiFetch('/api/admin/waitlist').catch(() => null),
         apiFetch('/api/admin/tickets').catch(() => null),
-        apiFetch('/api/admin/logs').catch(() => null)
+        apiFetch('/api/admin/logs').catch(() => null),
+        apiFetch('/api/admin/system/modules').catch(() => null)
       ]);
+
+      if (modulesRes?.ok) {
+        const data = await modulesRes.json();
+        if (data?.modules) {
+          const merged = { ...DEFAULT_SYSTEM_MODULES, ...data.modules };
+          setSystemModules(merged);
+          try {
+            localStorage.setItem('ethos_system_modules', JSON.stringify(merged));
+            window.dispatchEvent(new CustomEvent('ethos:system-modules', { detail: merged }));
+          } catch (_e) {}
+        }
+      }
 
       if (usersRes?.ok) {
         const data = await usersRes.json();
@@ -586,6 +633,25 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
   useEffect(() => {
     fetchAdminData();
   }, []);
+
+  // Handler: Alternar visibilidade global de aba no sistema
+  const handleToggleSystemModule = async (modId) => {
+    const nextValue = systemModules[modId] === false;
+    const nextModules = { ...systemModules, [modId]: nextValue };
+    setSystemModules(nextModules);
+    try {
+      localStorage.setItem('ethos_system_modules', JSON.stringify(nextModules));
+      window.dispatchEvent(new CustomEvent('ethos:system-modules', { detail: nextModules }));
+    } catch (_e) {}
+    try {
+      await apiFetch('/api/admin/system/modules', {
+        method: 'PUT',
+        body: JSON.stringify({ modules: nextModules })
+      });
+    } catch (_e) {}
+    const label = SYSTEM_MODULE_LIST.find((m) => m.id === modId)?.label || modId;
+    showLocalToast(nextValue ? `Aba "${label}" habilitada no sistema.` : `Aba "${label}" ocultada do sistema.`);
+  };
 
   // Handlers: Usuários
   const handleToggleUserActive = async (userId, currentStatus) => {
@@ -1207,6 +1273,87 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
         {/* =================================================================== */}
         {activeSection === 'users' && (
           <section>
+            {/* Card de Governança: Habilitar e Desativar (Ocultar) Abas do Sistema */}
+            <div
+              data-testid="admin-system-modules"
+              style={{
+                backgroundColor: 'rgba(22, 22, 26, 0.7)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(139, 92, 246, 0.25)',
+                borderRadius: '24px',
+                padding: '22px 24px',
+                marginBottom: '20px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
+                    Abas Visíveis no Sistema (Habilitar / Ocultar)
+                  </h2>
+                  <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#9CA3AF' }}>
+                    Desative abas em construção ou desnecessárias (como Notas) para ocultá-las do menu lateral, barra inferior e atalhos.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
+                  gap: '10px'
+                }}
+              >
+                {SYSTEM_MODULE_LIST.map((mod) => {
+                  const enabled = systemModules[mod.id] !== false;
+                  return (
+                    <button
+                      key={mod.id}
+                      type="button"
+                      role="switch"
+                      aria-checked={enabled}
+                      data-testid={`admin-toggle-tab-${mod.id}`}
+                      onClick={() => handleToggleSystemModule(mod.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        padding: '12px 14px',
+                        borderRadius: '14px',
+                        backgroundColor: enabled ? 'rgba(139, 92, 246, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                        border: enabled ? '1px solid rgba(139, 92, 246, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                        color: '#FFFFFF',
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: enabled ? '#FFFFFF' : '#9CA3AF' }}>
+                          {mod.label}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+                          {mod.desc}
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          padding: '3px 9px',
+                          borderRadius: '999px',
+                          fontSize: '10.5px',
+                          fontWeight: 800,
+                          backgroundColor: enabled ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)',
+                          color: enabled ? '#34D399' : '#F87171',
+                          flexShrink: 0
+                        }}
+                      >
+                        {enabled ? 'Visível' : 'Oculta'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Header da Seção + Busca e Filtros */}
             <div
               style={{
@@ -2326,29 +2473,17 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
-                const nextPerms = {
-                  focus: fd.get('focus') === 'on',
-                  workouts: fd.get('workouts') === 'on',
-                  telemetry: fd.get('telemetry') === 'on',
-                  social: fd.get('social') === 'on',
-                  habits: fd.get('habits') === 'on'
-                };
+                const nextPerms = {};
+                SYSTEM_MODULE_LIST.forEach((m) => {
+                  nextPerms[m.id] = fd.get(m.id) === 'on';
+                });
                 handleUpdatePermissionsSubmit(nextPerms);
               }}
             >
-              {[
-                { id: 'focus', label: 'Modo Foco & Pomodoro' },
-                { id: 'workouts', label: 'Módulo de Musculação & Treinos' },
-                { id: 'telemetry', label: 'Telemetria & Gráficos DataViz' },
-                { id: 'social', label: 'Rede Social & Playlists' },
-                { id: 'habits', label: 'Hábitos & Calendário' }
-              ].map((item) => {
-                const currentPerms = selectedUserForModal.permissions || {
-                  focus: true,
-                  workouts: true,
-                  telemetry: true,
-                  social: true,
-                  habits: true
+              {SYSTEM_MODULE_LIST.map((item) => {
+                const currentPerms = {
+                  ...DEFAULT_SYSTEM_MODULES,
+                  ...(selectedUserForModal.permissions || {})
                 };
                 return (
                   <label

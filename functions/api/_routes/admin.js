@@ -276,6 +276,51 @@ export async function handleAdminRoutes(ctx) {
     return jsonResponse({ success: true }, 200, correlationId, request);
   }
 
+  // Admin: Visibilidade global de abas/módulos do sistema
+  if (pathname === '/api/admin/system/modules' && method === 'GET') {
+    const base = JSON.parse(ALL_PERMS);
+    let modules = { ...base, ...(edgeFallbackMemory.systemModules || {}) };
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db
+          .prepare(`CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL)`)
+          .run();
+        const row = await storage.db.prepare(`SELECT value FROM system_settings WHERE key = 'system_modules'`).first();
+        if (row?.value) {
+          modules = { ...base, ...JSON.parse(row.value) };
+        }
+      } catch (_e) {}
+    }
+    return jsonResponse({ modules }, 200, correlationId, request);
+  }
+
+  if (pathname === '/api/admin/system/modules' && (method === 'PUT' || method === 'POST')) {
+    const base = JSON.parse(ALL_PERMS);
+    const nextModules = { ...base, ...(body.modules || {}) };
+    const nowIso = new Date().toISOString();
+    edgeFallbackMemory.systemModules = nextModules;
+    if (storage.mode === 'd1') {
+      try {
+        await storage.db
+          .prepare(`CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL)`)
+          .run();
+        await storage.db
+          .prepare(`INSERT INTO system_settings (key, value, updated_at) VALUES ('system_modules', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+          .bind(JSON.stringify(nextModules), nowIso)
+          .run();
+      } catch (_e) {}
+    }
+    await recordAuditLogEdge(storage, {
+      eventType: 'ADMIN_SYSTEM_MODULES_UPDATED',
+      userId: authClaims?.sub || 'usr_admin',
+      ipAddress: clientIp,
+      userAgent,
+      metadata: nextModules,
+      correlationId
+    });
+    return jsonResponse({ success: true, modules: nextModules }, 200, correlationId, request);
+  }
+
   // Admin: Logs de Auditoria, E-mail e Sistema
   if (pathname === '/api/admin/logs' && method === 'GET') {
     let auditLogs = [];

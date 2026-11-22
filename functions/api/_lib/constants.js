@@ -8,6 +8,10 @@ export const ALL_PERMS = JSON.stringify({
   workouts: true,
   telemetry: true,
   social: true,
-  habits: true
+  habits: true,
+  calendar: true,
+  bad_habits: true,
+  notes: true,
+  espacos: true
 });
 

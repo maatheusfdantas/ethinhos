@@ -80,6 +80,28 @@ describe('Maus hábitos (tela nova)', () => {
     fireEvent.click(within(d).getByRole('button', { name: 'Onda de 15 min' }));
     expect(within(d).getByText('15:00')).toBeTruthy();
   });
+
+  it('permite editar o nome após criado e abandonar com mensagem acolhedora sem culpar o usuário', () => {
+    guardar([habito(5)]);
+    const showToast = vi.fn();
+    render(<MausHabitosTab user={user} showToast={showToast} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Editar nome de Refrigerante/i }));
+    fireEvent.change(screen.getByLabelText('Novo nome do mau hábito'), { target: { value: 'Refrigerante Zero e Comum' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar nome' }));
+
+    let lista = JSON.parse(localStorage.getItem('ethos_bad_habits_u1'));
+    expect(lista[0].title).toBe('Refrigerante Zero e Comum');
+
+    fireEvent.click(screen.getByRole('button', { name: /Abandonar Refrigerante Zero e Comum/i }));
+    const dialog = screen.getByTestId('mh-abandonar-dialog');
+    expect(dialog.textContent).toMatch(/Não se culpe/i);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Abandonar sem culpa' }));
+
+    lista = JSON.parse(localStorage.getItem('ethos_bad_habits_u1'));
+    expect(lista).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/sem culpa/i));
+  });
 });
 
 describe('Agenda (tela nova)', () => {
