@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 const read = (p: string) => readFileSync(p, 'utf8');
 const baseline = JSON.parse(read('tests/guard/approved-design.json'));
 
-describe('visual aprovado (roxo + azul)', () => {
+describe('visual aprovado (roxo + azul, claro e escuro)', () => {
   const css = read('src/styles/roxo.css');
   const rootBlock = css.slice(css.indexOf(':root'), css.indexOf('}', css.indexOf(':root')));
 
@@ -25,7 +25,7 @@ describe('visual aprovado (roxo + azul)', () => {
 
   it('mantém a fonte e os arquivos visuais de referência', () => {
     for (const f of baseline.arquivosVisuais) expect(existsSync(f), `${f} sumiu`).toBe(true);
-    expect(css).toMatch(/Bricolage Grotesque/);
+    expect(css).toContain(baseline.fonte);
     expect(read('src/main.jsx')).toMatch(/styles\/roxo\.css/);
   });
 

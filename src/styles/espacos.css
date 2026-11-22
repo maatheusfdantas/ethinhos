@@ -33,7 +33,7 @@
 .es-share ul { margin: 0; padding-left: 16px; }
 .es-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .es-field > label, .es-field > .lbl { font-size: 14px; font-weight: 560; color: var(--rx-ink-2); }
-.es-input { height: 46px; padding: 0 14px; border-radius: 13px; border: 1px solid var(--rx-line-2); background: rgba(33, 29, 59, .7); color: var(--rx-ink); font: 450 15.5px var(--rx-font); outline: none; width: 100%; box-sizing: border-box; color-scheme: dark; }
+.es-input { height: 46px; padding: 0 14px; border-radius: 13px; border: 1px solid var(--rx-line-2); background: var(--rx-input); color: var(--rx-ink); font: 450 15.5px var(--rx-font); outline: none; width: 100%; box-sizing: border-box; color-scheme: var(--rx-scheme); }
 .es-input:focus { border-color: var(--rx-lavender); box-shadow: 0 0 0 4px rgba(167, 139, 250, .18); }
 .es-error { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--rx-bad-wash); color: var(--rx-bad); font-size: 14px; border: 1px solid rgba(243, 139, 139, .25); margin-bottom: 12px; }
 .es-check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--rx-ink-2); margin: 10px 0 14px; }

@@ -44,7 +44,7 @@
 .pf-top { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
 .pf-ava { position: relative; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; background: var(--rx-grad); color: var(--rx-on-accent); font: 700 28px var(--rx-font); flex: none; overflow: hidden; border: 0; padding: 0; cursor: pointer; }
 .pf-ava img { width: 100%; height: 100%; object-fit: cover; }
-.pf-ava .cam { position: absolute; inset: auto 0 0 0; height: 26px; display: grid; place-items: center; background: rgba(12, 16, 32, .55); color: var(--rx-ink); opacity: 0; transition: opacity .15s; }
+.pf-ava .cam { position: absolute; inset: auto 0 0 0; height: 26px; display: grid; place-items: center; background: rgba(12, 16, 32, .55); color: #fff; opacity: 0; transition: opacity .15s; }
 .pf-ava:hover .cam, .pf-ava:focus-visible .cam { opacity: 1; }
 .pf-top h1 { margin: 0; font-size: clamp(28px, 2.8vw, 38px); font-weight: 640; letter-spacing: -.03em; line-height: 1.08; color: var(--rx-ink); }
 .pf-top .grow { flex: 1; min-width: 200px; }
@@ -88,7 +88,7 @@
 .pf .ps-muted, .pf .sp-muted, .pf .ps-opt { color: var(--rx-ink-3); }
 .pf .sp-text, .pf .sp-list { color: var(--rx-ink-2); }
 .pf .ps-form label { color: var(--rx-ink-2); }
-.pf .ps-form input, .pf .ps-form select { background: rgba(33, 29, 59, .7); border-color: var(--rx-line-2); color: var(--rx-ink); color-scheme: dark; }
+.pf .ps-form input, .pf .ps-form select { background: var(--rx-input); border-color: var(--rx-line-2); color: var(--rx-ink); color-scheme: var(--rx-scheme); }
 .pf .ps-form input:focus, .pf .ps-form select:focus { outline: none; border-color: var(--rx-lavender); box-shadow: 0 0 0 4px rgba(167, 139, 250, .18); }
 .pf .ps-account, .pf .sp-track { background: var(--rx-wash); border: 1px solid var(--rx-line); }
 .pf .ps-account > div, .pf .sp-meta { color: var(--rx-ink-2); }
@@ -195,7 +195,7 @@
 .ag-dt > :first-child { flex: 1; min-width: 0; }
 .ag-dt > :last-child { flex: 0 0 116px; }
 .ag-color { width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; }
-.ag input[type='date'], .ag input[type='time'], .mh input[type='date'], .mh input[type='time'] { color-scheme: dark; }
+.ag input[type='date'], .ag input[type='time'], .mh input[type='date'], .mh input[type='time'] { color-scheme: var(--rx-scheme); }
 .mh-del { width: 34px; height: 34px; border-radius: 10px; border: 0; background: none; color: var(--rx-ink-3); display: grid; place-items: center; cursor: pointer; }
 .mh-del:hover { background: var(--rx-bad-wash); color: var(--rx-bad); }
 .mh-g { list-style: none; margin: 0; padding: 0; }

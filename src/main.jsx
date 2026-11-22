@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import './styles/roxo.css'
 import App from './App.jsx'
+import { aplicarTema, lerTema } from './components/rx/tema'
+
+// Tema salvo (claro por padrão) aplicado antes da primeira renderização, para não piscar
+aplicarTema(lerTema())
 
 class GlobalErrorBoundary extends Component {
   constructor(props) {

@@ -28,7 +28,7 @@
 .tr-x:hover { background: var(--rx-wash); color: var(--rx-ink); }
 .tr-btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 999px; background: transparent; color: var(--rx-bad); border: 1px solid rgba(243, 139, 139, .35); font: 560 14px var(--rx-font); cursor: pointer; }
 .tr-btn-danger:hover { background: var(--rx-bad-wash); }
-.tr-input { height: 46px; padding: 0 14px; border-radius: 13px; border: 1px solid var(--rx-line-2); background: rgba(33, 29, 59, .7); color: var(--rx-ink); font: 450 15.5px var(--rx-font); outline: none; width: 100%; box-sizing: border-box; color-scheme: dark; }
+.tr-input { height: 46px; padding: 0 14px; border-radius: 13px; border: 1px solid var(--rx-line-2); background: var(--rx-input); color: var(--rx-ink); font: 450 15.5px var(--rx-font); outline: none; width: 100%; box-sizing: border-box; color-scheme: var(--rx-scheme); }
 .tr-input:focus { border-color: var(--rx-lavender); box-shadow: 0 0 0 4px rgba(167, 139, 250, .18); }
 .tr-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .tr-field > label, .tr-field > .lbl { font-size: 14px; font-weight: 560; color: var(--rx-ink-2); }
@@ -79,7 +79,7 @@
 .tr-libcard p { margin: 0; font-size: 13.5px; color: var(--rx-ink-2); }
 .tr-libcard .row { display: flex; gap: 6px; flex-wrap: wrap; }
 .tr-libcard .go { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; }
-.tr-libcard .go select { flex: 1; min-width: 0; height: 36px; border-radius: 10px; border: 1px solid var(--rx-line-2); background: var(--rx-bg-2); color: var(--rx-ink); padding: 0 8px; font: 500 14px var(--rx-font); color-scheme: dark; }
+.tr-libcard .go select { flex: 1; min-width: 0; height: 36px; border-radius: 10px; border: 1px solid var(--rx-line-2); background: var(--rx-bg-2); color: var(--rx-ink); padding: 0 8px; font: 500 14px var(--rx-font); color-scheme: var(--rx-scheme); }
 
 /* Histórico */
 .tr-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
@@ -105,7 +105,7 @@
 .tr-set .plan { font-size: 13.5px; color: var(--rx-ink-3); line-height: 1.25; }
 .tr-set .plan b { display: block; color: var(--rx-ink-2); font-weight: 580; font-size: 14px; }
 .tr-in { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 12px; color: var(--rx-ink-3); }
-.tr-in input { height: 44px; border-radius: 11px; border: 1px solid var(--rx-line-2); background: var(--rx-bg-2); color: var(--rx-ink); padding: 0 10px; font: 600 17px var(--rx-font); font-variant-numeric: tabular-nums; width: 100%; min-width: 0; box-sizing: border-box; color-scheme: dark; }
+.tr-in input { height: 44px; border-radius: 11px; border: 1px solid var(--rx-line-2); background: var(--rx-bg-2); color: var(--rx-ink); padding: 0 10px; font: 600 17px var(--rx-font); font-variant-numeric: tabular-nums; width: 100%; min-width: 0; box-sizing: border-box; color-scheme: var(--rx-scheme); }
 .tr-in input.sug { color: var(--rx-ink-3); font-style: italic; border-style: dashed; }
 .tr-in .val { font-weight: 640; font-size: 17px; color: var(--rx-ink); }
 .tr-undo { border: 0; background: none; color: var(--rx-lavender); font: 600 13px var(--rx-font); padding: 4px 0; cursor: pointer; }

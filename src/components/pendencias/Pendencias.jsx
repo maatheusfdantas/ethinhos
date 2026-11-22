@@ -3,10 +3,10 @@ import { Bell, CalendarClock, Megaphone, Utensils, X } from 'lucide-react';
 import { espacosApi, fmtUntil } from '../espacos/espacosApi';
 import '../../styles/espacos.css';
 
-/** Sino do topo com a contagem de pendências dos espaços. */
+/** Sino do topo com a contagem de notificações (pendências dos espaços). */
 export function PendenciasBell({ total = 0, onOpen }) {
   return (
-    <button type="button" className="rx-icon-btn es-bell" onClick={onOpen} aria-label={total ? `Pendências, ${total} novas` : 'Pendências'} data-testid="pend-bell">
+    <button type="button" className="rx-icon-btn es-bell" onClick={onOpen} aria-label={total ? `Notificações, ${total} novas` : 'Notificações'} data-testid="pend-bell">
       <Bell className="rx-i" strokeWidth={1.75} />
       {total > 0 && <span className="dot">{total > 9 ? '9+' : total}</span>}
     </button>
@@ -19,6 +19,9 @@ const OUTRAS = {
   comentario: (o) => ({ title: `Resposta em “${o.title}”`, detail: o.spaceName, icon: Megaphone, aviso: o.refId }),
   plano_publicado: (o) => ({ title: `Plano alimentar publicado: ${o.title}`, detail: `${o.spaceName}. Veja as refeições e registre na aba Alimentação.`, icon: Utensils, tab: 'alimentacao' })
 };
+// Cor do ícone por assunto (proposta 12)
+const COR = { convite: 'var(--rx-m-agenda)', aviso: 'var(--rx-m-espacos)', evento_cancelado: 'var(--rx-bad)', evento_texto: 'var(--rx-m-agenda)', comentario: 'var(--rx-m-social)', plano_publicado: 'var(--rx-m-alim)' };
+const FILTROS = [['tudo', 'Tudo'], ['convites', 'Convites'], ['avisos', 'Avisos'], ['outras', 'Atualizações']];
 
 /**
  * Pendências (painel lateral): convites de evento, avisos novos e respostas.
@@ -28,10 +31,13 @@ export function PendenciasDrawer({ open, onClose, data, onChanged, toast, onOpen
   const [aviso, setAviso] = useState(null);
   const [texto, setTexto] = useState('');
   const [busy, setBusy] = useState(false);
+  const [filtro, setFiltro] = useState('tudo');
   if (!open) return null;
   const convites = data?.convites || [];
   const avisos = data?.avisos || [];
   const outras = data?.outras || [];
+  const ver = (k) => filtro === 'tudo' || filtro === k;
+  const n = { tudo: convites.length + avisos.length + outras.length, convites: convites.length, avisos: avisos.length, outras: outras.length };
 
   const responder = async (c, resposta) => {
     setBusy(true);
@@ -50,11 +56,17 @@ export function PendenciasDrawer({ open, onClose, data, onChanged, toast, onOpen
       <div role="dialog" aria-modal="true" aria-labelledby="pend-t" onClick={(e) => e.stopPropagation()}>
         {!aviso ? (
           <>
-            <h2 id="pend-t">Pendências <button type="button" className="es-x" onClick={onClose} aria-label="Fechar"><X size={18} /></button></h2>
-            <p className="es-sub">Convites e avisos dos seus espaços.</p>
+            <h2 id="pend-t"><span className="rx-tile solid" style={{ '--c': 'var(--rx-alert)' }}><Bell size={19} /></span><span className="grow">Notificações</span> <button type="button" className="es-x" onClick={onClose} aria-label="Fechar"><X size={18} /></button></h2>
+            <p className="es-sub">Convites, avisos e atualizações dos seus espaços.</p>
+            {n.tudo > 0 && (
+              <div className="rx-chips" role="group" aria-label="Filtrar notificações">
+                {FILTROS.map(([k, l]) => <button key={k} type="button" className="rx-chip" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{l}<em>{n[k]}</em></button>)}
+              </div>
+            )}
             {convites.length + avisos.length + outras.length === 0 && <div className="es-empty"><h3>Tudo em dia</h3><p>Novos convites e avisos dos seus profissionais aparecem aqui.</p></div>}
-            {convites.map((c) => (
-              <div className="es-pend" key={c.inviteId} data-testid="pend-convite">
+            {ver('convites') && convites.map((c) => (
+              <div className="es-pend" key={c.inviteId} data-testid="pend-convite" style={{ '--c': COR.convite }}>
+                <span className="rx-tile ic"><CalendarClock size={18} /></span>
                 <span className="es-badge"><CalendarClock size={13} />{c.changed ? 'Horário mudou' : 'Convite'}, {c.spaceName}</span>
                 <b>{c.title}</b>
                 <p>{fmtUntil(c.startsAt)}{c.location ? `, ${c.location}` : ''}</p>
@@ -66,19 +78,21 @@ export function PendenciasDrawer({ open, onClose, data, onChanged, toast, onOpen
                 </div>
               </div>
             ))}
-            {avisos.map((a) => (
-              <div className="es-pend" key={a.postId} data-testid="pend-aviso">
+            {ver('avisos') && avisos.map((a) => (
+              <div className="es-pend" key={a.postId} data-testid="pend-aviso" style={{ '--c': COR.aviso }}>
+                <span className="rx-tile ic"><Megaphone size={18} /></span>
                 <span className="es-badge"><Megaphone size={13} />Aviso, {a.spaceName}</span>
                 <b>{a.title}</b>
                 <p>{a.proName}, {fmtUntil(a.createdAt)}</p>
                 <div className="btns"><button type="button" className="rx-btn ghost tiny" onClick={() => abrirAviso(a.postId)}>Abrir aviso</button></div>
               </div>
             ))}
-            {outras.map((o) => {
+            {ver('outras') && outras.map((o) => {
               const v = (OUTRAS[o.type] || (() => ({ title: o.title, detail: o.spaceName, icon: Bell })))(o);
               const Icon = v.icon;
               return (
-                <div className="es-pend" key={o.id}>
+                <div className="es-pend" key={o.id} style={{ '--c': COR[o.type] || 'var(--rx-violet)' }}>
+                  <span className="rx-tile ic"><Icon size={18} /></span>
                   <span className="es-badge"><Icon size={13} />{o.spaceName}</span>
                   <b>{v.title}</b>
                   <p>{v.detail}</p>

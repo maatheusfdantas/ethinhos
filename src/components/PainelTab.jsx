@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Minus, Plus, Droplets, Moon, Timer, Dumbbell, ChevronDown, CalendarClock, History, Sparkles, Bell, Building2 } from 'lucide-react';
+import { Check, Minus, Plus, Droplets, Moon, Timer, Dumbbell, ChevronDown, CalendarClock, History, Sparkles, Bell, Building2, CheckCircle2, CalendarPlus, Play, Megaphone, Utensils } from 'lucide-react';
 import { isEventForDate } from '../services/storage';
 import { ProgressMeter } from './rx/ProgressMeter';
 import { DustCanvas } from './rx/DustCanvas';
 import { withWaterToday } from '../utils/healthDay';
+import { loadState as loadFoco } from './rx/focoStore';
 
 /**
  * Painel principal (direção roxo + azul).
@@ -36,7 +37,8 @@ async function api(url, method, body) {
 export function PainelTab({
   habits = [], setHabits, events = [], workouts = [], health = {}, setHealth, tags = [], user = null,
   onOpenAdd, onSwitchTab, onToggleEvent, onLogSubclassEffort, showToast,
-  spaceEvents = [], pendencias = 0, onOpenPendencias
+  spaceEvents = [], pendencias = 0, onOpenPendencias,
+  pendData = null, focoDisponivel = true, sleepRequest = 0, aguaRequest = 0
 }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(t); }, []);
@@ -46,8 +48,15 @@ export function PainelTab({
   const [sleepEdit, setSleepEdit] = useState(false);
   const [bedIn, setBedIn] = useState(health?.sleep?.bedTime || '23:30');
   const [wakeIn, setWakeIn] = useState(health?.sleep?.wakeTime || '07:00');
+  const [aba, setAba] = useState(null); // 'habitos' | 'agenda' no cartão Hoje
+  // Pedidos vindos do menu do "+" (cada pedido tem um id único; cada um é atendido uma vez)
+  const [ultimoSono, setUltimoSono] = useState(0);
+  if (sleepRequest && sleepRequest !== ultimoSono) { setUltimoSono(sleepRequest); setSleepEdit(true); }
+  const aguaAtendida = React.useRef(0);
 
   const todayStr = localDate(now);
+  // Minutos de foco de hoje: o mesmo registro da aba Foco (no navegador, por usuário)
+  const focoMin = Math.round(loadFoco(user?.id).days?.[todayStr]?.min || 0);
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const firstName = (user?.name || user?.username || '').split(' ')[0];
   const greet = now.getHours() < 12 ? 'Bom dia' : now.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
@@ -231,45 +240,156 @@ export function PainelTab({
     const sp = spineRef.current; const nl = sp?.querySelector('.now-line');
     const v = sp && nl ? Math.max(0, nl.offsetTop + nl.offsetHeight / 2 - 20) : 0;
     setLived((old) => (old === v ? old : v));
-  }, [spineKey]);
+  }, [spineKey, aba]);
 
   const isEmpty = habits.length === 0 && todayEvents.length === 0;
-  const lead = live
-    ? <>{greet}{firstName ? `, ${firstName}` : ''}. Agora são {hhmm(now)} e <b>{live.title}</b>{live.endTime ? ` termina às ${live.endTime}` : ' está em andamento'}.</>
-    : next
-      ? <>{greet}{firstName ? `, ${firstName}` : ''}. O próximo compromisso é <b>{next.title}</b>, às {next.startTime}.</>
-      : <>{greet}{firstName ? `, ${firstName}` : ''}.{isEmpty ? ' Nada previsto para hoje ainda.' : ''}</>;
+  const destaque = live || next;
+  const resumo = total === 0
+    ? (isEmpty ? 'Nada previsto para hoje ainda. Comece criando o primeiro hábito.' : 'Sem hábitos para hoje.')
+    : doneCount === total ? `Você concluiu os ${total} hábitos de hoje.` : `Você concluiu ${doneCount} de ${total} hábitos. Faltam ${total - doneCount} para fechar o dia.`;
+  const notifs = [
+    ...(pendData?.convites || []).map((c) => ({ key: `c${c.inviteId}`, cor: 'var(--rx-m-agenda)', Icon: CalendarClock, t: c.title, d: `${c.changed ? 'Horário mudou' : 'Convite'}, ${c.spaceName}` })),
+    ...(pendData?.avisos || []).map((a) => ({ key: `a${a.postId}`, cor: 'var(--rx-m-espacos)', Icon: Megaphone, t: a.title, d: `Aviso de ${a.proName}, ${a.spaceName}` })),
+    ...(pendData?.outras || []).map((o) => ({ key: `o${o.id}`, cor: o.type === 'plano_publicado' ? 'var(--rx-m-alim)' : o.type === 'evento_cancelado' ? 'var(--rx-bad)' : 'var(--rx-m-social)', Icon: o.type === 'plano_publicado' ? Utensils : o.type === 'comentario' ? Megaphone : o.type?.startsWith('evento') ? CalendarClock : Bell, t: { comentario: `Resposta em “${o.title}”`, evento_cancelado: `${o.title} foi cancelado`, evento_texto: `${o.title} foi atualizado`, plano_publicado: `Plano alimentar publicado: ${o.title}` }[o.type] || o.title, d: o.spaceName }))
+  ];
+  const abrirSono = () => { setSleepEdit(true); setTimeout(() => document.getElementById('pnSleepBed')?.focus(), 0); };
+  const beberAgua = () => { addWater(); showToast?.(`+1 copo de água (${waterGlasses + 1} de ${waterTarget})`, () => removeWater()); };
+  useEffect(() => {
+    if (!aguaRequest || aguaAtendida.current === aguaRequest) return;
+    aguaAtendida.current = aguaRequest;
+    beberAgua();
+  }, [aguaRequest]); // eslint-disable-line react-hooks/exhaustive-deps -- atende cada pedido uma vez
+  const acoes = [
+    { id: 'agua', label: 'Beber água', sub: `${waterGlasses} de ${waterTarget} copos`, Icon: Droplets, cor: 'var(--rx-m-agua)', go: beberAgua },
+    focoDisponivel && { id: 'foco', label: 'Começar foco', sub: focoMin ? `${focoMin} min hoje` : 'Sessão de 25 min', Icon: Timer, cor: 'var(--rx-m-foco)', go: () => onSwitchTab?.('focus') },
+    { id: 'habito', label: 'Novo hábito', sub: 'Leva poucos segundos', Icon: CheckCircle2, cor: 'var(--rx-m-habitos)', go: () => onOpenAdd?.('habit') },
+    { id: 'evento', label: 'Novo evento', sub: 'Na sua agenda', Icon: CalendarPlus, cor: 'var(--rx-m-agenda)', go: () => onOpenAdd?.('event') },
+    { id: 'sono', label: 'Registrar sono', sub: sleepLogged ? `${String(hours).replace('.', ',')} h registradas` : 'Ainda não registrado', Icon: Moon, cor: 'var(--rx-m-sono)', go: abrirSono }
+  ].filter(Boolean);
+  const abaHoje = aba || (habits.length === 0 && todayEvents.length > 0 ? 'agenda' : 'habitos');
 
   return (
-    <div className="rx-grid">
-      <div className="rx-day">
-        <header className="rx-hero">
+    <div className="pn">
+      <div className="pn-col">
+        <section className="pn-hero rx-glass-card">
           <DustCanvas variant="head" count={26} />
-          <h1>{dateLong}</h1>
-          <p className="rx-lead">{lead}</p>
+          <div className="pn-hero-main">
+            <h1 className="pn-date">{dateLong}</h1>
+            <p className="pn-hi">{greet}{firstName ? `, ${firstName}` : ''}</p>
+            <p className="pn-lead">{resumo}</p>
+            {destaque && (
+              <div className={`pn-now${live ? ' live' : ''}`}>
+                <span className="rx-tile solid" style={{ '--c': destaque.readOnly ? 'var(--rx-m-espacos)' : 'var(--rx-m-agenda)' }}><CalendarClock size={20} /></span>
+                <div className="tx">
+                  <span className="pn-live">{live ? 'Agora' : `Próximo, às ${next.startTime}`}</span>
+                  <b>{destaque.title}</b>
+                  <small>{destaque.startTime}{destaque.endTime ? ` às ${destaque.endTime}` : ''}{destaque.location ? `, ${destaque.location}` : ''}{destaque.readOnly ? `, ${destaque.spaceName}` : ''}</small>
+                </div>
+                {focoDisponivel && <button type="button" className="rx-btn tiny" onClick={() => onSwitchTab?.('focus')}><Play size={15} />Focar agora</button>}
+              </div>
+            )}
+            {pendencias > 0 && (
+              <div className="es-banner" role="status" data-testid="painel-pendencias">
+                <Bell size={18} />
+                <span className="grow">{pendencias === 1 ? '1 notificação' : `${pendencias} notificações`} dos seus espaços.</span>
+                <button type="button" className="rx-link" onClick={onOpenPendencias}>Ver notificações</button>
+              </div>
+            )}
+          </div>
           {total > 0 && (
-            <div className="rx-meter-row">
-              <span>{doneCount} de {total} hábitos concluídos</span>
-              <ProgressMeter pct={taskPct} label="Progresso dos hábitos de hoje" />
-              <span className="pct">{taskPct}%</span>
-            </div>
+            <div className="pn-ring big" style={{ '--p': taskPct, '--c': 'var(--rx-m-habitos)' }} role="img" aria-label={`${taskPct}% dos hábitos de hoje`}><b>{taskPct}%</b></div>
           )}
-          {pendencias > 0 && (
-            <div className="es-banner" role="status" data-testid="painel-pendencias">
-              <Bell size={18} />
-              <span className="grow">{pendencias === 1 ? '1 pendência' : `${pendencias} pendências`} dos seus espaços.</span>
-              <button type="button" className="rx-link" onClick={onOpenPendencias}>Ver pendências</button>
-            </div>
-          )}
-        </header>
+        </section>
 
-        <div className="rx-trail">
+        <section className="pn-quick" aria-label="Ações rápidas">
+          {acoes.map((a) => (
+            <button key={a.id} type="button" className="pn-qa rx-glass-card" style={{ '--c': a.cor }} onClick={a.go} data-testid={`pn-acao-${a.id}`}>
+              <span className="rx-tile solid lg"><a.Icon size={24} strokeWidth={1.9} /></span>
+              <span><b>{a.label}</b><small>{a.sub}</small></span>
+            </button>
+          ))}
+        </section>
+
+        <section className="pn-stats" aria-label="Seu dia em números">
+          <div className="pn-stat rx-glass-card" style={{ '--c': 'var(--rx-m-habitos)' }}>
+            <h3><span className="rx-tile sm"><CheckCircle2 size={17} /></span>Hábitos</h3>
+            <div className="v">{doneCount}<small> de {total}</small></div>
+            <ProgressMeter size="mini" pct={taskPct} label="Progresso dos hábitos de hoje" />
+          </div>
+          <div className="pn-stat rx-glass-card" style={{ '--c': 'var(--rx-m-agua)' }}>
+            <h3><span className="rx-tile sm"><Droplets size={17} /></span>Água</h3>
+            <div className="v">{waterGlasses}<small> de {waterTarget} copos</small></div>
+            <div className="ft">
+              <div className="pn-cups" aria-hidden="true">{Array.from({ length: Math.min(waterTarget, 12) }, (_, k) => <i key={k} className={k < Math.round((waterGlasses / waterTarget) * Math.min(waterTarget, 12)) ? 'on' : ''} />)}</div>
+              <div className="rx-stepper sm">
+                <button type="button" onClick={removeWater} disabled={waterGlasses <= 0} aria-label="Remover último copo"><Minus size={16} /></button>
+                <button type="button" className="plus" onClick={addWater} aria-label="Adicionar um copo"><Plus size={16} /></button>
+              </div>
+            </div>
+          </div>
+          <div className="pn-stat rx-glass-card" style={{ '--c': 'var(--rx-m-sono)' }}>
+            <h3><span className="rx-tile sm"><Moon size={17} /></span>Sono</h3>
+            {!sleepEdit && sleepLogged && (<>
+              <div className="v">{String(hours).replace('.', ',')}<small> h</small></div>
+              <p>Dormiu {health.sleep.bedTime}, acordou {health.sleep.wakeTime}</p>
+              <div className="ft"><button type="button" className="rx-btn ghost tiny" onClick={abrirSono}>Editar</button></div>
+            </>)}
+            {sleepEdit && (
+              <form className="rx-form-inline" onSubmit={saveSleep}>
+                <label>Dormiu <input id="pnSleepBed" type="time" value={bedIn} onChange={(e) => setBedIn(e.target.value)} required /></label>
+                <label>Acordou <input type="time" value={wakeIn} onChange={(e) => setWakeIn(e.target.value)} required /></label>
+                <button type="submit" className="rx-btn tiny">Salvar</button>
+                <button type="button" className="rx-btn ghost tiny" onClick={() => setSleepEdit(false)}>Cancelar</button>
+              </form>
+            )}
+            {!sleepEdit && !sleepLogged && (<>
+              <div className="v muted">–</div>
+              <div className="ft"><button type="button" className="rx-btn ghost tiny" onClick={abrirSono}>Registrar sono</button></div>
+            </>)}
+          </div>
+          {focoDisponivel ? (
+            <div className="pn-stat rx-glass-card" style={{ '--c': 'var(--rx-m-foco)' }}>
+              <h3><span className="rx-tile sm"><Timer size={17} /></span>Foco</h3>
+              <div className="v">{focoMin}<small> min hoje</small></div>
+              <div className="ft"><button type="button" className="rx-btn ghost tiny" onClick={() => onSwitchTab?.('focus')}><Play size={14} />Abrir foco</button></div>
+            </div>
+          ) : (
+            <div className="pn-stat rx-glass-card" style={{ '--c': 'var(--rx-m-treino)' }}>
+              <h3><span className="rx-tile sm"><Dumbbell size={17} /></span>Treino</h3>
+              <div className="v">{todayWorkouts.length}<small> {todayWorkouts.length === 1 ? 'ficha hoje' : 'fichas hoje'}</small></div>
+              <div className="ft"><button type="button" className="rx-btn ghost tiny" onClick={() => onSwitchTab?.('workouts')}>Abrir treino</button></div>
+            </div>
+          )}
+        </section>
+
+        <section className="pn-today rx-glass-card">
+          <div className="pn-today-head">
+            <h2>Hoje</h2>
+            {!isEmpty && (
+              <div className="tl-seg" role="group" aria-label="O que mostrar">
+                <button type="button" aria-pressed={abaHoje === 'habitos'} onClick={() => setAba('habitos')}>Hábitos <span>{pending.length}</span></button>
+                <button type="button" aria-pressed={abaHoje === 'agenda'} onClick={() => setAba('agenda')}>Agenda <span>{todayEvents.length + todayWorkouts.length}</span></button>
+              </div>
+            )}
+          </div>
           {isEmpty ? (
             <div className="rx-empty">
               <h2>Seu dia está livre</h2>
               <p>Você ainda não tem hábitos nem compromissos para hoje. Comece criando o primeiro.</p>
-              <button type="button" className="rx-btn" onClick={() => onOpenAdd?.()}><Plus size={18} />Criar hábito</button>
+              <button type="button" className="rx-btn" onClick={() => onOpenAdd?.('habit')}><Plus size={18} />Criar hábito</button>
             </div>
+          ) : abaHoje === 'habitos' ? (
+            <section className="rx-loose">
+              <ul>{pending.map(habitRow)}</ul>
+              {habits.length === 0 && <p className="rx-sub">Nenhum hábito ainda. <button type="button" className="rx-link" onClick={() => onOpenAdd?.('habit')}>Criar hábito</button></p>}
+              {pending.length === 0 && habits.length > 0 && <p className="rx-sub">Todos os hábitos de hoje foram concluídos.</p>}
+              {completed.length > 0 && (
+                <details className="rx-done-box" open={doneOpen} onToggle={(e) => setDoneOpen(e.currentTarget.open)}>
+                  <summary><ChevronDown size={18} /><span>Concluídos ({completed.length})</span></summary>
+                  <ul>{completed.map(habitRow)}</ul>
+                </details>
+              )}
+            </section>
           ) : (
             <>
               {spineItems.length > 0 && (
@@ -279,96 +399,67 @@ export function PainelTab({
                   ) : eventRow(it))}
                 </ol>
               )}
-
-              <section className="rx-loose">
-                <h2>Ao longo do dia <small>{allDay.length ? 'Hábitos e compromissos de dia inteiro' : 'Hábitos sem horário fixo'}</small></h2>
-                <ul>
-                  {allDay.map((e) => eventRow({ ...e, startTime: '' }))}
-                  {pending.map(habitRow)}
-                </ul>
-                {pending.length === 0 && allDay.length === 0 && habits.length > 0 && (
-                  <p className="rx-sub">Todos os hábitos de hoje foram concluídos.</p>
-                )}
-                {completed.length > 0 && (
-                  <details className="rx-done-box" open={doneOpen} onToggle={(e) => setDoneOpen(e.currentTarget.open)}>
-                    <summary><ChevronDown size={18} /><span>Concluídos ({completed.length})</span></summary>
-                    <ul>{completed.map(habitRow)}</ul>
-                  </details>
-                )}
-              </section>
+              {(allDay.length > 0 || todayWorkouts.length > 0) && (
+                <section className="rx-loose">
+                  <h2>Ao longo do dia <small>Compromissos de dia inteiro e treinos</small></h2>
+                  <ul>
+                    {allDay.map((e) => eventRow({ ...e, startTime: '' }))}
+                    {todayWorkouts.map((w) => (
+                      <li key={`w${w.id}`} className="rx-row">
+                        <div className="body"><div className="title"><span className="t">Treino: {w.name}</span></div><div className="rx-meta"><span>Ficha agendada para hoje</span></div></div>
+                        <div className="rx-act"><button type="button" className="rx-btn ghost tiny" onClick={() => onSwitchTab?.('workouts')}>Abrir treino</button></div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {todayEvents.length === 0 && todayWorkouts.length === 0 && <p className="rx-sub">Sem compromissos hoje. <button type="button" className="rx-link" onClick={() => onOpenAdd?.('event')}>Novo evento</button></p>}
             </>
           )}
-        </div>
-
-        <section className="rx-strip" aria-label="Corpo e foco">
-          <div className="rx-seg">
-            <h3><Droplets size={18} />Água</h3>
-            <div className="v">{waterGlasses} <small>de {waterTarget} copos</small></div>
-            <div className="rx-ticks">{Array.from({ length: Math.min(waterTarget, 16) }, (_, k) => <i key={k} className={k < Math.round((waterGlasses / waterTarget) * Math.min(waterTarget, 16)) ? 'on' : ''} />)}</div>
-            <p>{((waterGlasses * glassMl) / 1000).toFixed(2).replace('.', ',')} L de {((waterTarget * glassMl) / 1000).toFixed(1).replace('.', ',')} L</p>
-            <div className="rx-row-btns">
-              <button type="button" className="rx-btn ghost tiny" onClick={removeWater} disabled={waterGlasses <= 0} aria-label="Remover último copo">−1</button>
-              <button type="button" className="rx-btn tiny" onClick={addWater}><Plus size={16} />1 copo</button>
-            </div>
-          </div>
-          <div className="rx-seg">
-            <h3><Moon size={18} />Sono</h3>
-            {sleepLogged && !sleepEdit ? (
-              <>
-                <div className="v">{String(hours).replace('.', ',')}h</div>
-                <p>Dormiu {health.sleep.bedTime} e acordou {health.sleep.wakeTime}. Meta de {health?.sleep?.targetHours || 8}h.</p>
-                <div className="rx-row-btns"><button type="button" className="rx-btn ghost tiny" onClick={() => setSleepEdit(true)}>Editar</button></div>
-              </>
-            ) : sleepEdit ? (
-              <form className="rx-form-inline" onSubmit={saveSleep}>
-                <label>Dormiu <input type="time" value={bedIn} onChange={(e) => setBedIn(e.target.value)} required /></label>
-                <label>Acordou <input type="time" value={wakeIn} onChange={(e) => setWakeIn(e.target.value)} required /></label>
-                <button type="submit" className="rx-btn tiny">Salvar</button>
-                <button type="button" className="rx-btn ghost tiny" onClick={() => setSleepEdit(false)}>Cancelar</button>
-              </form>
-            ) : (
-              <>
-                <div className="v">—</div>
-                <p>Registre a noite passada para entrar no índice do dia.</p>
-                <div className="rx-row-btns"><button type="button" className="rx-btn ghost tiny" onClick={() => setSleepEdit(true)}>Registrar sono</button></div>
-              </>
-            )}
-          </div>
-          <div className="rx-seg">
-            <h3><Timer size={18} />Foco</h3>
-            <div className="v">Pomodoro</div>
-            <p>Sessões de foco com temporizador e sons.</p>
-            <div className="rx-row-btns"><button type="button" className="rx-btn ghost tiny" onClick={() => onSwitchTab?.('focus')}>Abrir foco</button></div>
-          </div>
-          <div className="rx-seg">
-            <h3><Dumbbell size={18} />Treino</h3>
-            <div className="v">{todayWorkouts[0]?.name || 'Livre'}</div>
-            <p>{todayWorkouts.length ? `${todayWorkouts.length} ficha${todayWorkouts.length > 1 ? 's' : ''} para hoje` : 'Nenhuma ficha agendada para hoje.'}</p>
-            <div className="rx-row-btns"><button type="button" className="rx-btn ghost tiny" onClick={() => onSwitchTab?.('workouts')}>Abrir treino</button></div>
-          </div>
         </section>
       </div>
 
-      <aside className="rx-rail" aria-label="Resumo do dia">
-        <section className="summary">
+      <aside className="pn-col pn-side" aria-label="Resumo do dia">
+        <section className="pn-card rx-glass-card" data-testid="painel-notificacoes">
+          <h2><span className="rx-tile sm solid" style={{ '--c': 'var(--rx-alert)' }}><Bell size={16} /></span>Notificações{notifs.length > 0 && <span className="pn-new">{notifs.length} {notifs.length === 1 ? 'nova' : 'novas'}</span>}</h2>
+          {notifs.length === 0 ? (
+            <p className="rx-sub">Tudo em dia. Convites e avisos dos seus espaços aparecem aqui.</p>
+          ) : (
+            <ul className="pn-nts">
+              {notifs.slice(0, 3).map((n) => (
+                <li key={n.key} style={{ '--c': n.cor }}>
+                  <span className="rx-tile"><n.Icon size={18} /></span>
+                  <div><b>{n.t}</b><small>{n.d}</small></div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {notifs.length > 0 && <button type="button" className="rx-btn ghost tiny pn-full" onClick={onOpenPendencias}>{notifs.length > 3 ? `Ver todas (${notifs.length})` : 'Abrir notificações'}</button>}
+        </section>
+
+        <section className="pn-card rx-glass-card summary">
           <DustCanvas variant="score" count={18} />
           <h2>Vitalidade de hoje</h2>
-          <div className="rx-score"><span className="n">{vitality}</span><span className="w">{vitalityLabel}</span></div>
-          <p className="rx-sub">40% hábitos, 30% água e 30% sono</p>
+          <div className="pn-vit">
+            <div className="pn-ring" style={{ '--p': vitality, '--c': 'var(--rx-violet)' }} role="img" aria-label={`Vitalidade ${vitality}`}><b>{vitality}</b></div>
+            <div><b className="w">{vitalityLabel}</b><p className="rx-sub">40% hábitos, 30% água e 30% sono</p></div>
+          </div>
           <dl className="rx-facts">
             <div><dt>Hábitos</dt><dd>{doneCount}<small> de {total}</small></dd></div>
             <div><dt>Água</dt><dd>{waterPct}<small> %</small></dd></div>
             <div><dt>Sono</dt><dd>{sleepLogged ? String(hours).replace('.', ',') : '—'}<small>{sleepLogged ? ' h' : ''}</small></dd></div>
           </dl>
         </section>
-        <section>
+
+        <section className="pn-card rx-glass-card">
           <h2>Agenda de hoje <button type="button" className="rx-link" onClick={() => onSwitchTab?.('calendar')}>Abrir agenda</button></h2>
           <ul className="rx-list">
             <li><span className="ic"><CalendarClock size={18} /></span><div><b>{todayEvents.length ? `${todayEvents.length} compromisso${todayEvents.length > 1 ? 's' : ''}` : 'Sem compromissos'}</b><p>{next ? `Próximo: ${next.title}, às ${next.startTime}.` : todayEvents.length ? 'Nenhum outro compromisso mais tarde.' : 'Use o botão Novo para agendar.'}</p></div></li>
             {todayWorkouts.length > 0 && <li><span className="ic violet"><Dumbbell size={18} /></span><div><b>Treino: {todayWorkouts[0].name}</b><p>Ficha agendada para hoje.</p></div></li>}
           </ul>
         </section>
-        <section>
+
+        <section className="pn-card rx-glass-card">
           <h2>Histórico</h2>
           <ul className="rx-list">
             <li><span className="ic violet"><History size={18} /></span><div><b>Consistência ao longo das semanas</b><p>Sequências, semanas e insights entram na próxima atualização, calculados a partir dos seus registros.</p></div></li>

@@ -29,7 +29,9 @@ import { CategoryConfigModal } from './components/CategoryConfigModal';
 import { SupportModal } from './components/SupportModal';
 
 import { INITIAL_TAGS, INITIAL_BADGES } from './data/initialData';
-import { Lock, Plus, Bell, X, Users, Play, LifeBuoy } from 'lucide-react';
+import { Lock, Plus, Bell, X, Users, Play, LifeBuoy, CheckCircle2, CalendarPlus, Timer, Droplets, Moon, Dumbbell, StickyNote, ShieldOff, Tag } from 'lucide-react';
+import { TemaBotao } from './components/rx/TemaBotao';
+import { AcoesRapidas } from './components/rx/AcoesRapidas';
 import { Toast } from './components/Toast';
 import { TabErrorBoundary } from './components/TabErrorBoundary';
 import { SpringPageTransition } from './components/ui/MotionPrimitives';
@@ -176,6 +178,11 @@ export function App() {
   // Modals & Header Controls
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalInitialMode, setAddModalInitialMode] = useState('event');
+
+  // Proposta 12: menu único do "+" e pedidos de registro rápido para o Painel
+  const [showAcoes, setShowAcoes] = useState(false);
+  const [aguaPedido, setAguaPedido] = useState(0);
+  const [sonoPedido, setSonoPedido] = useState(0);
 
   const handleOpenAdd = (targetMode = 'event') => {
     setAddModalInitialMode(targetMode);
@@ -596,11 +603,12 @@ export function App() {
             </button>
             <h1 className="rx-top-title">{TAB_TITLES[activeTab] || 'Ethos'}</h1>
             <span className="rx-spacer" />
+            <TemaBotao />
             <PendenciasBell total={pend.data.total} onOpen={() => { setPendOpen(true); pend.refresh(); }} />
             <button type="button" className="rx-icon-btn" onClick={() => setShowSupportModal(true)} title="Suporte" aria-label="Abrir suporte">
               <LifeBuoy size={19} />
             </button>
-            <button type="button" className="rx-btn new" onClick={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}>
+            <button type="button" className="rx-btn new" onClick={() => setShowAcoes(true)} data-testid="topo-novo">
               <Plus size={18} strokeWidth={2.4} />
               <span>Novo</span>
             </button>
@@ -710,7 +718,11 @@ export function App() {
               <PainelTab
                 spaceEvents={pend.spaceEvents}
                 pendencias={pend.data.total}
+                pendData={pend.data}
                 onOpenPendencias={() => { setPendOpen(true); pend.refresh(); }}
+                focoDisponivel={permissions.focus !== false && user?.pagePreferences?.focus !== false}
+                aguaRequest={aguaPedido}
+                sleepRequest={sonoPedido}
                 habits={habits}
                 setHabits={setHabits}
                 events={events}
@@ -719,7 +731,7 @@ export function App() {
                 setHealth={setHealth}
                 tags={tags}
                 user={user}
-                onOpenAdd={() => handleOpenAdd('habit')}
+                onOpenAdd={(m) => handleOpenAdd(m || 'habit')}
                 onSwitchTab={setActiveTab}
                 onToggleEvent={handleToggleEvent}
                 onLogSubclassEffort={handleLogSubclassEffort}
@@ -904,7 +916,7 @@ export function App() {
         <MobileBottomNav
           activeTab={activeTab}
           setActiveTab={(t) => requestLeave(() => setActiveTab(t))}
-          onOpenAdd={() => handleOpenAdd(activeTab === 'habits' ? 'habit' : 'event')}
+          onOpenAdd={() => setShowAcoes(true)}
           isAdmin={isAdmin}
           userPermissions={permissions}
           user={user}
@@ -917,6 +929,27 @@ export function App() {
           hasMealPlan={meal.hasMealPlan}
         />
       )}
+
+      <AcoesRapidas
+        open={showAcoes}
+        onClose={() => setShowAcoes(false)}
+        itens={(() => {
+          const pg = user?.pagePreferences || {};
+          const ir = (t) => requestLeave(() => setActiveTab(t));
+          const noPainel = (pedir) => requestLeave(() => { setActiveTab('dashboard'); pedir(Date.now()); });
+          return [
+            pg.habits !== false && permissions.habits !== false && { id: 'habito', label: 'Hábito', icon: CheckCircle2, cor: 'var(--rx-m-habitos)', onSelect: () => handleOpenAdd('habit') },
+            pg.calendar !== false && { id: 'evento', label: 'Evento', icon: CalendarPlus, cor: 'var(--rx-m-agenda)', onSelect: () => handleOpenAdd('event') },
+            pg.focus !== false && permissions.focus !== false && { id: 'foco', label: 'Foco', icon: Timer, cor: 'var(--rx-m-foco)', onSelect: () => ir('focus') },
+            { id: 'agua', label: 'Copo de água', icon: Droplets, cor: 'var(--rx-m-agua)', onSelect: () => noPainel(setAguaPedido) },
+            { id: 'sono', label: 'Sono', icon: Moon, cor: 'var(--rx-m-sono)', onSelect: () => noPainel(setSonoPedido) },
+            pg.workouts !== false && permissions.workouts !== false && { id: 'treino', label: 'Treino', icon: Dumbbell, cor: 'var(--rx-m-treino)', onSelect: () => ir('workouts') },
+            pg.notes !== false && { id: 'nota', label: 'Nota', icon: StickyNote, cor: 'var(--rx-m-notas)', onSelect: () => ir('notes') },
+            pg.bad_habits !== false && { id: 'mau', label: 'Mau hábito', icon: ShieldOff, cor: 'var(--rx-m-maus)', onSelect: () => ir('bad_habits') },
+            { id: 'categoria', label: 'Categoria', icon: Tag, cor: 'var(--rx-m-analise)', onSelect: () => handleOpenCreateCategory() }
+          ].filter(Boolean);
+        })()}
+      />
 
       <PendenciasDrawer open={pendOpen} onClose={() => setPendOpen(false)} data={pend.data} onChanged={pend.refresh} toast={showToast} onOpenTab={(t) => { setPendOpen(false); setActiveTab(t); }} />
 

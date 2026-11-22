@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { lerMenuRecolhido, salvarMenuRecolhido } from './rx/tema';
+import { corModulo } from './rx/modulos';
 import '../styles/espacos.css';
 import {
   User, LayoutGrid, Calendar, TrendingUp, Plus, Settings, LogOut, ShieldAlert, Timer,
-  Dumbbell, Users, CheckCircle2, ShieldOff, LifeBuoy, Menu, StickyNote, Building2, Ticket, ClipboardList, Utensils
+  Dumbbell, Users, CheckCircle2, ShieldOff, LifeBuoy, Menu, StickyNote, Building2, Ticket, ClipboardList, Utensils, ChevronsLeft
 } from 'lucide-react';
 
 /**
@@ -100,6 +102,8 @@ export function DesktopSidebar({
 }) {
   const inSpace = Boolean(proMode && pro?.status === 'ativo');
   const modules = inSpace ? proModules(pro) : buildModules(user, userPermissions, { hasMealPlan });
+  const [mini, setMini] = useState(lerMenuRecolhido);
+  const alternarMini = () => { const v = !mini; setMini(v); salvarMenuRecolhido(v); };
   const groups = [];
   modules.forEach((m) => {
     const last = groups[groups.length - 1];
@@ -108,11 +112,16 @@ export function DesktopSidebar({
   });
 
   return (
-    <aside className="rx-side" aria-label="Navegação principal">
-      <button type="button" className="rx-brand" onClick={() => setActiveTab('dashboard')} aria-label="Ethos, ir para o painel">
-        <BrandMark id="rxBrandSide" />
-        <span>ethos</span>
-      </button>
+    <aside className={`rx-side${mini ? ' mini' : ''}`} aria-label="Navegação principal">
+      <div className="rx-side-head">
+        <button type="button" className="rx-brand" onClick={() => setActiveTab('dashboard')} aria-label="Ethos, ir para o painel">
+          <BrandMark id="rxBrandSide" />
+          <span>ethos</span>
+        </button>
+        <button type="button" className="rx-nav-btn rx-collapse" onClick={alternarMini} aria-pressed={mini} aria-label={mini ? 'Expandir menu' : 'Recolher menu'} title={mini ? 'Expandir menu' : 'Recolher menu'} data-testid="menu-recolher">
+          <span className="rx-tile"><ChevronsLeft className="rx-i" strokeWidth={1.9} /></span>
+        </button>
+      </div>
 
       <ContextSwitch pro={pro} proMode={inSpace} onToggleProMode={onToggleProMode} />
 
@@ -129,9 +138,11 @@ export function DesktopSidebar({
                   className="rx-nav-btn"
                   aria-current={activeTab === m.id ? 'page' : undefined}
                   onClick={() => setActiveTab(m.id)}
+                  title={mini ? m.label : undefined}
+                  style={{ '--c': corModulo(m.id) }}
                 >
-                  <Icon className="rx-i" strokeWidth={1.75} />
-                  <span>{m.label}</span>
+                  <span className="rx-tile"><Icon className="rx-i" strokeWidth={1.9} /></span>
+                  <span className="lbl">{m.label}</span>
                 </button>
               );
             })}
@@ -164,29 +175,29 @@ export function DesktopSidebar({
 
       <div className="rx-side-foot">
         {isAdmin && (
-          <button type="button" className="rx-nav-btn" aria-current={activeTab === 'admin' ? 'page' : undefined} onClick={() => setActiveTab('admin')}>
-            <ShieldAlert className="rx-i" strokeWidth={1.75} />
-            <span>Portal admin</span>
+          <button type="button" className="rx-nav-btn" aria-current={activeTab === 'admin' ? 'page' : undefined} onClick={() => setActiveTab('admin')} title={mini ? 'Portal admin' : undefined} style={{ '--c': corModulo('admin') }}>
+            <span className="rx-tile"><ShieldAlert className="rx-i" strokeWidth={1.9} /></span>
+            <span className="lbl">Portal admin</span>
           </button>
         )}
-        <button type="button" className="rx-nav-btn" onClick={() => onOpenSupport?.()}>
-          <LifeBuoy className="rx-i" strokeWidth={1.75} />
-          <span>Suporte</span>
+        <button type="button" className="rx-nav-btn" onClick={() => onOpenSupport?.()} title={mini ? 'Suporte' : undefined}>
+          <span className="rx-tile"><LifeBuoy className="rx-i" strokeWidth={1.9} /></span>
+          <span className="lbl">Suporte</span>
         </button>
-        <button type="button" className="rx-nav-btn" onClick={() => onOpenAuth?.()}>
-          <Settings className="rx-i" strokeWidth={1.75} />
-          <span>Configurações</span>
+        <button type="button" className="rx-nav-btn" onClick={() => onOpenAuth?.()} title={mini ? 'Configurações' : undefined}>
+          <span className="rx-tile"><Settings className="rx-i" strokeWidth={1.9} /></span>
+          <span className="lbl">Configurações</span>
         </button>
-        <button type="button" className="rx-me" onClick={() => onOpenProfile?.()}>
+        <button type="button" className="rx-me" onClick={() => onOpenProfile?.()} title={mini ? (user?.name || user?.username || 'Perfil') : undefined}>
           <span className="rx-avatar">{initials(user)}</span>
           <span>
             <b>{user?.name || user?.username || 'Visitante'}</b>
             <small>{user?.subscription_tier || 'Conta Ethos'}</small>
           </span>
         </button>
-        <button type="button" className="rx-nav-btn" onClick={() => onLogout?.()}>
-          <LogOut className="rx-i" strokeWidth={1.75} />
-          <span>Sair</span>
+        <button type="button" className="rx-nav-btn" onClick={() => onLogout?.()} title={mini ? 'Sair' : undefined}>
+          <span className="rx-tile"><LogOut className="rx-i" strokeWidth={1.9} /></span>
+          <span className="lbl">Sair</span>
         </button>
       </div>
     </aside>
@@ -236,7 +247,7 @@ export function MobileBottomNav({
       <nav className="rx-tabbar" aria-label="Navegação">
         {tab('dashboard', 'Painel', LayoutGrid)}
         {modules.some((m) => m.id === 'habits') ? tab('habits', 'Hábitos', CheckCircle2) : tab('calendar', 'Agenda', Calendar)}
-        <button type="button" className="fab" aria-label="Novo" onClick={() => onOpenAdd?.()}>
+        <button type="button" className="fab" aria-label="Criar ou registrar" onClick={() => onOpenAdd?.()} data-testid="dock-mais">
           <span className="c"><Plus className="rx-i" strokeWidth={2.2} /></span>
           <span>Novo</span>
         </button>
@@ -258,8 +269,8 @@ export function MobileBottomNav({
               {modules.map((m) => {
                 const Icon = m.icon;
                 return (
-                  <button key={m.id} type="button" aria-current={activeTab === m.id ? 'page' : undefined} onClick={() => go(m.id)}>
-                    <Icon className="rx-i" strokeWidth={1.75} />
+                  <button key={m.id} type="button" aria-current={activeTab === m.id ? 'page' : undefined} onClick={() => go(m.id)} style={{ '--c': corModulo(m.id) }}>
+                    <span className="rx-tile sm"><Icon className="rx-i" strokeWidth={1.9} /></span>
                     <span>{m.label}</span>
                   </button>
                 );
