@@ -20,7 +20,8 @@ import { requestLeave, UnsavedHost } from './hooks/useUnsavedGuard';
 import { FocusTab } from './components/FocusTab';
 import { AgendaTab } from './components/agenda/AgendaTab';
 import { AnaliseTab } from './components/analise/AnaliseTab';
-import { SocialTab } from './components/SocialTab';
+import { SocialTab } from './components/SocialTab'; // eslint-disable-line no-unused-vars -- tela antiga preservada (proposta 14)
+import { ComunidadeTab } from './components/comunidade/ComunidadeTab';
 import { PerfilTab } from './components/perfil/PerfilTab';
 import { AuthModal } from './components/AuthModal';
 import { ProfileModal } from './components/ProfileModal';
@@ -866,8 +867,13 @@ export function App() {
               )
             )}
 
+            {/* Proposta 14: Comunidade no visual novo, fora da folha escura (a SocialTab continua no código) */}
+            {activeTab === 'social' && permissions.social !== false && (
+              <ComunidadeTab user={user} friends={friends} setFriends={setFriends} />
+            )}
+
             {/* DEMAIS ABAS (COM CONTAINER ESCURO ELEGANTE PARA PRESERVAR CONTRASTE DOS COMPONENTES INTERNOS) */}
-            {activeTab !== 'dashboard' && activeTab !== 'notes' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && !(activeTab === 'telemetry' && permissions.telemetry !== false) && activeTab !== 'admin' && activeTab !== 'espacos' && activeTab !== 'alimentacao' && !String(activeTab).startsWith('pro-') && (
+            {activeTab !== 'dashboard' && activeTab !== 'notes' && activeTab !== 'focus' && activeTab !== 'calendar' && activeTab !== 'workouts' && activeTab !== 'habits' && activeTab !== 'bad_habits' && activeTab !== 'profile' && !(activeTab === 'telemetry' && permissions.telemetry !== false) && activeTab !== 'admin' && activeTab !== 'espacos' && activeTab !== 'alimentacao' && !String(activeTab).startsWith('pro-') && !(activeTab === 'social' && permissions.social !== false) && (
               <div className="rx-sheet-dark">
                 {/* TAB 5: TELEMETRIA / ANÁLISE DE PROGRESSO */}
                 {activeTab === 'telemetry' && (
