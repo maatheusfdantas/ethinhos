@@ -50,7 +50,13 @@ Mudou comportamento? Escreva teste. Mudou tela? Verifique no navegador (desktop 
 Use o modelo de `docs/08-processo-de-revisao.md`: o que mudou (por arquivo), comandos e resultados, o que ficou de fora, riscos, e confirmação de que nada fora do escopo foi tocado. Commits pequenos, em português, `tipo(escopo): descrição`.
 
 ## 8. Decisões vigentes (não reabrir sem o usuário)
-- Visual aprovado e publicado: roxo + azul, fonte Bricolage Grotesque, vidro nas navegações, poeira só onde definido. A paleta azul-marinho/ciano de `docs/00-briefing-antigravity.md` e as propostas verdes **estão obsoletas**.
+- Visual aprovado e publicado (proposta 12, 22/11/2026):
+  - tema claro lavanda (padrão) e escuro, com troca no topo;
+  - identidade roxo + azul e fonte Inter;
+  - cor de apoio por módulo e cartões de vidro;
+  - barra lateral recolhível, dock no celular e "+" único;
+  - poeira só onde definido.
+  O visual escuro único com Bricolage Grotesque (proposta 02), a paleta azul-marinho/ciano de `docs/00-briefing-antigravity.md` e as propostas verdes **estão obsoletos**.
 - Backend oficial: Cloudflare Pages Functions + D1 (`functions/api`). `server/` e `supabase/` não são a fonte da verdade.
 - Todos os módulos continuam acessíveis; nada é escondido em "Capacidades".
 - Login: e-mail e senha, e Google (ativo). **Adiados, não cancelados:** domínio próprio, remetente de e-mail (Resend), login/cadastro Microsoft. Não remova o código, as variáveis nem os dados deles; também não os apresente como funcionando.
