@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Download } from 'lucide-react';
+import { X, Download, Lock, ShieldAlert, Trophy, Clock } from 'lucide-react';
 import '../styles/foco.css';
 import {
   LEVELS, FOCO, CYCLE, LONG_AFTER, THEMES, BADGES, MISSIONS,
@@ -10,7 +10,10 @@ import {
   criarSessao, restanteMs, progresso, minutosFeitos, pausaUsadaMs, pausar, retomar, pausada,
   carregarSessao, salvarSessao
 } from './foco/planta/sessaoFoco';
-import { especiePorId, especiesPorTema, estagioPara, ESPECIE_PADRAO, TEMAS_CULTIVO } from './foco/planta/especies';
+import { ESPECIES, especiePorId, especiesPorTema, estagioPara, ESPECIE_PADRAO, TEMAS_CULTIVO } from './foco/planta/especies';
+import {
+  avaliarDesafiosCultivo, desafioDaEspecie, desafiosRecemDesbloqueados, especieDesbloqueada, tempoMinimoDaEspecie
+} from './foco/planta/desbloqueiosCultivo';
 import { urlDoAsset } from './foco/planta/assets';
 import { Planta } from './foco/planta/Planta';
 
@@ -120,7 +123,8 @@ export function FocusTab({
       badge: `Novo emblema: ${e.name}`,
       met: 'Meta mínima de hoje cumprida. Mais uma estrela na constelação.',
       level: `Você chegou ao nível ${e.name}. O céu ficou um pouco mais denso.`,
-      cycle: `Ciclo de ${CYCLE} sessões fechado. As cinco luas acenderam.`
+      cycle: `Ciclo de ${CYCLE} sessões fechado. As cinco luas acenderam.`,
+      cultivo_unlock: `Desafio "${e.name}" concluído! +${e.qtd} novos cultivos desbloqueados.`
     }[e.type])).filter(Boolean);
     const badge = events.find((e) => e.type === 'badge');
     const id = `t${++toastSeq}`;
@@ -150,7 +154,18 @@ export function FocusTab({
   const total = sess ? sess.duracaoMs / 1000 : mins * 60;
   const left = sess ? restanteMs(sess, agora) / 1000 : mins * 60;
   const pauseLeft = sess ? Math.max(0, MAX_PAUSE_SECONDS - pausaUsadaMs(sess, agora) / 1000) : MAX_PAUSE_SECONDS;
-  const [murcha, setMurcha] = useState(false);
+  const resetFlagKey = `ethos_foco_total_reset_${userId}`;
+  const [focoTotalResetMsg, setFocoTotalResetMsg] = useState(() => {
+    try {
+      if (localStorage.getItem(resetFlagKey)) {
+        localStorage.removeItem(resetFlagKey);
+        return 'Modo Foco Total interrompido! Você trocou de aba e a sessão foi resetada.';
+      }
+    } catch { /* sem armazenamento */ }
+    return '';
+  });
+  const [murcha, setMurcha] = useState(() => Boolean(focoTotalResetMsg));
+  const [bloqueioAviso, setBloqueioAviso] = useState('');
   const [breakInfo, setBreakInfo] = useState(() => ({ long: restaurada?.tipo === 'break' ? !!restaurada.meta?.long : false, act: '' }));
   const [last, setLast] = useState(null);
   const [note, setNote] = useState('');
@@ -200,9 +215,18 @@ export function FocusTab({
   }, [reduce, simple]);
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
 
-  /* ---------- Planta ---------- */
-  const especie = especiePorId(g.especie || ESPECIE_PADRAO);
+  /* ---------- Planta, Desbloqueios e Tempo Mínimo ---------- */
+  const desafiosCultivo = useMemo(() => avaliarDesafiosCultivo(g, ESPECIES), [g]);
+  const totalDesbloqueados = useMemo(
+    () => ESPECIES.filter((e) => especieDesbloqueada(e, desafiosCultivo)).length,
+    [desafiosCultivo]
+  );
+  const especieBruta = especiePorId(g.especie || ESPECIE_PADRAO);
+  const especie = especieDesbloqueada(especieBruta, desafiosCultivo) ? especieBruta : especiePorId(ESPECIE_PADRAO);
   const plantaOn = !!g.planta && !simple;
+  const tempoMinimoAtual = plantaOn ? tempoMinimoDaEspecie(especie) : 0;
+  const abaixoDoMinimo = tempoMinimoAtual > 0 && mins < tempoMinimoAtual;
+  const focoTotalAtivo = Boolean(sess?.meta?.focoTotal);
   const plantaDe = (s, n) => ({ especie: especie.id, estagio: estagioPara(especie, progresso(s, n)).stageId });
 
   /* ---------- Conclusão: regras existentes (horas na subclasse, onFocusComplete) + camada nova ---------- */
@@ -213,14 +237,22 @@ export function FocusTab({
     if (subclassName && onLogSubclassEffort) {
       onLogSubclassEffort(currentCategory.id || currentCategory.name, subclassName, Number((mins / 60).toFixed(2)));
     }
+    const emFocoTotal = Boolean(atual?.meta?.focoTotal);
     const sessionInfo = {
       subject, category: categoryName, subclass: subclassName, durationMins: mins,
       date: new Date().toLocaleDateString('pt-BR'), userName: user?.name || 'Você',
-      fraudProtected: atual ? pausaUsadaMs(atual, n) < MAX_PAUSE_SECONDS * 1000 : true
+      fraudProtected: atual ? pausaUsadaMs(atual, n) < MAX_PAUSE_SECONDS * 1000 : true,
+      focoTotal: emFocoTotal
     };
     onFocusComplete?.(sessionInfo);
     const plant = atual ? plantaDe(atual, n) : null;
-    const r = apply(recordSession(g, { subject, mins, plant }));
+    const r = recordSession(g, { subject, mins, plant, focoTotal: emFocoTotal });
+    const novosDesafios = desafiosRecemDesbloqueados(g, r.state, ESPECIES);
+    const eventosComDesbloqueio = [
+      ...r.events,
+      ...novosDesafios.map((d) => ({ type: 'cultivo_unlock', name: d.titulo, qtd: d.qtdCultivos }))
+    ];
+    apply({ ...r, events: eventosComDesbloqueio });
     setLast({ ...sessionInfo, id: r.state.sessions[0].id, full: true, plant });
     if (atual) gravar(pausar(atual, n), false); // congela em 00:00; não fica guardada
     setAgora(n); setNote(''); setPhase('done'); setGlow((x) => x + 1);
@@ -235,13 +267,36 @@ export function FocusTab({
   const finishBreakRef = useRef(finishBreak);
   useEffect(() => { finishRef.current = finishFocus; finishBreakRef.current = finishBreak; });
 
-  // O relógio só atualiza a tela; o tempo vem dos horários. Ao voltar para a aba, recalcula na hora.
+  const resetarPorFocoTotal = useCallback(() => {
+    gravar(null);
+    setG((st) => ({ ...st, interrupted: true }));
+    setMurcha(true);
+    setStopAsk(null);
+    setPhase('idle');
+    setFocoTotalResetMsg('Modo Foco Total interrompido! Você trocou de aba e a sessão foi resetada.');
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Se o Modo Foco Total estiver ativo e o usuário trocar de aba interna (desmontar FocusTab), reseta a sessão.
+  useEffect(() => () => {
+    const atual = sessRef.current;
+    if (atual?.tipo === 'focus' && atual?.meta?.focoTotal && !pausada(atual)) {
+      salvarSessao(userId, null);
+      try { localStorage.setItem(resetFlagKey, '1'); } catch { /* sem armazenamento */ }
+    }
+  }, [userId, resetFlagKey]);
+
+  // O relógio só atualiza a tela; o tempo vem dos horários. No Modo Foco Total, trocar de aba reseta a sessão.
   useEffect(() => {
     if (phase !== 'focus' && phase !== 'break' && phase !== 'paused') return undefined;
     let fechou = false;
     const tick = () => {
       if (fechou) return;
       const n = Date.now(); const atual = sessRef.current;
+      if (phase === 'focus' && atual?.meta?.focoTotal && (document.hidden || document.visibilityState === 'hidden')) {
+        fechou = true;
+        resetarPorFocoTotal();
+        return;
+      }
       setAgora(n);
       if (phase === 'paused' || !atual || restanteMs(atual, n) > 0) return;
       fechou = true;
@@ -251,11 +306,24 @@ export function FocusTab({
     const t = setInterval(tick, 250);
     document.addEventListener('visibilitychange', tick);
     return () => { fechou = true; clearInterval(t); document.removeEventListener('visibilitychange', tick); };
-  }, [phase]);
+  }, [phase, resetarPorFocoTotal]);
 
   const start = () => {
+    if (abaixoDoMinimo) return;
     const n = Date.now();
-    gravar(criarSessao({ minutos: mins, agora: n, meta: { mins, categoryId: currentCategory.id || currentCategory.name, subclass: selectedSubclassName, intensity } }));
+    setFocoTotalResetMsg('');
+    setBloqueioAviso('');
+    gravar(criarSessao({
+      minutos: mins,
+      agora: n,
+      meta: {
+        mins,
+        categoryId: currentCategory.id || currentCategory.name,
+        subclass: selectedSubclassName,
+        intensity,
+        focoTotal: Boolean(g.focoTotal)
+      }
+    }));
     setAgora(n); setMurcha(false); setPhase('focus'); burst('start');
   };
   const pause = () => { gravar(pausar(sess, Date.now())); setPhase('paused'); };
@@ -399,6 +467,17 @@ export function FocusTab({
         </div>
         <div className="rf-tools">
           {!simple && <button type="button" className="rf-switch" role="switch" aria-checked={!!g.planta} onClick={() => set({ planta: !g.planta })}><span className="knob" />Planta</button>}
+          <button
+            type="button"
+            className="rf-switch"
+            role="switch"
+            aria-checked={!!g.focoTotal}
+            data-testid="rf-switch-foco-total"
+            disabled={running}
+            onClick={() => set({ focoTotal: !g.focoTotal })}
+          >
+            <span className="knob" />Modo Foco Total
+          </button>
           <button type="button" className="rf-switch" role="switch" aria-checked={simple} onClick={() => set({ simple: !simple })}><span className="knob" />Modo simples</button>
           <button type="button" className="rf-switch" role="switch" aria-checked={!!g.reduce} onClick={() => set({ reduce: !g.reduce })}><span className="knob" />Reduzir movimento</button>
         </div>
@@ -438,6 +517,14 @@ export function FocusTab({
                     </div>
                   </div>
                   <div className="rf-cultivo-right">
+                    {tempoMinimoAtual > 0 && (
+                      <span className="rf-min-pill" data-testid="rf-cultivo-tempo-min">
+                        <Clock size={12} /> Mín. {tempoMinimoAtual} min
+                      </span>
+                    )}
+                    <span className="rf-pal-pill" data-testid="rf-desbloqueados-count">
+                      <Trophy size={12} /> {totalDesbloqueados}/{ESPECIES.length} liberados
+                    </span>
                     {especie.paleta && (
                       <span className="rf-pal-pill">
                         <i style={{ background: especie.paleta.c1 }} />
@@ -464,6 +551,13 @@ export function FocusTab({
                         </div>
                       ))}
                     </div>
+
+                    {bloqueioAviso && (
+                      <div className="rf-lock-banner" role="status" data-testid="rf-bloqueio-aviso">
+                        <Lock size={14} />
+                        <span>{bloqueioAviso}</span>
+                      </div>
+                    )}
 
                     {/* Filtros dos 9 Temas e Busca */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', alignItems: 'center' }}>
@@ -516,21 +610,46 @@ export function FocusTab({
                         })
                         .map((item) => {
                           const selecionado = item.id === especie.id;
+                          const liberado = especieDesbloqueada(item, desafiosCultivo);
+                          const desafioItem = desafioDaEspecie(item);
+                          const tempoMinItem = tempoMinimoDaEspecie(item);
                           const finalStage = item.estagios[item.estagios.length - 1];
                           return (
                             <button
                               type="button"
                               key={item.id}
-                              className="rf-cat-card"
+                              className={`rf-cat-card${liberado ? '' : ' locked'}`}
                               aria-pressed={selecionado}
+                              aria-disabled={!liberado}
+                              data-locked={liberado ? 'false' : 'true'}
                               data-testid={`rf-cat-item-${item.id}`}
-                              onClick={() => set({ especie: item.id })}
+                              onClick={() => {
+                                if (!liberado) {
+                                  setBloqueioAviso(`Bloqueado: conclua "${desafioItem?.titulo}" (${desafioItem?.descricao}) para liberar ${item.nome}.`);
+                                  return;
+                                }
+                                setBloqueioAviso('');
+                                set({ especie: item.id });
+                                if (tempoMinItem > 0 && mins < tempoMinItem) {
+                                  setMins(tempoMinItem);
+                                  const match = INTENSITY.find((i) => i.mins === tempoMinItem);
+                                  setIntensity(match ? match.id : 'custom');
+                                }
+                              }}
                             >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--rx-ink-2)' }}>
-                                  {item.id === 'lirio-lunar' ? '★ Padrão' : `#${String(item.indiceTema || 1).padStart(2, '0')}`}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--rx-ink-2)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                  {!liberado ? (
+                                    <><Lock size={11} /> Bloqueado</>
+                                  ) : Number(item.indiceTema ?? 0) <= 1 ? (
+                                    '★ Padrão'
+                                  ) : (
+                                    `#${String(item.indiceTema || 1).padStart(2, '0')}`
+                                  )}
                                 </span>
-                                {item.paleta && (
+                                {tempoMinItem > 0 ? (
+                                  <span className="rf-cat-min">Mín. {tempoMinItem}m</span>
+                                ) : item.paleta && (
                                   <span style={{ display: 'inline-flex', gap: 4 }}>
                                     <i style={{ width: 8, height: 8, borderRadius: '50%', background: item.paleta.c1, display: 'inline-block' }} />
                                     <i style={{ width: 8, height: 8, borderRadius: '50%', background: item.paleta.c2, display: 'inline-block' }} />
@@ -544,12 +663,16 @@ export function FocusTab({
                               </div>
                               <div>
                                 <b style={{ display: 'block', fontSize: 13.5 }}>{item.nome}</b>
-                                {item.subtitulo && (
+                                {!liberado && desafioItem ? (
+                                  <small className="rf-cat-req">
+                                    Desbloqueia: {desafioItem.resumoRegra}
+                                  </small>
+                                ) : item.subtitulo && (
                                   <small style={{ display: 'block', fontSize: 11, color: 'var(--rx-ink-2)', marginTop: 2 }}>
                                     {item.subtitulo}
                                   </small>
                                 )}
-                                {item.paleta && (
+                                {liberado && item.paleta && (
                                   <span style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: item.paleta.c1, marginTop: 4 }}>
                                     {item.paleta.nome}
                                   </span>
@@ -697,7 +820,46 @@ export function FocusTab({
                       <span>120 min</span>
                     </div>
                   </div>
-                  <div className="rf-btns"><button type="button" className="rf-btn" onClick={start}>Começar sessão</button></div>
+                  {focoTotalResetMsg && (
+                    <div className="rf-foco-total-alert" role="alert" data-testid="rf-foco-total-reset-banner">
+                      <ShieldAlert size={16} />
+                      <span>{focoTotalResetMsg}</span>
+                    </div>
+                  )}
+
+                  {g.focoTotal && (
+                    <div className="rf-foco-total-info" data-testid="rf-foco-total-badge">
+                      <ShieldAlert size={15} />
+                      <span><b>Modo Foco Total ativado:</b> se você trocar de aba durante a sessão, o cronômetro reseta na hora e a planta murcha.</span>
+                    </div>
+                  )}
+
+                  {abaixoDoMinimo && (
+                    <div className="rf-min-warn" role="alert" data-testid="rf-tempo-minimo-aviso">
+                      <Clock size={15} />
+                      <span>
+                        <b>{especie.nome}</b> exige pelo menos <b>{tempoMinimoAtual} min</b> de foco para ser cultivado.
+                      </span>
+                      <button
+                        type="button"
+                        className="rf-btn ghost"
+                        style={{ padding: '4px 10px', minHeight: 30, fontSize: 12 }}
+                        onClick={() => {
+                          setMins(tempoMinimoAtual);
+                          const match = INTENSITY.find((i) => i.mins === tempoMinimoAtual);
+                          setIntensity(match ? match.id : 'custom');
+                        }}
+                      >
+                        Ajustar para {tempoMinimoAtual} min
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="rf-btns">
+                    <button type="button" className="rf-btn" onClick={start} disabled={abaixoDoMinimo}>
+                      Começar sessão
+                    </button>
+                  </div>
                   {plantaOn && (
                     <p className="rf-hint">{murcha
                       ? 'A planta murchou porque a sessão foi descartada. Na próxima ela recomeça da semente.'
@@ -709,6 +871,12 @@ export function FocusTab({
               {running && (
                 <>
                   <div className="rf-now"><b>{subject}</b><span>{`${mins} minutos${intensity && INTENSITY.find((i) => i.id === intensity) ? ' · ' + INTENSITY.find((i) => i.id === intensity).name.toLowerCase() : ''}`}</span></div>
+                  {focoTotalAtivo && (
+                    <div className="rf-foco-total-info" data-testid="rf-foco-total-running">
+                      <ShieldAlert size={15} />
+                      <span><b>Modo Foco Total ativo:</b> permaneça nesta aba até o fim ou a sessão será resetada.</span>
+                    </div>
+                  )}
                   <p className="rf-text">{phase === 'paused' ? 'Pausado. Continue quando puder.' : 'Celular longe, uma coisa de cada vez.'}</p>
                   <div className="rf-btns">
                     {phase === 'paused' ? <button type="button" className="rf-btn" onClick={resume}>Continuar</button> : <button type="button" className="rf-btn ghost" onClick={pause}>Pausar</button>}
@@ -896,6 +1064,38 @@ export function FocusTab({
                 ))}
               </ul>
             )}
+          </section>
+
+          {/* DESAFIOS E DESBLOQUEIOS DE CULTIVO */}
+          <section className="rf-card" aria-labelledby="rfDesafios" data-testid="rf-desafios-cultivo">
+            <div className="rf-card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <h3 id="rfDesafios">Desafios de Cultivo</h3>
+                <p className="rf-sub">
+                  Conclua sessões de diferentes durações e desafios para desbloquear novos cultivos em todos os temas.
+                </p>
+              </div>
+              <span className="rf-pal-pill">
+                <Trophy size={13} /> {desafiosCultivo.filter((d) => d.concluido).length} de {desafiosCultivo.length} desafios · {totalDesbloqueados}/{ESPECIES.length} cultivos
+              </span>
+            </div>
+            <ul className="rf-desafios-grid">
+              {desafiosCultivo.map((d) => (
+                <li key={d.id} className={`rf-desafio${d.concluido ? ' done' : ''}`} data-testid={`rf-desafio-${d.id}`}>
+                  <div className="rf-desafio-top">
+                    <b>{d.titulo}</b>
+                    <span className="rf-desafio-reward">
+                      {d.concluido ? '✓ Liberado' : `+${d.qtdCultivos} cultivos`}
+                    </span>
+                  </div>
+                  <p>{d.descricao}</p>
+                  <div className="rf-desafio-bar" aria-hidden="true">
+                    <i style={{ width: `${d.progressoPct}%` }} />
+                  </div>
+                  <small>{d.atual} / {d.meta} {d.tipo === 'sessao_min' || d.tipo === 'minutos_acumulados' ? 'min' : d.tipo === 'dias_distintos' ? 'dias' : 'sessões'}</small>
+                </li>
+              ))}
+            </ul>
           </section>
         </div>
 
