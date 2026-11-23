@@ -105,9 +105,37 @@ describe('cálculos da Análise', () => {
       agora: new Date('2026-11-22T12:00:00').getTime()
     });
     expect(A.treinoDias).toBe(1);
+    expect(A.treinoTotalSessoes).toBe(2);
+    expect(A.treinoTotalSeries).toBe(4);
     expect(A.agConc).toBe(1);
+    expect(A.taxaAgenda).toBe(50);
     expect(A.evs).toHaveLength(2);
     expect(A.maus[0]).toMatchObject({ limpos: 10, recorde: 10, recaidas: 0, gatilho: 'Tédio' });
+  });
+
+  it('calcula métricas extras reais: dias 100%, litros de água, noites ≥ 7h e ritmo de foco', () => {
+    const datas = datasDoPeriodo(4, HOJE);
+    const m = new Map([
+      [datas[0], dia(datas[0], 3, 3, { waterGlasses: 8, waterTarget: 8, glassMl: 250, sleepLogged: true, sleepBed: '23:00', sleepWake: '07:00', focusMin: 30 })],
+      [datas[1], dia(datas[1], 2, 3, { waterGlasses: 4, waterTarget: 8, glassMl: 500, sleepLogged: true, sleepBed: '01:00', sleepWake: '06:00', focusMin: 60 })],
+      [datas[2], dia(datas[2], 3, 3, { waterGlasses: 0, waterTarget: 8, glassMl: 250, sleepLogged: false, focusMin: 0 })]
+    ]);
+    const A = montarAnalise({
+      porData: m,
+      hoje: HOJE,
+      n: 7,
+      focoSessoesList: [
+        { date: datas[0], mins: 30, full: true },
+        { date: datas[1], mins: 60, full: true }
+      ]
+    });
+    expect(A.diasPerfeitos).toBe(2);
+    expect(A.totalHabitosFeitos).toBe(8);
+    expect(A.totalLitrosAgua).toBeCloseTo(4.0, 2);
+    expect(A.noitesIdeais).toBe(1);
+    expect(A.mediaFocoDia).toBe(45);
+    expect(A.melhorDiaFoco).toBe(60);
+    expect(A.focoSessoes).toBe(2);
   });
 });
 

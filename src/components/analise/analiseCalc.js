@@ -128,9 +128,9 @@ export function mesclarHoje(dias, hoje, resumoHoje) {
 
 /**
  * Monta tudo o que a tela mostra para um período de `n` dias.
- * entrada: { porData (Map), hoje, n, focoLocal (map data->min), sessoes, eventos, maus, agora }
+ * entrada: { porData (Map), hoje, n, focoLocal (map data->min), focoSessoesList (array), sessoes, eventos, maus, agora }
  */
-export function montarAnalise({ porData, hoje, n, focoLocal = {}, sessoes = null, eventos = [], maus = [], agora = Date.now() }) {
+export function montarAnalise({ porData, hoje, n, focoLocal = {}, focoSessoesList = [], sessoes = null, eventos = [], maus = [], agora = Date.now() }) {
   const datas = datasDoPeriodo(n, hoje);
   const anteriores = datasDoPeriodo(n, hoje, n);
   const dias = datas.map((s) => porData.get(s)).filter(Boolean);
@@ -149,6 +149,9 @@ export function montarAnalise({ porData, hoje, n, focoLocal = {}, sessoes = null
   const piorDia = comDado.length > 1 ? comDado.slice().sort((a, b) => a.v - b.v)[0] : null;
   const fds = consistencia(diasHab.filter((d) => [0, 6].includes(deIso(d.date).getDay())));
   const util = consistencia(diasHab.filter((d) => ![0, 6].includes(deIso(d.date).getDay())));
+  const diasPerfeitos = diasHab.filter((d) => d.habitsDone >= d.habitsTotal).length;
+  const totalHabitosFeitos = diasHab.reduce((a, d) => a + (d.habitsDone || 0), 0);
+  const mediaHabitosDia = diasHab.length ? totalHabitosFeitos / diasHab.length : null;
 
   const sem8 = semanas(hoje, 8, (ds) => { const x = ds.map((s) => porData.get(s)).filter((d) => d && d.habitsTotal > 0); return { v: consistencia(x), n: x.length }; });
 
@@ -156,26 +159,36 @@ export function montarAnalise({ porData, hoje, n, focoLocal = {}, sessoes = null
   const diasAgua = dias.filter((d) => d.waterGlasses > 0 || d.waterTarget > 0);
   const agua = datas.map((s) => ({ date: s, d: porData.get(s) }));
   const mediaAgua = diasAgua.length ? diasAgua.reduce((a, d) => a + d.waterGlasses, 0) / diasAgua.length : null;
+  const totalLitrosAgua = diasAgua.reduce((a, d) => a + (Number(d.waterGlasses) || 0) * (Number(d.glassMl) || 250), 0) / 1000;
   const naMeta = diasAgua.filter((d) => d.waterTarget > 0 && d.waterGlasses >= d.waterTarget).length;
   const metaAgua = diasAgua.length ? diasAgua[diasAgua.length - 1].waterTarget : 0;
   const noites = dias.filter((d) => d.sleepLogged && horasDeSono(d.sleepBed, d.sleepWake) != null);
   const mediaSono = noites.length ? noites.reduce((a, d) => a + horasDeSono(d.sleepBed, d.sleepWake), 0) / noites.length : null;
+  const noitesIdeais = noites.filter((d) => horasDeSono(d.sleepBed, d.sleepWake) >= 7).length;
   const varDeitar = variacaoDeitar(noites.map((d) => d.sleepBed));
 
   // Foco: o maior entre o registro do servidor e o que este aparelho guardou
   const foco = datas.map((s) => ({ date: s, v: Math.max(porData.get(s)?.focusMin || 0, Math.round(focoLocal[s] || 0)) }));
   const focoTot = foco.reduce((a, x) => a + x.v, 0);
   const focoDias = foco.filter((x) => x.v > 0).length;
+  const mediaFocoDia = focoDias ? Math.round(focoTot / focoDias) : null;
+  const melhorDiaFoco = focoDias ? Math.max(...foco.map((x) => x.v)) : 0;
+  const focoSessoes = (Array.isArray(focoSessoesList) ? focoSessoesList : [])
+    .filter((s) => s?.full && s?.date && s.date >= datas[0] && s.date <= hoje).length;
 
   // Treino (sessões com pelo menos uma série feita)
   const validas = Array.isArray(sessoes) ? sessoes.filter((s) => s.doneSets > 0 && s.startedAt) : null;
   const diaDaSessao = (s) => isoDia(new Date(s.startedAt));
-  const treinoDias = validas ? new Set(validas.map(diaDaSessao).filter((s) => s >= datas[0] && s <= hoje)).size : null;
+  const validasPeriodo = validas ? validas.filter((s) => { const d = diaDaSessao(s); return d >= datas[0] && d <= hoje; }) : null;
+  const treinoDias = validasPeriodo ? new Set(validasPeriodo.map(diaDaSessao)).size : null;
+  const treinoTotalSessoes = validasPeriodo ? validasPeriodo.length : null;
+  const treinoTotalSeries = validasPeriodo ? validasPeriodo.reduce((a, s) => a + (Number(s.doneSets) || 0), 0) : null;
   const treinoSem = validas ? semanas(hoje, 8, (ds) => ({ v: new Set(validas.map(diaDaSessao).filter((s) => ds.includes(s))).size })) : null;
 
   // Agenda: eventos com data no período (sem expandir repetições)
   const evs = (eventos || []).filter((e) => e?.date && e.date.slice(0, 10) >= datas[0] && e.date.slice(0, 10) <= hoje);
   const agConc = evs.filter((e) => e.completed).length;
+  const taxaAgenda = evs.length ? pct(agConc, evs.length) : null;
   const agSem = semanas(hoje, 8, (ds) => { const x = (eventos || []).filter((e) => e?.date && ds.includes(e.date.slice(0, 10))); return { v: x.filter((e) => e.completed).length, t: x.length }; });
 
   // Maus hábitos
@@ -216,7 +229,9 @@ export function montarAnalise({ porData, hoje, n, focoLocal = {}, sessoes = null
 
   return {
     datas, dias, diasHab, registrados: dias.length, pouco, c, delta, seq, habitos, top, low, categorias, diaSem, melhorDia, piorDia, sem8,
-    agua, diasAgua, mediaAgua, naMeta, metaAgua, noites, mediaSono, varDeitar,
-    foco, focoTot, focoDias, treinoDias, treinoSem, evs, agConc, agSem, maus: mausOut, notas, frase
+    fds, util, diasPerfeitos, totalHabitosFeitos, mediaHabitosDia,
+    agua, diasAgua, mediaAgua, totalLitrosAgua, naMeta, metaAgua, noites, mediaSono, noitesIdeais, varDeitar,
+    foco, focoTot, focoDias, mediaFocoDia, melhorDiaFoco, focoSessoes,
+    treinoDias, treinoTotalSessoes, treinoTotalSeries, treinoSem, evs, agConc, taxaAgenda, agSem, maus: mausOut, notas, frase
   };
 }
