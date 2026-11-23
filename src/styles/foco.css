@@ -352,3 +352,29 @@ button.rf-missions .dot, .rf-missions button.dot { cursor: pointer; }
   color: var(--rx-ink);
   font-weight: 620;
 }
+
+/* Desbloqueios de cultivo, tempo mínimo e Modo Foco Total (tokens --rx-*) */
+.rf-min-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--rx-amber-wash); color: var(--rx-amber); font-size: 11px; font-weight: 700; }
+.rf-cat-card.locked { opacity: .72; border-style: dashed; background: var(--rx-wash); }
+.rf-cat-card.locked .rf-cat-art img { filter: grayscale(0.85) opacity(0.6); }
+.rf-cat-min { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 99px; background: var(--rx-amber-wash); color: var(--rx-amber); }
+.rf-cat-req { display: block; font-size: 11px; color: var(--rx-lavender); font-weight: 620; margin-top: 3px; }
+.rf-lock-banner { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--rx-violet-wash); border: 1px solid var(--rx-line-2); color: var(--rx-ink); font-size: 13px; margin-bottom: 10px; }
+.rf-foco-total-info { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--rx-violet-wash); border: 1px solid var(--rx-line-2); color: var(--rx-ink); font-size: 13px; line-height: 1.45; }
+.rf-foco-total-info svg { color: var(--rx-lavender); flex: none; }
+.rf-foco-total-alert { display: flex; align-items: center; gap: 8px; padding: 11px 13px; border-radius: 12px; background: var(--rx-bad-wash); border: 1px solid color-mix(in srgb, var(--rx-bad) 35%, transparent); color: var(--rx-bad); font-size: 13px; font-weight: 620; line-height: 1.45; }
+.rf-foco-total-alert svg { flex: none; }
+.rf-min-warn { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: var(--rx-amber-wash); border: 1px solid color-mix(in srgb, var(--rx-amber) 35%, transparent); color: var(--rx-ink); font-size: 13px; line-height: 1.45; }
+.rf-min-warn svg { color: var(--rx-amber); flex: none; }
+.rf-desafios-grid { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.rf-desafio { padding: 12px 14px; border-radius: 14px; background: var(--rx-wash); border: 1px solid var(--rx-line); display: flex; flex-direction: column; gap: 6px; }
+.rf-desafio.done { border-color: color-mix(in srgb, var(--rx-m-habitos) 45%, var(--rx-line)); background: color-mix(in srgb, var(--rx-m-habitos) 7%, var(--rx-card)); }
+.rf-desafio-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rf-desafio-top b { font-size: 13.5px; color: var(--rx-ink); font-weight: 680; }
+.rf-desafio-reward { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--rx-violet-wash); color: var(--rx-lavender); white-space: nowrap; }
+.rf-desafio.done .rf-desafio-reward { background: color-mix(in srgb, var(--rx-m-habitos) 16%, transparent); color: var(--rx-m-habitos); }
+.rf-desafio p { margin: 0; font-size: 12.2px; color: var(--rx-ink-2); line-height: 1.4; }
+.rf-desafio small { font-size: 11.5px; color: var(--rx-ink-3); font-variant-numeric: tabular-nums; }
+.rf-desafio-bar { height: 6px; border-radius: 99px; background: var(--rx-card-2); overflow: hidden; }
+.rf-desafio-bar i { display: block; height: 100%; border-radius: inherit; background: var(--rx-grad); }
+.rf-desafio.done .rf-desafio-bar i { background: var(--rx-m-habitos); }

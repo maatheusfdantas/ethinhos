@@ -53,11 +53,15 @@ export function AnaliseProgresso({ user, habits = [], health = {}, events = [] }
     return () => { vivo = false; };
   }, [uid, hoje]);
 
+  const focoState = useMemo(() => {
+    try { return loadFoco(uid); } catch { return { days: {}, sessions: [] }; }
+  }, [uid]);
+
   const focoLocal = useMemo(() => {
     const out = {};
-    try { Object.entries(loadFoco(uid)?.days || {}).forEach(([d, v]) => { out[d] = Number(v?.min || 0); }); } catch { /* sem foco */ }
+    Object.entries(focoState?.days || {}).forEach(([d, v]) => { out[d] = Number(v?.min || 0); });
     return out;
-  }, [uid]);
+  }, [focoState]);
 
   const maus = useMemo(() => {
     try { const s = localStorage.getItem(`ethos_bad_habits_${uid || 'default'}`); const l = s ? JSON.parse(s) : []; return Array.isArray(l) ? l : []; } catch { return []; }
@@ -67,7 +71,10 @@ export function AnaliseProgresso({ user, habits = [], health = {}, events = [] }
     () => mesclarHoje(registro.dias, hoje, resumoDoDia({ habits, health, focusMin: uid ? focoMinutos(uid, hoje) : 0 })),
     [registro.dias, hoje, habits, health, uid]
   );
-  const A = useMemo(() => montarAnalise({ porData, hoje, n, focoLocal, sessoes, eventos: events, maus }), [porData, hoje, n, focoLocal, sessoes, events, maus]);
+  const A = useMemo(
+    () => montarAnalise({ porData, hoje, n, focoLocal, focoSessoesList: focoState?.sessions || [], sessoes, eventos: events, maus }),
+    [porData, hoje, n, focoLocal, focoState?.sessions, sessoes, events, maus]
+  );
 
   const desde = registro.since && registro.since < hoje ? registro.since : hoje;
   const nomeDia = (s) => DIAS_SEM[deIso(s).getDay()];
@@ -106,6 +113,42 @@ export function AnaliseProgresso({ user, habits = [], health = {}, events = [] }
             <div className="an-nota" style={{ '--c': 'var(--rx-m-analise)' }}><span className="rx-tile sm" style={{ '--c': 'var(--rx-m-analise)' }}><Lightbulb size={16} /></span><div><b>Sugestão</b><p>{A.notas.sugestao}</p></div></div>
           </div>
         )}
+      </section>
+
+      <section className="an-card rx-glass-card" data-testid="an-metricas-extras" aria-label="Mais métricas de acompanhamento">
+        <Titulo cor="var(--rx-m-analise)" icone={BarChart3} extra={<span className="rx-sub">dados reais dos últimos {n} dias</span>}>Indicadores de acompanhamento</Titulo>
+        <div className="an-extras">
+          <div className="an-kpi" data-testid="an-dias-perfeitos">
+            <span><Star size={14} />Dias 100% cumpridos</span>
+            <b>{A.diasHab.length ? A.diasPerfeitos : '–'}{A.diasHab.length > 0 && <small> de {A.diasHab.length}</small>}</b>
+            <em>{A.diasHab.length ? `${A.totalHabitosFeitos} hábitos concluídos · média ${decimal(A.mediaHabitosDia)}/dia` : 'sem hábitos registrados no período'}</em>
+          </div>
+          <div className="an-kpi" data-testid="an-util-fds">
+            <span><CalendarDays size={14} />Úteis vs Fim de semana</span>
+            <b>{A.util == null && A.fds == null ? '–' : `${A.util ?? '–'}%`}{A.fds != null && <small> / {A.fds}%</small>}</b>
+            <em>{A.util != null || A.fds != null ? 'seg–sex vs sáb–dom em hábitos' : 'registre dias úteis e fins de semana'}</em>
+          </div>
+          <div className="an-kpi" data-testid="an-agua-litros">
+            <span><Droplets size={14} />Hidratação acumulada</span>
+            <b>{A.diasAgua.length ? `${decimal(A.totalLitrosAgua, 1)} L` : '–'}</b>
+            <em>{A.diasAgua.length ? `em ${plural(A.diasAgua.length, 'dia', 'dias')} · ${A.naMeta} na meta` : 'nenhum copo registrado no período'}</em>
+          </div>
+          <div className="an-kpi" data-testid="an-sono-ideal">
+            <span><Moon size={14} />Noites com 7h ou mais</span>
+            <b>{A.noites.length ? A.noitesIdeais : '–'}{A.noites.length > 0 && <small> de {A.noites.length}</small>}</b>
+            <em>{A.noites.length ? `${pct(A.noitesIdeais, A.noites.length)}% das noites registradas` : 'sem noites registradas no período'}</em>
+          </div>
+          <div className="an-kpi" data-testid="an-foco-ritmo">
+            <span><Timer size={14} />Ritmo de foco</span>
+            <b>{A.mediaFocoDia == null ? '–' : `${A.mediaFocoDia} min`}</b>
+            <em>{A.focoDias ? `média por dia focado · recorde ${A.melhorDiaFoco} min${A.focoSessoes ? ` · ${plural(A.focoSessoes, 'sessão', 'sessões')}` : ''}` : 'sem sessões de foco no período'}</em>
+          </div>
+          <div className="an-kpi" data-testid="an-treino-agenda">
+            <span><Dumbbell size={14} />Treino &amp; Agenda</span>
+            <b>{A.treinoTotalSeries == null ? '–' : `${A.treinoTotalSeries}`}{A.treinoTotalSeries != null && <small> séries</small>}</b>
+            <em>{A.treinoTotalSessoes != null ? `${plural(A.treinoTotalSessoes, 'treino', 'treinos')}${A.taxaAgenda != null ? ` · Agenda ${A.taxaAgenda}% concluída` : ''}` : 'carregando histórico de treino'}</em>
+          </div>
+        </div>
       </section>
 
       <div className="an-row">
