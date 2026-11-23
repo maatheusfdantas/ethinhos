@@ -30,7 +30,6 @@ import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { VaulModalSheet } from './ui/MotionPrimitives';
 import { calculateDailyWaterTarget } from '../utils/biometricsAndAnalytics';
 import { ProfileAccountSections } from './profile/ProfileAccountSections';
-import { MetaAgua } from './perfil/MetaAgua';
 
 export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, health = {}, setHealth, showToast }) {
   // Dados Pessoais & Identidade
@@ -306,7 +305,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               Configurações do Perfil
             </h2>
             <p style={{ fontSize: '11.5px', color: 'var(--rx-ink-3)', margin: '3px 0 0' }}>
-              Gerencie seus dados pessoais, saúde, hidratação e preferências
+              Gerencie seus dados pessoais, saúde e preferências
             </p>
           </div>
 
@@ -517,15 +516,8 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             />
           </div>
 
-          {/* Seção específica de Água (Capacidade dos copos + Meta diária + Sugestão 35 ml/kg) e Saúde (Peso e Altura) */}
+          {/* Saúde (Peso e Altura), Contas Conectadas, Segurança e Dados */}
           <div className="pf" style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }} data-testid="settings-account-sections">
-            <MetaAgua
-              user={user}
-              setUser={onUpdateUser}
-              health={health}
-              setHealth={setHealth}
-              showToast={showToast}
-            />
             <ProfileAccountSections
               user={user}
               setUser={onUpdateUser}
