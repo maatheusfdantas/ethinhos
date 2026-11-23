@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Check, Copy, ExternalLink, Music, Plus, Settings, Settings2, Target, Trash2, X } from 'lucide-react';
 import { calculateUserLevelAndXp } from '../../utils/biometricsAndAnalytics';
-import { AnaliseProgresso } from '../analise/AnaliseProgresso';
 import '../../styles/espacos.css';
 import '../../styles/telas.css';
 
@@ -318,11 +317,6 @@ export function PerfilTab({ user, setUser, habits = [], workouts = [], events = 
           </section>
         </aside>
       </div>
-
-      {/* Análise de registros e relatórios integrada ao Perfil do usuário */}
-      <section style={{ marginTop: 28 }} data-testid="pf-analise-integrada">
-        <AnaliseProgresso user={user} habits={habits} health={health} events={events} />
-      </section>
 
       {editMusica && (
         <div className="rx-overlay" onClick={() => setEditMusica(null)}>

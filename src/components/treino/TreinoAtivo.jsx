@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, CheckCircle2, Dumbbell, Info, Pause, Play, RotateCcw } from 'lucide-react';
+import { Check, CheckCircle2, Dumbbell, Info, Pause, Play, Plus, RotateCcw } from 'lucide-react';
 import { fmtClock, fmtKg, metricOf, treinoApi } from './treinoApi';
 import { findExercise, loadBiblioteca } from './bibliotecaApi';
 import { CorpoExercicio } from './MapaCorporal';
@@ -88,8 +88,9 @@ export function resolveExerciseWithMuscles(ex, lib) {
 export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, onDiscarded, showToast }) {
   const exercises = useMemo(() => (Array.isArray(session?.content?.exercises) ? session.content.exercises : []), [session]);
   const doneOf = (key) => (session?.sets || []).filter((s) => s.exerciseKey === key).sort((a, b) => a.setNo - b.setNo);
-  const firstPending = Math.max(0, exercises.findIndex((e) => doneOf(e.id).length < (Number(e.sets) || 1)));
-  const [exIdx, setExIdx] = useState(firstPending);
+  const firstPendingEx = exercises.find((e) => doneOf(e.id).length < (Number(e.sets) || 1)) || exercises[0];
+  const [activeExId, setActiveExId] = useState(firstPendingEx?.id || null);
+  const [repeatingIds, setRepeatingIds] = useState({});
   const [rest, setRest] = useState(null); // { endAt, total }
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(null); // 'finalizar' | 'reiniciar'
@@ -118,33 +119,43 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
     if (rest && restLeft <= 0) setRest(null);
   });
 
-  const ex = exercises[exIdx];
-  const resolvedEx = useMemo(() => (ex ? resolveExerciseWithMuscles(ex, lib) : { primary: [], secondary: [] }), [ex, lib]);
-  if (!ex) {
+  const focusedEx = useMemo(
+    () => exercises.find((e) => e.id === activeExId) || exercises.find((e) => doneOf(e.id).length < (Number(e.sets) || 1)) || exercises[0],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [exercises, activeExId, session?.sets]
+  );
+  const resolvedFocused = useMemo(
+    () => (focusedEx ? resolveExerciseWithMuscles(focusedEx, lib) : { primary: [], secondary: [] }),
+    [focusedEx, lib]
+  );
+
+  if (!exercises.length || !focusedEx) {
     return <div className="tr-panel"><p className="tr-sub">Esta ficha não tem exercícios.</p></div>;
   }
-  const metric = metricOf(ex);
-  const done = doneOf(ex.id);
-  const total = Math.max(1, Number(ex.sets) || 1);
+
   const totalPlanned = exercises.reduce((a, e) => a + Math.max(1, Number(e.sets) || 1), 0);
   const totalDone = (session?.sets || []).length;
-  const allExercisesDone = totalPlanned > 0 && totalDone >= totalPlanned;
   const doneCount = exercises.filter((e) => doneOf(e.id).length >= (Number(e.sets) || 1)).length;
+  const allExercisesDone = exercises.length > 0 && doneCount >= exercises.length;
   const pendingExercises = exercises.filter((e) => doneOf(e.id).length < (Number(e.sets) || 1));
   const completedExercises = exercises.filter((e) => doneOf(e.id).length >= (Number(e.sets) || 1));
 
-  const primaryNames = (resolvedEx.primary || []).map((k) => MUSCLES[k]).filter(Boolean);
-  const secondaryNames = (resolvedEx.secondary || []).map((k) => MUSCLES[k]).filter(Boolean);
+  const primaryNames = (resolvedFocused.primary || []).map((k) => MUSCLES[k]).filter(Boolean);
+  const secondaryNames = (resolvedFocused.secondary || []).map((k) => MUSCLES[k]).filter(Boolean);
 
-  const prev = done[done.length - 1];
-  const last = suggestions[ex.id];
-  const sugKg = prev?.weightKg ?? last?.weightKg ?? (Number(ex.weightKg) || 0);
-  const sugReps = prev?.reps ?? last?.reps ?? (Number(ex.reps) || 0);
-  const sugSec = prev?.seconds ?? last?.seconds ?? (Number(ex.reps) || 30);
-  const sugSource = prev ? 'série anterior' : last ? 'sua última execução' : 'ficha';
-  const val = (k, fallback) => (typed[`${ex.id}:${k}`] !== undefined ? typed[`${ex.id}:${k}`] : String(fallback ?? ''));
-  const isSug = (k) => typed[`${ex.id}:${k}`] === undefined;
-  const type = (k) => (e) => setTyped((t) => ({ ...t, [`${ex.id}:${k}`]: e.target.value }));
+  const getSugFor = (item, doneList) => {
+    const prev = doneList[doneList.length - 1];
+    const last = suggestions[item.id];
+    return {
+      kg: prev?.weightKg ?? last?.weightKg ?? (Number(item.weightKg) || 0),
+      reps: prev?.reps ?? last?.reps ?? (Number(item.reps) || 0),
+      sec: prev?.seconds ?? last?.seconds ?? (Number(item.reps) || 30),
+      source: prev ? 'série anterior' : last ? 'sua última execução' : 'ficha'
+    };
+  };
+  const val = (exId, k, fallback) => (typed[`${exId}:${k}`] !== undefined ? typed[`${exId}:${k}`] : String(fallback ?? ''));
+  const isSug = (exId, k) => typed[`${exId}:${k}`] === undefined;
+  const type = (exId, k) => (e) => setTyped((t) => ({ ...t, [`${exId}:${k}`]: e.target.value }));
 
   const run = async (fn) => {
     if (busy) return null;
@@ -159,36 +170,57 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
     }
   };
 
-  const completeSet = () => run(async () => {
+  const completeSetFor = (item, { isExtra = false } = {}) => run(async () => {
+    const doneList = doneOf(item.id);
+    const metric = metricOf(item);
+    const total = Math.max(1, Number(item.sets) || 1);
+    const sug = getSugFor(item, doneList);
     const numberOf = (v) => {
       const n = Number(String(v).replace(',', '.'));
       return Number.isFinite(n) ? n : null;
     };
-    const body = { exerciseKey: ex.id, exerciseName: ex.name, setNo: done.length + 1, metric };
-    if (metric === 'tempo') body.seconds = numberOf(val('sec', sugSec));
+    const body = { exerciseKey: item.id, exerciseName: item.name, setNo: doneList.length + 1, metric };
+    if (metric === 'tempo') body.seconds = numberOf(val(item.id, 'sec', sug.sec));
     else {
-      body.reps = numberOf(val('reps', sugReps));
-      if (metric === 'kg') body.weightKg = numberOf(val('kg', sugKg));
+      body.reps = numberOf(val(item.id, 'reps', sug.reps));
+      if (metric === 'kg') body.weightKg = numberOf(val(item.id, 'kg', sug.kg));
     }
     const r = await treinoApi.serie(session.id, body);
     onChange(r.session);
     setTyped((t) => {
       const n = { ...t };
-      delete n[`${ex.id}:kg`];
-      delete n[`${ex.id}:reps`];
-      delete n[`${ex.id}:sec`];
+      delete n[`${item.id}:kg`];
+      delete n[`${item.id}:reps`];
+      delete n[`${item.id}:sec`];
       return n;
     });
-    if (ex.showRestTimer !== false && Number(ex.restSec) > 0) setRest({ endAt: Date.now() + Number(ex.restSec) * 1000, total: Number(ex.restSec) * 1000 });
-    if (done.length + 1 >= total) {
-      const nextPendingIdx = exercises.findIndex((item) => item.id !== ex.id && doneOf(item.id).length < (Number(item.sets) || 1));
-      if (nextPendingIdx !== -1) {
-        setExIdx(nextPendingIdx);
-        showToast?.(`${ex.name} concluído e movido para o fim da fila! Próximo: ${exercises[nextPendingIdx].name}.`);
-      } else {
-        showToast?.(`Todas as séries de ${ex.name} foram concluídas!`);
-      }
+    if (isExtra) {
+      setRepeatingIds((prev) => ({ ...prev, [item.id]: false }));
+      showToast?.(`Série extra registrada em "${item.name}"!`);
     }
+    if (item.showRestTimer !== false && Number(item.restSec) > 0) {
+      setRest({ endAt: Date.now() + Number(item.restSec) * 1000, total: Number(item.restSec) * 1000 });
+    }
+    if (!isExtra && doneList.length + 1 >= total) {
+      const nextPending = exercises.find((e) => e.id !== item.id && doneOf(e.id).length < (Number(e.sets) || 1));
+      if (nextPending) {
+        setActiveExId(nextPending.id);
+        showToast?.(`${item.name} concluído! Próximo previsto: ${nextPending.name}.`);
+      } else {
+        showToast?.(`Todas as séries de ${item.name} foram concluídas!`);
+      }
+    } else {
+      setActiveExId(item.id);
+    }
+  });
+
+  const undoFor = (item) => run(async () => {
+    const d = doneOf(item.id);
+    if (!d.length) return;
+    const r = await treinoApi.desfazer(session.id, { exerciseKey: item.id, setNo: d.length });
+    onChange(r.session);
+    setRest(null);
+    setActiveExId(item.id);
   });
 
   const refazerExercicio = (targetEx) => run(async () => {
@@ -197,16 +229,16 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
       const r = await treinoApi.desfazer(session.id, { exerciseKey: targetEx.id, setNo: d.length });
       onChange(r.session);
     }
-    const idx = exercises.findIndex((item) => item.id === targetEx.id);
-    if (idx !== -1) setExIdx(idx);
-    showToast?.(`Exercício "${targetEx.name}" reaberto.`);
+    setRepeatingIds((prev) => ({ ...prev, [targetEx.id]: false }));
+    setActiveExId(targetEx.id);
+    showToast?.(`Exercício "${targetEx.name}" reaberto para refazer.`);
   });
 
-  const undo = () => run(async () => {
-    const r = await treinoApi.desfazer(session.id, { exerciseKey: ex.id, setNo: done.length });
-    onChange(r.session);
-    setRest(null);
-  });
+  const focusAndScrollTo = (id) => {
+    setActiveExId(id);
+    const el = document.getElementById(`tr-ex-${id}`);
+    el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  };
 
   const togglePause = () => run(async () => {
     const r = await treinoApi.pausa(session.id, !paused);
@@ -225,7 +257,6 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
     onDiscarded();
   });
 
-  const planText = metric === 'tempo' ? `${ex.reps} s` : `${ex.reps} reps`;
   const C = 2 * Math.PI * 28;
 
   return (
@@ -241,7 +272,9 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
         </div>
         <div className="grow">
           <b>{session.name}</b>
-          <div className="lbl"><span data-testid="tr-sets-done">{totalDone}</span> de {totalPlanned} séries</div>
+          <div className="lbl">
+            <span data-testid="tr-sets-done">{totalDone}</span> de {totalPlanned} séries · {doneCount} de {exercises.length} concluídos
+          </div>
         </div>
         <button type="button" className="rx-btn ghost tiny" onClick={togglePause} disabled={busy}>
           {paused ? <Play size={15} /> : <Pause size={15} />}
@@ -273,7 +306,7 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
       )}
 
       <div className="tr-grid">
-        <div className="tr-stack">
+        <div className="tr-stack" data-testid="tr-ficha-completa">
           {/* Card em destaque para finalizar quando todos os exercícios foram concluídos */}
           {allExercisesDone && (
             <section className="tr-panel tr-finish-banner" data-testid="tr-all-done" aria-live="polite">
@@ -281,7 +314,7 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
                 <CheckCircle2 size={24} />
                 <div>
                   <h3>Todos os exercícios concluídos!</h3>
-                  <p className="tr-sub">Você completou todas as {totalPlanned} séries planejadas desta sessão.</p>
+                  <p className="tr-sub">Você completou todos os {exercises.length} exercícios previstos. Se quiser, repita algum abaixo ou finalize a sessão.</p>
                 </div>
               </div>
               <button type="button" className="rx-btn" onClick={finish} disabled={busy}>
@@ -290,86 +323,298 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
             </section>
           )}
 
-          {/* Card do exercício atual com destaque visual */}
-          <article className="tr-panel tr-ex-highlight" data-testid="tr-active-exercise-card">
-            <div className="tr-ex-head">
-              <span className="tr-ex-step">Exercício {exIdx + 1} de {exercises.length}</span>
-              <span className="rx-pill">{metric === 'kg' ? 'Carga' : metric === 'tempo' ? 'Tempo' : 'Repetições'}</span>
-            </div>
-            <h2 className="tr-ex-title">{ex.name}</h2>
-            <p className="tr-sub">{total} séries de {planText}{Number(ex.restSec) > 0 ? `, descanso de ${ex.restSec} s` : ''}.</p>
-            {done.length >= total && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', margin: '10px 0 14px' }}>
-                <span style={{ fontSize: '0.84rem', color: '#10B981', fontWeight: 700 }}>
-                  ✓ Exercício finalizado e movido para o fim da fila
-                </span>
-                <button
-                  type="button"
-                  className="rx-btn tiny ghost"
-                  onClick={() => refazerExercicio(ex)}
-                  aria-label={`Refazer ${ex.name}`}
-                >
-                  Refazer exercício
-                </button>
+          {/* SEÇÃO 1: FICHA COMPLETA — TODOS OS EXERCÍCIOS PREVISTOS (PENDENTES) */}
+          {pendingExercises.length > 0 && (
+            <section className="tr-stack" aria-label="Exercícios previstos na ficha" data-testid="tr-ex-pendentes">
+              <div className="tr-sheet-head">
+                <div>
+                  <h2>Ficha completa · Previstos ({pendingExercises.length})</h2>
+                  <p className="tr-sub" id="tr-sug-note">
+                    Todos os exercícios previstos aparecem abaixo. Marque as séries na ordem que preferir — valores em itálico vêm da última execução ou da ficha.
+                  </p>
+                </div>
               </div>
-            )}
-            <p className="tr-sub" id="tr-sug-note" style={{ marginTop: 6 }}>Valores em itálico vêm da {sugSource}. Só contam quando você conclui a série.</p>
-            <div className="tr-sets">
-              {Array.from({ length: total }, (_, i) => {
-                const d = done[i];
-                if (d) {
-                  return (
-                    <div className="tr-set done" key={i}>
-                      <span className="n">{i + 1}</span>
-                      <div className="plan"><b>Feita</b>Planejado {planText}</div>
-                      <div className="tr-in"><span>{metric === 'tempo' ? 'Segundos' : metric === 'kg' ? 'Carga' : 'Repetições'}</span><span className="val">{metric === 'tempo' ? `${d.seconds} s` : metric === 'kg' ? `${fmtKg(d.weightKg)} kg` : d.reps}</span></div>
-                      <div className="tr-in"><span>{metric === 'kg' ? 'Repetições' : ''}</span><span className="val">{metric === 'kg' ? d.reps : ''}</span></div>
-                      {i === done.length - 1 ? <button type="button" className="tr-undo" onClick={undo} disabled={busy} aria-label={`Desfazer série ${i + 1}`}>Desfazer</button> : <span />}
-                    </div>
-                  );
-                }
-                if (i === done.length) {
-                  return (
-                    <div className="tr-set cur" key={i}>
-                      <span className="n">{i + 1}</span>
-                      <div className="plan"><b>Agora</b>Planejado {planText}</div>
-                      {metric === 'tempo' && <label className="tr-in"><span>Segundos</span><input inputMode="numeric" className={isSug('sec') ? 'sug' : ''} value={val('sec', sugSec)} onChange={type('sec')} aria-describedby="tr-sug-note" /></label>}
-                      {metric === 'kg' && <label className="tr-in"><span>Carga (kg)</span><input inputMode="decimal" className={isSug('kg') ? 'sug' : ''} value={val('kg', fmtKg(sugKg))} onChange={type('kg')} aria-describedby="tr-sug-note" /></label>}
-                      {metric !== 'tempo' && <label className="tr-in"><span>Repetições</span><input inputMode="numeric" className={isSug('reps') ? 'sug' : ''} value={val('reps', sugReps)} onChange={type('reps')} aria-describedby="tr-sug-note" /></label>}
-                      {metric !== 'kg' && <span />}
-                      {metric === 'tempo' && <span />}
-                      <button type="button" className="rx-check" onClick={completeSet} disabled={busy} aria-label={`Concluir série ${i + 1}`}><Check /></button>
-                    </div>
-                  );
-                }
+
+              {pendingExercises.map((item) => {
+                const order = exercises.findIndex((e) => e.id === item.id) + 1;
+                const done = doneOf(item.id);
+                const total = Math.max(1, Number(item.sets) || 1);
+                const metric = metricOf(item);
+                const planText = metric === 'tempo' ? `${item.reps} s` : `${item.reps} reps`;
+                const sug = getSugFor(item, done);
+                const isFocused = focusedEx.id === item.id;
+                const resolved = resolveExerciseWithMuscles(item, lib);
+                const itemPrimary = (resolved.primary || []).map((k) => MUSCLES[k]).filter(Boolean);
+
                 return (
-                  <div className="tr-set" key={i}>
-                    <span className="n">{i + 1}</span>
-                    <div className="plan"><b>Depois</b>Planejado {planText}</div>
-                    <span /><span /><span />
-                  </div>
+                  <article
+                    key={item.id}
+                    id={`tr-ex-${item.id}`}
+                    className={`tr-panel tr-ex-card${isFocused ? ' tr-ex-highlight' : ''}`}
+                    data-testid={`tr-ex-card-${item.id}`}
+                    onClick={() => setActiveExId(item.id)}
+                  >
+                    <div className="tr-ex-head">
+                      <span className="tr-ex-step">Exercício {order} de {exercises.length}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span className="rx-pill">{done.length} de {total} séries</span>
+                        <span className="rx-pill">{metric === 'kg' ? 'Carga' : metric === 'tempo' ? 'Tempo' : 'Repetições'}</span>
+                      </div>
+                    </div>
+                    <h2 className="tr-ex-title">{item.name}</h2>
+                    <p className="tr-sub">
+                      {total} séries de {planText}
+                      {Number(item.restSec) > 0 ? ` · descanso de ${item.restSec} s` : ''}
+                      {itemPrimary.length ? ` · ${itemPrimary.join(', ')}` : ''}
+                    </p>
+
+                    <div className="tr-sets">
+                      {Array.from({ length: total }, (_, i) => {
+                        const d = done[i];
+                        if (d) {
+                          return (
+                            <div className="tr-set done" key={i}>
+                              <span className="n">{i + 1}</span>
+                              <div className="plan"><b>Feita</b>Planejado {planText}</div>
+                              <div className="tr-in">
+                                <span>{metric === 'tempo' ? 'Segundos' : metric === 'kg' ? 'Carga' : 'Repetições'}</span>
+                                <span className="val">{metric === 'tempo' ? `${d.seconds} s` : metric === 'kg' ? `${fmtKg(d.weightKg)} kg` : d.reps}</span>
+                              </div>
+                              <div className="tr-in">
+                                <span>{metric === 'kg' ? 'Repetições' : ''}</span>
+                                <span className="val">{metric === 'kg' ? d.reps : ''}</span>
+                              </div>
+                              {i === done.length - 1 ? (
+                                <button
+                                  type="button"
+                                  className="tr-undo"
+                                  onClick={(e) => { e.stopPropagation(); undoFor(item); }}
+                                  disabled={busy}
+                                  aria-label={`Desfazer série ${i + 1} de ${item.name}`}
+                                >
+                                  Desfazer
+                                </button>
+                              ) : <span />}
+                            </div>
+                          );
+                        }
+                        if (i === done.length) {
+                          return (
+                            <div className="tr-set cur" key={i}>
+                              <span className="n">{i + 1}</span>
+                              <div className="plan"><b>Agora</b>Planejado {planText}</div>
+                              {metric === 'tempo' && (
+                                <label className="tr-in">
+                                  <span>Segundos</span>
+                                  <input
+                                    inputMode="numeric"
+                                    className={isSug(item.id, 'sec') ? 'sug' : ''}
+                                    value={val(item.id, 'sec', sug.sec)}
+                                    onChange={type(item.id, 'sec')}
+                                    onFocus={() => setActiveExId(item.id)}
+                                    aria-describedby="tr-sug-note"
+                                  />
+                                </label>
+                              )}
+                              {metric === 'kg' && (
+                                <label className="tr-in">
+                                  <span>Carga (kg)</span>
+                                  <input
+                                    inputMode="decimal"
+                                    className={isSug(item.id, 'kg') ? 'sug' : ''}
+                                    value={val(item.id, 'kg', fmtKg(sug.kg))}
+                                    onChange={type(item.id, 'kg')}
+                                    onFocus={() => setActiveExId(item.id)}
+                                    aria-describedby="tr-sug-note"
+                                  />
+                                </label>
+                              )}
+                              {metric !== 'tempo' && (
+                                <label className="tr-in">
+                                  <span>Repetições</span>
+                                  <input
+                                    inputMode="numeric"
+                                    className={isSug(item.id, 'reps') ? 'sug' : ''}
+                                    value={val(item.id, 'reps', sug.reps)}
+                                    onChange={type(item.id, 'reps')}
+                                    onFocus={() => setActiveExId(item.id)}
+                                    aria-describedby="tr-sug-note"
+                                  />
+                                </label>
+                              )}
+                              {metric !== 'kg' && <span />}
+                              {metric === 'tempo' && <span />}
+                              <button
+                                type="button"
+                                className="rx-check"
+                                onClick={(e) => { e.stopPropagation(); completeSetFor(item); }}
+                                disabled={busy}
+                                aria-label={`Concluir série ${i + 1} de ${item.name}`}
+                              >
+                                <Check />
+                              </button>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="tr-set" key={i}>
+                            <span className="n">{i + 1}</span>
+                            <div className="plan"><b>Depois</b>Planejado {planText}</div>
+                            <span /><span /><span />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
                 );
               })}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-              <button type="button" className="rx-btn ghost" onClick={() => setExIdx(Math.max(0, exIdx - 1))} disabled={exIdx === 0}>Exercício anterior</button>
-              <button type="button" className="rx-btn ghost" onClick={() => setExIdx(Math.min(exercises.length - 1, exIdx + 1))} disabled={exIdx === exercises.length - 1}>Próximo exercício</button>
-            </div>
-          </article>
+            </section>
+          )}
+
+          {/* SEÇÃO 2: EXERCÍCIOS JÁ FEITOS (COM OPÇÃO DE REPETIR OU REFAZER) */}
+          {completedExercises.length > 0 && (
+            <section className="tr-stack" aria-label="Exercícios já feitos" data-testid="tr-ex-concluidos">
+              <div className="tr-sheet-head">
+                <div>
+                  <h2>Já feitos ({completedExercises.length})</h2>
+                  <p className="tr-sub">
+                    Veja o que você já concluiu nesta sessão. Quer repetir algum exercício com uma série extra ou refazer a última?
+                  </p>
+                </div>
+              </div>
+
+              {completedExercises.map((item) => {
+                const done = doneOf(item.id);
+                const total = Math.max(1, Number(item.sets) || 1);
+                const extraCount = Math.max(0, done.length - total);
+                const metric = metricOf(item);
+                const planText = metric === 'tempo' ? `${item.reps} s` : `${item.reps} reps`;
+                const sug = getSugFor(item, done);
+                const isRepeating = Boolean(repeatingIds[item.id]);
+
+                return (
+                  <article
+                    key={item.id}
+                    id={`tr-ex-${item.id}`}
+                    className={`tr-panel tr-ex-done-card${focusedEx.id === item.id ? ' active' : ''}`}
+                    data-testid={`tr-done-card-${item.id}`}
+                    onClick={() => setActiveExId(item.id)}
+                  >
+                    <div className="tr-ex-head">
+                      <span className="tr-done-badge">
+                        <CheckCircle2 size={14} /> Concluído ({done.length}/{total} séries{extraCount > 0 ? ` · +${extraCount} extra` : ''})
+                      </span>
+                      <div className="tr-done-acts">
+                        <button
+                          type="button"
+                          className="rx-btn tiny"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveExId(item.id);
+                            setRepeatingIds((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+                          }}
+                          disabled={busy}
+                          aria-label={`Repetir ${item.name}`}
+                        >
+                          <Plus size={14} /> {isRepeating ? 'Fechar repetição' : 'Repetir (+1 série)'}
+                        </button>
+                        <button
+                          type="button"
+                          className="rx-btn ghost tiny"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            refazerExercicio(item);
+                          }}
+                          disabled={busy}
+                          aria-label={`Refazer ${item.name}`}
+                          title="Desfazer a última série e voltar este exercício para os previstos"
+                        >
+                          Refazer
+                        </button>
+                      </div>
+                    </div>
+
+                    <h3 className="tr-ex-done-title">{item.name}</h3>
+                    <div className="tr-done-sets">
+                      {done.map((s, idx) => (
+                        <span key={s.id || idx} className="tr-done-pill">
+                          <b>#{idx + 1}</b>{' '}
+                          {metric === 'tempo' ? `${s.seconds} s` : metric === 'kg' ? `${fmtKg(s.weightKg)} kg × ${s.reps}` : `${s.reps} reps`}
+                        </span>
+                      ))}
+                    </div>
+
+                    {isRepeating && (
+                      <div className="tr-sets" style={{ marginTop: 12 }} data-testid={`tr-repeat-form-${item.id}`}>
+                        <div className="tr-set cur">
+                          <span className="n">+{extraCount + 1}</span>
+                          <div className="plan"><b>Série extra</b>Planejado {planText}</div>
+                          {metric === 'tempo' && (
+                            <label className="tr-in">
+                              <span>Segundos</span>
+                              <input
+                                inputMode="numeric"
+                                className={isSug(item.id, 'sec') ? 'sug' : ''}
+                                value={val(item.id, 'sec', sug.sec)}
+                                onChange={type(item.id, 'sec')}
+                              />
+                            </label>
+                          )}
+                          {metric === 'kg' && (
+                            <label className="tr-in">
+                              <span>Carga (kg)</span>
+                              <input
+                                inputMode="decimal"
+                                className={isSug(item.id, 'kg') ? 'sug' : ''}
+                                value={val(item.id, 'kg', fmtKg(sug.kg))}
+                                onChange={type(item.id, 'kg')}
+                              />
+                            </label>
+                          )}
+                          {metric !== 'tempo' && (
+                            <label className="tr-in">
+                              <span>Repetições</span>
+                              <input
+                                inputMode="numeric"
+                                className={isSug(item.id, 'reps') ? 'sug' : ''}
+                                value={val(item.id, 'reps', sug.reps)}
+                                onChange={type(item.id, 'reps')}
+                              />
+                            </label>
+                          )}
+                          {metric !== 'kg' && <span />}
+                          {metric === 'tempo' && <span />}
+                          <button
+                            type="button"
+                            className="rx-check"
+                            onClick={(e) => { e.stopPropagation(); completeSetFor(item, { isExtra: true }); }}
+                            disabled={busy}
+                            aria-label={`Concluir série extra de ${item.name}`}
+                          >
+                            <Check />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </section>
+          )}
         </div>
 
         <aside className="tr-stack">
           {/* Card com o músculo trabalhado */}
           <section className="tr-panel tr-muscle-card" data-testid="tr-musculo-card">
             <h2><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Dumbbell size={16} />Músculo trabalhado</span></h2>
-            <p className="tr-sub">Ênfase muscular de <b>{ex.name}</b></p>
+            <p className="tr-sub">Ênfase muscular de <b>{focusedEx.name}</b></p>
             <div style={{ marginTop: 10 }}>
-              <CorpoExercicio exercise={resolvedEx} />
+              <CorpoExercicio exercise={resolvedFocused} />
             </div>
             <div className="tr-muscle-tags">
               <p className="bl-ms">
                 <span className="bl-tag p">Principal</span>
-                {primaryNames.length ? primaryNames.join(', ') : (ex.muscle || 'Corpo todo / Geral')}
+                {primaryNames.length ? primaryNames.join(', ') : (focusedEx.muscle || 'Corpo todo / Geral')}
               </p>
               {secondaryNames.length > 0 && (
                 <p className="bl-ms">
@@ -388,26 +633,25 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
               </span>
             </div>
             <p className="tr-sub" style={{ margin: '0 0 12px' }}>
-              Exercícios terminados vão para o fim da fila, com opção de refazer a qualquer momento.
+              Toque em qualquer exercício para ir direto a ele na ficha completa.
             </p>
 
             {/* SEÇÃO 1: FILA DE PENDENTES */}
             {pendingExercises.length > 0 && (
               <div style={{ marginBottom: '14px' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--rx-ink-3)', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
-                  Fila Ativa ({pendingExercises.length})
+                  Previstos ({pendingExercises.length})
                 </span>
                 <ul className="tr-exnav">
                   {pendingExercises.map((x) => {
-                    const originalIdx = exercises.findIndex((e) => e.id === x.id);
                     const n = doneOf(x.id).length;
                     const t = Math.max(1, Number(x.sets) || 1);
                     return (
                       <li key={x.id}>
                         <button
                           type="button"
-                          aria-current={originalIdx === exIdx ? 'true' : undefined}
-                          onClick={() => setExIdx(originalIdx)}
+                          aria-current={focusedEx.id === x.id ? 'true' : undefined}
+                          onClick={() => focusAndScrollTo(x.id)}
                         >
                           <span>{x.name}</span>
                           <small>{n} de {t} séries</small>
@@ -419,40 +663,25 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
               </div>
             )}
 
-            {/* SEÇÃO 2: CONCLUÍDOS (NO FIM DA FILA) */}
+            {/* SEÇÃO 2: CONCLUÍDOS */}
             {completedExercises.length > 0 && (
               <div>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#10B981', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
-                  Fim da fila ({completedExercises.length})
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--rx-m-habitos)', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
+                  Já feitos ({completedExercises.length})
                 </span>
                 <ul className="tr-exnav">
                   {completedExercises.map((x) => {
-                    const originalIdx = exercises.findIndex((e) => e.id === x.id);
                     const n = doneOf(x.id).length;
                     const t = Math.max(1, Number(x.sets) || 1);
                     return (
-                      <li key={x.id} className="ok" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <li key={x.id} className="ok">
                         <button
                           type="button"
-                          aria-current={originalIdx === exIdx ? 'true' : undefined}
-                          onClick={() => setExIdx(originalIdx)}
-                          style={{ flex: 1 }}
+                          aria-current={focusedEx.id === x.id ? 'true' : undefined}
+                          onClick={() => focusAndScrollTo(x.id)}
                         >
                           <span>✓ {x.name}</span>
                           <small>{n} de {t}</small>
-                        </button>
-                        <button
-                          type="button"
-                          className="rx-btn ghost tiny"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            refazerExercicio(x);
-                          }}
-                          aria-label={`Refazer ${x.name}`}
-                          title="Refazer este exercício caso tenha clicado por engano"
-                          style={{ padding: '3px 8px', fontSize: '0.72rem', height: 'auto', whiteSpace: 'nowrap' }}
-                        >
-                          Refazer
                         </button>
                       </li>
                     );

@@ -107,36 +107,36 @@ describe('Perfil (tela nova)', () => {
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/user/u1/profile', expect.objectContaining({ method: 'PUT', body: JSON.stringify({ bio: 'Treinando para os 10 km.' }) })));
   });
 
-  it('exibe bio, objetivo, música escutada e análise integrada no feed, sem formulários biométricos poluindo o perfil', () => {
+  it('exibe bio, objetivo e música escutada no Perfil, sem análise de progresso no rodapé nem formulários biométricos', () => {
     const onOpenSettings = vi.fn();
     render(<PerfilTab user={user} setUser={vi.fn()} health={{ glassMl: 250 }} onOpenSettings={onOpenSettings} />);
     expect(screen.getByTestId('pf-objetivo-card')).toBeTruthy();
     expect(screen.getByTestId('pf-musica-card')).toBeTruthy();
-    expect(screen.getByTestId('pf-analise-integrada')).toBeTruthy();
+    expect(screen.queryByTestId('pf-analise-integrada')).toBeNull();
     expect(screen.queryByTestId('meta-agua')).toBeNull();
     expect(screen.queryByLabelText('Altura (cm)')).toBeNull();
     fireEvent.click(screen.getByTestId('pf-open-settings'));
     expect(onOpenSettings).toHaveBeenCalled();
   });
 
-  it('separa Saúde (Peso e Altura) da seção de Água (Capacidade dos copos, sugestão 35 ml/kg e Meta diária) nas Configurações', async () => {
-    const setHealth = vi.fn();
+  it('mantém Saúde (Peso e Altura) na edição do Perfil sem duplicar a seção de Água', async () => {
     let currentUser = { ...user, weight: 60 };
     const onUpdateUser = vi.fn((next) => { currentUser = next; });
-    const { rerender } = render(
+    render(
       <ProfileModal
         isOpen
         onClose={vi.fn()}
         user={currentUser}
         onUpdateUser={onUpdateUser}
         health={{ glassMl: 250, waterGlasses: 0 }}
-        setHealth={setHealth}
+        setHealth={vi.fn()}
         showToast={vi.fn()}
       />
     );
     expect(screen.getByTestId('settings-account-sections')).toBeTruthy();
+    expect(screen.queryByTestId('meta-agua')).toBeNull();
 
-    // 1. Seção Saúde possui Peso (kg) e Altura (cm)
+    // Seção Saúde continua com Peso (kg) e Altura (cm)
     const saude = screen.getByTestId('secao-saude');
     const pesoInput = within(saude).getByLabelText('Peso (kg)');
     const alturaInput = within(saude).getByLabelText('Altura (cm)');
@@ -144,34 +144,6 @@ describe('Perfil (tela nova)', () => {
     fireEvent.change(alturaInput, { target: { value: '178' } });
     fireEvent.click(within(saude).getByRole('button', { name: /Salvar.*saúde/i }));
     await waitFor(() => expect(onUpdateUser).toHaveBeenCalledWith(expect.objectContaining({ weight: 80 })));
-
-    rerender(
-      <ProfileModal
-        isOpen
-        onClose={vi.fn()}
-        user={currentUser}
-        onUpdateUser={onUpdateUser}
-        health={{ glassMl: 250, waterGlasses: 0 }}
-        setHealth={setHealth}
-        showToast={vi.fn()}
-      />
-    );
-
-    // 2. Seção Água não duplica o input de Peso (kg), exibe a sugestão 80 kg x 35 ml = 2800 ml (2,80 L) e permite personalizar o copo
-    const meta = screen.getByTestId('meta-agua');
-    expect(within(meta).queryByLabelText('Peso (kg)')).toBeNull();
-    expect(within(meta).getByTestId('agua-sugestao-box').textContent).toMatch(/2800 ml \(2,80 L por dia\)/);
-    expect(within(meta).getByText(/2,80 L por dia \(12 copos\)/)).toBeTruthy();
-
-    const salvar = within(meta).getByRole('button', { name: 'Salvar alterações' });
-    fireEvent.change(within(meta).getByLabelText('Capacidade do copo (ml)'), { target: { value: '350' } });
-    expect(within(meta).getByText(/2,80 L por dia \(8 copos\)/)).toBeTruthy();
-
-    const chamadasAntes = global.fetch.mock.calls.filter(([u]) => String(u) === '/api/user/u1/health').length;
-    expect(chamadasAntes).toBe(0);
-    fireEvent.click(salvar);
-    await waitFor(() => expect(setHealth).toHaveBeenCalledWith(expect.objectContaining({ waterTarget: 8, waterTargetMl: 2800, glassMl: 350 })));
-    expect(global.fetch.mock.calls.some(([u, o]) => String(u) === '/api/user/u1/health' && o.method === 'POST')).toBe(true);
   });
 
   it('Central de Ajuda & Suporte segue o sistema visual do Ethos e renderiza destaques do Guia Rápido sem falhas', () => {
