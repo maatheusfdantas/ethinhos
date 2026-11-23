@@ -28,17 +28,46 @@ describe('TreinoAtivo - Fila de exercícios e visão geral da ficha', () => {
     }
   };
 
-  it('mostra todos os exercícios previstos na ficha de treino e seu progresso', () => {
+  it('mostra a ficha completa com todos os exercícios previstos abertos para marcar e seção de já feitos', () => {
     render(<TreinoAtivo session={mockSession} onChange={vi.fn()} onFinished={vi.fn()} onDiscarded={vi.fn()} />);
 
-    // Deve exibir todos os exercícios da ficha
-    expect(screen.getAllByText('Crucifixo Inclinado').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Tríceps Corda').length).toBeGreaterThan(0);
+    // Todos os exercícios previstos aparecem simultaneamente na ficha completa (sem precisar passar pro lado)
+    expect(screen.getByTestId('tr-ex-card-ex_2')).toBeDefined();
+    expect(screen.getByTestId('tr-ex-card-ex_3')).toBeDefined();
+    expect(screen.getByRole('button', { name: /Concluir série 1 de Crucifixo Inclinado/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Concluir série 1 de Tríceps Corda/i })).toBeDefined();
 
-    // Deve exibir o resumo de exercícios concluídos
-    expect(screen.getByText(/1 de 3 concluídos/i)).toBeDefined();
-    // Exibe seção de fila pendente e seção de concluídos no fim da fila
-    expect(screen.getAllByText(/Fim da fila/i).length).toBeGreaterThan(0);
+    // Deve exibir o resumo de exercícios concluídos e a seção de já feitos
+    expect(screen.getAllByText(/1 de 3 concluídos/i).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('tr-ex-concluidos')).toBeDefined();
+    expect(screen.getByTestId('tr-done-card-ex_1')).toBeDefined();
+  });
+
+  it('permite repetir um exercício já feito adicionando uma série extra real', async () => {
+    const onChange = vi.fn();
+    vi.spyOn(treinoApi, 'serie').mockResolvedValue({
+      session: {
+        ...mockSession,
+        sets: [
+          ...mockSession.sets,
+          { id: 's3', exerciseKey: 'ex_1', exerciseName: 'Supino Reto', setNo: 3, reps: 10, weightKg: 60, metric: 'kg' }
+        ]
+      }
+    });
+
+    render(<TreinoAtivo session={mockSession} onChange={onChange} onFinished={vi.fn()} onDiscarded={vi.fn()} showToast={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Repetir Supino Reto/i }));
+    expect(screen.getByTestId('tr-repeat-form-ex_1')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: /Concluir série extra de Supino Reto/i }));
+
+    await waitFor(() => {
+      expect(treinoApi.serie).toHaveBeenCalledWith(
+        'sess_1',
+        expect.objectContaining({ exerciseKey: 'ex_1', setNo: 3, weightKg: 60, reps: 10, metric: 'kg' })
+      );
+    });
   });
 
   it('exibe opção de refazer para exercício concluído caso o usuário tenha clicado errado', async () => {
@@ -53,7 +82,7 @@ describe('TreinoAtivo - Fila de exercícios e visão geral da ficha', () => {
     render(<TreinoAtivo session={mockSession} onChange={onChange} onFinished={vi.fn()} onDiscarded={vi.fn()} showToast={vi.fn()} />);
 
     // Encontra o botão de refazer no exercício concluído
-    const btnRefazer = screen.getByRole('button', { name: /Refazer Supino Reto|Refazer/i });
+    const btnRefazer = screen.getByRole('button', { name: /Refazer Supino Reto/i });
     expect(btnRefazer).toBeDefined();
 
     fireEvent.click(btnRefazer);
