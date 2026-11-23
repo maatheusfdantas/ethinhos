@@ -62,4 +62,35 @@ describe('PainelTab - Gestão e sugestão de água no painel', () => {
     );
     expect(showToast).toHaveBeenCalledWith(expect.stringContaining('Meta de água atualizada'));
   });
+
+  it('mantém sugestões rápidas de copo, permite digitar ml personalizados e recalcula automaticamente quantos copos são', () => {
+    const setHealth = vi.fn();
+    render(<PainelTab {...baseProps} setHealth={setHealth} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Editar meta de água/i }));
+
+    // Sugestões rápidas de tamanho do copo continuam disponíveis
+    expect(screen.getByRole('button', { name: '200 ml' })).toBeDefined();
+    expect(screen.getByRole('button', { name: '250 ml' })).toBeDefined();
+    expect(screen.getByRole('button', { name: '500 ml' })).toBeDefined();
+
+    // Usuário digita um tamanho personalizado de copo (400 ml)
+    const inputCopoMl = screen.getByLabelText(/Tamanho do copo personalizado \(ml\)/i);
+    fireEvent.change(inputCopoMl, { target: { value: '400' } });
+
+    // 70 kg * 35 ml = 2450 ml / 400 ml = 6,125 -> 7 copos
+    expect(screen.getByTestId('painel-agua-sugestao').textContent).toMatch(/7 copos/);
+    expect(screen.getByTestId('painel-agua-resumo').textContent).toMatch(/7 copos/);
+    expect(screen.getByTestId('painel-agua-resumo').textContent).toMatch(/400 ml/);
+
+    fireEvent.click(screen.getByRole('button', { name: /Salvar meta/i }));
+
+    expect(setHealth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        waterTarget: 7,
+        waterTargetMl: 2800,
+        glassMl: 400
+      })
+    );
+  });
 });
