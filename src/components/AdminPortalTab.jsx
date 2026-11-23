@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Shield,
   Users,
   KeyRound,
   Inbox,
@@ -22,18 +21,11 @@ import {
   UserCheck,
   Sparkles,
   ArrowRight,
-  ArrowLeft,
-  FlaskConical,
-  Play,
-  Pause,
-  RotateCcw,
   X
 } from 'lucide-react';
 import { apiFetch } from '../utils/api';
 import { AdminSupportGrant } from './support/AdminSupportGrant';
 import { AdminProfissionais } from './espacos/AdminProfissionais';
-import { LumoMascot } from './LumoMascot';
-import { PlantaLaboratorio } from './foco/planta/PlantaLaboratorio';
 
 /**
  * Floating Ambient Dust Particles
@@ -99,401 +91,6 @@ function AmbientDust({ count = 28 }) {
 }
 
 /**
- * Card Pomodo com Mascote Lumo integrado
- * Simulação interativa do timer com energia e camadas progressivas (0-100%)
- */
-function PomodoCard() {
-  const TOTAL_SECONDS = 25 * 60;
-  const [status, setStatus] = useState('focus'); // 'idle' | 'focus' | 'paused' | 'completed'
-  const [seconds, setSeconds] = useState(TOTAL_SECONDS);
-  const [isRunning, setIsRunning] = useState(false);
-  const [manualProgress, setManualProgress] = useState(null);
-
-  useEffect(() => {
-    let timer = null;
-    if (isRunning && seconds > 0) {
-      timer = setInterval(() => {
-        setSeconds((prev) => {
-          if (prev <= 1) {
-            setIsRunning(false);
-            setStatus('completed');
-            setManualProgress(100);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [isRunning, seconds]);
-
-  const elapsed = TOTAL_SECONDS - seconds;
-  const timerProgress = Math.min(100, Math.max(0, (elapsed / TOTAL_SECONDS) * 100));
-  const activeProgress = manualProgress !== null
-    ? manualProgress
-    : (status === 'completed' ? 100 : (status === 'idle' ? 0 : timerProgress));
-
-  const handleTogglePlay = () => {
-    setManualProgress(null);
-    if (status === 'completed') {
-      setSeconds(TOTAL_SECONDS);
-      setStatus('focus');
-      setIsRunning(true);
-      return;
-    }
-    if (isRunning) {
-      setIsRunning(false);
-      setStatus('paused');
-    } else {
-      setIsRunning(true);
-      setStatus('focus');
-    }
-  };
-
-  const handleReset = (mins = 25) => {
-    setManualProgress(null);
-    setIsRunning(false);
-    setSeconds(mins * 60);
-    setStatus('idle');
-  };
-
-  const handleForceComplete = () => {
-    setManualProgress(100);
-    setIsRunning(false);
-    setSeconds(0);
-    setStatus('completed');
-  };
-
-  const handleSelectStatus = (newStatus) => {
-    setStatus(newStatus);
-    if (newStatus === 'focus') {
-      setIsRunning(true);
-      if (seconds === 0) setSeconds(TOTAL_SECONDS);
-    } else if (newStatus === 'paused') {
-      setIsRunning(false);
-    } else if (newStatus === 'completed') {
-      setIsRunning(false);
-      setSeconds(0);
-      setManualProgress(100);
-    } else if (newStatus === 'idle') {
-      setIsRunning(false);
-      setSeconds(TOTAL_SECONDS);
-      setManualProgress(0);
-    }
-  };
-
-  const formatTime = (totalSec) => {
-    const mins = Math.floor(totalSec / 60);
-    const secs = totalSec % 60;
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
-
-  return (
-    <div
-      data-testid="pomodo-card"
-      style={{
-        backgroundColor: 'rgba(22, 22, 26, 0.85)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(124, 92, 255, 0.25)',
-        boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(124, 92, 255, 0.12)',
-        borderRadius: '24px',
-        padding: '36px 28px',
-        maxWidth: '780px',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center'
-      }}
-    >
-      <div style={{ textAlign: 'center', marginBottom: '20px', width: '100%' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', backgroundColor: 'rgba(124, 92, 255, 0.14)', border: '1px solid rgba(124, 92, 255, 0.3)', marginBottom: '10px' }}>
-          <Sparkles size={13} color="#C4B5FD" />
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#C4B5FD', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Laboratório Experimental — Mascote Lumo 2.0
-          </span>
-        </div>
-        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em' }}>
-          Pomodo
-        </h2>
-        <p style={{ fontSize: '13px', color: '#8F99BA', margin: '6px 0 0' }}>
-          Uma sessão. Uma transformação. Acompanhe o Lumo ganhar energia durante o Pomodoro.
-        </p>
-      </div>
-
-      {/* Seletor Rápido de Estados */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '8px',
-          padding: '4px',
-          borderRadius: '999px',
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          marginBottom: '20px',
-          flexWrap: 'wrap',
-          justifyContent: 'center'
-        }}
-      >
-        {[
-          { id: 'idle', label: '💤 Idle (0%)' },
-          { id: 'focus', label: '🔥 Foco' },
-          { id: 'paused', label: '⏸️ Pausa' },
-          { id: 'completed', label: '✨ Concluído (100%)' }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => handleSelectStatus(tab.id)}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '999px',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: status === tab.id ? 700 : 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              backgroundColor: status === tab.id ? '#7C5CFF' : 'transparent',
-              color: status === tab.id ? '#FFFFFF' : '#9CA3AF'
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Slider Interativo de Teste de Energia / Progresso */}
-      <div style={{ width: '100%', maxWidth: '440px', margin: '0 auto 16px', textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#9CA3AF', marginBottom: '6px' }}>
-          <span>Energia da sessão: <strong style={{ color: '#FFFFFF' }}>{Math.round(activeProgress)}%</strong></span>
-          <span style={{ color: '#7FE7FF', fontWeight: 600 }}>
-            {activeProgress >= 80 ? '✦ Energia Máxima' : activeProgress >= 56 ? '◎ Placas Expandidas' : activeProgress >= 30 ? '• Fenda Aberta' : activeProgress >= 18 ? '○ 1ª Placa' : 'Forma Base'}
-          </span>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={Math.round(activeProgress)}
-          onChange={(e) => setManualProgress(Number(e.target.value))}
-          aria-label="Ajustar energia do Lumo"
-          style={{ width: '100%', accentColor: '#7C5CFF', cursor: 'pointer' }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9.5px', color: '#6B7280', marginTop: '2px' }}>
-          <span>0%</span>
-          <span>18%</span>
-          <span>30%</span>
-          <span>44%</span>
-          <span>56%</span>
-          <span>80%</span>
-          <span>100%</span>
-        </div>
-      </div>
-
-      {/* Visualização do Lumo e do Timer */}
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 0 24px',
-          width: '100%',
-          maxWidth: '380px'
-        }}
-      >
-        <LumoMascot progress={activeProgress} status={status} size={360} />
-
-        <div
-          style={{
-            marginTop: '-12px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            userSelect: 'none',
-            textAlign: 'center',
-            backgroundColor: 'rgba(12, 16, 36, 0.85)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(179, 171, 246, 0.25)',
-            padding: '14px 32px',
-            borderRadius: '20px',
-            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(124, 92, 255, 0.15)',
-            zIndex: 10
-          }}
-        >
-          <span
-            style={{
-              fontSize: '44px',
-              fontWeight: 800,
-              color: '#FFFFFF',
-              letterSpacing: '-0.03em',
-              lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {formatTime(seconds)}
-          </span>
-          <span
-            style={{
-              marginTop: '6px',
-              fontSize: '11px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              padding: '3px 10px',
-              borderRadius: '999px',
-              backgroundColor:
-                status === 'focus'
-                  ? 'rgba(127, 231, 255, 0.15)'
-                  : status === 'completed'
-                  ? 'rgba(124, 92, 255, 0.25)'
-                  : 'rgba(255, 255, 255, 0.08)',
-              color:
-                status === 'focus'
-                  ? '#7FE7FF'
-                  : status === 'completed'
-                  ? '#C4B5FD'
-                  : '#9CA3AF'
-            }}
-          >
-            {status === 'focus' ? 'Foco' : status === 'completed' ? 'Finalizado' : status === 'idle' ? 'Em Espera' : 'Em Pausa'}
-          </span>
-          <span style={{ fontSize: '11px', color: '#8F99BA', marginTop: '4px' }}>
-            {Math.round(activeProgress)}% concluído
-          </span>
-        </div>
-      </div>
-
-      {/* Controles do Timer */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-        <button
-          type="button"
-          onClick={handleTogglePlay}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '11px 24px',
-            borderRadius: '999px',
-            backgroundColor: isRunning ? 'rgba(239, 68, 68, 0.2)' : '#7C5CFF',
-            border: isRunning ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
-            color: '#FFFFFF',
-            fontSize: '13px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: isRunning ? 'none' : '0 8px 24px -4px rgba(124, 92, 255, 0.5)',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          {isRunning ? <Pause size={15} /> : <Play size={15} fill="#FFFFFF" />}
-          <span>{isRunning ? 'Pausar' : status === 'completed' ? 'Reiniciar e Focar' : 'Iniciar'}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleReset(25)}
-          title="Resetar para 25 min"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '10px 18px',
-            borderRadius: '999px',
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            color: '#D1D5DB',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
-          <RotateCcw size={13} />
-          <span>25m</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleForceComplete}
-          title="Simular conclusão imediata"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '10px 18px',
-            borderRadius: '999px',
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            color: '#D1D5DB',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
-          <Check size={13} />
-          <span>Concluir</span>
-        </button>
-      </div>
-
-      {/* Amostras da evolução progressiva das camadas do Mascote */}
-      <div
-        style={{
-          width: '100%',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          paddingTop: '24px'
-        }}
-      >
-        <div style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', marginBottom: '16px' }}>
-          Aparecimento Progressivo das Camadas (0% a 100%)
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: '14px',
-            width: '100%'
-          }}
-        >
-          {[
-            { st: 'idle', p: 0, title: 'Início (0%)', desc: 'Núcleo em repouso' },
-            { st: 'focus', p: 20, title: '18% — 1ª Placa', desc: 'Abertura inicial' },
-            { st: 'focus', p: 45, title: '44% — Placas Médias', desc: 'Fenda de energia expandindo' },
-            { st: 'focus', p: 65, title: '56% — Todas Placas', desc: 'Energia interna alta' },
-            { st: 'focus', p: 85, title: '85% — Faixas e Faíscas', desc: 'Forma avançada e satélites' },
-            { st: 'completed', p: 100, title: '100% — Concluído', desc: 'Shockwave triunfal' }
-          ].map((item) => (
-            <div
-              key={item.title}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-                borderRadius: '16px',
-                padding: '14px 10px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center'
-              }}
-            >
-              <LumoMascot progress={item.p} status={item.st} size={140} />
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#FFFFFF', marginTop: '8px' }}>
-                {item.title}
-              </div>
-              <span style={{ fontSize: '10.5px', color: '#6B7280', marginTop: '2px' }}>
-                {item.desc}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
  * AdminPortalTab (Refatorado 100% no padrão https://ethos-landing-7j3.pages.dev/)
  * Focado exclusivamente em:
  * 1. Controle de Acesso & Gestão de Usuários
@@ -528,8 +125,7 @@ const DEFAULT_SYSTEM_MODULES = {
 
 export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: globalToast }) {
   // Seções da Governança Administrativa
-  const [activeSection, setActiveSection] = useState('users'); // 'users' | 'tokens' | 'waitlist' | 'support' | 'security' | 'profissionais' | 'teste'
-  const [previousSection, setPreviousSection] = useState('users');
+  const [activeSection, setActiveSection] = useState('users'); // 'users' | 'tokens' | 'waitlist' | 'support' | 'security' | 'profissionais'
 
   // Visibilidade global de abas no sistema
   const [systemModules, setSystemModules] = useState(() => {
@@ -987,18 +583,25 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div
               style={{
-                width: '38px',
-                height: '38px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #8B5CF6 0%, #D946EF 100%)',
+                background: 'rgba(139, 92, 246, 0.14)',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 24px -6px rgba(139, 92, 246, 0.5)',
-                color: '#FFFFFF'
+                boxShadow: '0 8px 24px -6px rgba(139, 92, 246, 0.45)',
+                padding: '4px'
               }}
             >
-              <Shield size={20} />
+              <img
+                src="/ethos-logo.png"
+                alt="Ethos"
+                width={30}
+                height={30}
+                style={{ width: '30px', height: '30px', objectFit: 'contain', display: 'block' }}
+              />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1045,8 +648,7 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
               { id: 'waitlist', label: 'Waitlist', icon: Inbox, badge: stats.waitlistCount },
               { id: 'support', label: 'Suporte', icon: LifeBuoy, badge: stats.pendingTickets > 0 ? stats.pendingTickets : null },
               { id: 'security', label: 'Auditoria & Logs', icon: Activity },
-              { id: 'profissionais', label: 'Profissionais', icon: Users },
-              { id: 'teste', label: 'Teste', icon: FlaskConical }
+              { id: 'profissionais', label: 'Profissionais', icon: Users }
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeSection === tab.id;
@@ -1054,12 +656,7 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => {
-                    if (activeSection !== 'teste') {
-                      setPreviousSection(activeSection);
-                    }
-                    setActiveSection(tab.id);
-                  }}
+                  onClick={() => setActiveSection(tab.id)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -2382,44 +1979,6 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                 </table>
               </div>
             </div>
-          </section>
-        )}
-
-        {/* =================================================================== */}
-        {/* SEÇÃO 6: ABA TESTE                                                 */}
-        {/* =================================================================== */}
-        {activeSection === 'teste' && (
-          <section
-            style={{
-              padding: '24px 0'
-            }}
-          >
-            <div style={{ marginBottom: '20px' }}>
-              <button
-                type="button"
-                onClick={() => setActiveSection(previousSection || 'users')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 20px',
-                  borderRadius: '999px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.14)',
-                  color: '#FFFFFF',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                }}
-              >
-                <ArrowLeft size={16} />
-                <span>Voltar</span>
-              </button>
-            </div>
-
-            <PomodoCard />
-            <PlantaLaboratorio />
           </section>
         )}
       </main>

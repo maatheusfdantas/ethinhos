@@ -15,11 +15,12 @@ const estagio = (c) => c.querySelector('.rf-planta').dataset.stage;
 describe('Planta do Foco na aba Teste', () => {
   afterEach(() => { vi.useRealTimers(); });
 
-  it('aparece na aba Teste junto com o card do Lumo', async () => {
+  it('não aparece mais na aba administrativa após remoção do laboratório experimental', async () => {
     render(<AdminPortalTab />);
-    fireEvent.click(await screen.findByRole('button', { name: /teste/i }));
-    expect(screen.getByTestId('pomodo-card')).toBeTruthy();
-    expect(screen.getByTestId('planta-lab')).toBeTruthy();
+    expect(await screen.findByText(/Total de Contas/i)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^teste$/i })).toBeNull();
+    expect(screen.queryByTestId('pomodo-card')).toBeNull();
+    expect(screen.queryByTestId('planta-lab')).toBeNull();
   });
 
   it('o progresso escolhe o estágio; murchar e os cartões de estágio funcionam; nada é gravado', () => {

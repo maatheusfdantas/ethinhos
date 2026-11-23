@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { AdminPortalTab } from '../components/AdminPortalTab';
 
@@ -17,38 +17,26 @@ vi.mock('../utils/api', () => ({
   }))
 }));
 
-describe('Aba Teste no Portal do Administrador', () => {
+describe('Portal do Administrador — Remoção do Laboratório Experimental', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('exibe a aba Teste na navegação e ao acessá-la mostra apenas o botão Voltar', async () => {
+  it('não exibe o Laboratório Experimental nem o Mascote Lumo 2.0 e mantém as seções administrativas funcionando', async () => {
     render(<AdminPortalTab />);
 
-    // Aguarda carregar dados iniciais e renderizar a navegação
-    const testeTabBtn = await screen.findByRole('button', { name: /teste/i });
-    expect(testeTabBtn).toBeInTheDocument();
+    // Aguarda carregar dados iniciais
+    expect(await screen.findByText(/Total de Contas/i)).toBeInTheDocument();
 
-    // Inicialmente, na aba 'users', as estatísticas aparecem
+    // Não deve exibir botão de aba Teste nem Laboratório Experimental / Lumo 2.0
+    expect(screen.queryByRole('button', { name: /^teste$/i })).toBeNull();
+    expect(screen.queryByText(/Laboratório Experimental/i)).toBeNull();
+    expect(screen.queryByText(/Mascote Lumo 2\.0/i)).toBeNull();
+    expect(screen.queryByTestId('pomodo-card')).toBeNull();
+
+    // Demais abas administrativas continuam funcionando
+    const tokensTabBtn = screen.getByRole('button', { name: /Tokens \(48h\)/i });
+    fireEvent.click(tokensTabBtn);
     expect(screen.getByText(/Total de Contas/i)).toBeInTheDocument();
-
-    // Clica na aba Teste
-    fireEvent.click(testeTabBtn);
-
-    // Na aba Teste: o botão Voltar deve estar visível
-    const voltarBtn = screen.getByRole('button', { name: /voltar/i });
-    expect(voltarBtn).toBeInTheDocument();
-
-    // Estatísticas (Bento Grid) e seções não devem aparecer
-    expect(screen.queryByText(/Total de Contas/i)).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText(/Buscar por nome/i)).not.toBeInTheDocument();
-
-    // Clica no botão Voltar para retornar
-    fireEvent.click(voltarBtn);
-
-    // Retorna para a aba anterior (Usuários) com as estatísticas de volta
-    await waitFor(() => {
-      expect(screen.getByText(/Total de Contas/i)).toBeInTheDocument();
-    });
   });
 });

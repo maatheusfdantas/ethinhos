@@ -73,18 +73,17 @@ export function ContextSwitch({ pro, proMode, onToggleProMode }) {
   );
 }
 
-export function BrandMark({ size = 28, id = 'rxBrand' }) {
+export function BrandMark({ size = 30 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 28 28" aria-hidden="true">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#A78BFA" />
-          <stop offset="1" stopColor="#60A5FA" />
-        </linearGradient>
-      </defs>
-      <circle cx="14" cy="14" r="11" fill="none" stroke="currentColor" strokeWidth="2.4" />
-      <circle cx="14" cy="14" r="4.6" fill={`url(#${id})`} />
-    </svg>
+    <img
+      src="/ethos-logo.png"
+      alt=""
+      width={size}
+      height={size}
+      className="rx-brand-logo"
+      aria-hidden="true"
+      style={{ width: size, height: size, objectFit: 'contain', display: 'block', flexShrink: 0 }}
+    />
   );
 }
 
@@ -126,7 +125,7 @@ export function DesktopSidebar({
     <aside className={`rx-side${mini ? ' mini' : ''}`} aria-label="Navegação principal">
       <div className="rx-side-head">
         <button type="button" className="rx-brand" onClick={() => setActiveTab('dashboard')} aria-label="Ethos, ir para o painel">
-          <BrandMark id="rxBrandSide" />
+          <BrandMark size={32} />
           <span>ethos</span>
         </button>
         <button type="button" className="rx-nav-btn rx-collapse" onClick={alternarMini} aria-pressed={mini} aria-label={mini ? 'Expandir menu' : 'Recolher menu'} title={mini ? 'Expandir menu' : 'Recolher menu'} data-testid="menu-recolher">

@@ -9,6 +9,8 @@ import { HabitosTab } from '../components/habitos/HabitosTab';
 import { AnaliseTab, resumoTreino } from '../components/analise/AnaliseTab';
 import { PerfilTab } from '../components/perfil/PerfilTab';
 import { ProfileModal } from '../components/ProfileModal';
+import { SupportModal } from '../components/SupportModal';
+import { NotesTab } from '../components/NotesTab';
 
 const ok = (body = {}) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
 
@@ -117,29 +119,86 @@ describe('Perfil (tela nova)', () => {
     expect(onOpenSettings).toHaveBeenCalled();
   });
 
-  it('meta de água e dados pessoais ficam nas Configurações (ProfileModal) e só gravam ao tocar em Salvar alterações', async () => {
+  it('separa Saúde (Peso e Altura) da seção de Água (Capacidade dos copos, sugestão 35 ml/kg e Meta diária) nas Configurações', async () => {
     const setHealth = vi.fn();
-    render(
+    let currentUser = { ...user, weight: 60 };
+    const onUpdateUser = vi.fn((next) => { currentUser = next; });
+    const { rerender } = render(
       <ProfileModal
         isOpen
         onClose={vi.fn()}
-        user={user}
-        onUpdateUser={vi.fn()}
+        user={currentUser}
+        onUpdateUser={onUpdateUser}
         health={{ glassMl: 250, waterGlasses: 0 }}
         setHealth={setHealth}
         showToast={vi.fn()}
       />
     );
     expect(screen.getByTestId('settings-account-sections')).toBeTruthy();
+
+    // 1. Seção Saúde possui Peso (kg) e Altura (cm)
+    const saude = screen.getByTestId('secao-saude');
+    const pesoInput = within(saude).getByLabelText('Peso (kg)');
+    const alturaInput = within(saude).getByLabelText('Altura (cm)');
+    fireEvent.change(pesoInput, { target: { value: '80' } });
+    fireEvent.change(alturaInput, { target: { value: '178' } });
+    fireEvent.click(within(saude).getByRole('button', { name: /Salvar.*saúde/i }));
+    await waitFor(() => expect(onUpdateUser).toHaveBeenCalledWith(expect.objectContaining({ weight: 80 })));
+
+    rerender(
+      <ProfileModal
+        isOpen
+        onClose={vi.fn()}
+        user={currentUser}
+        onUpdateUser={onUpdateUser}
+        health={{ glassMl: 250, waterGlasses: 0 }}
+        setHealth={setHealth}
+        showToast={vi.fn()}
+      />
+    );
+
+    // 2. Seção Água não duplica o input de Peso (kg), exibe a sugestão 80 kg x 35 ml = 2800 ml (2,80 L) e permite personalizar o copo
     const meta = screen.getByTestId('meta-agua');
-    const salvar = within(meta).getByRole('button', { name: 'Salvar alterações' });
-    expect(salvar.disabled).toBe(true);
-    fireEvent.change(within(meta).getByLabelText('Peso (kg)'), { target: { value: '80' } });
+    expect(within(meta).queryByLabelText('Peso (kg)')).toBeNull();
+    expect(within(meta).getByTestId('agua-sugestao-box').textContent).toMatch(/2800 ml \(2,80 L por dia\)/);
     expect(within(meta).getByText(/2,80 L por dia \(12 copos\)/)).toBeTruthy();
+
+    const salvar = within(meta).getByRole('button', { name: 'Salvar alterações' });
+    fireEvent.change(within(meta).getByLabelText('Capacidade do copo (ml)'), { target: { value: '350' } });
+    expect(within(meta).getByText(/2,80 L por dia \(8 copos\)/)).toBeTruthy();
+
     const chamadasAntes = global.fetch.mock.calls.filter(([u]) => String(u) === '/api/user/u1/health').length;
     expect(chamadasAntes).toBe(0);
     fireEvent.click(salvar);
-    await waitFor(() => expect(setHealth).toHaveBeenCalledWith(expect.objectContaining({ waterTarget: 12, glassMl: 250 })));
+    await waitFor(() => expect(setHealth).toHaveBeenCalledWith(expect.objectContaining({ waterTarget: 8, waterTargetMl: 2800, glassMl: 350 })));
     expect(global.fetch.mock.calls.some(([u, o]) => String(u) === '/api/user/u1/health' && o.method === 'POST')).toBe(true);
+  });
+
+  it('Central de Ajuda & Suporte segue o sistema visual do Ethos e renderiza destaques do Guia Rápido sem falhas', () => {
+    render(<SupportModal isOpen onClose={vi.fn()} user={user} showToast={vi.fn()} />);
+    const modal = screen.getByTestId('support-modal');
+    expect(modal.className).toMatch(/rx-dialog/);
+    expect(modal.className).toMatch(/hlp-dialog/);
+
+    // Navega para o Guia Rápido e verifica destaques formatados
+    fireEvent.click(within(modal).getByRole('tab', { name: /Guia Rápido/i }));
+    const guide = screen.getByTestId('support-guide-section');
+    expect(guide.textContent).toMatch(/35 ml \/ kg/);
+    expect(guide.textContent).toMatch(/Saúde e Hidratação Diária/);
+    expect(guide.querySelectorAll('.hlp-highlight').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('Notas abre o modal de criação com o sistema de diálogo atual e persiste a nota criada', () => {
+    const setUser = vi.fn();
+    render(<NotesTab user={user} setUser={setUser} showToast={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Nova nota/i }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.className).toMatch(/rx-dialog/);
+    expect(dialog.className).toMatch(/nt-form/);
+
+    fireEvent.change(screen.getByLabelText(/Título/i), { target: { value: 'Ideia de leitura' } });
+    fireEvent.change(screen.getByLabelText(/^Nota$/i), { target: { value: 'Ler 20 páginas antes de dormir.' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Salvar$/i }));
+    expect(screen.getByText('Ideia de leitura')).toBeTruthy();
   });
 });

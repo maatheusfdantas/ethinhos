@@ -10,14 +10,18 @@ import {
   HelpCircle,
   Bug,
   CheckCircle2,
-  Clock
+  Clock,
+  BookOpen,
+  Droplets,
+  Timer,
+  ShieldCheck
 } from 'lucide-react';
 
 const TICKET_CATEGORIES = [
-  { id: 'bug', label: 'Bug / Erro no Sistema', desc: 'Falhas de interface ou sincronização', icon: Bug, color: '#F43F5E' },
-  { id: 'duvida', label: 'Dúvida sobre Funcionalidade', desc: 'Como utilizar recursos e módulos', icon: HelpCircle, color: '#38BDF8' },
-  { id: 'conta', label: 'Minha Conta & Acesso', desc: 'Dados, login, senha e permissões', icon: AlertCircle, color: '#F59E0B' },
-  { id: 'sugestao', label: 'Sugestão de Melhoria', desc: 'Ideias de funções ou melhorias visuais', icon: Sparkles, color: '#10B981' }
+  { id: 'bug', label: 'Bug / Erro no Sistema', desc: 'Falhas de interface ou sincronização', icon: Bug, color: 'var(--rx-bad)' },
+  { id: 'duvida', label: 'Dúvida sobre Funcionalidade', desc: 'Como utilizar recursos e módulos', icon: HelpCircle, color: 'var(--rx-blue)' },
+  { id: 'conta', label: 'Minha Conta & Acesso', desc: 'Dados, login, senha e permissões', icon: AlertCircle, color: 'var(--rx-amber)' },
+  { id: 'sugestao', label: 'Sugestão de Melhoria', desc: 'Ideias de funções ou melhorias visuais', icon: Sparkles, color: 'var(--rx-violet)' }
 ];
 
 const SYSTEM_MODULES = [
@@ -32,8 +36,49 @@ const SYSTEM_MODULES = [
   'Comunidade & Conexões'
 ];
 
+const GUIDE_TOPICS = [
+  {
+    id: 'hidratacao',
+    icon: Droplets,
+    color: 'var(--rx-m-agua)',
+    title: 'Saúde e Hidratação Diária',
+    badge: '35 ml / kg',
+    summary: 'Como funcionam o cálculo de água, peso, altura e tamanho dos copos.',
+    bullets: [
+      { highlight: 'Saúde', text: 'Preencha seu Peso (kg) e sua Altura (cm) na seção Saúde dentro de Configurações.' },
+      { highlight: 'Água', text: 'A sugestão diária usa a fórmula padrão de 35 ml por kg de peso corporal e converte automaticamente para copos.' },
+      { highlight: 'Copos personalizados', text: 'Na seção de Água você define a capacidade do seu copo ou garrafa em ml (ex.: 200 ml, 250 ml, 350 ml, 500 ml ou valor editável).' }
+    ]
+  },
+  {
+    id: 'foco',
+    icon: Timer,
+    color: 'var(--rx-m-foco)',
+    title: 'Foco, Cultivo e Evolução',
+    badge: '5 a 120 min',
+    summary: 'Personalize a intensidade do timer e acompanhe seus cultivos ao longo do tempo.',
+    bullets: [
+      { highlight: 'Seletor recolhível', text: 'Toque no cartão acima do anel de foco para escolher entre Plantas, Mundos, Elementos, Mascotes, Naves, ETs, Foguetes, Livros e Poções.' },
+      { highlight: 'Intensidade e barra', text: 'Escolha um nível de intensidade ou deslize a barra de 5 a 120 minutos para definir a duração exata da sessão.' },
+      { highlight: 'Evolução Semanal e Mensal', text: 'Acompanhe todas as espécies e elementos produzidos nas suas sessões reais nos últimos 7 ou 30 dias.' }
+    ]
+  },
+  {
+    id: 'privacidade',
+    icon: ShieldCheck,
+    color: 'var(--rx-violet)',
+    title: 'Privacidade, Conta e Suporte',
+    badge: 'Protegido',
+    summary: 'Seus registros são privados e qualquer suporte técnico exige autorização explícita.',
+    bullets: [
+      { highlight: 'Acesso consentido', text: 'Em cada chamado aberto você decide quais categorias liberar temporariamente e pode revogar o acesso a qualquer instante.' },
+      { highlight: 'Exportação completa', text: 'Em Configurações você pode baixar uma cópia integral dos seus dados em formato JSON.' }
+    ]
+  }
+];
+
 export function SupportModal({ isOpen, onClose, user, showToast }) {
-  const [activeTab, setActiveTab] = useState('new'); // 'new' | 'history'
+  const [activeTab, setActiveTab] = useState('new'); // 'new' | 'history' | 'guide'
   const [subject, setSubject] = useState('');
   const [category, setCategory] = useState('duvida');
   const [moduleName, setModuleName] = useState(SYSTEM_MODULES[0]);
@@ -129,129 +174,123 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="sp-modal-title">
+    <div className="rx-overlay" onClick={onClose}>
       <div
-        className="modal-sheet"
-        style={{
-          maxWidth: '680px',
-          width: '94vw',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          borderRadius: '24px',
-          padding: '24px',
-          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.45)',
-          border: '1px solid var(--rx-line-2, rgba(255, 255, 255, 0.12))',
-          background: 'var(--rx-card, #121829)'
-        }}
+        className="rx-dialog hlp-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sp-modal-title"
+        data-testid="support-modal"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER AREJADO E BEM SINTETIZADO */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid var(--rx-line, rgba(255, 255, 255, 0.08))' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div
-              style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '14px',
-                background: 'rgba(56, 189, 248, 0.18)',
-                color: '#38BDF8',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
-            >
-              <LifeBuoy size={24} />
-            </div>
+        <header className="hlp-head">
+          <div className="hlp-head-main">
+            <span className="rx-tile solid" style={{ '--c': 'var(--rx-violet)' }}>
+              <LifeBuoy size={20} />
+            </span>
             <div>
-              <h2 id="sp-modal-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--rx-ink, #FFFFFF)' }}>
+              <h2 id="sp-modal-title">
                 Central de Ajuda & Suporte
               </h2>
-              <span style={{ fontSize: '0.84rem', color: 'var(--rx-ink-3, #94A3B8)', display: 'block', marginTop: '2px' }}>
-                Abra um chamado técnico detalhado ou acompanhe respostas da administração
-              </span>
+              <p>
+                Guias rápidos do Ethos, abertura de chamados e respostas da administração
+              </p>
             </div>
           </div>
 
           <button
             type="button"
-            className="modal-close-btn"
+            className="rx-icon-btn"
             onClick={onClose}
-            aria-label="Fechar suporte"
-            style={{
-              background: 'var(--rx-wash, rgba(255, 255, 255, 0.06))',
-              border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
-              color: 'var(--rx-ink-2, #CBD5E1)',
-              borderRadius: '12px',
-              padding: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            aria-label="Fechar central de ajuda"
           >
             <X size={18} />
           </button>
-        </div>
+        </header>
 
-        {/* TABS ESPAÇOSAS */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '18px', marginBottom: '20px' }}>
+        {/* TABS */}
+        <div className="tl-seg" role="group" aria-label="Seções da central de ajuda">
           <button
             type="button"
+            aria-pressed={activeTab === 'new'}
             onClick={() => setActiveTab('new')}
-            style={{
-              flex: 1,
-              padding: '12px 18px',
-              borderRadius: '14px',
-              border: activeTab === 'new' ? '1.5px solid var(--rx-lavender, #818CF8)' : '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
-              background: activeTab === 'new' ? 'rgba(129, 140, 248, 0.18)' : 'var(--rx-card, rgba(255, 255, 255, 0.03))',
-              color: activeTab === 'new' ? 'var(--rx-lavender, #A5B4FC)' : 'var(--rx-ink-2, #94A3B8)',
-              fontSize: '0.9rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
           >
+            <Send size={14} />
             <span>+ Abrir Novo Chamado</span>
           </button>
 
           <button
             type="button"
+            aria-pressed={activeTab === 'history'}
             onClick={() => setActiveTab('history')}
-            style={{
-              flex: 1,
-              padding: '12px 18px',
-              borderRadius: '14px',
-              border: activeTab === 'history' ? '1.5px solid var(--rx-lavender, #818CF8)' : '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
-              background: activeTab === 'history' ? 'rgba(129, 140, 248, 0.18)' : 'var(--rx-card, rgba(255, 255, 255, 0.03))',
-              color: activeTab === 'history' ? 'var(--rx-lavender, #A5B4FC)' : 'var(--rx-ink-2, #94A3B8)',
-              fontSize: '0.9rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
           >
-            <Clock size={16} />
+            <Clock size={14} />
             <span>Meus Chamados ({myTickets.length})</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'guide'}
+            aria-pressed={activeTab === 'guide'}
+            onClick={() => setActiveTab('guide')}
+          >
+            <BookOpen size={14} />
+            <span>Guia Rápido</span>
           </button>
         </div>
 
-        {activeTab === 'new' ? (
-          <form onSubmit={handleSubmitTicket} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        {/* GUIA RÁPIDO COM DESTAQUES FORMATADOS */}
+        {activeTab === 'guide' && (
+          <div className="es-stack" data-testid="support-guide-section">
+            {GUIDE_TOPICS.map((topic) => {
+              const Icon = topic.icon;
+              return (
+                <article key={topic.id} className="hlp-box">
+                  <div className="hlp-ticket-head">
+                    <h3>
+                      <span className="rx-tile sm" style={{ '--c': topic.color }}>
+                        <Icon size={16} />
+                      </span>
+                      {topic.title}
+                    </h3>
+                    <span className="hlp-highlight">{topic.badge}</span>
+                  </div>
+                  <p>{topic.summary}</p>
+                  <ul>
+                    {topic.bullets.map((b, idx) => (
+                      <li key={idx}>
+                        <strong>{b.highlight}:</strong> {b.text}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {activeTab === 'new' && (
+          <form onSubmit={handleSubmitTicket} className="es-stack" data-testid="support-new-form">
+            <div className="hlp-box">
+              <h3>
+                <BookOpen size={16} /> Como podemos ajudar você?
+              </h3>
+              <p>
+                Escolha o tipo de solicitação, o módulo relacionado e descreva sua dúvida. Termos em destaque como{' '}
+                <span className="hlp-highlight">Hidratação</span>,{' '}
+                <span className="hlp-highlight">Foco</span> e{' '}
+                <span className="hlp-highlight">Sincronização</span> agilizam a análise técnica.
+              </p>
+            </div>
+
             {/* SELEÇÃO DE CATEGORIAS: BEM DIMENSIONADA, CARTÕES AMPLOS COM ÍCONES NÍTIDOS */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 700, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '8px' }}>
+            <div className="rx-field">
+              <span>
                 Tipo de Solicitação
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
+              </span>
+              <div className="hlp-grid" role="group" aria-label="Tipo de Solicitação">
                 {TICKET_CATEGORIES.map((cat) => {
                   const Icon = cat.icon;
                   const isSelected = category === cat.id;
@@ -259,42 +298,18 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                     <button
                       key={cat.id}
                       type="button"
+                      className="hlp-cat"
+                      aria-pressed={isSelected}
                       onClick={() => setCategory(cat.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        padding: '12px 14px',
-                        borderRadius: '14px',
-                        border: isSelected ? `2px solid ${cat.color}` : '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
-                        background: isSelected ? `${cat.color}22` : 'var(--rx-wash, rgba(255, 255, 255, 0.03))',
-                        color: 'var(--rx-ink, #FFFFFF)',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'all 0.18s ease'
-                      }}
                     >
-                      <div
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '10px',
-                          background: `${cat.color}26`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
-                        }}
-                      >
-                        <Icon size={20} color={cat.color} />
-                      </div>
+                      <Icon size={18} style={{ color: cat.color, flexShrink: 0, marginTop: 2 }} />
                       <div style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: '0.86rem', fontWeight: 700, color: isSelected ? '#FFFFFF' : 'var(--rx-ink, #FFFFFF)' }}>
+                        <span>
                           {cat.label}
                         </span>
-                        <span style={{ display: 'block', fontSize: '0.74rem', color: 'var(--rx-ink-3, #94A3B8)', marginTop: '2px' }}>
+                        <small>
                           {cat.desc}
-                        </span>
+                        </small>
                       </div>
                     </button>
                   );
@@ -303,130 +318,78 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
             </div>
 
             {/* MÓDULO E PRIORIDADE */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-              <div>
-                <label htmlFor="sp-module-select" style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '6px' }}>
+            <div className="ps-row">
+              <div className="rx-field">
+                <label htmlFor="sp-module-select">
                   Módulo do Sistema
                 </label>
                 <select
                   id="sp-module-select"
-                  className="input-dark"
+                  className="es-input"
                   value={moduleName}
                   onChange={(e) => setModuleName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
-                    background: 'var(--rx-input, #0B1020)',
-                    color: 'var(--rx-ink, #FFFFFF)',
-                    fontSize: '0.86rem'
-                  }}
                 >
                   {SYSTEM_MODULES.map((m) => (
-                    <option key={m} value={m} style={{ background: '#0F172A', color: '#FFFFFF' }}>{m}</option>
+                    <option key={m} value={m}>{m}</option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label htmlFor="sp-priority-select" style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '6px' }}>
+              <div className="rx-field">
+                <label htmlFor="sp-priority-select">
                   Prioridade
                 </label>
                 <select
                   id="sp-priority-select"
-                  className="input-dark"
+                  className="es-input"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
-                    background: 'var(--rx-input, #0B1020)',
-                    color: 'var(--rx-ink, #FFFFFF)',
-                    fontSize: '0.86rem'
-                  }}
                 >
-                  <option value="Baixa" style={{ background: '#0F172A', color: '#FFFFFF' }}>Baixa (Não impede o uso)</option>
-                  <option value="Média" style={{ background: '#0F172A', color: '#FFFFFF' }}>Média (Dúvida ou pequeno bug)</option>
-                  <option value="Alta" style={{ background: '#0F172A', color: '#FFFFFF' }}>Alta (Funcionalidade travada)</option>
-                  <option value="Urgente" style={{ background: '#0F172A', color: '#FFFFFF' }}>Urgente (Bloqueio total de acesso)</option>
+                  <option value="Baixa">Baixa (Não impede o uso)</option>
+                  <option value="Média">Média (Dúvida ou pequeno bug)</option>
+                  <option value="Alta">Alta (Funcionalidade travada)</option>
+                  <option value="Urgente">Urgente (Bloqueio total de acesso)</option>
                 </select>
               </div>
             </div>
 
             {/* ASSUNTO */}
-            <div>
-              <label htmlFor="sp-subject-input" style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '6px' }}>
+            <div className="rx-field">
+              <label htmlFor="sp-subject-input">
                 Assunto Resumido
               </label>
               <input
                 id="sp-subject-input"
                 type="text"
-                className="input-dark"
+                className="es-input"
                 placeholder="Ex: Dúvida ao configurar meta de água ou erro ao registrar foco"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 required
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
-                  background: 'var(--rx-input, #0B1020)',
-                  color: 'var(--rx-ink, #FFFFFF)',
-                  fontSize: '0.88rem',
-                  boxSizing: 'border-box'
-                }}
               />
             </div>
 
             {/* DESCRIÇÃO DETALHADA */}
-            <div>
-              <label htmlFor="sp-message-textarea" style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '6px' }}>
+            <div className="rx-field">
+              <label htmlFor="sp-message-textarea">
                 Descrição Detalhada
               </label>
               <textarea
                 id="sp-message-textarea"
-                className="input-dark"
+                className="es-input"
                 rows={5}
                 placeholder="Descreva com detalhes como podemos ajudar, passos para reproduzir ou o que esperava ver..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
-                  background: 'var(--rx-input, #0B1020)',
-                  color: 'var(--rx-ink, #FFFFFF)',
-                  fontSize: '0.88rem',
-                  lineHeight: 1.5,
-                  resize: 'vertical',
-                  minHeight: '110px',
-                  boxSizing: 'border-box'
-                }}
                 required
               />
             </div>
 
             {/* BOTÕES DE AÇÃO */}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+            <div className="rx-form-acts">
               <button
                 type="button"
-                className="btn-secondary"
-                style={{
-                  flex: '1 1 140px',
-                  padding: '12px 20px',
-                  borderRadius: '14px',
-                  border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
-                  background: 'var(--rx-wash, rgba(255, 255, 255, 0.05))',
-                  color: 'var(--rx-ink-2, #E2E8F0)',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
+                className="rx-btn ghost"
                 onClick={onClose}
               >
                 Cancelar
@@ -434,35 +397,22 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-primary"
-                style={{
-                  flex: '2 1 240px',
-                  padding: '12px 24px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #8B6CFF 0%, #5B8CFF 100%)',
-                  color: '#FFFFFF',
-                  fontWeight: 700,
-                  fontSize: '0.92rem',
-                  cursor: submitting ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 16px rgba(139, 108, 255, 0.35)'
-                }}
+                className="rx-btn"
               >
                 <Send size={16} />
                 <span>{submitting ? 'Enviando Chamado...' : 'Enviar Chamado ao Suporte'}</span>
               </button>
             </div>
           </form>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        )}
+
+        {/* MEUS CHAMADOS */}
+        {activeTab === 'history' && (
+          <div className="es-stack" data-testid="support-history-section">
             {myTickets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--rx-ink-3, #94A3B8)' }}>
-                <MessageSquare size={38} style={{ margin: '0 auto 12px auto', opacity: 0.5 }} />
-                <p style={{ margin: 0, fontSize: '0.94rem', fontWeight: 600 }}>
+              <div className="hlp-box" style={{ textAlign: 'center', padding: '32px 16px', alignItems: 'center' }}>
+                <MessageSquare size={32} style={{ opacity: 0.6 }} />
+                <p style={{ margin: 0, fontWeight: 600 }}>
                   Você ainda não abriu nenhum chamado de suporte.
                 </p>
                 <span style={{ fontSize: '0.8rem', display: 'block', marginTop: '4px' }}>
@@ -471,60 +421,36 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
               </div>
             ) : (
               myTickets.map((t) => {
-                const isResolved = t.status === 'resolvido';
+                const isResolved = t.status === 'resolvido' || t.status === 'resolved';
                 return (
-                  <div
-                    key={t.id}
-                    className="card-native"
-                    style={{
-                      background: 'var(--rx-wash, rgba(255, 255, 255, 0.03))',
-                      border: isResolved ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
-                      borderRadius: '18px',
-                      padding: '18px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--rx-ink, #FFFFFF)' }}>
+                  <article key={t.id} className="hlp-ticket">
+                    <div className="hlp-ticket-head">
+                      <strong style={{ fontSize: '15px', color: 'var(--rx-ink)' }}>
                         {t.subject}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.74rem',
-                          fontWeight: 800,
-                          textTransform: 'uppercase',
-                          padding: '4px 10px',
-                          borderRadius: '999px',
-                          background: isResolved ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)',
-                          color: isResolved ? '#34D399' : '#FBBF24',
-                          border: isResolved ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)'
-                        }}
-                      >
-                        {isResolved ? '✓ Resolvido' : t.status === 'em_andamento' ? '⏳ Em Análise' : '📩 Aberto'}
+                      </strong>
+                      <span className="hlp-highlight">
+                        {isResolved ? (
+                          <><CheckCircle2 size={13} style={{ marginRight: 4 }} /> Resolvido</>
+                        ) : t.status === 'em_andamento' ? (
+                          <><Clock size={13} style={{ marginRight: 4 }} /> Em Análise</>
+                        ) : (
+                          <><Clock size={13} style={{ marginRight: 4 }} /> Aberto</>
+                        )}
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '0.78rem', color: 'var(--rx-ink-3, #94A3B8)', marginBottom: '10px' }}>
-                      Módulo: <strong>{t.module || 'Geral'}</strong> • Prioridade: <strong>{t.priority}</strong> •{' '}
+                    <div style={{ fontSize: '12.5px', color: 'var(--rx-ink-2)' }}>
+                      Módulo: <strong>{t.module || 'Geral'}</strong> • Prioridade: <strong>{t.priority || 'Média'}</strong> •{' '}
                       {t.created_at ? new Date(t.created_at).toLocaleString('pt-BR') : 'Hoje'}
                     </div>
 
-                    <p style={{ fontSize: '0.88rem', color: 'var(--rx-ink-2, #E2E8F0)', margin: 0, lineHeight: 1.55 }}>
+                    <div className="hlp-ticket-msg">
                       {t.message}
-                    </p>
+                    </div>
 
                     {t.admin_reply && (
-                      <div
-                        style={{
-                          marginTop: '12px',
-                          padding: '12px 14px',
-                          borderRadius: '12px',
-                          background: 'rgba(56, 189, 248, 0.12)',
-                          borderLeft: '4px solid #38BDF8',
-                          fontSize: '0.84rem',
-                          color: '#F1F5F9'
-                        }}
-                      >
-                        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#38BDF8', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <div className="hlp-reply">
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--rx-lavender)', marginBottom: '4px', textTransform: 'uppercase' }}>
                           Resposta da Equipe Ethos:
                         </div>
                         {t.admin_reply}
@@ -535,7 +461,7 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                     <div style={{ marginTop: '12px' }}>
                       <SupportAccessPanel ticketId={t.id} resolved={isResolved} />
                     </div>
-                  </div>
+                  </article>
                 );
               })
             )}

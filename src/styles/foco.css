@@ -251,3 +251,104 @@ button.rf-missions .dot, .rf-missions button.dot { cursor: pointer; }
 .rf-cat-art { position: relative; width: 100%; height: 74px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
 .rf-cat-art img.sp { width: 64px; height: 54px; object-fit: contain; display: block; margin-bottom: -5px; z-index: 2; }
 .rf-cat-art img.ch { width: 68px; height: 18px; object-fit: contain; display: block; z-index: 1; }
+
+/* Evolução de Cultivos e Elementos (Semana / Mês) */
+.rf-jardim-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-top: 12px;
+  border-radius: 16px;
+  border: 1px dashed var(--rx-line-2);
+  background: var(--rx-wash);
+}
+.rf-jardim-empty img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.rf-jardim-empty b {
+  font-size: 14px;
+  color: var(--rx-ink);
+  font-weight: 640;
+}
+.rf-jardim-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+.rf-jardim-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--rx-line);
+  background: var(--rx-wash);
+}
+.rf-jardim-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--rx-card);
+  border: 1px solid var(--rx-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rf-jardim-thumb img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+.rf-jardim-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.rf-jardim-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rf-jardim-top b {
+  font-size: 13.8px;
+  font-weight: 650;
+  color: var(--rx-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rf-jardim-stage {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--rx-violet-wash);
+  color: var(--rx-lavender);
+  white-space: nowrap;
+}
+.rf-jardim-stage[data-full="false"] {
+  background: var(--rx-amber-wash);
+  color: var(--rx-amber);
+}
+.rf-jardim-meta {
+  font-size: 12px;
+  color: var(--rx-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rf-jardim-meta b {
+  color: var(--rx-ink);
+  font-weight: 620;
+}

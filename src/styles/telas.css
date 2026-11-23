@@ -77,30 +77,72 @@
 .pf-mini span { font-size: 12.5px; color: var(--rx-ink-3); }
 .pf-mini b { font-size: 18px; font-weight: 640; color: var(--rx-ink); font-variant-numeric: tabular-nums; }
 
-/* Seções da conta (ProfileAccountSections, SpotifyConnectCard) no tema escuro, dentro do Perfil e modais de conta. */
+/* Seções da conta (ProfileAccountSections, SpotifyConnectCard, MetaAgua) e Central de Ajuda em todos os contextos (Perfil e Modais). */
 .pf .ps, .ps { color: var(--rx-ink); gap: 20px; }
 .pf .ps-nav, .ps-nav { position: static; padding: 0; background: none; }
-.pf .ps-nav button, .ps-nav button { min-height: 38px; background: transparent; border-color: var(--rx-line-2); color: var(--rx-ink-2); }
-.pf .ps-nav button:hover, .ps-nav button:hover { border-color: var(--rx-lavender); color: var(--rx-ink); }
-.pf .ps-card, .ps-card, .pf .sp-card { background: var(--rx-card); border: 1px solid var(--rx-line); box-shadow: var(--rx-shadow); color: var(--rx-ink); }
-.pf .ps-card h3, .ps-card h3, .pf .sp-head h3 { font-size: 17px; font-weight: 640; color: var(--rx-ink); }
-.pf .ps-lock, .ps-lock, .pf .sp-badge { background: var(--rx-violet-wash); color: var(--rx-lavender); }
-.pf .ps-muted, .ps-muted, .pf .sp-muted, .pf .ps-opt, .ps-opt { color: var(--rx-ink-3); }
-.pf .sp-text, .pf .sp-list { color: var(--rx-ink-2); }
+.pf .ps-nav button, .ps-nav button { min-height: 38px; background: var(--rx-card); border-color: var(--rx-line-2); color: var(--rx-ink-2); }
+.pf .ps-nav button:hover, .ps-nav button:hover { border-color: var(--rx-lavender); color: var(--rx-ink); background: var(--rx-violet-wash); }
+.pf .ps-card, .pf .sp-card, .ps-card, .sp-card { background: var(--rx-card); border: 1px solid var(--rx-line); box-shadow: var(--rx-shadow); color: var(--rx-ink); }
+.pf .ps-card h3, .pf .sp-head h3, .ps-card h3, .sp-head h3 { font-size: 17px; font-weight: 640; color: var(--rx-ink); }
+.pf .ps-lock, .pf .sp-badge, .ps-lock, .sp-badge { background: var(--rx-violet-wash); color: var(--rx-lavender); }
+.pf .ps-muted, .pf .sp-muted, .pf .ps-opt, .ps-muted, .sp-muted, .ps-opt { color: var(--rx-ink-3); }
+.pf .sp-text, .pf .sp-list, .sp-text, .sp-list { color: var(--rx-ink-2); }
 .pf .ps-form label, .ps-form label { color: var(--rx-ink-2); }
-.pf .ps-form input, .ps-form input, .pf .ps-form select, .ps-form select { background: var(--rx-input); border-color: var(--rx-line-2); color: var(--rx-ink); color-scheme: var(--rx-scheme); }
-.pf .ps-form input:focus, .ps-form input:focus, .pf .ps-form select:focus, .ps-form select:focus { outline: none; border-color: var(--rx-lavender); box-shadow: 0 0 0 4px rgba(167, 139, 250, .18); }
-.pf .ps-account, .ps-account, .pf .sp-track { background: var(--rx-wash); border: 1px solid var(--rx-line); }
-.pf .ps-account > div, .ps-account > div, .pf .sp-meta { color: var(--rx-ink-2); }
-.pf .ps-account b, .ps-account b, .pf .sp-meta b { color: var(--rx-ink); }
-.pf .sp-meta a { color: var(--rx-lavender); }
-.pf .sp-state, .pf .ps-ok, .ps-ok { color: var(--rx-blue); }
+.pf .ps-form input, .pf .ps-form select, .ps-form input, .ps-form select { background: var(--rx-input); border-color: var(--rx-line-2); color: var(--rx-ink); color-scheme: var(--rx-scheme); }
+.pf .ps-form input:focus, .pf .ps-form select:focus, .ps-form input:focus, .ps-form select:focus { outline: none; border-color: var(--rx-lavender); box-shadow: 0 0 0 4px rgba(167, 139, 250, .18); }
+.pf .ps-account, .pf .sp-track, .ps-account, .sp-track { background: var(--rx-wash); border: 1px solid var(--rx-line); }
+.pf .ps-account > div, .pf .sp-meta, .ps-account > div, .sp-meta { color: var(--rx-ink-2); }
+.pf .ps-account b, .pf .sp-meta b, .ps-account b, .sp-meta b { color: var(--rx-ink); }
+.pf .sp-meta a, .sp-meta a { color: var(--rx-lavender); }
+.pf .sp-state, .pf .ps-ok, .sp-state, .ps-ok { color: var(--rx-blue); }
 .pf .ps-account.danger, .ps-account.danger { background: var(--rx-bad-wash); border-color: transparent; }
-.pf .ps-confirm, .ps-confirm, .pf .sp-confirm { background: var(--rx-amber-wash); border-color: transparent; color: var(--rx-ink); }
-.pf .ps-error, .ps-error, .pf .sp-error { color: var(--rx-bad); }
-.pf .ps-btn.ghost, .ps-btn.ghost, .pf .sp-btn.ghost { color: var(--rx-ink); border-color: var(--rx-line-2); }
+.pf .ps-confirm, .pf .sp-confirm, .ps-confirm, .sp-confirm { background: var(--rx-amber-wash); border-color: transparent; color: var(--rx-ink); }
+.pf .ps-error, .pf .sp-error, .ps-error, .sp-error { color: var(--rx-bad); }
+.pf .ps-btn.ghost, .pf .sp-btn.ghost, .ps-btn.ghost, .sp-btn.ghost { color: var(--rx-ink); border-color: var(--rx-line-2); }
 .pf .ps-btn.danger, .ps-btn.danger { background: var(--rx-bad); color: var(--rx-on-accent); }
-.pf .sp-cover { background: var(--rx-card-2); }
+.pf .sp-cover, .sp-cover { background: var(--rx-card-2); }
+
+/* Central de Ajuda & Suporte (.hlp-*) integrada ao sistema visual do Ethos */
+.hlp-dialog { max-width: 680px; width: 100%; max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+.hlp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--rx-line); }
+.hlp-head-main { display: flex; align-items: center; gap: 12px; }
+.hlp-head h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--rx-ink); letter-spacing: -.02em; }
+.hlp-head p { margin: 2px 0 0; font-size: 13.5px; color: var(--rx-ink-2); }
+.hlp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.hlp-cat { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--rx-line-2); background: var(--rx-card); color: var(--rx-ink-2); font: 600 13.5px var(--rx-font); cursor: pointer; text-align: left; transition: border-color .15s, background .15s, color .15s; }
+.hlp-cat small { display: block; margin-top: 2px; font-size: 12px; font-weight: 450; color: var(--rx-ink-3); line-height: 1.35; }
+.hlp-cat:hover { border-color: var(--rx-lavender); color: var(--rx-ink); }
+.hlp-cat[aria-pressed="true"] { border-color: var(--rx-lavender); background: var(--rx-violet-wash); color: var(--rx-ink); }
+.hlp-box { background: var(--rx-card); border: 1px solid var(--rx-line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; color: var(--rx-ink); }
+.hlp-box h3 { margin: 0; font-size: 16px; font-weight: 650; color: var(--rx-ink); display: flex; align-items: center; gap: 8px; }
+.hlp-box p { margin: 0; font-size: 14px; color: var(--rx-ink-2); line-height: 1.55; }
+.hlp-box ul { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.8px; color: var(--rx-ink-2); line-height: 1.5; }
+.hlp-box b, .hlp-box strong { color: var(--rx-ink); font-weight: 660; background: transparent; }
+.hlp-highlight { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 99px; background: var(--rx-violet-wash); color: var(--rx-lavender); font-weight: 650; font-size: 12.5px; border: 1px solid var(--rx-line); }
+.hlp-ticket { background: var(--rx-card); border: 1px solid var(--rx-line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; color: var(--rx-ink); }
+.hlp-ticket-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.hlp-ticket-msg { padding: 12px 14px; border-radius: 12px; background: var(--rx-wash); border: 1px solid var(--rx-line); font-size: 13.8px; color: var(--rx-ink-2); line-height: 1.5; white-space: pre-wrap; }
+.hlp-reply { padding: 12px 14px; border-radius: 12px; background: var(--rx-violet-wash); border: 1px solid var(--rx-line-2); font-size: 13.8px; color: var(--rx-ink); line-height: 1.5; }
+
+/* ProfileModal (.pm-sheet) adaptável aos temas claro e escuro */
+.pm-sheet h2, .pm-sheet h3, .pm-sheet h4 { color: var(--rx-ink) !important; }
+.pm-sheet label { color: var(--rx-ink-2) !important; }
+.pm-sheet input[type="text"],
+.pm-sheet input[type="email"],
+.pm-sheet input[type="password"],
+.pm-sheet input[type="number"],
+.pm-sheet input[type="date"],
+.pm-sheet select,
+.pm-sheet textarea {
+  background: var(--rx-input) !important;
+  color: var(--rx-ink) !important;
+  border-color: var(--rx-line-2) !important;
+  color-scheme: var(--rx-scheme);
+}
+.pm-sheet select option {
+  background: var(--rx-bg-2) !important;
+  color: var(--rx-ink) !important;
+}
 @media (max-width: 640px) {
   .pf-agua-row { grid-template-columns: 1fr; }
   .pf-pl { grid-template-columns: 40px minmax(0, 1fr); }

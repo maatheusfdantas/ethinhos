@@ -201,4 +201,27 @@ describe('FocusTab com planta', () => {
     const salvo = JSON.parse(localStorage.getItem('ethos_foco_v1_u1'));
     expect(salvo.sessions[0]).toMatchObject({ full: true, plant: { especie: 'fog-apollo', estagio: 'florida' } });
   });
+
+  it('exibe acompanhamento de evolução dos cultivos por Semana e Mês vinculado às sessões reais', () => {
+    render(<FocusTab user={user} tags={tags} />);
+    const jardim = screen.getByTestId('rf-jardim-evolucao');
+    expect(within(jardim).getByTestId('rf-cultivos-vazio')).toBeTruthy();
+    expect(within(jardim).getByTestId('rf-jardim-concluidos').textContent).toBe('0');
+
+    // Conclui uma sessão real de foco (25 min)
+    fireEvent.click(screen.getByRole('button', { name: 'Começar sessão' }));
+    pular(26);
+
+    expect(within(jardim).queryByTestId('rf-cultivos-vazio')).toBeNull();
+    expect(within(jardim).getByTestId('rf-jardim-concluidos').textContent).toBe('1');
+    expect(within(jardim).getByTestId('rf-jardim-tempo').textContent).toBe('25 min');
+    const items = within(jardim).getAllByTestId('rf-cultivo-item');
+    expect(items).toHaveLength(1);
+    expect(items[0].textContent).toMatch(/Lírio-lunar/);
+    expect(items[0].textContent).toMatch(/Florida/);
+
+    // Alterna para visão Mensal (30 dias)
+    fireEvent.click(within(jardim).getByTestId('rf-jardim-periodo-mes'));
+    expect(within(jardim).getAllByTestId('rf-cultivo-item')).toHaveLength(1);
+  });
 });

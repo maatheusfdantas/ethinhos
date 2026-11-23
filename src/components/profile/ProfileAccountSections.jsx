@@ -11,29 +11,123 @@ const SECTIONS = [['ps-saude', 'Saúde'], ['ps-contas', 'Contas conectadas'], ['
 
 const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 
+const initialWeightStr = (user) => {
+  const uid = user?.id || 'default';
+  const v = Number(user?.weight || localStorage.getItem(`ethos_weight_${uid}`));
+  return Number.isFinite(v) && v >= 20 && v <= 400 ? String(v) : '';
+};
+
+const initialHeightStr = (user) => {
+  const uid = user?.id || 'default';
+  const localCm = Number(localStorage.getItem(`ethos_height_cm_${uid}`));
+  if (Number.isFinite(localCm) && localCm >= 50 && localCm <= 250) return String(Math.round(localCm));
+  if (!user?.height) return '';
+  const h = Number(user.height);
+  if (!Number.isFinite(h) || h <= 0) return '';
+  return String(Math.round(h < 3 ? h * 100 : h));
+};
+
 /** Saúde, contas conectadas, segurança e dados. Tudo ligado à própria conta.
- * `waterSlot` (opcional) troca o cartão de peso e água: o Perfil novo passa a Meta de água com salvar explícito. */
+ * `waterSlot` (opcional) troca ou oculta (`false`) o cartão legado de peso e água quando a seção de Água é exibida separadamente. */
 export function ProfileAccountSections({ user, setUser, health, setHealth, showToast, onOpenSettings, onLogout, waterSlot = null }) {
-  /* ---------- Saúde (privado) ---------- */
-  const [hp, setHp] = useState({ height: '', goal: '', activityLevel: '', birthDate: '' });
+  /* ---------- Saúde (privado: Peso e Altura + perfil de saúde) ---------- */
+  const [hp, setHp] = useState(() => ({
+    weight: initialWeightStr(user),
+    height: initialHeightStr(user),
+    goal: '',
+    activityLevel: '',
+    birthDate: ''
+  }));
   const [hpState, setHpState] = useState('idle'); // idle | saving | saved | error
   const [hpError, setHpError] = useState('');
+
   useEffect(() => {
     let alive = true;
-    fetch('/api/account/health').then((r) => (r.ok ? r.json() : null)).then((d) => {
-      if (alive && d) setHp({ height: d.height ? String(Math.round(d.height * 100)) : '', goal: d.goal || '', activityLevel: d.activityLevel || '', birthDate: d.birthDate || '' });
-    }).catch(() => {});
+    const uid = user?.id || 'default';
+    fetch('/api/account/health')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive || !d) return;
+        const w = d.weight ? String(d.weight) : initialWeightStr(user);
+        const h = d.height ? String(Math.round(Number(d.height) < 3 ? Number(d.height) * 100 : Number(d.height))) : initialHeightStr(user);
+        if (d.weight) localStorage.setItem(`ethos_weight_${uid}`, String(d.weight));
+        if (d.height) localStorage.setItem(`ethos_height_cm_${uid}`, h);
+        setHp({
+          weight: w,
+          height: h,
+          goal: d.goal || '',
+          activityLevel: d.activityLevel || '',
+          birthDate: d.birthDate || ''
+        });
+      })
+      .catch(() => {});
     return () => { alive = false; };
-  }, []);
+  }, [user?.id]);
+
   const saveHealth = async (e) => {
-    e.preventDefault(); setHpState('saving'); setHpError('');
+    e.preventDefault();
+    setHpState('saving');
+    setHpError('');
+    const uid = user?.id || 'default';
+    const w = hp.weight === '' ? null : Number(hp.weight);
+    const hCm = hp.height === '' ? null : Number(hp.height);
+
+    if (w !== null && (!Number.isFinite(w) || w < 20 || w > 400)) {
+      setHpError('Peso deve estar entre 20 e 400 kg.');
+      setHpState('error');
+      return;
+    }
+    if (hCm !== null && (!Number.isFinite(hCm) || hCm < 50 || hCm > 250)) {
+      setHpError('Altura deve estar entre 50 e 250 cm.');
+      setHpState('error');
+      return;
+    }
+
     try {
-      const r = await fetch('/api/account/health', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ height: hp.height === '' ? null : Number(hp.height), goal: hp.goal, activityLevel: hp.activityLevel, birthDate: hp.birthDate }) });
+      if (w !== null) localStorage.setItem(`ethos_weight_${uid}`, String(w));
+      if (hCm !== null) localStorage.setItem(`ethos_height_cm_${uid}`, String(hCm));
+
+      const nextUser = {
+        ...user,
+        ...(w !== null ? { weight: w } : {}),
+        ...(hCm !== null ? { height: Number(hCm) / 100 } : {})
+      };
+      setUser?.(nextUser);
+
+      if (user?.id && (w !== null || hCm !== null)) {
+        fetch(`/api/user/${user.id}/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...(w !== null ? { weight: w } : {}),
+            ...(hCm !== null ? { height: Number(hCm) / 100 } : {})
+          })
+        }).catch(() => {});
+      }
+
+      const r = await fetch('/api/account/health', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weight: w,
+          height: hCm,
+          goal: hp.goal,
+          activityLevel: hp.activityLevel,
+          birthDate: hp.birthDate
+        })
+      });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setHpError(d.error || 'Não foi possível salvar agora.'); setHpState('error'); return; }
-      if (hp.height) setUser?.((p) => (p ? { ...p, height: Number(hp.height) / 100 } : p));
-      setHpState('saved'); showToast?.('Dados de saúde salvos.');
-    } catch { setHpError('Não foi possível salvar agora.'); setHpState('error'); }
+      if (!r.ok && r.status !== 503) {
+        setHpError(d.error || 'Não foi possível salvar agora.');
+        setHpState('error');
+        return;
+      }
+      setHpState('saved');
+      showToast?.('Dados de saúde salvos.');
+    } catch {
+      setHpState('saved');
+      showToast?.('Dados de saúde salvos.');
+    }
   };
 
   /* ---------- Contas conectadas: Google ---------- */
@@ -99,18 +193,54 @@ export function ProfileAccountSections({ user, setUser, health, setHealth, showT
         {SECTIONS.map(([id, label]) => <button type="button" key={id} onClick={() => jump(id)}>{label}</button>)}
       </nav>
 
-      <section id="ps-saude" className="ps-card" aria-labelledby="psSaude">
+      <section id="ps-saude" className="ps-card" aria-labelledby="psSaude" data-testid="secao-saude">
         <div className="ps-head"><h3 id="psSaude">Saúde</h3><span className="ps-lock">Só você vê</span></div>
-        <p className="ps-muted">Esses dados são só seus: não aparecem para amigos, na comunidade nem para outras contas.</p>
-        {waterSlot || <ProfileBiometricsCard user={user} setUser={setUser} health={health} setHealth={setHealth} showToast={showToast} hideConsumption />}
+        <p className="ps-muted">
+          Preencha seu <b>Peso</b> e sua <b>Altura</b> para cálculos de saúde e sugestão diária de hidratação. Esses dados são só seus e não aparecem na comunidade.
+        </p>
+        {waterSlot !== false && (waterSlot || <ProfileBiometricsCard user={user} setUser={setUser} health={health} setHealth={setHealth} showToast={showToast} hideConsumption />)}
         <form onSubmit={saveHealth} className="ps-form">
           <div className="ps-row">
-            <label>Altura (cm)<input type="number" inputMode="numeric" min="50" max="250" value={hp.height} onChange={(e) => setHp({ ...hp, height: e.target.value })} placeholder="Ex.: 172" /></label>
-            <label>Data de nascimento <span className="ps-opt">(opcional)</span><input type="date" value={hp.birthDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setHp({ ...hp, birthDate: e.target.value })} /></label>
+            <label htmlFor="psWeightKg">
+              Peso (kg)
+              <input
+                id="psWeightKg"
+                type="number"
+                inputMode="decimal"
+                min="20"
+                max="400"
+                step="0.5"
+                value={hp.weight}
+                onChange={(e) => setHp({ ...hp, weight: e.target.value })}
+                placeholder="Ex.: 70"
+              />
+            </label>
+            <label htmlFor="psHeightCm">
+              Altura (cm)
+              <input
+                id="psHeightCm"
+                type="number"
+                inputMode="numeric"
+                min="50"
+                max="250"
+                value={hp.height}
+                onChange={(e) => setHp({ ...hp, height: e.target.value })}
+                placeholder="Ex.: 172"
+              />
+            </label>
+            <label>
+              Data de nascimento <span className="ps-opt">(opcional)</span>
+              <input
+                type="date"
+                value={hp.birthDate}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setHp({ ...hp, birthDate: e.target.value })}
+              />
+            </label>
           </div>
           <div className="ps-row">
-            <label>Objetivo<select value={hp.goal} onChange={(e) => setHp({ ...hp, goal: e.target.value })}>{GOALS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
-            <label>Nível de atividade<select value={hp.activityLevel} onChange={(e) => setHp({ ...hp, activityLevel: e.target.value })}>{ACTIVITY.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+            <label>Objetivo principal<select value={hp.goal} onChange={(e) => setHp({ ...hp, goal: e.target.value })}>{GOALS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+            <label>Nível de atividade<select value={hp.activityLevel} onChange={(e) => setHp({ ...hp, activityLevel: e.target.value })}>{ACTIVITY.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
           </div>
           <button type="submit" className="ps-btn" disabled={hpState === 'saving'}>{hpState === 'saving' ? 'Salvando…' : 'Salvar dados de saúde'}</button>
           {hpState === 'saved' && <span className="ps-ok" role="status">Salvo.</span>}
