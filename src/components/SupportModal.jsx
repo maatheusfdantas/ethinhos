@@ -4,13 +4,13 @@ import {
   LifeBuoy,
   Send,
   X,
-  CheckCircle2,
-  Clock,
   MessageSquare,
   AlertCircle,
   Sparkles,
   HelpCircle,
   Bug,
+  CheckCircle2,
+  Clock,
   BookOpen,
   Droplets,
   Timer,
@@ -18,10 +18,10 @@ import {
 } from 'lucide-react';
 
 const TICKET_CATEGORIES = [
-  { id: 'bug', label: 'Bug / Erro no Sistema', icon: Bug, color: 'var(--rx-bad)' },
-  { id: 'duvida', label: 'Dúvida sobre Funcionalidade', icon: HelpCircle, color: 'var(--rx-blue)' },
-  { id: 'conta', label: 'Minha Conta & Acesso', icon: AlertCircle, color: 'var(--rx-amber)' },
-  { id: 'sugestao', label: 'Sugestão de Melhoria', icon: Sparkles, color: 'var(--rx-violet)' }
+  { id: 'bug', label: 'Bug / Erro no Sistema', desc: 'Falhas de interface ou sincronização', icon: Bug, color: 'var(--rx-bad)' },
+  { id: 'duvida', label: 'Dúvida sobre Funcionalidade', desc: 'Como utilizar recursos e módulos', icon: HelpCircle, color: 'var(--rx-blue)' },
+  { id: 'conta', label: 'Minha Conta & Acesso', desc: 'Dados, login, senha e permissões', icon: AlertCircle, color: 'var(--rx-amber)' },
+  { id: 'sugestao', label: 'Sugestão de Melhoria', desc: 'Ideias de funções ou melhorias visuais', icon: Sparkles, color: 'var(--rx-violet)' }
 ];
 
 const SYSTEM_MODULES = [
@@ -179,47 +179,54 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
         className="rx-dialog hlp-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="hlpModalTitle"
+        aria-labelledby="sp-modal-title"
         data-testid="support-modal"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
+        {/* HEADER AREJADO E BEM SINTETIZADO */}
         <header className="hlp-head">
           <div className="hlp-head-main">
             <span className="rx-tile solid" style={{ '--c': 'var(--rx-violet)' }}>
               <LifeBuoy size={20} />
             </span>
             <div>
-              <h2 id="hlpModalTitle">Central de Ajuda & Suporte</h2>
-              <p>Guias rápidos do Ethos, abertura de chamados e respostas da administração</p>
+              <h2 id="sp-modal-title">
+                Central de Ajuda & Suporte
+              </h2>
+              <p>
+                Guias rápidos do Ethos, abertura de chamados e respostas da administração
+              </p>
             </div>
           </div>
 
-          <button type="button" className="rx-icon-btn" onClick={onClose} aria-label="Fechar central de ajuda">
+          <button
+            type="button"
+            className="rx-icon-btn"
+            onClick={onClose}
+            aria-label="Fechar central de ajuda"
+          >
             <X size={18} />
           </button>
         </header>
 
         {/* TABS */}
-        <div className="tl-seg" role="tablist" aria-label="Seções da central de ajuda">
+        <div className="tl-seg" role="group" aria-label="Seções da central de ajuda">
           <button
             type="button"
-            role="tab"
-            aria-selected={activeTab === 'new'}
             aria-pressed={activeTab === 'new'}
             onClick={() => setActiveTab('new')}
           >
-            <Send size={14} /> + Abrir Novo Ticket
+            <Send size={14} />
+            <span>+ Abrir Novo Chamado</span>
           </button>
 
           <button
             type="button"
-            role="tab"
-            aria-selected={activeTab === 'history'}
             aria-pressed={activeTab === 'history'}
             onClick={() => setActiveTab('history')}
           >
-            <MessageSquare size={14} /> Meus Chamados ({myTickets.length})
+            <Clock size={14} />
+            <span>Meus Chamados ({myTickets.length})</span>
           </button>
 
           <button
@@ -229,7 +236,8 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
             aria-pressed={activeTab === 'guide'}
             onClick={() => setActiveTab('guide')}
           >
-            <BookOpen size={14} /> Guia Rápido
+            <BookOpen size={14} />
+            <span>Guia Rápido</span>
           </button>
         </div>
 
@@ -263,7 +271,6 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
           </div>
         )}
 
-        {/* ABRIR NOVO TICKET */}
         {activeTab === 'new' && (
           <form onSubmit={handleSubmitTicket} className="es-stack" data-testid="support-new-form">
             <div className="hlp-box">
@@ -278,8 +285,11 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
               </p>
             </div>
 
+            {/* SELEÇÃO DE CATEGORIAS: BEM DIMENSIONADA, CARTÕES AMPLOS COM ÍCONES NÍTIDOS */}
             <div className="rx-field">
-              <span>Tipo de Solicitação</span>
+              <span>
+                Tipo de Solicitação
+              </span>
               <div className="hlp-grid" role="group" aria-label="Tipo de Solicitação">
                 {TICKET_CATEGORIES.map((cat) => {
                   const Icon = cat.icon;
@@ -292,18 +302,29 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                       aria-pressed={isSelected}
                       onClick={() => setCategory(cat.id)}
                     >
-                      <Icon size={15} style={{ color: cat.color, flexShrink: 0 }} />
-                      <span>{cat.label}</span>
+                      <Icon size={18} style={{ color: cat.color, flexShrink: 0, marginTop: 2 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <span>
+                          {cat.label}
+                        </span>
+                        <small>
+                          {cat.desc}
+                        </small>
+                      </div>
                     </button>
                   );
                 })}
               </div>
             </div>
 
+            {/* MÓDULO E PRIORIDADE */}
             <div className="ps-row">
-              <label className="rx-field">
-                <span>Módulo do Sistema</span>
+              <div className="rx-field">
+                <label htmlFor="sp-module-select">
+                  Módulo do Sistema
+                </label>
                 <select
+                  id="sp-module-select"
                   className="es-input"
                   value={moduleName}
                   onChange={(e) => setModuleName(e.target.value)}
@@ -312,48 +333,59 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                     <option key={m} value={m}>{m}</option>
                   ))}
                 </select>
-              </label>
+              </div>
 
-              <label className="rx-field">
-                <span>Prioridade</span>
+              <div className="rx-field">
+                <label htmlFor="sp-priority-select">
+                  Prioridade
+                </label>
                 <select
+                  id="sp-priority-select"
                   className="es-input"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                 >
-                  <option value="Baixa">Baixa</option>
-                  <option value="Média">Média</option>
-                  <option value="Alta">Alta</option>
-                  <option value="Urgente">Urgente</option>
+                  <option value="Baixa">Baixa (Não impede o uso)</option>
+                  <option value="Média">Média (Dúvida ou pequeno bug)</option>
+                  <option value="Alta">Alta (Funcionalidade travada)</option>
+                  <option value="Urgente">Urgente (Bloqueio total de acesso)</option>
                 </select>
-              </label>
+              </div>
             </div>
 
-            <label className="rx-field">
-              <span>Assunto Resumido</span>
+            {/* ASSUNTO */}
+            <div className="rx-field">
+              <label htmlFor="sp-subject-input">
+                Assunto Resumido
+              </label>
               <input
+                id="sp-subject-input"
                 type="text"
                 className="es-input"
-                placeholder="Ex: Dúvida ao configurar meta no Pomodoro ou erro ao salvar hábito"
+                placeholder="Ex: Dúvida ao configurar meta de água ou erro ao registrar foco"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 required
               />
-            </label>
+            </div>
 
-            <label className="rx-field">
-              <span>Descrição Detalhada</span>
+            {/* DESCRIÇÃO DETALHADA */}
+            <div className="rx-field">
+              <label htmlFor="sp-message-textarea">
+                Descrição Detalhada
+              </label>
               <textarea
+                id="sp-message-textarea"
                 className="es-input"
-                rows={4}
-                placeholder="Descreva como podemos ajudar ou os passos para reproduzir o problema..."
+                rows={5}
+                placeholder="Descreva com detalhes como podemos ajudar, passos para reproduzir ou o que esperava ver..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                style={{ resize: 'vertical' }}
                 required
               />
-            </label>
+            </div>
 
+            {/* BOTÕES DE AÇÃO */}
             <div className="rx-form-acts">
               <button
                 type="button"
@@ -367,8 +399,8 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                 disabled={submitting}
                 className="rx-btn"
               >
-                <Send size={15} />
-                <span>{submitting ? 'Enviando Ticket...' : 'Enviar Ticket para o Suporte'}</span>
+                <Send size={16} />
+                <span>{submitting ? 'Enviando Chamado...' : 'Enviar Chamado ao Suporte'}</span>
               </button>
             </div>
           </form>
@@ -383,6 +415,9 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                 <p style={{ margin: 0, fontWeight: 600 }}>
                   Você ainda não abriu nenhum chamado de suporte.
                 </p>
+                <span style={{ fontSize: '0.8rem', display: 'block', marginTop: '4px' }}>
+                  Quando precisar de ajuda, abra um chamado pela aba ao lado.
+                </span>
               </div>
             ) : (
               myTickets.map((t) => {
@@ -423,7 +458,9 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                     )}
 
                     {/* Acesso de suporte consentido: o cliente libera, acompanha e revoga */}
-                    <SupportAccessPanel ticketId={t.id} resolved={isResolved} />
+                    <div style={{ marginTop: '12px' }}>
+                      <SupportAccessPanel ticketId={t.id} resolved={isResolved} />
+                    </div>
                   </article>
                 );
               })

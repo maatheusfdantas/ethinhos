@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Minus, Plus, Droplets, Moon, Timer, Dumbbell, ChevronDown, CalendarClock, History, Sparkles, Bell, Building2, CheckCircle2, CalendarPlus, Play, Megaphone, Utensils } from 'lucide-react';
+import { Check, Minus, Plus, Droplets, Moon, Timer, Dumbbell, ChevronDown, CalendarClock, History, Sparkles, Bell, Building2, CheckCircle2, CalendarPlus, Play, Megaphone, Utensils, Sliders, X } from 'lucide-react';
 import { isEventForDate } from '../services/storage';
 import { ProgressMeter } from './rx/ProgressMeter';
 import { DustCanvas } from './rx/DustCanvas';
 import { withWaterToday } from '../utils/healthDay';
 import { loadState as loadFoco } from './rx/focoStore';
+import { calculateDailyWaterTarget } from '../utils/biometricsAndAnalytics';
 
 /**
  * Painel principal (direção roxo + azul).
@@ -85,6 +86,56 @@ export function PainelTab({
   const sleepLogged = Boolean(health?.sleep?.logged);
   const hours = sleepLogged ? sleepHours(health?.sleep?.bedTime, health?.sleep?.wakeTime) : 0;
   const sleepPct = sleepLogged ? Math.min(100, Math.round((hours / (health?.sleep?.targetHours || 8)) * 100)) : 0;
+
+  const [waterEditOpen, setWaterEditOpen] = useState(false);
+  const [customWeight, setCustomWeight] = useState(() => {
+    if (user?.weight && Number(user.weight) > 0) return String(user.weight);
+    try {
+      const s = localStorage.getItem(`ethos_user_weight_${user?.id || 'default'}`);
+      if (s && Number(s) > 0) return s;
+    } catch {}
+    return '';
+  });
+  const [customTarget, setCustomTarget] = useState(waterTarget);
+  const [customGlassMl, setCustomGlassMl] = useState(glassMl);
+
+  useEffect(() => {
+    if (user?.weight && Number(user.weight) > 0) setCustomWeight(String(user.weight));
+  }, [user?.weight]);
+
+  const waterSuggestion = useMemo(() => {
+    const w = parseFloat(String(customWeight).replace(',', '.')) || 0;
+    return calculateDailyWaterTarget(w, customGlassMl || 250);
+  }, [customWeight, customGlassMl]);
+
+  const applyWaterSuggestion = () => {
+    if (waterSuggestion.targetGlasses > 0) {
+      setCustomTarget(waterSuggestion.targetGlasses);
+    }
+  };
+
+  const handleSaveWaterTarget = (e) => {
+    e?.preventDefault?.();
+    const w = parseFloat(String(customWeight).replace(',', '.'));
+    if (Number.isFinite(w) && w > 0 && user) {
+      try {
+        localStorage.setItem(`ethos_user_weight_${user.id || 'default'}`, String(w));
+        const updatedUser = { ...user, weight: w };
+        localStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
+        sessionStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
+        api(`/api/user/${user.id}/profile`, 'PUT', { weight: w });
+      } catch {}
+    }
+    const target = Math.max(1, Number(customTarget) || 8);
+    const ml = Math.max(50, Number(customGlassMl) || 250);
+    saveHealth({
+      ...health,
+      waterTarget: target,
+      glassMl: ml
+    });
+    setWaterEditOpen(false);
+    showToast?.(`Meta de água atualizada: ${target} copos (${((target * ml) / 1000).toFixed(2).replace('.', ',')} L)`);
+  };
 
   // Índice de vitalidade do dia: mesma regra do painel legado (40% hábitos + 30% água + 30% sono)
   const anyActivity = doneCount > 0 || waterGlasses > 0 || sleepLogged;
@@ -317,8 +368,36 @@ export function PainelTab({
             <ProgressMeter size="mini" pct={taskPct} label="Progresso dos hábitos de hoje" />
           </div>
           <div className="pn-stat rx-glass-card" style={{ '--c': 'var(--rx-m-agua)' }}>
-            <h3><span className="rx-tile sm"><Droplets size={17} /></span>Água</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <h3 style={{ margin: 0 }}><span className="rx-tile sm"><Droplets size={17} /></span>Água</h3>
+              <button
+                type="button"
+                className="rx-icon-btn sm"
+                onClick={() => {
+                  setCustomTarget(waterTarget);
+                  setCustomGlassMl(glassMl);
+                  setWaterEditOpen(true);
+                }}
+                title="Editar meta de água"
+                aria-label="Editar meta de água"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--rx-ink-3)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: '8px'
+                }}
+              >
+                <Sliders size={14} />
+              </button>
+            </div>
             <div className="v">{waterGlasses}<small> de {waterTarget} copos</small></div>
+            <div style={{ fontSize: '11px', color: 'var(--rx-ink-3)', margin: '-2px 0 6px' }}>
+              {((waterGlasses * glassMl) / 1000).toFixed(1).replace('.', ',')} L de {((waterTarget * glassMl) / 1000).toFixed(1).replace('.', ',')} L ({glassMl} ml/copo)
+            </div>
             <div className="ft">
               <div className="pn-cups" aria-hidden="true">{Array.from({ length: Math.min(waterTarget, 12) }, (_, k) => <i key={k} className={k < Math.round((waterGlasses / waterTarget) * Math.min(waterTarget, 12)) ? 'on' : ''} />)}</div>
               <div className="rx-stepper sm">
@@ -467,6 +546,125 @@ export function PainelTab({
           </ul>
         </section>
       </aside>
+
+      {waterEditOpen && (
+        <div className="rx-overlay" onClick={() => setWaterEditOpen(false)}>
+          <div
+            className="rx-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pn-water-title"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '440px', width: '92vw' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h2 id="pn-water-title" style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--rx-ink)' }}>
+                Meta de Hidratação Diária
+              </h2>
+              <button
+                type="button"
+                onClick={() => setWaterEditOpen(false)}
+                aria-label="Fechar"
+                style={{ background: 'none', border: 'none', color: 'var(--rx-ink-3)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* SUGESTÃO PERSONALIZADA BASEADA NO PESO DO USUÁRIO */}
+            <div style={{ padding: '12px 14px', borderRadius: '14px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Sugestão personalizada
+                </span>
+                {waterSuggestion.targetGlasses > 0 && (
+                  <button
+                    type="button"
+                    className="rx-btn tiny"
+                    onClick={applyWaterSuggestion}
+                    style={{ fontSize: '0.74rem', padding: '3px 9px' }}
+                  >
+                    Aplicar sugestão
+                  </button>
+                )}
+              </div>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--rx-ink-2)', lineHeight: 1.4 }}>
+                {Number(customWeight) > 0 ? (
+                  <>
+                    Com base no seu peso de <b>{customWeight} kg</b> (× 35 ml):{' '}
+                    <b>{String(waterSuggestion.dailyLiters).replace('.', ',')} L por dia</b> ({waterSuggestion.targetGlasses} copos de {customGlassMl} ml).
+                  </>
+                ) : (
+                  <>
+                    Informe seu peso abaixo para calcular sua meta ideal de hidratação (35 ml por kg de peso corporal).
+                  </>
+                )}
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveWaterTarget} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="rx-field">
+                  <label htmlFor="pn-water-weight">Seu peso (kg)</label>
+                  <input
+                    id="pn-water-weight"
+                    type="number"
+                    step="0.5"
+                    min="20"
+                    max="300"
+                    placeholder="Ex: 70"
+                    value={customWeight}
+                    onChange={(e) => setCustomWeight(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div className="rx-field">
+                  <label htmlFor="pn-water-glass">Tamanho do copo</label>
+                  <select
+                    id="pn-water-glass"
+                    value={customGlassMl}
+                    onChange={(e) => setCustomGlassMl(Number(e.target.value))}
+                    style={{ width: '100%' }}
+                  >
+                    <option value={200}>200 ml (copo pequeno)</option>
+                    <option value={250}>250 ml (copo padrão)</option>
+                    <option value={300}>300 ml (copo grande)</option>
+                    <option value={500}>500 ml (garrafinha)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="rx-field">
+                <label htmlFor="pn-water-target">Meta diária (em copos)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    id="pn-water-target"
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={customTarget}
+                    onChange={(e) => setCustomTarget(Math.max(1, Number(e.target.value)))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--rx-ink-3)', whiteSpace: 'nowrap' }}>
+                    = {((customTarget * customGlassMl) / 1000).toFixed(2).replace('.', ',')} L / dia
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                <button type="button" className="rx-btn ghost" onClick={() => setWaterEditOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="rx-btn">
+                  Salvar meta
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {subPrompt && (
         <div className="rx-overlay" onClick={(e) => { if (e.target === e.currentTarget) assignSubclass(null); }}>

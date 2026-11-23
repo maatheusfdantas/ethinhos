@@ -130,10 +130,10 @@ export function BadHabitsTab({ user, showToast }) {
     return [];
   });
 
-  // Ticker de tempo em tempo real (atualiza a cada 10s)
+  // Ticker de tempo em tempo real (atualiza a cada 1s)
   const [currentTime, setCurrentTime] = useState(Date.now());
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(Date.now()), 10000);
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -317,6 +317,15 @@ export function BadHabitsTab({ user, showToast }) {
   };
 
   // Formulário de novo mau hábito
+  const getNowLocalDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const getNowLocalTime = () => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('Saúde Física & Mental');
   const [newCost, setNewCost] = useState('');
@@ -324,21 +333,32 @@ export function BadHabitsTab({ user, showToast }) {
   const [newCostValue, setNewCostValue] = useState('');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [newReason, setNewReason] = useState('');
-  const [newStartDate, setNewStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [newStartTime, setNewStartTime] = useState('00:00');
+  const [newStartDate, setNewStartDate] = useState(getNowLocalDate);
+  const [newStartTime, setNewStartTime] = useState(getNowLocalTime);
+
+  const openAddModal = () => {
+    setNewStartDate(getNowLocalDate());
+    setNowLocalTimeState();
+    setShowAddModal(true);
+  };
+  const setNowLocalTimeState = () => {
+    setNewStartTime(getNowLocalTime());
+  };
 
   // Cálculo de tempo limpo
   const calculateSobrietyTime = (startedAtIso) => {
     const started = new Date(startedAtIso).getTime();
     const diffMs = Math.max(0, currentTime - started);
 
+    const totalSeconds = Math.floor(diffMs / 1000);
     const totalMinutes = Math.floor(diffMs / (1000 * 60));
     const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
     const days = Math.floor(totalHours / 24);
     const hours = totalHours % 24;
     const minutes = totalMinutes % 60;
+    const seconds = totalSeconds % 60;
 
-    return { days, hours, minutes, totalDays: days, totalHours };
+    return { days, hours, minutes, seconds, totalDays: days, totalHours, totalSeconds };
   };
 
   // Cálculo de marco/medalha
@@ -386,7 +406,15 @@ export function BadHabitsTab({ user, showToast }) {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const startDateTime = new Date(`${newStartDate}T${newStartTime || '00:00'}:00`).toISOString();
+    let startDateTime;
+    const now = new Date();
+    const todayLocal = getNowLocalDate();
+    const nowHm = getNowLocalTime();
+    if (!newStartDate || (newStartDate === todayLocal && (!newStartTime || newStartTime === nowHm))) {
+      startDateTime = now.toISOString();
+    } else {
+      startDateTime = new Date(`${newStartDate}T${newStartTime || nowHm}:00`).toISOString();
+    }
 
     let calculatedCostPerDay = 0;
     const numVal = parseFloat(newCostValue) || 0;
@@ -540,7 +568,7 @@ export function BadHabitsTab({ user, showToast }) {
 
           <button
             type="button"
-            onClick={() => setShowAddModal(true)}
+            onClick={openAddModal}
             style={{
               padding: '8px 18px',
               borderRadius: '999px',
@@ -726,7 +754,7 @@ export function BadHabitsTab({ user, showToast }) {
             </p>
             <button
               type="button"
-              onClick={() => setShowAddModal(true)}
+              onClick={openAddModal}
               style={{
                 padding: '8px 20px',
                 borderRadius: '999px',
@@ -864,6 +892,15 @@ export function BadHabitsTab({ user, showToast }) {
                       </span>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', marginLeft: '3px' }}>
                         min
+                      </span>
+                    </div>
+
+                    <div>
+                      <span style={{ fontSize: '18px', fontWeight: 700, color: '#64748B' }}>
+                        {time.seconds}
+                      </span>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', marginLeft: '3px' }}>
+                        seg
                       </span>
                     </div>
                   </div>

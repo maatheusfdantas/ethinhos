@@ -108,8 +108,9 @@
 .hlp-head-main { display: flex; align-items: center; gap: 12px; }
 .hlp-head h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--rx-ink); letter-spacing: -.02em; }
 .hlp-head p { margin: 2px 0 0; font-size: 13.5px; color: var(--rx-ink-2); }
-.hlp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.hlp-cat { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--rx-line-2); background: var(--rx-card); color: var(--rx-ink-2); font: 600 13.5px var(--rx-font); cursor: pointer; text-align: left; transition: border-color .15s, background .15s, color .15s; }
+.hlp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.hlp-cat { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--rx-line-2); background: var(--rx-card); color: var(--rx-ink-2); font: 600 13.5px var(--rx-font); cursor: pointer; text-align: left; transition: border-color .15s, background .15s, color .15s; }
+.hlp-cat small { display: block; margin-top: 2px; font-size: 12px; font-weight: 450; color: var(--rx-ink-3); line-height: 1.35; }
 .hlp-cat:hover { border-color: var(--rx-lavender); color: var(--rx-ink); }
 .hlp-cat[aria-pressed="true"] { border-color: var(--rx-lavender); background: var(--rx-violet-wash); color: var(--rx-ink); }
 .hlp-box { background: var(--rx-card); border: 1px solid var(--rx-line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; color: var(--rx-ink); }
@@ -147,7 +148,7 @@
   .pf-pl { grid-template-columns: 40px minmax(0, 1fr); }
 }
 .pf .rx-link, .tl-lbl { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.pf .ps-row { align-items: end; }
+.pf .ps-row, .ps-row { align-items: end; }
 
 /* Maus hábitos e Agenda (proposta 09, aprovada em 21/11/2026). */
 /* Classes novas desta proposta (vão para src/styles/telas.css na integração). Só tokens --rx-* existentes. */
