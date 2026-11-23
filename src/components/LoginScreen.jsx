@@ -482,8 +482,8 @@ export function LoginScreen({ onLoginSuccess }) {
     <div className="rx-login">
       <section className="rx-login-art" aria-hidden="false">
         <DustCanvas variant="art" count={34} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 24, fontWeight: 700, letterSpacing: '-.035em' }}>
-          <BrandMark size={30} id="rxBrandLogin" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, fontSize: 25, fontWeight: 700, letterSpacing: '-.035em' }}>
+          <BrandMark size={38} />
           <span>ethos</span>
         </div>
         <div>
@@ -500,6 +500,10 @@ export function LoginScreen({ onLoginSuccess }) {
 
       <main className="rx-login-main">
         <div className="rx-auth">
+          <div className="rx-login-brand">
+            <BrandMark size={40} />
+            <span>ethos</span>
+          </div>
           {mode !== 'login' && mode !== 'register' && (
             <button type="button" className="rx-text-btn" onClick={() => goto('login')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
               <ArrowLeft size={16} /> Voltar para o login

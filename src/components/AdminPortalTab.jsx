@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Shield,
   Users,
   KeyRound,
   Inbox,
@@ -584,18 +583,25 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div
               style={{
-                width: '38px',
-                height: '38px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #8B5CF6 0%, #D946EF 100%)',
+                background: 'rgba(139, 92, 246, 0.14)',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 24px -6px rgba(139, 92, 246, 0.5)',
-                color: '#FFFFFF'
+                boxShadow: '0 8px 24px -6px rgba(139, 92, 246, 0.45)',
+                padding: '4px'
               }}
             >
-              <Shield size={20} />
+              <img
+                src="/ethos-logo.png"
+                alt="Ethos"
+                width={30}
+                height={30}
+                style={{ width: '30px', height: '30px', objectFit: 'contain', display: 'block' }}
+              />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -121,6 +121,8 @@ body.rx-body {
 }
 .rx-brand { display: flex; align-items: center; gap: 10px; padding: 0 10px; background: none; border: 0; color: var(--rx-ink); cursor: pointer; }
 .rx-brand span { font-size: 24px; font-weight: 700; letter-spacing: -.035em; }
+.rx-brand-logo { filter: drop-shadow(0 2px 8px rgba(124, 92, 255, .32)); }
+.rx-login-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 24px; font-weight: 700; letter-spacing: -.035em; color: var(--rx-ink); }
 .rx-nav { display: flex; flex-direction: column; gap: 18px; }
 .rx-nav-group { display: flex; flex-direction: column; gap: 2px; }
 .rx-nav-group > p { margin: 0; padding: 0 10px 4px; font-size: 13px; color: var(--rx-ink-3); }
