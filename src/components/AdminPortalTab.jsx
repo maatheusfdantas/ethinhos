@@ -774,15 +774,14 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
       {/* Conteúdo Central */}
       <main style={{ maxWidth: '1240px', margin: '28px auto 0', padding: '0 24px', position: 'relative', zIndex: 1 }}>
         {/* Banner de Estatísticas Executivas (Bento Grid) */}
-        {activeSection !== 'teste' && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '16px',
-              marginBottom: '32px'
-            }}
-          >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            marginBottom: '32px'
+          }}
+        >
             {[
               {
                 label: 'Total de Contas',
@@ -862,8 +861,7 @@ export function AdminPortalTab({ onSwitchToApp, onSystemReset, showToast: global
                 </div>
               );
             })}
-          </div>
-        )}
+        </div>
 
         {/* =================================================================== */}
         {/* SEÇÃO 1: USUÁRIOS & CONTROLE DE ACESSO                              */}

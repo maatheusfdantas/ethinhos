@@ -315,9 +315,9 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               type="button"
               onClick={handleSave}
               style={{
-                background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
-                boxShadow: '0 0 18px rgba(99, 102, 241, 0.45)',
-                color: '#FFFFFF',
+                background: 'var(--rx-grad)',
+                boxShadow: 'var(--rx-glow)',
+                color: 'var(--rx-on-accent)',
                 border: 'none',
                 borderRadius: '12px',
                 padding: '8px 18px',
@@ -337,10 +337,11 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             <button
               type="button"
               onClick={onClose}
+              aria-label="Fechar configurações do perfil"
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#94A3B8',
+                background: 'var(--rx-wash)',
+                border: '1px solid var(--rx-line)',
+                color: 'var(--rx-ink-2)',
                 borderRadius: '10px',
                 cursor: 'pointer',
                 display: 'flex',
@@ -358,21 +359,20 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
         {/* SEÇÃO 1: INFORMAÇÕES PESSOAIS & @USERNAME NA REDE              */}
         {/* ============================================================== */}
         <div style={{ marginBottom: '20px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#A5B4FC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '12px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--rx-lavender)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '12px' }}>
             Informações Pessoais & Identidade
           </span>
 
           {/* Avatar & @Handle Banner */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px', borderRadius: '16px', backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px', borderRadius: '16px', backgroundColor: 'var(--rx-wash)', border: '1px solid var(--rx-line)', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div
                 style={{
                   width: '54px',
                   height: '54px',
                   borderRadius: '50%',
-                  backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                  border: '2px solid rgba(129, 140, 248, 0.4)',
-                  boxShadow: '0 0 16px rgba(99, 102, 241, 0.25)',
+                  backgroundColor: 'var(--rx-violet-wash)',
+                  border: '2px solid var(--rx-line-2)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -383,29 +383,29 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <span style={{ fontSize: '18px', fontWeight: 700, color: '#A5B4FC' }}>
+                  <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--rx-lavender)' }}>
                     {name ? name.slice(0, 2).toUpperCase() : 'EU'}
                   </span>
                 )}
               </div>
 
               <div>
-                <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#FFFFFF', margin: 0 }}>
+                <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--rx-ink)', margin: 0 }}>
                   {name || 'Usuário Ethos'}
                 </h4>
                 {/* @Handle Pill */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 8px', borderRadius: '8px', backgroundColor: 'rgba(129, 140, 248, 0.15)', border: '1px solid rgba(129, 140, 248, 0.3)', color: '#A5B4FC', fontSize: '11px', fontWeight: 600 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 8px', borderRadius: '8px', backgroundColor: 'var(--rx-violet-wash)', border: '1px solid var(--rx-line-2)', color: 'var(--rx-lavender)', fontSize: '11px', fontWeight: 600 }}>
                     <AtSign size={11} />
                     <span>{username.replace(/^@/, '') || 'usuario'}</span>
                   </span>
                   <button
                     type="button"
                     onClick={handleCopyHandle}
-                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--rx-ink-3)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
                     title="Copiar meu @"
                   >
-                    {copiedHandle ? <Check size={12} color="#34D399" /> : <Copy size={12} />}
+                    {copiedHandle ? <Check size={12} color="var(--rx-m-habitos)" /> : <Copy size={12} />}
                   </button>
                 </div>
               </div>
@@ -423,13 +423,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               type="button"
               onClick={() => fileInputRef.current?.click()}
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.14)',
+                backgroundColor: 'var(--rx-card)',
+                border: '1px solid var(--rx-line-2)',
                 borderRadius: '12px',
                 padding: '7px 16px',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#E2E8F0',
+                color: 'var(--rx-ink)',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -444,7 +444,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
           {/* Form Inputs: Nome, @username e E-mail */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#CBD5E1', fontWeight: 600, marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: 'var(--rx-ink-2)', fontWeight: 600, marginBottom: '6px' }}>
                 Nome Completo
               </label>
               <input
@@ -453,13 +453,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                 onChange={(e) => setName(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.07)',
-                  border: '1px solid rgba(255, 255, 255, 0.18)',
+                  backgroundColor: 'var(--rx-input)',
+                  border: '1px solid var(--rx-line-2)',
                   borderRadius: '12px',
                   padding: '10px 14px',
                   fontSize: '13px',
                   fontWeight: 500,
-                  color: '#FFFFFF',
+                  color: 'var(--rx-ink)',
                   outline: 'none',
                   boxSizing: 'border-box'
                 }}
@@ -467,11 +467,11 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#CBD5E1', fontWeight: 600, marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: 'var(--rx-ink-2)', fontWeight: 600, marginBottom: '6px' }}>
                 Nome de Usuário (@ na rede)
               </label>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '10px', top: '10px', color: '#818cf8', fontWeight: 700, fontSize: '13px' }}>@</span>
+                <span style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--rx-lavender)', fontWeight: 700, fontSize: '13px' }}>@</span>
                 <input
                   type="text"
                   value={username.replace(/^@/, '')}
@@ -479,13 +479,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                   placeholder="seu_arroba"
                   style={{
                     width: '100%',
-                    backgroundColor: 'rgba(255, 255, 255, 0.07)',
-                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                    backgroundColor: 'var(--rx-input)',
+                    border: '1px solid var(--rx-line-2)',
                     borderRadius: '12px',
                     padding: '10px 14px 10px 28px',
                     fontSize: '13px',
                     fontWeight: 500,
-                    color: '#FFFFFF',
+                    color: 'var(--rx-ink)',
                     outline: 'none',
                     boxSizing: 'border-box'
                   }}
@@ -495,7 +495,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', color: '#CBD5E1', fontWeight: 600, marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: 'var(--rx-ink-2)', fontWeight: 600, marginBottom: '6px' }}>
               E-mail
             </label>
             <input
@@ -504,13 +504,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               onChange={(e) => setEmail(e.target.value)}
               style={{
                 width: '100%',
-                backgroundColor: 'rgba(255, 255, 255, 0.07)',
-                border: '1px solid rgba(255, 255, 255, 0.18)',
+                backgroundColor: 'var(--rx-input)',
+                border: '1px solid var(--rx-line-2)',
                 borderRadius: '12px',
                 padding: '10px 14px',
                 fontSize: '13px',
                 fontWeight: 500,
-                color: '#FFFFFF',
+                color: 'var(--rx-ink)',
                 outline: 'none',
                 boxSizing: 'border-box'
               }}
@@ -543,7 +543,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
         {/* SEÇÃO 2: SEGURANÇA                                             */}
         {/* ============================================================== */}
         <div style={{ marginBottom: '20px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#A5B4FC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '8px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--rx-lavender)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '8px' }}>
             Segurança & Acesso
           </span>
 
@@ -552,13 +552,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             onClick={() => setShowPasswordChange(!showPasswordChange)}
             style={{
               width: '100%',
-              backgroundColor: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'var(--rx-wash)',
+              border: '1px solid var(--rx-line)',
               borderRadius: '14px',
               padding: '10px 14px',
               fontSize: '12.5px',
               fontWeight: 600,
-              color: '#F1F5F9',
+              color: 'var(--rx-ink)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -567,49 +567,49 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Lock size={14} color="#818CF8" />
+              <Lock size={14} color="var(--rx-lavender)" />
               <span>Alterar Senha</span>
             </div>
             {showPasswordChange ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
 
           {showPasswordChange && (
-            <form onSubmit={handleChangePassword} style={{ marginTop: '10px', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '14px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <form onSubmit={handleChangePassword} style={{ marginTop: '10px', backgroundColor: 'var(--rx-wash)', padding: '14px', borderRadius: '14px', border: '1px solid var(--rx-line)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '10px', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Senha Atual</label>
+                  <label style={{ fontSize: '10px', color: 'var(--rx-ink-2)', display: 'block', marginBottom: '3px' }}>Senha Atual</label>
                   <input
                     type="password"
                     placeholder="••••••••"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: '#FFFFFF', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--rx-line-2)', backgroundColor: 'var(--rx-input)', color: 'var(--rx-ink)', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '10px', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Nova Senha</label>
+                  <label style={{ fontSize: '10px', color: 'var(--rx-ink-2)', display: 'block', marginBottom: '3px' }}>Nova Senha</label>
                   <input
                     type="password"
                     placeholder="Mínimo 6"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: '#FFFFFF', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--rx-line-2)', backgroundColor: 'var(--rx-input)', color: 'var(--rx-ink)', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '10px', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Confirmar</label>
+                  <label style={{ fontSize: '10px', color: 'var(--rx-ink-2)', display: 'block', marginBottom: '3px' }}>Confirmar</label>
                   <input
                     type="password"
                     placeholder="Confirmar"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: '#FFFFFF', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--rx-line-2)', backgroundColor: 'var(--rx-input)', color: 'var(--rx-ink)', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
               {passwordFeedback.text && (
-                <div style={{ fontSize: '11px', color: passwordFeedback.type === 'error' ? '#F87171' : '#34D399', marginBottom: '8px', fontWeight: 600 }}>
+                <div style={{ fontSize: '11px', color: passwordFeedback.type === 'error' ? 'var(--rx-bad)' : 'var(--rx-m-habitos)', marginBottom: '8px', fontWeight: 600 }}>
                   {passwordFeedback.text}
                 </div>
               )}
@@ -617,7 +617,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   type="submit"
-                  style={{ backgroundColor: '#6366F1', color: '#FFFFFF', border: 'none', borderRadius: '10px', padding: '6px 14px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ background: 'var(--rx-grad)', color: 'var(--rx-on-accent)', border: 'none', borderRadius: '10px', padding: '6px 14px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Salvar Nova Senha
                 </button>
@@ -630,13 +630,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
         {/* SEÇÃO 3: PREFERÊNCIAS DO SISTEMA                               */}
         {/* ============================================================== */}
         <div style={{ marginBottom: '20px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#A5B4FC', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '8px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--rx-lavender)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '8px' }}>
             Preferências do Sistema
           </span>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '10.5px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '10.5px', color: 'var(--rx-ink-2)', fontWeight: 500, marginBottom: '4px' }}>
                 Idioma
               </label>
               <select
@@ -644,25 +644,25 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                 onChange={(e) => setLanguage(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  backgroundColor: 'var(--rx-input)',
+                  border: '1px solid var(--rx-line-2)',
                   borderRadius: '10px',
                   padding: '7px 10px',
                   fontSize: '11.5px',
                   fontWeight: 500,
-                  color: '#FFFFFF',
+                  color: 'var(--rx-ink)',
                   outline: 'none',
                   cursor: 'pointer'
                 }}
               >
-                <option value="Portuguese" style={{ background: '#0F172A' }}>Português</option>
-                <option value="English" style={{ background: '#0F172A' }}>English</option>
-                <option value="Español" style={{ background: '#0F172A' }}>Español</option>
+                <option value="Portuguese">Português</option>
+                <option value="English">English</option>
+                <option value="Español">Español</option>
               </select>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '10.5px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '10.5px', color: 'var(--rx-ink-2)', fontWeight: 500, marginBottom: '4px' }}>
                 Fuso Horário
               </label>
               <select
@@ -670,26 +670,26 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                 onChange={(e) => setTimezone(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  backgroundColor: 'var(--rx-input)',
+                  border: '1px solid var(--rx-line-2)',
                   borderRadius: '10px',
                   padding: '7px 10px',
                   fontSize: '11.5px',
                   fontWeight: 500,
-                  color: '#FFFFFF',
+                  color: 'var(--rx-ink)',
                   outline: 'none',
                   cursor: 'pointer'
                 }}
               >
-                <option value="UTC-3" style={{ background: '#0F172A' }}>UTC-3 (Brasília)</option>
-                <option value="UTC-4" style={{ background: '#0F172A' }}>UTC-4 (Manaus)</option>
-                <option value="UTC+0" style={{ background: '#0F172A' }}>UTC+0 (Londres)</option>
-                <option value="UTC-5" style={{ background: '#0F172A' }}>UTC-5 (Nova York)</option>
+                <option value="UTC-3">UTC-3 (Brasília)</option>
+                <option value="UTC-4">UTC-4 (Manaus)</option>
+                <option value="UTC+0">UTC+0 (Londres)</option>
+                <option value="UTC-5">UTC-5 (Nova York)</option>
               </select>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '10.5px', color: '#94A3B8', fontWeight: 500, marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '10.5px', color: 'var(--rx-ink-2)', fontWeight: 500, marginBottom: '4px' }}>
                 Tema
               </label>
               <select
@@ -697,31 +697,31 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                 onChange={(e) => setTheme(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  backgroundColor: 'var(--rx-input)',
+                  border: '1px solid var(--rx-line-2)',
                   borderRadius: '10px',
                   padding: '7px 10px',
                   fontSize: '11.5px',
                   fontWeight: 500,
-                  color: '#FFFFFF',
+                  color: 'var(--rx-ink)',
                   outline: 'none',
                   cursor: 'pointer'
                 }}
               >
-                <option value="Escuro" style={{ background: '#0F172A' }}>Escuro (Padrão)</option>
-                <option value="AMOLED" style={{ background: '#0F172A' }}>Preto Puro (AMOLED)</option>
-                <option value="Cyberpunk" style={{ background: '#0F172A' }}>Cyberpunk Neon</option>
+                <option value="Escuro">Escuro (Padrão)</option>
+                <option value="AMOLED">Preto Puro (AMOLED)</option>
+                <option value="Cyberpunk">Cyberpunk Neon</option>
               </select>
             </div>
           </div>
 
           {/* Toggle Notificações por E-mail (Resend) */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '12px', backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '12px', backgroundColor: 'var(--rx-wash)', border: '1px solid var(--rx-line)' }}>
             <div>
-              <span style={{ fontSize: '12px', color: '#F1F5F9', fontWeight: 500, display: 'block' }}>
+              <span style={{ fontSize: '12px', color: 'var(--rx-ink)', fontWeight: 500, display: 'block' }}>
                 Notificações por E-mail
               </span>
-              <span style={{ fontSize: '10.5px', color: '#64748B' }}>
+              <span style={{ fontSize: '10.5px', color: 'var(--rx-ink-3)' }}>
                 Disparos via Resend para lembretes de agenda e alertas
               </span>
             </div>
@@ -732,7 +732,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                 width: '38px',
                 height: '22px',
                 borderRadius: '999px',
-                backgroundColor: emailNotifications ? '#6366F1' : 'rgba(255, 255, 255, 0.15)',
+                backgroundColor: emailNotifications ? 'var(--rx-violet)' : 'var(--rx-line-2)',
                 position: 'relative',
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease',
@@ -744,7 +744,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                   width: '16px',
                   height: '16px',
                   borderRadius: '50%',
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: 'var(--rx-on-accent)',
                   position: 'absolute',
                   top: '3px',
                   left: emailNotifications ? '19px' : '3px',
@@ -767,25 +767,25 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'var(--rx-wash)',
+              border: '1px solid var(--rx-line)',
               borderRadius: '14px',
               padding: '10px 14px',
               fontSize: '12px',
               fontWeight: 600,
-              color: '#F1F5F9',
+              color: 'var(--rx-ink)',
               cursor: 'pointer'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sliders size={14} color="#818CF8" />
+              <Sliders size={14} color="var(--rx-lavender)" />
               <span>Personalizar Módulos do Menu Lateral</span>
             </div>
             {showPagesConfig ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
 
           {showPagesConfig && (
-            <div style={{ marginTop: '8px', backgroundColor: 'rgba(255, 255, 255, 0.02)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+            <div style={{ marginTop: '8px', backgroundColor: 'var(--rx-wash)', padding: '10px', borderRadius: '12px', border: '1px solid var(--rx-line)', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
               {[
                 { id: 'dashboard', label: 'Painel Principal', icon: LayoutGrid, fixed: true },
                 { id: 'telemetry', label: 'Análise de Progresso', icon: TrendingUp, fixed: true },
@@ -811,22 +811,22 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                       justifyContent: 'space-between',
                       padding: '7px 10px',
                       borderRadius: '10px',
-                      backgroundColor: isEnabled ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255, 255, 255, 0.02)',
-                      border: isEnabled ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
+                      backgroundColor: isEnabled ? 'var(--rx-violet-wash)' : 'var(--rx-card)',
+                      border: isEnabled ? '1px solid var(--rx-line-2)' : '1px solid var(--rx-line)',
                       cursor: page.fixed ? 'default' : 'pointer'
                     }}
                   >
-                    <span style={{ fontSize: '11px', fontWeight: 500, color: '#E2E8F0' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--rx-ink)' }}>
                       {page.label}
                     </span>
                     {page.fixed ? (
-                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#818CF8' }}>Fixo</span>
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--rx-lavender)' }}>Fixo</span>
                     ) : (
                       <input
                         type="checkbox"
                         checked={isEnabled}
                         onChange={() => { }}
-                        style={{ cursor: 'pointer', accentColor: '#6366F1' }}
+                        style={{ cursor: 'pointer', accentColor: 'var(--rx-violet)' }}
                       />
                     )}
                   </div>
@@ -839,13 +839,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
         {/* ============================================================== */}
         {/* SEÇÃO 5: DADOS, PRIVACIDADE & AÇÕES DA CONTA                   */}
         {/* ============================================================== */}
-        <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '16px' }}>
+        <div style={{ borderTop: '1px solid var(--rx-line)', paddingTop: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#F1F5F9', display: 'block' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--rx-ink)', display: 'block' }}>
                 Portabilidade de Dados (LGPD)
               </span>
-              <span style={{ fontSize: '10.5px', color: '#64748B' }}>
+              <span style={{ fontSize: '10.5px', color: 'var(--rx-ink-3)' }}>
                 Baixe uma cópia completa dos seus hábitos, agenda e telemetria
               </span>
             </div>
@@ -854,13 +854,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               type="button"
               onClick={handleExportData}
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                backgroundColor: 'var(--rx-card)',
+                border: '1px solid var(--rx-line-2)',
                 borderRadius: '10px',
                 padding: '6px 14px',
                 fontSize: '11.5px',
                 fontWeight: 600,
-                color: '#E2E8F0',
+                color: 'var(--rx-ink)',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -877,13 +877,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               type="button"
               onClick={handleDeactivate}
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backgroundColor: 'var(--rx-wash)',
+                border: '1px solid var(--rx-line-2)',
                 borderRadius: '12px',
                 padding: '9px 0',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#94A3B8',
+                color: 'var(--rx-ink-2)',
                 cursor: 'pointer',
                 textAlign: 'center',
                 transition: 'all 0.15s ease'
@@ -896,15 +896,13 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               type="button"
               onClick={() => setShowEraseModal(true)}
               style={{
-                background: confirmDelete
-                  ? 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)'
-                  : 'rgba(239, 68, 68, 0.12)',
-                border: '1px solid rgba(239, 68, 68, 0.35)',
+                background: confirmDelete ? 'var(--rx-bad)' : 'var(--rx-bad-wash)',
+                border: '1px solid var(--rx-bad)',
                 borderRadius: '12px',
                 padding: '9px 0',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#FCA5A5',
+                color: confirmDelete ? 'var(--rx-on-accent)' : 'var(--rx-bad)',
                 cursor: 'pointer',
                 textAlign: 'center',
                 transition: 'all 0.15s ease'
