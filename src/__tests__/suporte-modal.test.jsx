@@ -100,5 +100,10 @@ describe('SupportModal (Central de Ajuda e Suporte)', () => {
       expect(screen.getByText(/Resposta da Equipe Ethos/i)).toBeDefined();
       expect(screen.getByText(/Basta acessar as configurações no card/i)).toBeDefined();
     });
+
+    // Verifica que o modal usa layout amplo com overlay rolável e card inteiro sem scroll interno
+    expect(screen.getByTestId('support-overlay').className).toMatch(/hlp-overlay/);
+    expect(screen.getByTestId('support-modal').className).toMatch(/hlp-dialog/);
+    expect(screen.getByTestId('support-ticket-card')).toBeDefined();
   });
 });

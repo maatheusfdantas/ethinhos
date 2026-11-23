@@ -174,7 +174,7 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
   };
 
   return (
-    <div className="rx-overlay" onClick={onClose}>
+    <div className="rx-overlay hlp-overlay" data-testid="support-overlay" onClick={onClose}>
       <div
         className="rx-dialog hlp-dialog"
         role="dialog"
@@ -187,7 +187,7 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
         <header className="hlp-head">
           <div className="hlp-head-main">
             <span className="rx-tile solid" style={{ '--c': 'var(--rx-violet)' }}>
-              <LifeBuoy size={20} />
+              <LifeBuoy size={22} />
             </span>
             <div>
               <h2 id="sp-modal-title">
@@ -210,13 +210,13 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
         </header>
 
         {/* TABS */}
-        <div className="tl-seg" role="group" aria-label="Seções da central de ajuda">
+        <div className="tl-seg hlp-tabs" role="group" aria-label="Seções da central de ajuda">
           <button
             type="button"
             aria-pressed={activeTab === 'new'}
             onClick={() => setActiveTab('new')}
           >
-            <Send size={14} />
+            <Send size={15} />
             <span>+ Abrir Novo Chamado</span>
           </button>
 
@@ -225,7 +225,7 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
             aria-pressed={activeTab === 'history'}
             onClick={() => setActiveTab('history')}
           >
-            <Clock size={14} />
+            <Clock size={15} />
             <span>Meus Chamados ({myTickets.length})</span>
           </button>
 
@@ -236,7 +236,7 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
             aria-pressed={activeTab === 'guide'}
             onClick={() => setActiveTab('guide')}
           >
-            <BookOpen size={14} />
+            <BookOpen size={15} />
             <span>Guia Rápido</span>
           </button>
         </div>
@@ -408,40 +408,49 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
 
         {/* MEUS CHAMADOS */}
         {activeTab === 'history' && (
-          <div className="es-stack" data-testid="support-history-section">
+          <div className="hlp-tickets" data-testid="support-history-section">
             {myTickets.length === 0 ? (
-              <div className="hlp-box" style={{ textAlign: 'center', padding: '32px 16px', alignItems: 'center' }}>
-                <MessageSquare size={32} style={{ opacity: 0.6 }} />
-                <p style={{ margin: 0, fontWeight: 600 }}>
+              <div className="hlp-box" style={{ textAlign: 'center', padding: '40px 20px', alignItems: 'center' }}>
+                <MessageSquare size={36} style={{ opacity: 0.65, color: 'var(--rx-lavender)' }} />
+                <p style={{ margin: 0, fontWeight: 650, color: 'var(--rx-ink)' }}>
                   Você ainda não abriu nenhum chamado de suporte.
                 </p>
-                <span style={{ fontSize: '0.8rem', display: 'block', marginTop: '4px' }}>
-                  Quando precisar de ajuda, abra um chamado pela aba ao lado.
+                <span style={{ fontSize: '13.5px', color: 'var(--rx-ink-2)', display: 'block' }}>
+                  Quando precisar de ajuda, abra um chamado para acompanhar tudo por aqui.
                 </span>
+                <button
+                  type="button"
+                  className="rx-btn tiny"
+                  style={{ marginTop: 8 }}
+                  onClick={() => setActiveTab('new')}
+                >
+                  <Send size={14} /> Abrir primeiro chamado
+                </button>
               </div>
             ) : (
               myTickets.map((t) => {
                 const isResolved = t.status === 'resolvido' || t.status === 'resolved';
                 return (
-                  <article key={t.id} className="hlp-ticket">
+                  <article key={t.id} className="hlp-ticket" data-testid="support-ticket-card">
                     <div className="hlp-ticket-head">
-                      <strong style={{ fontSize: '15px', color: 'var(--rx-ink)' }}>
+                      <strong className="hlp-ticket-title">
                         {t.subject}
                       </strong>
-                      <span className="hlp-highlight">
+                      <span className={`hlp-highlight ${isResolved ? 'hlp-status-ok' : 'hlp-status-open'}`}>
                         {isResolved ? (
-                          <><CheckCircle2 size={13} style={{ marginRight: 4 }} /> Resolvido</>
+                          <><CheckCircle2 size={14} style={{ marginRight: 5 }} /> Resolvido</>
                         ) : t.status === 'em_andamento' ? (
-                          <><Clock size={13} style={{ marginRight: 4 }} /> Em Análise</>
+                          <><Clock size={14} style={{ marginRight: 5 }} /> Em Análise</>
                         ) : (
-                          <><Clock size={13} style={{ marginRight: 4 }} /> Aberto</>
+                          <><Clock size={14} style={{ marginRight: 5 }} /> Aberto</>
                         )}
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '12.5px', color: 'var(--rx-ink-2)' }}>
-                      Módulo: <strong>{t.module || 'Geral'}</strong> • Prioridade: <strong>{t.priority || 'Média'}</strong> •{' '}
-                      {t.created_at ? new Date(t.created_at).toLocaleString('pt-BR') : 'Hoje'}
+                    <div className="hlp-ticket-meta">
+                      <span>Módulo: <strong>{t.module || 'Geral'}</strong></span>
+                      <span>Prioridade: <strong>{t.priority || 'Média'}</strong></span>
+                      <span>Aberto em: <strong>{t.created_at ? new Date(t.created_at).toLocaleString('pt-BR') : 'Hoje'}</strong></span>
                     </div>
 
                     <div className="hlp-ticket-msg">
@@ -458,7 +467,7 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                     )}
 
                     {/* Acesso de suporte consentido: o cliente libera, acompanha e revoga */}
-                    <div style={{ marginTop: '12px' }}>
+                    <div style={{ marginTop: '4px' }}>
                       <SupportAccessPanel ticketId={t.id} resolved={isResolved} />
                     </div>
                   </article>

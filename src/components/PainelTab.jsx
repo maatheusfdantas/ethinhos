@@ -87,11 +87,21 @@ export function PainelTab({
   const hours = sleepLogged ? sleepHours(health?.sleep?.bedTime, health?.sleep?.wakeTime) : 0;
   const sleepPct = sleepLogged ? Math.min(100, Math.round((hours / (health?.sleep?.targetHours || 8)) * 100)) : 0;
 
+  const WATER_CUP_PRESETS = [
+    { ml: 200, label: '200 ml', desc: 'Copo pequeno' },
+    { ml: 250, label: '250 ml', desc: 'Copo padrão' },
+    { ml: 300, label: '300 ml', desc: 'Copo grande' },
+    { ml: 350, label: '350 ml', desc: 'Caneca / copo' },
+    { ml: 500, label: '500 ml', desc: 'Garrafinha' },
+    { ml: 750, label: '750 ml', desc: 'Garrafa grande' }
+  ];
+
   const [waterEditOpen, setWaterEditOpen] = useState(false);
   const [customWeight, setCustomWeight] = useState(() => {
     if (user?.weight && Number(user.weight) > 0) return String(user.weight);
     try {
-      const s = localStorage.getItem(`ethos_user_weight_${user?.id || 'default'}`);
+      const uid = user?.id || 'default';
+      const s = localStorage.getItem(`ethos_weight_${uid}`) || localStorage.getItem(`ethos_user_weight_${uid}`);
       if (s && Number(s) > 0) return s;
     } catch {}
     return '';
@@ -103,10 +113,34 @@ export function PainelTab({
     if (user?.weight && Number(user.weight) > 0) setCustomWeight(String(user.weight));
   }, [user?.weight]);
 
+  const validCustomGlassMl = useMemo(() => {
+    const n = Number(customGlassMl);
+    return Number.isFinite(n) && n >= 50 && n <= 3000 ? Math.round(n) : 250;
+  }, [customGlassMl]);
+
   const waterSuggestion = useMemo(() => {
     const w = parseFloat(String(customWeight).replace(',', '.')) || 0;
-    return calculateDailyWaterTarget(w, customGlassMl || 250);
-  }, [customWeight, customGlassMl]);
+    return calculateDailyWaterTarget(w, validCustomGlassMl);
+  }, [customWeight, validCustomGlassMl]);
+
+  const handleChangeCustomGlassMl = (rawValue) => {
+    const prevGlass = validCustomGlassMl;
+    const rawStr = String(rawValue);
+    if (rawStr === '') {
+      setCustomGlassMl('');
+      return;
+    }
+    const parsed = Number(rawStr);
+    setCustomGlassMl(parsed);
+    if (Number.isFinite(parsed) && parsed >= 50 && parsed <= 3000) {
+      const nextGlass = Math.round(parsed);
+      const w = parseFloat(String(customWeight).replace(',', '.')) || 0;
+      const baseMl = w > 0
+        ? Math.round(w * 35)
+        : Math.max(500, (Number(customTarget) || waterTarget) * prevGlass);
+      setCustomTarget(Math.max(1, Math.ceil(baseMl / nextGlass)));
+    }
+  };
 
   const applyWaterSuggestion = () => {
     if (waterSuggestion.targetGlasses > 0) {
@@ -116,10 +150,12 @@ export function PainelTab({
 
   const handleSaveWaterTarget = (e) => {
     e?.preventDefault?.();
+    const uid = user?.id || 'default';
     const w = parseFloat(String(customWeight).replace(',', '.'));
     if (Number.isFinite(w) && w > 0 && user) {
       try {
-        localStorage.setItem(`ethos_user_weight_${user.id || 'default'}`, String(w));
+        localStorage.setItem(`ethos_weight_${uid}`, String(w));
+        localStorage.setItem(`ethos_user_weight_${uid}`, String(w));
         const updatedUser = { ...user, weight: w };
         localStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
         sessionStorage.setItem('ethos_current_user', JSON.stringify(updatedUser));
@@ -127,14 +163,20 @@ export function PainelTab({
       } catch {}
     }
     const target = Math.max(1, Number(customTarget) || 8);
-    const ml = Math.max(50, Number(customGlassMl) || 250);
+    const ml = validCustomGlassMl;
+    const targetMl = target * ml;
+    try {
+      localStorage.setItem(`ethos_glass_ml_${uid}`, String(ml));
+      localStorage.setItem(`ethos_water_target_ml_${uid}`, String(targetMl));
+    } catch {}
     saveHealth({
       ...health,
       waterTarget: target,
+      waterTargetMl: targetMl,
       glassMl: ml
     });
     setWaterEditOpen(false);
-    showToast?.(`Meta de água atualizada: ${target} copos (${((target * ml) / 1000).toFixed(2).replace('.', ',')} L)`);
+    showToast?.(`Meta de água atualizada: ${target} copos de ${ml} ml (${(targetMl / 1000).toFixed(2).replace('.', ',')} L)`);
   };
 
   // Índice de vitalidade do dia: mesma regra do painel legado (40% hábitos + 30% água + 30% sono)
@@ -548,112 +590,165 @@ export function PainelTab({
       </aside>
 
       {waterEditOpen && (
-        <div className="rx-overlay" onClick={() => setWaterEditOpen(false)}>
+        <div className="rx-overlay hlp-overlay" onClick={() => setWaterEditOpen(false)}>
           <div
-            className="rx-dialog"
+            className="rx-dialog agw-dialog"
             role="dialog"
             aria-modal="true"
             aria-labelledby="pn-water-title"
+            data-testid="painel-agua-modal"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '440px', width: '92vw' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <h2 id="pn-water-title" style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--rx-ink)' }}>
-                Meta de Hidratação Diária
-              </h2>
+            <header className="agw-head">
+              <div className="agw-head-main">
+                <span className="rx-tile solid" style={{ '--c': 'var(--rx-m-agua)' }}>
+                  <Droplets size={20} />
+                </span>
+                <div>
+                  <h2 id="pn-water-title">Meta de Hidratação Diária</h2>
+                  <p>Personalize o tamanho do seu copo em ml e acompanhe quantos copos você precisa por dia</p>
+                </div>
+              </div>
               <button
                 type="button"
+                className="rx-icon-btn"
                 onClick={() => setWaterEditOpen(false)}
                 aria-label="Fechar"
-                style={{ background: 'none', border: 'none', color: 'var(--rx-ink-3)', cursor: 'pointer', padding: '4px' }}
               >
                 <X size={18} />
               </button>
-            </div>
+            </header>
 
             {/* SUGESTÃO PERSONALIZADA BASEADA NO PESO DO USUÁRIO */}
-            <div style={{ padding: '12px 14px', borderRadius: '14px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Sugestão personalizada
+            <div className="agw-sugg" data-testid="painel-agua-sugestao">
+              <div className="agw-sugg-top">
+                <span className="agw-sugg-tag">
+                  <Sparkles size={13} /> Sugestão personalizada
                 </span>
                 {waterSuggestion.targetGlasses > 0 && (
                   <button
                     type="button"
                     className="rx-btn tiny"
                     onClick={applyWaterSuggestion}
-                    style={{ fontSize: '0.74rem', padding: '3px 9px' }}
                   >
-                    Aplicar sugestão
+                    Aplicar sugestão ({waterSuggestion.targetGlasses} copos)
                   </button>
                 )}
               </div>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--rx-ink-2)', lineHeight: 1.4 }}>
+              <p>
                 {Number(customWeight) > 0 ? (
                   <>
                     Com base no seu peso de <b>{customWeight} kg</b> (× 35 ml):{' '}
-                    <b>{String(waterSuggestion.dailyLiters).replace('.', ',')} L por dia</b> ({waterSuggestion.targetGlasses} copos de {customGlassMl} ml).
+                    <b>{String(waterSuggestion.dailyLiters).replace('.', ',')} L por dia</b>{' '}
+                    — equivale a <b>{waterSuggestion.targetGlasses} {waterSuggestion.targetGlasses === 1 ? 'copo' : 'copos'}</b> de <b>{validCustomGlassMl} ml</b>.
                   </>
                 ) : (
                   <>
-                    Informe seu peso abaixo para calcular sua meta ideal de hidratação (35 ml por kg de peso corporal).
+                    Informe seu peso abaixo para calcular sua meta ideal de hidratação (35 ml por kg de peso corporal) e converter automaticamente em copos.
                   </>
                 )}
               </p>
             </div>
 
-            <form onSubmit={handleSaveWaterTarget} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="rx-field">
-                  <label htmlFor="pn-water-weight">Seu peso (kg)</label>
-                  <input
-                    id="pn-water-weight"
-                    type="number"
-                    step="0.5"
-                    min="20"
-                    max="300"
-                    placeholder="Ex: 70"
-                    value={customWeight}
-                    onChange={(e) => setCustomWeight(e.target.value)}
-                    style={{ width: '100%' }}
-                  />
+            <form onSubmit={handleSaveWaterTarget} className="es-stack">
+              {/* SUGESTÕES + TAMANHO PERSONALIZÁVEL DO COPO EM ML */}
+              <div className="agw-section">
+                <div className="agw-section-title">
+                  <span>Tamanho do copo ou garrafa</span>
+                  <small>Escolha uma sugestão ou digite os ml</small>
                 </div>
 
-                <div className="rx-field">
-                  <label htmlFor="pn-water-glass">Tamanho do copo</label>
-                  <select
-                    id="pn-water-glass"
-                    value={customGlassMl}
-                    onChange={(e) => setCustomGlassMl(Number(e.target.value))}
-                    style={{ width: '100%' }}
-                  >
-                    <option value={200}>200 ml (copo pequeno)</option>
-                    <option value={250}>250 ml (copo padrão)</option>
-                    <option value={300}>300 ml (copo grande)</option>
-                    <option value={500}>500 ml (garrafinha)</option>
-                  </select>
+                <div className="agw-chips" role="group" aria-label="Sugestões de tamanho do copo">
+                  {WATER_CUP_PRESETS.map((preset) => (
+                    <button
+                      key={preset.ml}
+                      type="button"
+                      className="agw-chip"
+                      aria-pressed={validCustomGlassMl === preset.ml}
+                      onClick={() => handleChangeCustomGlassMl(preset.ml)}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="agw-custom-row">
+                  <div className="rx-field">
+                    <label htmlFor="pn-water-glass">Tamanho do copo personalizado (ml)</label>
+                    <div className="agw-input-unit">
+                      <input
+                        id="pn-water-glass"
+                        type="number"
+                        className="es-input"
+                        min="50"
+                        max="3000"
+                        step="10"
+                        placeholder="Ex: 350"
+                        value={customGlassMl}
+                        onChange={(e) => handleChangeCustomGlassMl(e.target.value)}
+                      />
+                      <span className="unit">ml</span>
+                    </div>
+                  </div>
+
+                  <div className="rx-field">
+                    <label htmlFor="pn-water-weight">Seu peso (kg)</label>
+                    <div className="agw-input-unit">
+                      <input
+                        id="pn-water-weight"
+                        type="number"
+                        className="es-input"
+                        step="0.5"
+                        min="20"
+                        max="300"
+                        placeholder="Ex: 70"
+                        value={customWeight}
+                        onChange={(e) => setCustomWeight(e.target.value)}
+                      />
+                      <span className="unit">kg</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="rx-field">
-                <label htmlFor="pn-water-target">Meta diária (em copos)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input
-                    id="pn-water-target"
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={customTarget}
-                    onChange={(e) => setCustomTarget(Math.max(1, Number(e.target.value)))}
-                    style={{ flex: 1 }}
-                  />
-                  <span style={{ fontSize: '0.85rem', color: 'var(--rx-ink-3)', whiteSpace: 'nowrap' }}>
-                    = {((customTarget * customGlassMl) / 1000).toFixed(2).replace('.', ',')} L / dia
-                  </span>
+              {/* META EM COPOS + RESUMO CALCULADO */}
+              <div className="agw-section">
+                <div className="rx-field">
+                  <label htmlFor="pn-water-target">Meta diária (em copos)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      id="pn-water-target"
+                      type="number"
+                      className="es-input"
+                      min="1"
+                      max="40"
+                      value={customTarget}
+                      onChange={(e) => setCustomTarget(Math.max(1, Number(e.target.value)))}
+                      style={{ flex: 1 }}
+                    />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--rx-ink-2)', whiteSpace: 'nowrap' }}>
+                      × {validCustomGlassMl} ml
+                    </span>
+                  </div>
+                </div>
+
+                <div className="agw-summary" data-testid="painel-agua-resumo">
+                  <div>
+                    <span>Copos por dia</span>
+                    <b className="accent">{customTarget} {customTarget === 1 ? 'copo' : 'copos'}</b>
+                  </div>
+                  <div>
+                    <span>Seu copo</span>
+                    <b>{validCustomGlassMl} ml</b>
+                  </div>
+                  <div>
+                    <span>Total diário</span>
+                    <b>{((customTarget * validCustomGlassMl) / 1000).toFixed(2).replace('.', ',')} L</b>
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+              <div className="agw-acts">
                 <button type="button" className="rx-btn ghost" onClick={() => setWaterEditOpen(false)}>
                   Cancelar
                 </button>
