@@ -883,7 +883,7 @@ export function App() {
             )}
 
             {activeTab === 'notes' && (
-              <div className="rx-sheet-legacy"><NotesTab user={user} setUser={setUser} showToast={showToast} /></div>
+              <NotesTab user={user} setUser={setUser} showToast={showToast} />
             )}
 
             {/* TAB 3: FOCO POMODORO / BIBLIOTECA DE PROJETOS */}

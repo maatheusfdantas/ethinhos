@@ -158,6 +158,7 @@ export function FocusTab({
   const [showCert, setShowCert] = useState(false);
   const [showCatalogo, setShowCatalogo] = useState(false);
   const [catTema, setCatTema] = useState('plantas');
+  const [periodoCultivo, setPeriodoCultivo] = useState('semana'); // 'semana' | 'mes'
   const [catBusca, setCatBusca] = useState('');
   const [glow, setGlow] = useState(0);
 
@@ -342,6 +343,48 @@ export function FocusTab({
   const pts = [[24, 58], [64, 26], [106, 50], [148, 18], [190, 46], [232, 24], [274, 54]];
   const maxMin = Math.max(60, ...week.map((d) => d.min));
   const plural = (n, a, b) => (n === 1 ? a : b);
+
+  // Evolução das plantinhas e elementos cultivados nas sessões reais (Semana: 7 dias | Mês: 30 dias)
+  const evolucaoCultivos = useMemo(() => {
+    const diasJanela = periodoCultivo === 'mes' ? 30 : 7;
+    const [y, m, d] = today.split('-').map(Number);
+    const inicioIso = localDate(new Date(y, m - 1, d - (diasJanela - 1)));
+    const sessoesPeriodo = (g.sessions || []).filter((s) => s.date >= inicioIso && s.date <= today);
+
+    const itens = sessoesPeriodo.map((s) => {
+      const sp = especiePorId(s.plant?.especie || especie.id);
+      const stId = s.plant?.estagio || (s.full ? 'florida' : 'muda');
+      const stObj = sp.estagios.find((e) => e.stageId === stId) || sp.estagios[sp.estagios.length - 1];
+      const dataFormatada = s.date === today
+        ? 'Hoje'
+        : s.date.split('-').reverse().slice(0, 2).join('/');
+      return {
+        id: s.id,
+        date: s.date,
+        dataFormatada,
+        at: s.at || '--:--',
+        subject: s.subject || 'Foco',
+        mins: s.mins || 0,
+        full: Boolean(s.full),
+        especie: sp,
+        estagio: stObj
+      };
+    });
+
+    const concluidos = itens.filter((it) => it.full).length;
+    const emEvolucao = itens.filter((it) => !it.full).length;
+    const tempoTotalMin = itens.reduce((acc, it) => acc + it.mins, 0);
+    const variedades = new Set(itens.map((it) => it.especie.id)).size;
+
+    return {
+      diasJanela,
+      itens,
+      concluidos,
+      emEvolucao,
+      tempoTotalMin,
+      variedades
+    };
+  }, [g.sessions, periodoCultivo, today, especie.id]);
 
   return (
     <div className="rf" data-level={simple ? 0 : li} data-reduce={reduce ? 'true' : 'false'}>
@@ -717,6 +760,103 @@ export function FocusTab({
                 <li key={l.id}><span>{l.at}</span><b>{l.subject}</b><span>{l.mins} min{l.full ? '' : ' · parcial'}</span>{(l.goal || l.note) && <em>{[l.goal, l.note].filter(Boolean).join(' → ')}</em>}</li>
               ))}</ul>
             ) : <p className="rf-hint">Nenhuma sessão hoje ainda. Quando concluir, ela aparece aqui.</p>}
+          </section>
+
+          {/* ACOMPANHAMENTO DE PLANTINHAS E ELEMENTOS PRODUZIDOS (SEMANA / MÊS) */}
+          <section className="rf-card" aria-labelledby="rfJardim" data-testid="rf-jardim-evolucao">
+            <div className="rf-card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <h3 id="rfJardim">Evolução de Cultivos e Elementos</h3>
+                <p className="rf-sub">
+                  Acompanhe as plantinhas, mundos, naves e elementos produzidos nas suas sessões reais de foco.
+                </p>
+              </div>
+              <div className="rf-chips" role="group" aria-label="Período de evolução dos cultivos">
+                <button
+                  type="button"
+                  className="rf-chip"
+                  aria-pressed={periodoCultivo === 'semana'}
+                  data-testid="rf-jardim-periodo-semana"
+                  onClick={() => setPeriodoCultivo('semana')}
+                >
+                  Semana (7d)
+                </button>
+                <button
+                  type="button"
+                  className="rf-chip"
+                  aria-pressed={periodoCultivo === 'mes'}
+                  data-testid="rf-jardim-periodo-mes"
+                  onClick={() => setPeriodoCultivo('mes')}
+                >
+                  Mês (30d)
+                </button>
+              </div>
+            </div>
+
+            <div className="rf-stats">
+              <div>
+                <b data-testid="rf-jardim-concluidos">{evolucaoCultivos.concluidos}</b>
+                <span>{plural(evolucaoCultivos.concluidos, 'cultivo concluído', 'cultivos concluídos')}</span>
+              </div>
+              <div>
+                <b data-testid="rf-jardim-tempo">{fmtMin(evolucaoCultivos.tempoTotalMin)}</b>
+                <span>tempo de foco associado</span>
+              </div>
+              <div>
+                <b>{evolucaoCultivos.emEvolucao}</b>
+                <span>{plural(evolucaoCultivos.emEvolucao, 'em evolução parcial', 'em evolução parcial')}</span>
+              </div>
+              <div>
+                <b>{evolucaoCultivos.variedades}</b>
+                <span>{plural(evolucaoCultivos.variedades, 'espécie cultivada', 'espécies cultivadas')}</span>
+              </div>
+            </div>
+
+            {evolucaoCultivos.itens.length === 0 ? (
+              <div className="rf-jardim-empty" data-testid="rf-cultivos-vazio">
+                <img
+                  src={urlDoAsset(especie.id, 'semente')}
+                  alt=""
+                  width="54"
+                  height="54"
+                />
+                <div>
+                  <b>Nenhum cultivo registrado {periodoCultivo === 'semana' ? 'nesta semana' : 'neste mês'}</b>
+                  <p className="rf-hint" style={{ margin: '4px 0 0' }}>
+                    Inicie e conclua uma sessão de foco para produzir {especie.nome} ou qualquer elemento do catálogo e acompanhar sua linha do tempo aqui.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <ul className="rf-jardim-list" data-testid="rf-cultivos-lista">
+                {evolucaoCultivos.itens.slice(0, 24).map((item) => (
+                  <li key={item.id} className="rf-jardim-item" data-testid="rf-cultivo-item">
+                    <div className="rf-jardim-thumb">
+                      <img
+                        src={urlDoAsset(item.especie.id, item.estagio.assetKey)}
+                        alt={`${item.especie.nome} — ${item.estagio.nome}`}
+                        width="48"
+                        height="48"
+                      />
+                    </div>
+                    <div className="rf-jardim-info">
+                      <div className="rf-jardim-top">
+                        <b>{item.especie.nome}</b>
+                        <span
+                          className="rf-jardim-stage"
+                          data-full={item.full ? 'true' : 'false'}
+                        >
+                          {item.estagio.nome}
+                        </span>
+                      </div>
+                      <span className="rf-jardim-meta">
+                        {item.subject} · <b>{item.mins} min</b> · {item.dataFormatada} às {item.at}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
 

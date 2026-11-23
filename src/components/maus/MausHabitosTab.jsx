@@ -24,7 +24,6 @@ const ATERRAMENTO = [
 ];
 const TOTAL_ATERRAMENTO = ATERRAMENTO.reduce((s, [, it]) => s + it.length, 0);
 const reais = (v) => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const hojeIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 /** Tempo desde o início (dias, horas e minutos inteiros). */
 export function tempoLimpo(startedAt, agora = Date.now()) {
@@ -41,7 +40,7 @@ export function marcos(dias) {
   return { atual, proximo: prox, falta: Math.max(0, prox - dias), pct: prox > d0 ? Math.round(((dias - d0) / (prox - d0)) * 100) : 100 };
 }
 
-const formVazio = () => ({ title: '', category: '', reason: '', date: hojeIso(), time: '00:00', costValue: '', costPeriod: 'none' });
+const formVazio = () => ({ title: '', category: '', reason: '', costValue: '', costPeriod: 'none' });
 
 /**
  * Maus hábitos no visual atual do Ethos (proposta 09, aprovada em 21/11/2026). Mesmas props, dados e ações do
@@ -106,19 +105,23 @@ export function MausHabitosTab({ user, showToast }) {
   const criar = (e) => {
     e.preventDefault();
     if (!novo.title.trim()) return;
+    const instante = new Date();
+    const agoraMs = instante.getTime();
+    const agoraIso = instante.toISOString();
     const v = parseFloat(String(novo.costValue).replace(',', '.')) || 0;
     const porDia = novo.costPeriod === 'day' ? v : novo.costPeriod === 'week' ? (v > 0 ? Number((v / 7).toFixed(2)) : 0) : novo.costPeriod === 'month' ? (v > 0 ? Number((v / 30).toFixed(2)) : 0) : 0;
     const h = {
-      id: `bh_${Date.now()}`, title: novo.title.trim(), category: novo.category.trim() || 'Superação Pessoal', icon_name: 'ShieldOff',
-      started_at: new Date(`${novo.date}T${novo.time || '00:00'}:00`).toISOString(),
+      id: `bh_${agoraMs}`, title: novo.title.trim(), category: novo.category.trim() || 'Superação Pessoal', icon_name: 'ShieldOff',
+      started_at: agoraIso, created_at: agoraIso,
       cost_per_day: porDia, cost_period: novo.costPeriod, cost_value: v,
       motivational_reason: novo.reason.trim() || 'Construir minha melhor versão com mais saúde e dignidade.',
       impact_description: 'Melhora progressiva da clareza mental e restabelecimento do equilíbrio corporal.',
       best_streak_days: 0, relapse_count: 0, relapses: []
     };
+    setAgora(agoraMs);
     alterar((prev) => [h, ...prev]);
     setNovo(null);
-    showToast?.(`${h.title}: contagem começou.`);
+    showToast?.(`${h.title}: contagem começou agora.`);
   };
   const confirmarRecaida = (e) => {
     e.preventDefault();
@@ -343,14 +346,15 @@ export function MausHabitosTab({ user, showToast }) {
             <div className="es-chips" style={{ marginBottom: 14 }}>{SUGESTOES.map((s) => <button key={s.title} type="button" className="es-chip" aria-pressed={novo.title === s.title} onClick={() => usarSugestao(s)}>{ROTULO[s.title]}</button>)}</div>
             <div className="ag-form">
               <div className="es-field full"><label htmlFor="mh-t">O que você quer largar</label><input id="mh-t" className="es-input" required value={novo.title} onChange={(e) => setNovo({ ...novo, title: e.target.value })} /></div>
-              <div className="es-field"><label htmlFor="mh-d">Parei em</label><input id="mh-d" type="date" className="es-input" required max={hojeIso()} value={novo.date} onChange={(e) => setNovo({ ...novo, date: e.target.value })} /></div>
-              <div className="es-field"><label htmlFor="mh-h">Horário</label><input id="mh-h" type="time" className="es-input" value={novo.time} onChange={(e) => setNovo({ ...novo, time: e.target.value })} /></div>
               <div className="es-field full"><label htmlFor="mh-m">Por que isso importa para você <span className="rx-sub">(opcional)</span></label><input id="mh-m" className="es-input" value={novo.reason} onChange={(e) => setNovo({ ...novo, reason: e.target.value })} /></div>
               <div className="es-field"><label htmlFor="mh-c">Categoria <span className="rx-sub">(opcional)</span></label><input id="mh-c" className="es-input" placeholder="Ex.: Saúde" value={novo.category} onChange={(e) => setNovo({ ...novo, category: e.target.value })} /></div>
               <div className="es-field"><label htmlFor="mh-v">Quanto gastava <span className="rx-sub">(opcional)</span></label>
                 <div className="ag-dt"><input id="mh-v" className="es-input" inputMode="decimal" placeholder="R$" value={novo.costValue} onChange={(e) => setNovo({ ...novo, costValue: e.target.value, costPeriod: novo.costPeriod === 'none' && e.target.value ? 'day' : novo.costPeriod })} />
                   <select className="es-input" aria-label="Período do gasto" value={novo.costPeriod} onChange={(e) => setNovo({ ...novo, costPeriod: e.target.value })}><option value="none">sem custo</option><option value="day">por dia</option><option value="week">por semana</option><option value="month">por mês</option></select></div>
               </div>
+              <p className="rx-sub full" style={{ margin: '2px 0 6px' }} data-testid="mh-inicio-exato-msg">
+                A contagem começa exatamente agora (0 dias, 0h, 0min), a partir do momento em que você iniciar o acompanhamento.
+              </p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button type="button" className="rx-btn ghost" onClick={() => setNovo(null)}>Cancelar</button>

@@ -286,16 +286,27 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
   };
 
   return createPortal(
-    <VaulModalSheet isOpen={isOpen} onClose={onClose} maxWidth="540px">
+    <VaulModalSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="580px"
+      className="pm-sheet"
+      style={{
+        background: 'var(--rx-glass-strong)',
+        border: '1px solid var(--rx-line-2)',
+        boxShadow: 'var(--rx-shadow-pop)',
+        color: 'var(--rx-ink)'
+      }}
+    >
       <div>
         {/* CABEÇALHO */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--rx-line)' }}>
           <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF', margin: 0, letterSpacing: '-0.01em' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--rx-ink)', margin: 0, letterSpacing: '-0.01em' }}>
               Configurações do Perfil
             </h2>
-            <p style={{ fontSize: '11.5px', color: '#94A3B8', margin: '3px 0 0' }}>
-              Gerencie seus dados pessoais, identidade na rede e preferências
+            <p style={{ fontSize: '11.5px', color: 'var(--rx-ink-3)', margin: '3px 0 0' }}>
+              Gerencie seus dados pessoais, saúde, hidratação e preferências
             </p>
           </div>
 
@@ -506,8 +517,15 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             />
           </div>
 
-          {/* Saúde, Biometria (Peso, Altura, Data de Nascimento, Objetivo), Contas Conectadas, Segurança e Dados */}
-          <div style={{ marginTop: '16px' }} data-testid="settings-account-sections">
+          {/* Seção específica de Água (Capacidade dos copos + Meta diária + Sugestão 35 ml/kg) e Saúde (Peso e Altura) */}
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }} data-testid="settings-account-sections">
+            <MetaAgua
+              user={user}
+              setUser={onUpdateUser}
+              health={health}
+              setHealth={setHealth}
+              showToast={showToast}
+            />
             <ProfileAccountSections
               user={user}
               setUser={onUpdateUser}
@@ -516,15 +534,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               showToast={showToast}
               onOpenSettings={onClose}
               onLogout={onLogout}
-              waterSlot={
-                <MetaAgua
-                  user={user}
-                  setUser={onUpdateUser}
-                  health={health}
-                  setHealth={setHealth}
-                  showToast={showToast}
-                />
-              }
+              waterSlot={false}
             />
           </div>
         </div>

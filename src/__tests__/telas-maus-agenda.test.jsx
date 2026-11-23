@@ -56,15 +56,25 @@ describe('Maus hábitos (tela nova)', () => {
     expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/recorde de 19 dias/));
   });
 
-  it('cria com sugestão e custo semanal convertido por dia; exclui com confirmação', () => {
+  it('cria com sugestão, inicia a contagem exatamente no instante da criação (0 dias, 0h, 0min) e exclui com confirmação', () => {
+    const antes = Date.now();
     render(<MausHabitosTab user={user} showToast={vi.fn()} />);
     fireEvent.click(screen.getAllByRole('button', { name: /Novo acompanhamento|Começar um acompanhamento/ })[0]);
     fireEvent.click(screen.getByRole('button', { name: 'Apostas' }));
     fireEvent.change(screen.getByLabelText(/Quanto gastava/), { target: { value: '70' } });
     fireEvent.change(screen.getByLabelText('Período do gasto'), { target: { value: 'week' } });
     fireEvent.click(screen.getByRole('button', { name: 'Começar a contar' }));
+    const depois = Date.now();
     let lista = JSON.parse(localStorage.getItem('ethos_bad_habits_u1'));
     expect(lista[0]).toMatchObject({ title: 'Apostas / Jogos de Azar (Bets)', cost_per_day: 10, cost_period: 'week', cost_value: 70 });
+
+    // O timestamp started_at deve corresponder ao exato instante da criação (e nunca 00:00 do dia)
+    const inicioMs = new Date(lista[0].started_at).getTime();
+    expect(inicioMs).toBeGreaterThanOrEqual(antes);
+    expect(inicioMs).toBeLessThanOrEqual(depois);
+    expect(tempoLimpo(lista[0].started_at, depois)).toEqual({ dias: 0, horas: 0, minutos: 0 });
+    expect(screen.getByLabelText(/0 dias, 0 horas e 0 minutos sem recaída/i)).toBeTruthy();
+
     fireEvent.click(screen.getByRole('button', { name: /Excluir Apostas/ }));
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Excluir' }));
     lista = JSON.parse(localStorage.getItem('ethos_bad_habits_u1'));

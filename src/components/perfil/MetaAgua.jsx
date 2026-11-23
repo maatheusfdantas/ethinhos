@@ -1,97 +1,211 @@
 import React, { useEffect, useState } from 'react';
-import { calculateDailyWaterTarget } from '../../utils/biometricsAndAnalytics';
-import { apiFetch } from '../../utils/api';
-import { todayLocal } from '../../utils/healthDay';
-import { useUnsavedGuard } from '../../hooks/useUnsavedGuard';
+import { Droplets, Check } from 'lucide-react';
 
-const COPOS = [200, 250, 300, 500];
-const numero = (v) => parseFloat(String(v).replace(',', '.'));
-const pesoInicial = (user) => {
-  if (user?.weight && Number(user.weight) > 0) return String(user.weight);
-  try {
-    const salvo = localStorage.getItem(`ethos_user_weight_${user?.id || 'default'}`);
-    if (salvo && Number(salvo) > 0) return salvo;
-  } catch { /* sem armazenamento local */ }
-  return '';
+const COPOS_EXEMPLO = [200, 250, 300, 350, 500];
+
+const pesoDaSaude = (user) => {
+  const uid = user?.id || 'default';
+  const v = Number(user?.weight || localStorage.getItem(`ethos_weight_${uid}`));
+  return Number.isFinite(v) && v >= 20 && v <= 400 ? v : 70;
+};
+
+const copoSalvo = (user, health) => {
+  const uid = user?.id || 'default';
+  const saved = Number(health?.glassMl || localStorage.getItem(`ethos_glass_ml_${uid}`));
+  return Number.isFinite(saved) && saved >= 50 && saved <= 2000 ? Math.round(saved) : 250;
+};
+
+const metaMlSalva = (user, health, peso, copo) => {
+  const uid = user?.id || 'default';
+  const sugg = Math.round(peso * 35);
+  const fromStorage = Number(localStorage.getItem(`ethos_water_target_ml_${uid}`));
+  if (Number.isFinite(fromStorage) && fromStorage >= 500 && fromStorage <= 10000) return Math.round(fromStorage);
+  if (Number.isFinite(Number(health?.waterTargetMl)) && Number(health.waterTargetMl) >= 500) {
+    return Math.round(Number(health.waterTargetMl));
+  }
+  if (Number.isFinite(Number(health?.waterTarget)) && Number(health.waterTarget) > 0) {
+    return Math.round(Number(health.waterTarget) * copo);
+  }
+  return sugg;
 };
 
 /**
- * Meta de água com salvar explícito (lote 2, 21/11/2026; T7 da proposta 07).
- * Mesma regra e mesma gravação do ProfileBiometricsCard (peso × 35 ml; perfil + saúde de hoje),
- * mas só grava ao tocar em "Salvar alterações". Sair com alteração pede confirmação.
+ * Seção específica de Água:
+ * - Capacidade dos copos personalizável em ml (exemplos rápidos + valor editável)
+ * - Meta de ingestão diária em ml e copos
+ * - Sugestão diária clara com base no peso informado em Saúde (35 ml por kg de peso corporal)
+ * - Sem duplicar os campos de Peso e Altura da seção de Saúde
  */
-export function MetaAgua({ user, setUser, health, setHealth, showToast }) {
-  const salvoPeso = pesoInicial(user);
-  const salvoCopo = Number(health?.glassMl) > 0 ? Number(health.glassMl) : 250;
-  const [peso, setPeso] = useState(salvoPeso);
+export function MetaAgua({ user, health = {}, setHealth, showToast }) {
+  const peso = pesoDaSaude(user);
+  const sugestaoMl = Math.round(peso * 35);
+
+  const salvoCopo = copoSalvo(user, health);
+  const salvoMetaMl = metaMlSalva(user, health, peso, salvoCopo);
+
   const [copo, setCopo] = useState(salvoCopo);
-  const [estado, setEstado] = useState('idle'); // idle | saving | error
+  const [metaMl, setMetaMl] = useState(salvoMetaMl);
+  const [usarSugestaoAutomatica, setUsarSugestaoAutomatica] = useState(() => salvoMetaMl === sugestaoMl);
 
-  useEffect(() => { setPeso(pesoInicial(user)); }, [user?.weight]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (Number(health?.glassMl) > 0) setCopo(Number(health.glassMl)); }, [health?.glassMl]);
-
-  const p = numero(peso);
-  const valido = Number.isFinite(p) && p > 0 && p <= 350;
-  const dirty = String(peso).trim() !== String(salvoPeso).trim() || copo !== salvoCopo;
-  const calc = calculateDailyWaterTarget(valido ? p : 0, copo);
-
-  const salvar = async () => {
-    if (!valido) return false;
-    const meta = Math.max(1, Math.ceil((p * 35) / copo));
-    const novoUser = { ...user, weight: p };
-    const novaSaude = { ...health, waterGlasses: health?.waterGlasses || 0, waterTarget: meta, glassMl: copo };
-    setEstado('saving');
-    try {
-      localStorage.setItem(`ethos_user_weight_${user?.id || 'default'}`, String(p));
-      localStorage.setItem('ethos_current_user', JSON.stringify(novoUser));
-      sessionStorage.setItem('ethos_current_user', JSON.stringify(novoUser));
-      localStorage.setItem(`ethos_health_${user?.id || 'default'}`, JSON.stringify(novaSaude));
-    } catch { /* segue com o servidor */ }
-    try {
-      if (user?.id) {
-        const rs = await Promise.all([
-          apiFetch(`/api/user/${user.id}/profile`, { method: 'PUT', body: JSON.stringify({ weight: p }) }),
-          apiFetch(`/api/user/${user.id}/health`, { method: 'POST', body: JSON.stringify({ waterGlasses: novaSaude.waterGlasses, waterDate: todayLocal(), waterTarget: meta, glassMl: copo, sleep: novaSaude.sleep }) })
-        ]);
-        if (rs.some((r) => r && r.ok === false)) throw new Error('falhou');
-      }
-      setUser?.(novoUser);
-      setHealth?.(novaSaude);
-      setEstado('idle');
-      showToast?.(`Meta salva: ${litros(p * 35)} L por dia (${meta} copos de ${copo} ml).`);
-      return true;
-    } catch {
-      setEstado('error');
-      return false;
+  useEffect(() => {
+    const novoCopo = copoSalvo(user, health);
+    setCopo(novoCopo);
+    const novaSugestao = Math.round(pesoDaSaude(user) * 35);
+    if (usarSugestaoAutomatica) {
+      setMetaMl(novaSugestao);
+    } else {
+      setMetaMl(metaMlSalva(user, health, pesoDaSaude(user), novoCopo));
     }
+  }, [user?.id, user?.weight, health?.glassMl, health?.waterTarget, health?.waterTargetMl, usarSugestaoAutomatica]);
+
+  const copoValido = Number.isFinite(Number(copo)) && Number(copo) >= 50 && Number(copo) <= 2000 ? Math.round(Number(copo)) : 250;
+  const metaEfetivaMl = usarSugestaoAutomatica
+    ? sugestaoMl
+    : (Number.isFinite(Number(metaMl)) && Number(metaMl) >= 500 && Number(metaMl) <= 10000 ? Math.round(Number(metaMl)) : sugestaoMl);
+
+  const coposMeta = Math.max(1, Math.ceil(metaEfetivaMl / copoValido));
+  const coposSugeridos = Math.max(1, Math.ceil(sugestaoMl / copoValido));
+  const litrosSugestao = (sugestaoMl / 1000).toFixed(2).replace('.', ',');
+  const litrosMeta = (metaEfetivaMl / 1000).toFixed(2).replace('.', ',');
+
+  const salvoCopos = Number(health?.waterTarget) || Math.max(1, Math.ceil(salvoMetaMl / salvoCopo));
+  const mudou = copoValido !== salvoCopo || metaEfetivaMl !== salvoMetaMl || coposMeta !== salvoCopos;
+
+  const irParaSaude = () => {
+    const el = document.getElementById('ps-saude');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const input = document.getElementById('psWeightKg');
+    input?.focus();
   };
 
-  useUnsavedGuard(dirty, { label: 'a meta de água', onSave: salvar });
+  const salvar = () => {
+    const uid = user?.id || 'default';
+    localStorage.setItem(`ethos_glass_ml_${uid}`, String(copoValido));
+    localStorage.setItem(`ethos_water_target_ml_${uid}`, String(metaEfetivaMl));
+
+    const next = {
+      ...health,
+      waterTarget: coposMeta,
+      waterTargetMl: metaEfetivaMl,
+      glassMl: copoValido
+    };
+    setHealth?.(next);
+    if (user?.id) {
+      fetch(`/api/user/${user.id}/health`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next)
+      }).catch(() => {});
+    }
+    showToast?.(`Configurações de água salvas: ${litrosMeta} L/dia (${coposMeta} copos de ${copoValido} ml).`);
+  };
 
   return (
-    <div className="pf-agua" data-testid="meta-agua">
+    <section className="pf-card rx-glass-card" style={{ '--pf-acc': 'var(--rx-m-agua)' }} data-testid="meta-agua">
+      <div className="pf-head">
+        <h2><span className="rx-tile sm"><Droplets size={17} /></span>Água e Hidratação Diária</h2>
+        <span className="ps-lock">{litrosMeta} L / dia • {coposMeta} copos</span>
+      </div>
+
+      {/* SUGESTÃO CALCULADA COM BASE NO PESO (35 ML / KG) */}
+      <div
+        className="ps-account"
+        data-testid="agua-sugestao-box"
+        style={{ marginBottom: 4 }}
+      >
+        <div>
+          <b>Sugestão diária recomendada: {sugestaoMl} ml ({litrosSugestao} L por dia)</b>
+          <span>
+            Fórmula padrão: <b>35 ml por kg</b> × <b>{peso} kg</b> (peso em Saúde) = <b>{sugestaoMl} ml</b> ({coposSugeridos} copos de {copoValido} ml)
+          </span>
+        </div>
+        <button
+          type="button"
+          className="rx-btn ghost tiny"
+          onClick={irParaSaude}
+        >
+          Editar peso em Saúde
+        </button>
+      </div>
+
       <div className="pf-agua-row">
-        <div className="rx-field">
-          <label htmlFor="pf-peso">Peso (kg)</label>
-          <input id="pf-peso" inputMode="decimal" value={peso} placeholder="Ex.: 70" aria-invalid={peso !== '' && !valido ? 'true' : undefined} onChange={(e) => { setPeso(e.target.value); setEstado('idle'); }} />
+        {/* CAPACIDADE DOS COPOS EM ML (EXEMPLOS + CAMPO PERSONALIZÁVEL) */}
+        <div className="tl-field">
+          <span>Capacidade dos copos (ml)</span>
+          <div className="tl-seg" role="group" aria-label="Exemplos de capacidade do copo">
+            {COPOS_EXEMPLO.map((ml) => (
+              <button
+                key={ml}
+                type="button"
+                aria-pressed={copoValido === ml}
+                onClick={() => setCopo(ml)}
+              >
+                {ml} ml
+              </button>
+            ))}
+          </div>
+          <label className="tl-field" style={{ marginTop: 8 }}>
+            <span style={{ fontSize: 12.5 }}>Personalizar capacidade do copo (ml)</span>
+            <input
+              className="tl-in"
+              type="number"
+              min="50"
+              max="2000"
+              step="10"
+              aria-label="Capacidade do copo (ml)"
+              value={copo}
+              onChange={(e) => setCopo(e.target.value === '' ? '' : Number(e.target.value))}
+            />
+          </label>
         </div>
-        <div className="rx-field">
-          <label htmlFor="pf-copo">Copo (ml)</label>
-          <select id="pf-copo" className="es-input" value={copo} onChange={(e) => { setCopo(Number(e.target.value)); setEstado('idle'); }}>
-            {COPOS.map((c) => <option key={c} value={c}>{c} ml</option>)}
-          </select>
+
+        {/* META DE INGESTÃO DIÁRIA */}
+        <div className="tl-field">
+          <span>Meta de ingestão diária (ml)</span>
+          <input
+            className="tl-in"
+            type="number"
+            min="500"
+            max="10000"
+            step="50"
+            aria-label="Meta de ingestão diária (ml)"
+            value={metaEfetivaMl}
+            onChange={(e) => {
+              setUsarSugestaoAutomatica(false);
+              setMetaMl(e.target.value === '' ? '' : Number(e.target.value));
+            }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+            <small className="rx-sub">
+              Equivale a <b>{litrosMeta} L por dia ({coposMeta} copos de {copoValido} ml)</b>
+            </small>
+            {!usarSugestaoAutomatica && (
+              <button
+                type="button"
+                className="rx-link"
+                style={{ fontSize: 12.5 }}
+                onClick={() => {
+                  setUsarSugestaoAutomatica(true);
+                  setMetaMl(sugestaoMl);
+                }}
+              >
+                Usar sugestão ({sugestaoMl} ml)
+              </button>
+            )}
+          </div>
         </div>
       </div>
-      <p className="rx-sub" style={{ margin: '0 0 12px' }}>
-        {valido ? `Meta: ${String(p).replace('.', ',')} × 35 ml = ${calc.dailyLiters} L por dia (${calc.targetGlasses} ${calc.targetGlasses === 1 ? 'copo' : 'copos'}).` : 'Informe o peso para calcular a meta (peso × 35 ml por dia).'}
-      </p>
-      {estado === 'error' && <p className="rx-field-error" role="alert">Não foi possível salvar. Confira a conexão e tente de novo.</p>}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-        {dirty && <button type="button" className="rx-btn ghost" onClick={() => { setPeso(salvoPeso); setCopo(salvoCopo); setEstado('idle'); }}>Descartar</button>}
-        <button type="button" className="rx-btn" disabled={!dirty || !valido || estado === 'saving'} onClick={salvar}>{estado === 'saving' ? 'Salvando…' : 'Salvar alterações'}</button>
+
+      <div className="pf-agua-foot">
+        <p className="pf-note">
+          Meta ativa: <b>{litrosMeta} L por dia ({coposMeta} copos)</b> • Copo configurado: <b>{copoValido} ml</b>
+        </p>
+        <button type="button" className="rx-btn tiny" onClick={salvar} disabled={!mudou}>
+          <Check size={16} />Salvar alterações
+        </button>
       </div>
-    </div>
+    </section>
   );
 }
 
-function litros(ml) { return String(Math.round(ml / 10) / 100).replace('.', ','); }
+export default MetaAgua;

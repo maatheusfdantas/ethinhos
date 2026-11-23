@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import React from 'react';
 import { LumoMascot } from '../components/LumoMascot';
 import { AdminPortalTab } from '../components/AdminPortalTab';
@@ -73,33 +73,10 @@ describe('LumoMascot Component 3.0 (Organic Morphing Mascot)', () => {
     expect(screen.getByTestId('timer-display')).toHaveTextContent('12:30');
   });
 
-  it('renderiza o card Pomodo com reatividade ao timer e slider de progresso na aba Teste', async () => {
+  it('mantém o LumoMascot funcional isoladamente e confirma que o laboratório experimental foi removido do AdminPortalTab', async () => {
     render(<AdminPortalTab />);
-
-    // Navega para a aba Teste
-    const testeBtn = await screen.findByRole('button', { name: /teste/i });
-    fireEvent.click(testeBtn);
-
-    // O card Pomodo deve estar visível
-    expect(screen.getByTestId('pomodo-card')).toBeInTheDocument();
-    expect(screen.getByText(/^Pomodo$/i)).toBeInTheDocument();
-
-    // Slider de teste de energia
-    const slider = screen.getByRole('slider', { name: /ajustar energia do lumo/i });
-    expect(slider).toBeInTheDocument();
-
-    // Altera o slider para 85% (energia máxima)
-    fireEvent.change(slider, { target: { value: '85' } });
-    expect(screen.getByText(/✦ Energia Máxima/i)).toBeInTheDocument();
-
-    // Testa seletor rápido de Concluído
-    const conclBtn = screen.getByRole('button', { name: /concluído/i });
-    fireEvent.click(conclBtn);
-    expect(screen.getByText(/Finalizado/i)).toBeInTheDocument();
-
-    // Testa reset para 25m
-    const resetBtn = screen.getByRole('button', { name: /25m/i });
-    fireEvent.click(resetBtn);
-    expect(screen.getByText(/25:00/)).toBeInTheDocument();
+    expect(await screen.findByText(/Total de Contas/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('pomodo-card')).toBeNull();
+    expect(screen.queryByText(/Mascote Lumo 2\.0/i)).toBeNull();
   });
 });

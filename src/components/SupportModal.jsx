@@ -10,14 +10,18 @@ import {
   AlertCircle,
   Sparkles,
   HelpCircle,
-  Bug
+  Bug,
+  BookOpen,
+  Droplets,
+  Timer,
+  ShieldCheck
 } from 'lucide-react';
 
 const TICKET_CATEGORIES = [
-  { id: 'bug', label: 'Bug / Erro no Sistema', icon: Bug, color: '#F43F5E' },
-  { id: 'duvida', label: 'Dúvida sobre Funcionalidade', icon: HelpCircle, color: '#38BDF8' },
-  { id: 'conta', label: 'Minha Conta & Acesso', icon: AlertCircle, color: '#F59E0B' },
-  { id: 'sugestao', label: 'Sugestão de Melhoria', icon: Sparkles, color: '#10B981' }
+  { id: 'bug', label: 'Bug / Erro no Sistema', icon: Bug, color: 'var(--rx-bad)' },
+  { id: 'duvida', label: 'Dúvida sobre Funcionalidade', icon: HelpCircle, color: 'var(--rx-blue)' },
+  { id: 'conta', label: 'Minha Conta & Acesso', icon: AlertCircle, color: 'var(--rx-amber)' },
+  { id: 'sugestao', label: 'Sugestão de Melhoria', icon: Sparkles, color: 'var(--rx-violet)' }
 ];
 
 const SYSTEM_MODULES = [
@@ -32,8 +36,49 @@ const SYSTEM_MODULES = [
   'Comunidade & Conexões'
 ];
 
+const GUIDE_TOPICS = [
+  {
+    id: 'hidratacao',
+    icon: Droplets,
+    color: 'var(--rx-m-agua)',
+    title: 'Saúde e Hidratação Diária',
+    badge: '35 ml / kg',
+    summary: 'Como funcionam o cálculo de água, peso, altura e tamanho dos copos.',
+    bullets: [
+      { highlight: 'Saúde', text: 'Preencha seu Peso (kg) e sua Altura (cm) na seção Saúde dentro de Configurações.' },
+      { highlight: 'Água', text: 'A sugestão diária usa a fórmula padrão de 35 ml por kg de peso corporal e converte automaticamente para copos.' },
+      { highlight: 'Copos personalizados', text: 'Na seção de Água você define a capacidade do seu copo ou garrafa em ml (ex.: 200 ml, 250 ml, 350 ml, 500 ml ou valor editável).' }
+    ]
+  },
+  {
+    id: 'foco',
+    icon: Timer,
+    color: 'var(--rx-m-foco)',
+    title: 'Foco, Cultivo e Evolução',
+    badge: '5 a 120 min',
+    summary: 'Personalize a intensidade do timer e acompanhe seus cultivos ao longo do tempo.',
+    bullets: [
+      { highlight: 'Seletor recolhível', text: 'Toque no cartão acima do anel de foco para escolher entre Plantas, Mundos, Elementos, Mascotes, Naves, ETs, Foguetes, Livros e Poções.' },
+      { highlight: 'Intensidade e barra', text: 'Escolha um nível de intensidade ou deslize a barra de 5 a 120 minutos para definir a duração exata da sessão.' },
+      { highlight: 'Evolução Semanal e Mensal', text: 'Acompanhe todas as espécies e elementos produzidos nas suas sessões reais nos últimos 7 ou 30 dias.' }
+    ]
+  },
+  {
+    id: 'privacidade',
+    icon: ShieldCheck,
+    color: 'var(--rx-violet)',
+    title: 'Privacidade, Conta e Suporte',
+    badge: 'Protegido',
+    summary: 'Seus registros são privados e qualquer suporte técnico exige autorização explícita.',
+    bullets: [
+      { highlight: 'Acesso consentido', text: 'Em cada chamado aberto você decide quais categorias liberar temporariamente e pode revogar o acesso a qualquer instante.' },
+      { highlight: 'Exportação completa', text: 'Em Configurações você pode baixar uma cópia integral dos seus dados em formato JSON.' }
+    ]
+  }
+];
+
 export function SupportModal({ isOpen, onClose, user, showToast }) {
-  const [activeTab, setActiveTab] = useState('new'); // 'new' | 'history'
+  const [activeTab, setActiveTab] = useState('new'); // 'new' | 'history' | 'guide'
   const [subject, setSubject] = useState('');
   const [category, setCategory] = useState('duvida');
   const [moduleName, setModuleName] = useState(SYSTEM_MODULES[0]);
@@ -129,86 +174,113 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="rx-overlay" onClick={onClose}>
       <div
-        className="modal-sheet"
-        style={{ maxWidth: '580px', width: '94vw', maxHeight: '88vh', overflowY: 'auto' }}
+        className="rx-dialog hlp-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="hlpModalTitle"
+        data-testid="support-modal"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
-        <div className="modal-header" style={{ paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '12px',
-                background: 'rgba(56, 189, 248, 0.16)',
-                color: '#38BDF8',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
+        <header className="hlp-head">
+          <div className="hlp-head-main">
+            <span className="rx-tile solid" style={{ '--c': 'var(--rx-violet)' }}>
               <LifeBuoy size={20} />
-            </div>
+            </span>
             <div>
-              <h2 className="modal-title" style={{ margin: 0 }}>Central de Ajuda & Suporte</h2>
-              <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                Abra um chamado técnico ou acompanhe respostas da administração
-              </span>
+              <h2 id="hlpModalTitle">Central de Ajuda & Suporte</h2>
+              <p>Guias rápidos do Ethos, abertura de chamados e respostas da administração</p>
             </div>
           </div>
 
-          <button className="modal-close-btn" onClick={onClose}>
+          <button type="button" className="rx-icon-btn" onClick={onClose} aria-label="Fechar central de ajuda">
             <X size={18} />
           </button>
-        </div>
+        </header>
 
         {/* TABS */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '14px', marginBottom: '16px' }}>
+        <div className="tl-seg" role="tablist" aria-label="Seções da central de ajuda">
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'new'}
+            aria-pressed={activeTab === 'new'}
             onClick={() => setActiveTab('new')}
-            style={{
-              flex: 1,
-              padding: '9px 14px',
-              borderRadius: '12px',
-              border: activeTab === 'new' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
-              background: activeTab === 'new' ? 'rgba(0, 229, 255, 0.14)' : 'var(--surface-elevated)',
-              color: activeTab === 'new' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
           >
-            + Abrir Novo Ticket
+            <Send size={14} /> + Abrir Novo Ticket
           </button>
 
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'history'}
+            aria-pressed={activeTab === 'history'}
             onClick={() => setActiveTab('history')}
-            style={{
-              flex: 1,
-              padding: '9px 14px',
-              borderRadius: '12px',
-              border: activeTab === 'history' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
-              background: activeTab === 'history' ? 'rgba(0, 229, 255, 0.14)' : 'var(--surface-elevated)',
-              color: activeTab === 'history' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
           >
-            Meus Chamados ({myTickets.length})
+            <MessageSquare size={14} /> Meus Chamados ({myTickets.length})
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'guide'}
+            aria-pressed={activeTab === 'guide'}
+            onClick={() => setActiveTab('guide')}
+          >
+            <BookOpen size={14} /> Guia Rápido
           </button>
         </div>
 
-        {activeTab === 'new' ? (
-          <form onSubmit={handleSubmitTicket}>
-            <div className="form-group">
-              <label className="form-label">Tipo de Solicitação</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '6px' }}>
+        {/* GUIA RÁPIDO COM DESTAQUES FORMATADOS */}
+        {activeTab === 'guide' && (
+          <div className="es-stack" data-testid="support-guide-section">
+            {GUIDE_TOPICS.map((topic) => {
+              const Icon = topic.icon;
+              return (
+                <article key={topic.id} className="hlp-box">
+                  <div className="hlp-ticket-head">
+                    <h3>
+                      <span className="rx-tile sm" style={{ '--c': topic.color }}>
+                        <Icon size={16} />
+                      </span>
+                      {topic.title}
+                    </h3>
+                    <span className="hlp-highlight">{topic.badge}</span>
+                  </div>
+                  <p>{topic.summary}</p>
+                  <ul>
+                    {topic.bullets.map((b, idx) => (
+                      <li key={idx}>
+                        <strong>{b.highlight}:</strong> {b.text}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ABRIR NOVO TICKET */}
+        {activeTab === 'new' && (
+          <form onSubmit={handleSubmitTicket} className="es-stack" data-testid="support-new-form">
+            <div className="hlp-box">
+              <h3>
+                <BookOpen size={16} /> Como podemos ajudar você?
+              </h3>
+              <p>
+                Escolha o tipo de solicitação, o módulo relacionado e descreva sua dúvida. Termos em destaque como{' '}
+                <span className="hlp-highlight">Hidratação</span>,{' '}
+                <span className="hlp-highlight">Foco</span> e{' '}
+                <span className="hlp-highlight">Sincronização</span> agilizam a análise técnica.
+              </p>
+            </div>
+
+            <div className="rx-field">
+              <span>Tipo de Solicitação</span>
+              <div className="hlp-grid" role="group" aria-label="Tipo de Solicitação">
                 {TICKET_CATEGORIES.map((cat) => {
                   const Icon = cat.icon;
                   const isSelected = category === cat.id;
@@ -216,23 +288,11 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                     <button
                       key={cat.id}
                       type="button"
+                      className="hlp-cat"
+                      aria-pressed={isSelected}
                       onClick={() => setCategory(cat.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '10px 12px',
-                        borderRadius: '12px',
-                        border: isSelected ? `1.5px solid ${cat.color}` : '1px solid var(--border-subtle)',
-                        background: isSelected ? `${cat.color}1F` : 'var(--surface-elevated)',
-                        color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
                     >
-                      <Icon size={15} color={cat.color} />
+                      <Icon size={15} style={{ color: cat.color, flexShrink: 0 }} />
                       <span>{cat.label}</span>
                     </button>
                   );
@@ -240,11 +300,11 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px' }}>
-              <div className="form-group">
-                <label className="form-label">Módulo do Sistema</label>
+            <div className="ps-row">
+              <label className="rx-field">
+                <span>Módulo do Sistema</span>
                 <select
-                  className="input-dark"
+                  className="es-input"
                   value={moduleName}
                   onChange={(e) => setModuleName(e.target.value)}
                 >
@@ -252,12 +312,12 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                     <option key={m} value={m}>{m}</option>
                   ))}
                 </select>
-              </div>
+              </label>
 
-              <div className="form-group">
-                <label className="form-label">Prioridade</label>
+              <label className="rx-field">
+                <span>Prioridade</span>
                 <select
-                  className="input-dark"
+                  className="es-input"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                 >
@@ -266,25 +326,25 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                   <option value="Alta">Alta</option>
                   <option value="Urgente">Urgente</option>
                 </select>
-              </div>
+              </label>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Assunto Resumido</label>
+            <label className="rx-field">
+              <span>Assunto Resumido</span>
               <input
                 type="text"
-                className="input-dark"
+                className="es-input"
                 placeholder="Ex: Dúvida ao configurar meta no Pomodoro ou erro ao salvar hábito"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 required
               />
-            </div>
+            </label>
 
-            <div className="form-group">
-              <label className="form-label">Descrição Detalhada</label>
+            <label className="rx-field">
+              <span>Descrição Detalhada</span>
               <textarea
-                className="input-dark"
+                className="es-input"
                 rows={4}
                 placeholder="Descreva como podemos ajudar ou os passos para reproduzir o problema..."
                 value={message}
@@ -292,13 +352,12 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                 style={{ resize: 'vertical' }}
                 required
               />
-            </div>
+            </label>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+            <div className="rx-form-acts">
               <button
                 type="button"
-                className="btn-secondary"
-                style={{ flex: 1 }}
+                className="rx-btn ghost"
                 onClick={onClose}
               >
                 Cancelar
@@ -306,77 +365,57 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-primary"
-                style={{ flex: 1.6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                className="rx-btn"
               >
                 <Send size={15} />
                 <span>{submitting ? 'Enviando Ticket...' : 'Enviar Ticket para o Suporte'}</span>
               </button>
             </div>
           </form>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        )}
+
+        {/* MEUS CHAMADOS */}
+        {activeTab === 'history' && (
+          <div className="es-stack" data-testid="support-history-section">
             {myTickets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-secondary)' }}>
-                <MessageSquare size={32} style={{ margin: '0 auto 8px auto', opacity: 0.5 }} />
-                <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>
+              <div className="hlp-box" style={{ textAlign: 'center', padding: '32px 16px', alignItems: 'center' }}>
+                <MessageSquare size={32} style={{ opacity: 0.6 }} />
+                <p style={{ margin: 0, fontWeight: 600 }}>
                   Você ainda não abriu nenhum chamado de suporte.
                 </p>
               </div>
             ) : (
               myTickets.map((t) => {
-                const isResolved = t.status === 'resolvido';
+                const isResolved = t.status === 'resolvido' || t.status === 'resolved';
                 return (
-                  <div
-                    key={t.id}
-                    className="card-native"
-                    style={{
-                      background: 'var(--surface-elevated)',
-                      border: isResolved ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-subtle)',
-                      padding: '14px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <article key={t.id} className="hlp-ticket">
+                    <div className="hlp-ticket-head">
+                      <strong style={{ fontSize: '15px', color: 'var(--rx-ink)' }}>
                         {t.subject}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 800,
-                          textTransform: 'uppercase',
-                          padding: '3px 9px',
-                          borderRadius: '999px',
-                          background: isResolved ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)',
-                          color: isResolved ? '#34D399' : '#FBBF24'
-                        }}
-                      >
-                        {isResolved ? '✓ Resolvido' : t.status === 'em_andamento' ? '⏳ Em Análise' : '📩 Aberto'}
+                      </strong>
+                      <span className="hlp-highlight">
+                        {isResolved ? (
+                          <><CheckCircle2 size={13} style={{ marginRight: 4 }} /> Resolvido</>
+                        ) : t.status === 'em_andamento' ? (
+                          <><Clock size={13} style={{ marginRight: 4 }} /> Em Análise</>
+                        ) : (
+                          <><Clock size={13} style={{ marginRight: 4 }} /> Aberto</>
+                        )}
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                      Módulo: <strong>{t.module || 'Geral'}</strong> • Prioridade: <strong>{t.priority}</strong> •{' '}
+                    <div style={{ fontSize: '12.5px', color: 'var(--rx-ink-2)' }}>
+                      Módulo: <strong>{t.module || 'Geral'}</strong> • Prioridade: <strong>{t.priority || 'Média'}</strong> •{' '}
                       {t.created_at ? new Date(t.created_at).toLocaleString('pt-BR') : 'Hoje'}
                     </div>
 
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, lineHeight: 1.45 }}>
+                    <div className="hlp-ticket-msg">
                       {t.message}
-                    </p>
+                    </div>
 
                     {t.admin_reply && (
-                      <div
-                        style={{
-                          marginTop: '10px',
-                          padding: '10px 12px',
-                          borderRadius: '10px',
-                          background: 'rgba(0, 229, 255, 0.1)',
-                          borderLeft: '3px solid var(--accent-cyan)',
-                          fontSize: '0.8rem',
-                          color: '#E2E8F0'
-                        }}
-                      >
-                        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--accent-cyan)', marginBottom: '3px', textTransform: 'uppercase' }}>
+                      <div className="hlp-reply">
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--rx-lavender)', marginBottom: '4px', textTransform: 'uppercase' }}>
                           Resposta da Equipe Ethos:
                         </div>
                         {t.admin_reply}
@@ -385,7 +424,7 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
 
                     {/* Acesso de suporte consentido: o cliente libera, acompanha e revoga */}
                     <SupportAccessPanel ticketId={t.id} resolved={isResolved} />
-                  </div>
+                  </article>
                 );
               })
             )}
@@ -395,4 +434,3 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
     </div>
   );
 }
-
