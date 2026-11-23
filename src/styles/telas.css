@@ -77,36 +77,36 @@
 .pf-mini span { font-size: 12.5px; color: var(--rx-ink-3); }
 .pf-mini b { font-size: 18px; font-weight: 640; color: var(--rx-ink); font-variant-numeric: tabular-nums; }
 
-/* Seções da conta (ProfileAccountSections, SpotifyConnectCard) no tema escuro, só dentro do Perfil novo. */
-.pf .ps { color: var(--rx-ink); gap: 20px; }
-.pf .ps-nav { position: static; padding: 0; background: none; }
-.pf .ps-nav button { min-height: 38px; background: transparent; border-color: var(--rx-line-2); color: var(--rx-ink-2); }
-.pf .ps-nav button:hover { border-color: var(--rx-lavender); color: var(--rx-ink); }
-.pf .ps-card, .pf .sp-card { background: var(--rx-card); border: 1px solid var(--rx-line); box-shadow: var(--rx-shadow); color: var(--rx-ink); }
-.pf .ps-card h3, .pf .sp-head h3 { font-size: 17px; font-weight: 640; color: var(--rx-ink); }
-.pf .ps-lock, .pf .sp-badge { background: var(--rx-violet-wash); color: var(--rx-lavender); }
-.pf .ps-muted, .pf .sp-muted, .pf .ps-opt { color: var(--rx-ink-3); }
+/* Seções da conta (ProfileAccountSections, SpotifyConnectCard) no tema escuro, dentro do Perfil e modais de conta. */
+.pf .ps, .ps { color: var(--rx-ink); gap: 20px; }
+.pf .ps-nav, .ps-nav { position: static; padding: 0; background: none; }
+.pf .ps-nav button, .ps-nav button { min-height: 38px; background: transparent; border-color: var(--rx-line-2); color: var(--rx-ink-2); }
+.pf .ps-nav button:hover, .ps-nav button:hover { border-color: var(--rx-lavender); color: var(--rx-ink); }
+.pf .ps-card, .ps-card, .pf .sp-card { background: var(--rx-card); border: 1px solid var(--rx-line); box-shadow: var(--rx-shadow); color: var(--rx-ink); }
+.pf .ps-card h3, .ps-card h3, .pf .sp-head h3 { font-size: 17px; font-weight: 640; color: var(--rx-ink); }
+.pf .ps-lock, .ps-lock, .pf .sp-badge { background: var(--rx-violet-wash); color: var(--rx-lavender); }
+.pf .ps-muted, .ps-muted, .pf .sp-muted, .pf .ps-opt, .ps-opt { color: var(--rx-ink-3); }
 .pf .sp-text, .pf .sp-list { color: var(--rx-ink-2); }
-.pf .ps-form label { color: var(--rx-ink-2); }
-.pf .ps-form input, .pf .ps-form select { background: var(--rx-input); border-color: var(--rx-line-2); color: var(--rx-ink); color-scheme: var(--rx-scheme); }
-.pf .ps-form input:focus, .pf .ps-form select:focus { outline: none; border-color: var(--rx-lavender); box-shadow: 0 0 0 4px rgba(167, 139, 250, .18); }
-.pf .ps-account, .pf .sp-track { background: var(--rx-wash); border: 1px solid var(--rx-line); }
-.pf .ps-account > div, .pf .sp-meta { color: var(--rx-ink-2); }
-.pf .ps-account b, .pf .sp-meta b { color: var(--rx-ink); }
+.pf .ps-form label, .ps-form label { color: var(--rx-ink-2); }
+.pf .ps-form input, .ps-form input, .pf .ps-form select, .ps-form select { background: var(--rx-input); border-color: var(--rx-line-2); color: var(--rx-ink); color-scheme: var(--rx-scheme); }
+.pf .ps-form input:focus, .ps-form input:focus, .pf .ps-form select:focus, .ps-form select:focus { outline: none; border-color: var(--rx-lavender); box-shadow: 0 0 0 4px rgba(167, 139, 250, .18); }
+.pf .ps-account, .ps-account, .pf .sp-track { background: var(--rx-wash); border: 1px solid var(--rx-line); }
+.pf .ps-account > div, .ps-account > div, .pf .sp-meta { color: var(--rx-ink-2); }
+.pf .ps-account b, .ps-account b, .pf .sp-meta b { color: var(--rx-ink); }
 .pf .sp-meta a { color: var(--rx-lavender); }
-.pf .sp-state, .pf .ps-ok { color: var(--rx-blue); }
-.pf .ps-account.danger { background: var(--rx-bad-wash); border-color: transparent; }
-.pf .ps-confirm, .pf .sp-confirm { background: var(--rx-amber-wash); border-color: transparent; color: var(--rx-ink); }
-.pf .ps-error, .pf .sp-error { color: var(--rx-bad); }
-.pf .ps-btn.ghost, .pf .sp-btn.ghost { color: var(--rx-ink); border-color: var(--rx-line-2); }
-.pf .ps-btn.danger { background: var(--rx-bad); color: var(--rx-on-accent); }
+.pf .sp-state, .pf .ps-ok, .ps-ok { color: var(--rx-blue); }
+.pf .ps-account.danger, .ps-account.danger { background: var(--rx-bad-wash); border-color: transparent; }
+.pf .ps-confirm, .ps-confirm, .pf .sp-confirm { background: var(--rx-amber-wash); border-color: transparent; color: var(--rx-ink); }
+.pf .ps-error, .ps-error, .pf .sp-error { color: var(--rx-bad); }
+.pf .ps-btn.ghost, .ps-btn.ghost, .pf .sp-btn.ghost { color: var(--rx-ink); border-color: var(--rx-line-2); }
+.pf .ps-btn.danger, .ps-btn.danger { background: var(--rx-bad); color: var(--rx-on-accent); }
 .pf .sp-cover { background: var(--rx-card-2); }
 @media (max-width: 640px) {
   .pf-agua-row { grid-template-columns: 1fr; }
   .pf-pl { grid-template-columns: 40px minmax(0, 1fr); }
 }
 .pf .rx-link, .tl-lbl { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.pf .ps-row { align-items: end; }
+.pf .ps-row, .ps-row { align-items: end; }
 
 /* Maus hábitos e Agenda (proposta 09, aprovada em 21/11/2026). */
 /* Classes novas desta proposta (vão para src/styles/telas.css na integração). Só tokens --rx-* existentes. */

@@ -129,6 +129,9 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
   const totalPlanned = exercises.reduce((a, e) => a + Math.max(1, Number(e.sets) || 1), 0);
   const totalDone = (session?.sets || []).length;
   const allExercisesDone = totalPlanned > 0 && totalDone >= totalPlanned;
+  const doneCount = exercises.filter((e) => doneOf(e.id).length >= (Number(e.sets) || 1)).length;
+  const pendingExercises = exercises.filter((e) => doneOf(e.id).length < (Number(e.sets) || 1));
+  const completedExercises = exercises.filter((e) => doneOf(e.id).length >= (Number(e.sets) || 1));
 
   const primaryNames = (resolvedEx.primary || []).map((k) => MUSCLES[k]).filter(Boolean);
   const secondaryNames = (resolvedEx.secondary || []).map((k) => MUSCLES[k]).filter(Boolean);
@@ -177,10 +180,26 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
       return n;
     });
     if (ex.showRestTimer !== false && Number(ex.restSec) > 0) setRest({ endAt: Date.now() + Number(ex.restSec) * 1000, total: Number(ex.restSec) * 1000 });
-    if (done.length + 1 >= total && exIdx < exercises.length - 1) {
-      setExIdx(exIdx + 1);
-      showToast?.(`${ex.name} concluído. Próximo: ${exercises[exIdx + 1].name}.`);
+    if (done.length + 1 >= total) {
+      const nextPendingIdx = exercises.findIndex((item) => item.id !== ex.id && doneOf(item.id).length < (Number(item.sets) || 1));
+      if (nextPendingIdx !== -1) {
+        setExIdx(nextPendingIdx);
+        showToast?.(`${ex.name} concluído e movido para o fim da fila! Próximo: ${exercises[nextPendingIdx].name}.`);
+      } else {
+        showToast?.(`Todas as séries de ${ex.name} foram concluídas!`);
+      }
     }
+  });
+
+  const refazerExercicio = (targetEx) => run(async () => {
+    const d = doneOf(targetEx.id);
+    if (d.length > 0) {
+      const r = await treinoApi.desfazer(session.id, { exerciseKey: targetEx.id, setNo: d.length });
+      onChange(r.session);
+    }
+    const idx = exercises.findIndex((item) => item.id === targetEx.id);
+    if (idx !== -1) setExIdx(idx);
+    showToast?.(`Exercício "${targetEx.name}" reaberto.`);
   });
 
   const undo = () => run(async () => {
@@ -279,6 +298,21 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
             </div>
             <h2 className="tr-ex-title">{ex.name}</h2>
             <p className="tr-sub">{total} séries de {planText}{Number(ex.restSec) > 0 ? `, descanso de ${ex.restSec} s` : ''}.</p>
+            {done.length >= total && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', margin: '10px 0 14px' }}>
+                <span style={{ fontSize: '0.84rem', color: '#10B981', fontWeight: 700 }}>
+                  ✓ Exercício finalizado e movido para o fim da fila
+                </span>
+                <button
+                  type="button"
+                  className="rx-btn tiny ghost"
+                  onClick={() => refazerExercicio(ex)}
+                  aria-label={`Refazer ${ex.name}`}
+                >
+                  Refazer exercício
+                </button>
+              </div>
+            )}
             <p className="tr-sub" id="tr-sug-note" style={{ marginTop: 6 }}>Valores em itálico vêm da {sugSource}. Só contam quando você conclui a série.</p>
             <div className="tr-sets">
               {Array.from({ length: total }, (_, i) => {
@@ -346,19 +380,86 @@ export function TreinoAtivo({ session, suggestions = {}, onChange, onFinished, o
             </div>
           </section>
 
-          <section className="tr-panel">
-            <h2>Exercícios</h2>
-            <ul className="tr-exnav">
-              {exercises.map((x, i) => {
-                const n = doneOf(x.id).length;
-                const t = Math.max(1, Number(x.sets) || 1);
-                return (
-                  <li key={x.id} className={n >= t ? 'ok' : ''}>
-                    <button type="button" aria-current={i === exIdx ? 'true' : undefined} onClick={() => setExIdx(i)}><span>{x.name}</span><small>{n} de {t}</small></button>
-                  </li>
-                );
-              })}
-            </ul>
+          <section className="tr-panel" aria-label="Visão geral dos exercícios">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Exercícios da Ficha</h2>
+              <span className="rx-pill" style={{ fontSize: '0.74rem' }}>
+                {doneCount} de {exercises.length} concluídos
+              </span>
+            </div>
+            <p className="tr-sub" style={{ margin: '0 0 12px' }}>
+              Exercícios terminados vão para o fim da fila, com opção de refazer a qualquer momento.
+            </p>
+
+            {/* SEÇÃO 1: FILA DE PENDENTES */}
+            {pendingExercises.length > 0 && (
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--rx-ink-3)', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
+                  Fila Ativa ({pendingExercises.length})
+                </span>
+                <ul className="tr-exnav">
+                  {pendingExercises.map((x) => {
+                    const originalIdx = exercises.findIndex((e) => e.id === x.id);
+                    const n = doneOf(x.id).length;
+                    const t = Math.max(1, Number(x.sets) || 1);
+                    return (
+                      <li key={x.id}>
+                        <button
+                          type="button"
+                          aria-current={originalIdx === exIdx ? 'true' : undefined}
+                          onClick={() => setExIdx(originalIdx)}
+                        >
+                          <span>{x.name}</span>
+                          <small>{n} de {t} séries</small>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {/* SEÇÃO 2: CONCLUÍDOS (NO FIM DA FILA) */}
+            {completedExercises.length > 0 && (
+              <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#10B981', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
+                  Fim da fila ({completedExercises.length})
+                </span>
+                <ul className="tr-exnav">
+                  {completedExercises.map((x) => {
+                    const originalIdx = exercises.findIndex((e) => e.id === x.id);
+                    const n = doneOf(x.id).length;
+                    const t = Math.max(1, Number(x.sets) || 1);
+                    return (
+                      <li key={x.id} className="ok" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          aria-current={originalIdx === exIdx ? 'true' : undefined}
+                          onClick={() => setExIdx(originalIdx)}
+                          style={{ flex: 1 }}
+                        >
+                          <span>✓ {x.name}</span>
+                          <small>{n} de {t}</small>
+                        </button>
+                        <button
+                          type="button"
+                          className="rx-btn ghost tiny"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            refazerExercicio(x);
+                          }}
+                          aria-label={`Refazer ${x.name}`}
+                          title="Refazer este exercício caso tenha clicado por engano"
+                          style={{ padding: '3px 8px', fontSize: '0.72rem', height: 'auto', whiteSpace: 'nowrap' }}
+                        >
+                          Refazer
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </section>
           <section className="tr-note"><Info size={16} /><span>O treino fica salvo: pode trocar de aba ou fechar o app e voltar depois. Mudanças feitas aqui valem só para esta sessão.</span></section>
           <button type="button" className="tr-btn-danger" onClick={() => setConfirm('reiniciar')}><RotateCcw size={15} />Reiniciar sessão</button>

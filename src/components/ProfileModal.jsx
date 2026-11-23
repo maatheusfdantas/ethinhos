@@ -433,7 +433,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
           {/* Form Inputs: Nome, @username e E-mail */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: '#94A3B8', fontWeight: 500, marginBottom: '5px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: '#CBD5E1', fontWeight: 600, marginBottom: '6px' }}>
                 Nome Completo
               </label>
               <input
@@ -442,11 +442,11 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                 onChange={(e) => setName(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.07)',
+                  border: '1px solid rgba(255, 255, 255, 0.18)',
                   borderRadius: '12px',
-                  padding: '9px 12px',
-                  fontSize: '12.5px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
                   fontWeight: 500,
                   color: '#FFFFFF',
                   outline: 'none',
@@ -456,11 +456,11 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: '#94A3B8', fontWeight: 500, marginBottom: '5px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: '#CBD5E1', fontWeight: 600, marginBottom: '6px' }}>
                 Nome de Usuário (@ na rede)
               </label>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '10px', top: '9px', color: '#818cf8', fontWeight: 700, fontSize: '13px' }}>@</span>
+                <span style={{ position: 'absolute', left: '10px', top: '10px', color: '#818cf8', fontWeight: 700, fontSize: '13px' }}>@</span>
                 <input
                   type="text"
                   value={username.replace(/^@/, '')}
@@ -468,11 +468,11 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
                   placeholder="seu_arroba"
                   style={{
                     width: '100%',
-                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+                    border: '1px solid rgba(255, 255, 255, 0.18)',
                     borderRadius: '12px',
-                    padding: '9px 12px 9px 26px',
-                    fontSize: '12.5px',
+                    padding: '10px 14px 10px 28px',
+                    fontSize: '13px',
                     fontWeight: 500,
                     color: '#FFFFFF',
                     outline: 'none',
@@ -484,7 +484,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '11px', color: '#94A3B8', fontWeight: 500, marginBottom: '5px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: '#CBD5E1', fontWeight: 600, marginBottom: '6px' }}>
               E-mail
             </label>
             <input
@@ -493,11 +493,11 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
               onChange={(e) => setEmail(e.target.value)}
               style={{
                 width: '100%',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                backgroundColor: 'rgba(255, 255, 255, 0.07)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
                 borderRadius: '12px',
-                padding: '9px 12px',
-                fontSize: '12.5px',
+                padding: '10px 14px',
+                fontSize: '13px',
                 fontWeight: 500,
                 color: '#FFFFFF',
                 outline: 'none',
@@ -507,7 +507,7 @@ export function ProfileModal({ isOpen, onClose, user, onUpdateUser, onLogout, he
           </div>
 
           {/* Saúde, Biometria (Peso, Altura, Data de Nascimento, Objetivo), Contas Conectadas, Segurança e Dados */}
-          <div style={{ marginTop: '16px' }} data-testid="settings-account-sections">
+          <div className="pf" style={{ marginTop: '16px' }} data-testid="settings-account-sections">
             <ProfileAccountSections
               user={user}
               setUser={onUpdateUser}

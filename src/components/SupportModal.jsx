@@ -4,20 +4,20 @@ import {
   LifeBuoy,
   Send,
   X,
-  CheckCircle2,
-  Clock,
   MessageSquare,
   AlertCircle,
   Sparkles,
   HelpCircle,
-  Bug
+  Bug,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 
 const TICKET_CATEGORIES = [
-  { id: 'bug', label: 'Bug / Erro no Sistema', icon: Bug, color: '#F43F5E' },
-  { id: 'duvida', label: 'Dúvida sobre Funcionalidade', icon: HelpCircle, color: '#38BDF8' },
-  { id: 'conta', label: 'Minha Conta & Acesso', icon: AlertCircle, color: '#F59E0B' },
-  { id: 'sugestao', label: 'Sugestão de Melhoria', icon: Sparkles, color: '#10B981' }
+  { id: 'bug', label: 'Bug / Erro no Sistema', desc: 'Falhas de interface ou sincronização', icon: Bug, color: '#F43F5E' },
+  { id: 'duvida', label: 'Dúvida sobre Funcionalidade', desc: 'Como utilizar recursos e módulos', icon: HelpCircle, color: '#38BDF8' },
+  { id: 'conta', label: 'Minha Conta & Acesso', desc: 'Dados, login, senha e permissões', icon: AlertCircle, color: '#F59E0B' },
+  { id: 'sugestao', label: 'Sugestão de Melhoria', desc: 'Ideias de funções ou melhorias visuais', icon: Sparkles, color: '#10B981' }
 ];
 
 const SYSTEM_MODULES = [
@@ -129,60 +129,94 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="sp-modal-title">
       <div
         className="modal-sheet"
-        style={{ maxWidth: '580px', width: '94vw', maxHeight: '88vh', overflowY: 'auto' }}
+        style={{
+          maxWidth: '680px',
+          width: '94vw',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          borderRadius: '24px',
+          padding: '24px',
+          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.45)',
+          border: '1px solid var(--rx-line-2, rgba(255, 255, 255, 0.12))',
+          background: 'var(--rx-card, #121829)'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
-        <div className="modal-header" style={{ paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* HEADER AREJADO E BEM SINTETIZADO */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid var(--rx-line, rgba(255, 255, 255, 0.08))' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div
               style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '12px',
-                background: 'rgba(56, 189, 248, 0.16)',
+                width: '46px',
+                height: '46px',
+                borderRadius: '14px',
+                background: 'rgba(56, 189, 248, 0.18)',
                 color: '#38BDF8',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexShrink: 0
               }}
             >
-              <LifeBuoy size={20} />
+              <LifeBuoy size={24} />
             </div>
             <div>
-              <h2 className="modal-title" style={{ margin: 0 }}>Central de Ajuda & Suporte</h2>
-              <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                Abra um chamado técnico ou acompanhe respostas da administração
+              <h2 id="sp-modal-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--rx-ink, #FFFFFF)' }}>
+                Central de Ajuda & Suporte
+              </h2>
+              <span style={{ fontSize: '0.84rem', color: 'var(--rx-ink-3, #94A3B8)', display: 'block', marginTop: '2px' }}>
+                Abra um chamado técnico detalhado ou acompanhe respostas da administração
               </span>
             </div>
           </div>
 
-          <button className="modal-close-btn" onClick={onClose}>
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Fechar suporte"
+            style={{
+              background: 'var(--rx-wash, rgba(255, 255, 255, 0.06))',
+              border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
+              color: 'var(--rx-ink-2, #CBD5E1)',
+              borderRadius: '12px',
+              padding: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
             <X size={18} />
           </button>
         </div>
 
-        {/* TABS */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '14px', marginBottom: '16px' }}>
+        {/* TABS ESPAÇOSAS */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '18px', marginBottom: '20px' }}>
           <button
             type="button"
             onClick={() => setActiveTab('new')}
             style={{
               flex: 1,
-              padding: '9px 14px',
-              borderRadius: '12px',
-              border: activeTab === 'new' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
-              background: activeTab === 'new' ? 'rgba(0, 229, 255, 0.14)' : 'var(--surface-elevated)',
-              color: activeTab === 'new' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-              fontSize: '0.82rem',
+              padding: '12px 18px',
+              borderRadius: '14px',
+              border: activeTab === 'new' ? '1.5px solid var(--rx-lavender, #818CF8)' : '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
+              background: activeTab === 'new' ? 'rgba(129, 140, 248, 0.18)' : 'var(--rx-card, rgba(255, 255, 255, 0.03))',
+              color: activeTab === 'new' ? 'var(--rx-lavender, #A5B4FC)' : 'var(--rx-ink-2, #94A3B8)',
+              fontSize: '0.9rem',
               fontWeight: 700,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}
           >
-            + Abrir Novo Ticket
+            <span>+ Abrir Novo Chamado</span>
           </button>
 
           <button
@@ -190,25 +224,34 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
             onClick={() => setActiveTab('history')}
             style={{
               flex: 1,
-              padding: '9px 14px',
-              borderRadius: '12px',
-              border: activeTab === 'history' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
-              background: activeTab === 'history' ? 'rgba(0, 229, 255, 0.14)' : 'var(--surface-elevated)',
-              color: activeTab === 'history' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-              fontSize: '0.82rem',
+              padding: '12px 18px',
+              borderRadius: '14px',
+              border: activeTab === 'history' ? '1.5px solid var(--rx-lavender, #818CF8)' : '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
+              background: activeTab === 'history' ? 'rgba(129, 140, 248, 0.18)' : 'var(--rx-card, rgba(255, 255, 255, 0.03))',
+              color: activeTab === 'history' ? 'var(--rx-lavender, #A5B4FC)' : 'var(--rx-ink-2, #94A3B8)',
+              fontSize: '0.9rem',
               fontWeight: 700,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}
           >
-            Meus Chamados ({myTickets.length})
+            <Clock size={16} />
+            <span>Meus Chamados ({myTickets.length})</span>
           </button>
         </div>
 
         {activeTab === 'new' ? (
-          <form onSubmit={handleSubmitTicket}>
-            <div className="form-group">
-              <label className="form-label">Tipo de Solicitação</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '6px' }}>
+          <form onSubmit={handleSubmitTicket} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* SELEÇÃO DE CATEGORIAS: BEM DIMENSIONADA, CARTÕES AMPLOS COM ÍCONES NÍTIDOS */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 700, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '8px' }}>
+                Tipo de Solicitação
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
                 {TICKET_CATEGORIES.map((cat) => {
                   const Icon = cat.icon;
                   const isSelected = category === cat.id;
@@ -220,85 +263,170 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        padding: '10px 12px',
-                        borderRadius: '12px',
-                        border: isSelected ? `1.5px solid ${cat.color}` : '1px solid var(--border-subtle)',
-                        background: isSelected ? `${cat.color}1F` : 'var(--surface-elevated)',
-                        color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
+                        gap: '12px',
+                        padding: '12px 14px',
+                        borderRadius: '14px',
+                        border: isSelected ? `2px solid ${cat.color}` : '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
+                        background: isSelected ? `${cat.color}22` : 'var(--rx-wash, rgba(255, 255, 255, 0.03))',
+                        color: 'var(--rx-ink, #FFFFFF)',
                         cursor: 'pointer',
-                        textAlign: 'left'
+                        textAlign: 'left',
+                        transition: 'all 0.18s ease'
                       }}
                     >
-                      <Icon size={15} color={cat.color} />
-                      <span>{cat.label}</span>
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          background: `${cat.color}26`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}
+                      >
+                        <Icon size={20} color={cat.color} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: '0.86rem', fontWeight: 700, color: isSelected ? '#FFFFFF' : 'var(--rx-ink, #FFFFFF)' }}>
+                          {cat.label}
+                        </span>
+                        <span style={{ display: 'block', fontSize: '0.74rem', color: 'var(--rx-ink-3, #94A3B8)', marginTop: '2px' }}>
+                          {cat.desc}
+                        </span>
+                      </div>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px' }}>
-              <div className="form-group">
-                <label className="form-label">Módulo do Sistema</label>
+            {/* MÓDULO E PRIORIDADE */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+              <div>
+                <label htmlFor="sp-module-select" style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '6px' }}>
+                  Módulo do Sistema
+                </label>
                 <select
+                  id="sp-module-select"
                   className="input-dark"
                   value={moduleName}
                   onChange={(e) => setModuleName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
+                    background: 'var(--rx-input, #0B1020)',
+                    color: 'var(--rx-ink, #FFFFFF)',
+                    fontSize: '0.86rem'
+                  }}
                 >
                   {SYSTEM_MODULES.map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                    <option key={m} value={m} style={{ background: '#0F172A', color: '#FFFFFF' }}>{m}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Prioridade</label>
+              <div>
+                <label htmlFor="sp-priority-select" style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '6px' }}>
+                  Prioridade
+                </label>
                 <select
+                  id="sp-priority-select"
                   className="input-dark"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
+                    background: 'var(--rx-input, #0B1020)',
+                    color: 'var(--rx-ink, #FFFFFF)',
+                    fontSize: '0.86rem'
+                  }}
                 >
-                  <option value="Baixa">Baixa</option>
-                  <option value="Média">Média</option>
-                  <option value="Alta">Alta</option>
-                  <option value="Urgente">Urgente</option>
+                  <option value="Baixa" style={{ background: '#0F172A', color: '#FFFFFF' }}>Baixa (Não impede o uso)</option>
+                  <option value="Média" style={{ background: '#0F172A', color: '#FFFFFF' }}>Média (Dúvida ou pequeno bug)</option>
+                  <option value="Alta" style={{ background: '#0F172A', color: '#FFFFFF' }}>Alta (Funcionalidade travada)</option>
+                  <option value="Urgente" style={{ background: '#0F172A', color: '#FFFFFF' }}>Urgente (Bloqueio total de acesso)</option>
                 </select>
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Assunto Resumido</label>
+            {/* ASSUNTO */}
+            <div>
+              <label htmlFor="sp-subject-input" style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '6px' }}>
+                Assunto Resumido
+              </label>
               <input
+                id="sp-subject-input"
                 type="text"
                 className="input-dark"
-                placeholder="Ex: Dúvida ao configurar meta no Pomodoro ou erro ao salvar hábito"
+                placeholder="Ex: Dúvida ao configurar meta de água ou erro ao registrar foco"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 required
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
+                  background: 'var(--rx-input, #0B1020)',
+                  color: 'var(--rx-ink, #FFFFFF)',
+                  fontSize: '0.88rem',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Descrição Detalhada</label>
+            {/* DESCRIÇÃO DETALHADA */}
+            <div>
+              <label htmlFor="sp-message-textarea" style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--rx-ink, #FFFFFF)', marginBottom: '6px' }}>
+                Descrição Detalhada
+              </label>
               <textarea
+                id="sp-message-textarea"
                 className="input-dark"
-                rows={4}
-                placeholder="Descreva como podemos ajudar ou os passos para reproduzir o problema..."
+                rows={5}
+                placeholder="Descreva com detalhes como podemos ajudar, passos para reproduzir ou o que esperava ver..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                style={{ resize: 'vertical' }}
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
+                  background: 'var(--rx-input, #0B1020)',
+                  color: 'var(--rx-ink, #FFFFFF)',
+                  fontSize: '0.88rem',
+                  lineHeight: 1.5,
+                  resize: 'vertical',
+                  minHeight: '110px',
+                  boxSizing: 'border-box'
+                }}
                 required
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+            {/* BOTÕES DE AÇÃO */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 className="btn-secondary"
-                style={{ flex: 1 }}
+                style={{
+                  flex: '1 1 140px',
+                  padding: '12px 20px',
+                  borderRadius: '14px',
+                  border: '1px solid var(--rx-line, rgba(255, 255, 255, 0.12))',
+                  background: 'var(--rx-wash, rgba(255, 255, 255, 0.05))',
+                  color: 'var(--rx-ink-2, #E2E8F0)',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer'
+                }}
                 onClick={onClose}
               >
                 Cancelar
@@ -307,21 +435,39 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                 type="submit"
                 disabled={submitting}
                 className="btn-primary"
-                style={{ flex: 1.6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                style={{
+                  flex: '2 1 240px',
+                  padding: '12px 24px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #8B6CFF 0%, #5B8CFF 100%)',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: '0.92rem',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 16px rgba(139, 108, 255, 0.35)'
+                }}
               >
-                <Send size={15} />
-                <span>{submitting ? 'Enviando Ticket...' : 'Enviar Ticket para o Suporte'}</span>
+                <Send size={16} />
+                <span>{submitting ? 'Enviando Chamado...' : 'Enviar Chamado ao Suporte'}</span>
               </button>
             </div>
           </form>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {myTickets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-secondary)' }}>
-                <MessageSquare size={32} style={{ margin: '0 auto 8px auto', opacity: 0.5 }} />
-                <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>
+              <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--rx-ink-3, #94A3B8)' }}>
+                <MessageSquare size={38} style={{ margin: '0 auto 12px auto', opacity: 0.5 }} />
+                <p style={{ margin: 0, fontSize: '0.94rem', fontWeight: 600 }}>
                   Você ainda não abriu nenhum chamado de suporte.
                 </p>
+                <span style={{ fontSize: '0.8rem', display: 'block', marginTop: '4px' }}>
+                  Quando precisar de ajuda, abra um chamado pela aba ao lado.
+                </span>
               </div>
             ) : (
               myTickets.map((t) => {
@@ -331,52 +477,54 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                     key={t.id}
                     className="card-native"
                     style={{
-                      background: 'var(--surface-elevated)',
-                      border: isResolved ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-subtle)',
-                      padding: '14px'
+                      background: 'var(--rx-wash, rgba(255, 255, 255, 0.03))',
+                      border: isResolved ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--rx-line, rgba(255, 255, 255, 0.1))',
+                      borderRadius: '18px',
+                      padding: '18px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--rx-ink, #FFFFFF)' }}>
                         {t.subject}
                       </span>
                       <span
                         style={{
-                          fontSize: '0.7rem',
+                          fontSize: '0.74rem',
                           fontWeight: 800,
                           textTransform: 'uppercase',
-                          padding: '3px 9px',
+                          padding: '4px 10px',
                           borderRadius: '999px',
                           background: isResolved ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)',
-                          color: isResolved ? '#34D399' : '#FBBF24'
+                          color: isResolved ? '#34D399' : '#FBBF24',
+                          border: isResolved ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)'
                         }}
                       >
                         {isResolved ? '✓ Resolvido' : t.status === 'em_andamento' ? '⏳ Em Análise' : '📩 Aberto'}
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--rx-ink-3, #94A3B8)', marginBottom: '10px' }}>
                       Módulo: <strong>{t.module || 'Geral'}</strong> • Prioridade: <strong>{t.priority}</strong> •{' '}
                       {t.created_at ? new Date(t.created_at).toLocaleString('pt-BR') : 'Hoje'}
                     </div>
 
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, lineHeight: 1.45 }}>
+                    <p style={{ fontSize: '0.88rem', color: 'var(--rx-ink-2, #E2E8F0)', margin: 0, lineHeight: 1.55 }}>
                       {t.message}
                     </p>
 
                     {t.admin_reply && (
                       <div
                         style={{
-                          marginTop: '10px',
-                          padding: '10px 12px',
-                          borderRadius: '10px',
-                          background: 'rgba(0, 229, 255, 0.1)',
-                          borderLeft: '3px solid var(--accent-cyan)',
-                          fontSize: '0.8rem',
-                          color: '#E2E8F0'
+                          marginTop: '12px',
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          background: 'rgba(56, 189, 248, 0.12)',
+                          borderLeft: '4px solid #38BDF8',
+                          fontSize: '0.84rem',
+                          color: '#F1F5F9'
                         }}
                       >
-                        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--accent-cyan)', marginBottom: '3px', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#38BDF8', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                           Resposta da Equipe Ethos:
                         </div>
                         {t.admin_reply}
@@ -384,7 +532,9 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
                     )}
 
                     {/* Acesso de suporte consentido: o cliente libera, acompanha e revoga */}
-                    <SupportAccessPanel ticketId={t.id} resolved={isResolved} />
+                    <div style={{ marginTop: '12px' }}>
+                      <SupportAccessPanel ticketId={t.id} resolved={isResolved} />
+                    </div>
                   </div>
                 );
               })
@@ -395,4 +545,3 @@ export function SupportModal({ isOpen, onClose, user, showToast }) {
     </div>
   );
 }
-

@@ -484,7 +484,7 @@ export function FocusTab({
                               onClick={() => set({ especie: item.id })}
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--rx-ink-3)' }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--rx-ink-2)' }}>
                                   {item.id === 'lirio-lunar' ? '★ Padrão' : `#${String(item.indiceTema || 1).padStart(2, '0')}`}
                                 </span>
                                 {item.paleta && (
@@ -502,7 +502,7 @@ export function FocusTab({
                               <div>
                                 <b style={{ display: 'block', fontSize: 13.5 }}>{item.nome}</b>
                                 {item.subtitulo && (
-                                  <small style={{ display: 'block', fontSize: 11, color: 'var(--rx-ink-3)', marginTop: 2 }}>
+                                  <small style={{ display: 'block', fontSize: 11, color: 'var(--rx-ink-2)', marginTop: 2 }}>
                                     {item.subtitulo}
                                   </small>
                                 )}
@@ -584,7 +584,46 @@ export function FocusTab({
                           {it.name} · {it.mins} min
                         </button>
                       ))}
+                      <button
+                        type="button"
+                        className="rf-chip"
+                        aria-pressed={intensity === 'custom'}
+                        onClick={() => setIntensity('custom')}
+                      >
+                        Personalizado {intensity === 'custom' ? `· ${mins} min` : ''}
+                      </button>
                     </div>
+                    {intensity === 'custom' && (
+                      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <label htmlFor="rfCustomMins" className="lbl" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+                          Tempo personalizado:
+                        </label>
+                        <input
+                          id="rfCustomMins"
+                          type="number"
+                          min="1"
+                          max="180"
+                          value={mins}
+                          onChange={(e) => {
+                            const val = Math.max(1, Math.min(180, Math.round(Number(e.target.value)) || 1));
+                            setMins(val);
+                            setIntensity('custom');
+                          }}
+                          style={{
+                            width: '80px',
+                            padding: '6px 10px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--rx-line-2)',
+                            background: 'var(--rx-input)',
+                            color: 'var(--rx-ink)',
+                            fontWeight: 700,
+                            fontSize: '14px',
+                            textAlign: 'center'
+                          }}
+                        />
+                        <span style={{ fontSize: '12px', color: 'var(--rx-ink-3)' }}>minutos (1 a 180 min)</span>
+                      </div>
+                    )}
                   </div>
                   <div className="rf-field">
                     <div className="rf-range-head">
